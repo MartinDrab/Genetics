@@ -105,6 +105,7 @@ OPTION_SET_FUNCTION_HEADER(char *, String);
 OPTION_SET_FUNCTION_HEADER(boolean, Boolean);
 
 ERR_VALUE options_parse_command_line(int argc, char **argv);
+void options_print(void);
 
 ERR_VALUE options_module_init(const size_t MaxOptions);
 void options_module_finit(void);

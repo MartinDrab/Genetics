@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <malloc.h>
+#include <assert.h>
+#include <stdlib.h>
 #include <math.h>
 #include "err.h"
 #include "utils.h"
@@ -27,12 +29,34 @@ ERR_VALUE utils_copy_string(char *String, char **Result)
 	return ret;
 }
 
+ERR_VALUE utils_preallocate_string(const size_t Length, char **Result)
+{
+	char *tmpResult = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	tmpResult = (char *)malloc((Length + 1)*sizeof(char));
+	if (tmpResult != NULL) {
+		tmpResult[Length] = '\0';
+		*Result = tmpResult;
+		ret = ERR_SUCCESS;
+	} else ret = ERR_OUT_OF_MEMORY;
+
+	return ret;
+}
+
 void utils_free_string(char *String)
 {
 	free(String);
 
 	return;
 }
+
+size_t utils_ranged_rand(const size_t Begin, const size_t End)
+{
+	assert(End > Begin);
+	return ((rand() % (End - Begin)) + Begin);
+}
+
 
 boolean utils_is_prime(const size_t Number)
 {
@@ -53,4 +77,21 @@ boolean utils_is_prime(const size_t Number)
 	}
 
 	return ret;
+}
+
+size_t utils_next_prime(const size_t Number)
+{
+	size_t next = Number;
+
+	next += (Number % 2 == 0) ? 1 : 2;
+
+	while (!utils_is_prime(next))
+		next += 2;
+
+	return next;
+}
+
+boolean utils_prob_happened(const double Probability)
+{
+	return (((double)rand() / (double)RAND_MAX) < Probability);
 }

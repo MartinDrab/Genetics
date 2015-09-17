@@ -24,6 +24,9 @@
     <ClCompile Include="..\shared\utils.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="generator.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\shared\options.h">
@@ -36,6 +39,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="gengen.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="generator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

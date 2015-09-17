@@ -346,6 +346,37 @@ static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, char *StrValue)
 	return ret;
 }
 
+static void _option_print_value(PPROGRAM_OPTION Record)
+{
+	assert(flag_on(Record->Flags, PROGRAM_OPTION_FLAG_IN_USE));
+	switch (Record->Type) {
+		case otInt8: printf("%i", Record->Value.Int8); break;
+		case otUInt8: printf("%u", Record->Value.UInt8); break;
+		case otInt16: printf("%i", Record->Value.Int16); break;
+		case otUInt16: printf("%u", Record->Value.UInt16); break;
+		case otInt32: printf("%i", Record->Value.Int32); break;
+		case otUInt32: printf("%u", Record->Value.UInt32); break;
+		case otInt64: printf("%lli", Record->Value.Int64); break;
+		case otUInt64: printf("%llu", Record->Value.UInt64); break;
+		case otFloat: printf("%f", Record->Value.Float); break;
+		case otDouble: printf("%lf", Record->Value.Double); break;
+		case otChar: printf("%c", Record->Value.Char); break;
+		case otString: printf("%s", Record->Value.String); break;
+		case otBoolean: printf("%s", (Record->Value.Boolean) ? "true" : "false"); break;	
+		default: assert(0);  break;
+	}
+
+	return;
+}
+
+static void _option_print_name(PPROGRAM_OPTION Record)
+{
+	assert(flag_on(Record->Flags, PROGRAM_OPTION_FLAG_IN_USE));
+	printf("%s", Record->Name);
+
+	return;
+}
+
 OPTION_GET_VALUE_FUNCTION_INTERNAL(int8_t, Int8, otInt8)
 OPTION_GET_VALUE_FUNCTION_INTERNAL(uint8_t, UInt8, otUInt8)
 OPTION_GET_VALUE_FUNCTION_INTERNAL(int16_t, Int16, otInt16)
@@ -446,6 +477,23 @@ ERR_VALUE options_parse_command_line(int argc, char **argv)
 	return ret;
 }
 
+void options_print(void)
+{
+	PPROGRAM_OPTION record = _optionTable;
+
+	for (size_t i = 0; i < _optionTableSize; ++i) {
+		if (flag_on(record->Flags, PROGRAM_OPTION_FLAG_IN_USE)) {
+			_option_print_name(record);
+			printf(" = ");
+			_option_print_value(record);
+			printf("\n");
+		}
+
+		++record;
+	}
+
+	return;
+}
 
 /************************************************************************/
 /*                      INITIALIZATION AND FINALIZATION                 */
