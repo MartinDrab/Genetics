@@ -24,6 +24,9 @@ typedef int ERR_VALUE;
 #define ERR_NO_INVERSE							16
 #define ERR_MODULUS_TOO_SMALL					17
 #define ERR_ALREADY_EXISTS						18
+#define ERR_ERRNO_VALUE							19
+#define ERR_FERROR								20
+
 
 
 #endif 

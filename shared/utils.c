@@ -4,6 +4,7 @@
 #include <malloc.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 #include "err.h"
 #include "utils.h"
@@ -72,7 +73,7 @@ boolean utils_is_prime(const size_t Number)
 			if (!ret)
 				break;
 
-			test += 2;
+test += 2;
 		}
 	}
 
@@ -108,7 +109,7 @@ ERR_VALUE utils_mul_inverse(const size_t Number, const size_t Modulus, size_t *R
 		size_t t = 1 - u;
 		if (t == 1) {
 			size_t c = Modulus % Number;
-			
+
 			if (c != 0) {
 				u = (Modulus / Number); // floor()
 				while (c != 1 && t == 1) {
@@ -129,12 +130,14 @@ ERR_VALUE utils_mul_inverse(const size_t Number, const size_t Modulus, size_t *R
 				}
 
 				u = v*(1 - t) + t*(Modulus - u);
-			} else ret = ERR_NO_INVERSE;
+			}
+			else ret = ERR_NO_INVERSE;
 		}
 
 		if (ret == ERR_SUCCESS)
 			*Result = u;
-	} else ret = ERR_MODULUS_TOO_SMALL;
+	}
+	else ret = ERR_MODULUS_TOO_SMALL;
 
 	return ret;
 }
@@ -147,6 +150,44 @@ size_t utils_pow_mod(const size_t Base, const size_t Power, const size_t Modulus
 	for (size_t i = 1; i < Power; ++i) {
 		ret *= Base;
 		ret %= Modulus;
+	}
+
+	return ret;
+}
+
+ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength)
+{
+	FILE *f = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	f = fopen(FileName, "rb");
+	if (f != NULL) {
+		ret = fseek(f, 0, SEEK_END);
+		if (ret == ERR_SUCCESS) {
+			long fileSize = ftell(f);
+
+			if (fileSize != -1L) {
+				ret = fseek(f, 0, SEEK_SET);
+				if (ret == ERR_SUCCESS) {
+					char *tmpData = NULL;
+					size_t tmpSize = (size_t)fileSize;
+
+					tmpData = (char *)malloc(tmpSize);
+					if (tmpData != NULL) {
+						if (fread(tmpData, 1, tmpSize, f) == tmpSize) {
+							*Data = tmpData;
+							*DataLength = tmpSize;
+							ret = ERR_SUCCESS;
+						} else ret = ERR_FERROR;
+
+						if (ret != ERR_SUCCESS)
+							free(tmpData);
+					} else ret = ERR_OUT_OF_MEMORY;
+				} else ret = ERR_INTERNAL_ERROR;
+			} else ret = ERR_ERRNO_VALUE;
+		} else ret = ERR_INTERNAL_ERROR;
+
+		fclose(f);
 	}
 
 	return ret;

@@ -31,5 +31,7 @@ size_t utils_next_prime(const size_t Number);
 ERR_VALUE utils_mul_inverse(const size_t Number, const size_t Modulus, size_t *Result);
 size_t utils_pow_mod(const size_t Base, const size_t Power, const size_t Modulus);
 
+ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength);
+
 
 #endif
