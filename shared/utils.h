@@ -28,7 +28,8 @@ boolean utils_prob_happened(const double Probability);
 
 boolean utils_is_prime(const size_t Number);
 size_t utils_next_prime(const size_t Number);
-
+ERR_VALUE utils_mul_inverse(const size_t Number, const size_t Modulus, size_t *Result);
+size_t utils_pow_mod(const size_t Base, const size_t Power, const size_t Modulus);
 
 
 #endif

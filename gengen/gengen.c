@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "utils.h"
 #include "options.h"
 #include "generator.h"
@@ -15,16 +16,16 @@ static ERR_VALUE _default_options(void)
 		ret = option_add_UInt32(GENGEN_OPTION_REGION_MAX, 10);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(GENGEN_OPTION_READ_LENGTH, 3);
+		ret = option_add_UInt32(GENGEN_OPTION_READ_LENGTH, 5);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(GENGEN_OPTION_READS_MIN, 10);
+		ret = option_add_UInt32(GENGEN_OPTION_READS_MIN, 6);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(GENGEN_OPTION_READS_MAX, 10);
+		ret = option_add_UInt32(GENGEN_OPTION_READS_MAX, 6);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_String(GENGEN_OPTION_NUCLEOTIDES, "1234");
+		ret = option_add_String(GENGEN_OPTION_NUCLEOTIDES, "ACGT");
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_Float(GENGEN_OPTION_INDEL_PROB, 0.0);

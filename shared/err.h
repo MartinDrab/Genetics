@@ -21,6 +21,9 @@ typedef int ERR_VALUE;
 #define ERR_STRING_TOO_LONG						13
 #define ERR_INVALID_BOOLEAN_VALUE				14
 #define ERR_OPTION_VALUE_NOT_FOUND				15
+#define ERR_NO_INVERSE							16
+#define ERR_MODULUS_TOO_SMALL					17
+#define ERR_ALREADY_EXISTS						18
 
 
 #endif 

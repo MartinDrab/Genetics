@@ -95,3 +95,59 @@ boolean utils_prob_happened(const double Probability)
 {
 	return (((double)rand() / (double)RAND_MAX) < Probability);
 }
+
+ERR_VALUE utils_mul_inverse(const size_t Number, const size_t Modulus, size_t *Result)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	if (Number < Modulus) {
+		ret = ERR_SUCCESS;
+		size_t v = 1;
+		size_t d = Number;
+		size_t u = (Number == 1);
+		size_t t = 1 - u;
+		if (t == 1) {
+			size_t c = Modulus % Number;
+			
+			if (c != 0) {
+				u = (Modulus / Number); // floor()
+				while (c != 1 && t == 1) {
+					if (c == 0) {
+						ret = ERR_NO_INVERSE;
+						break;
+					}
+
+					size_t q = (d / c); // floor
+					d = d % c;
+					v = v + q*u;
+					t = (d != 1);
+					if (t == 1) {
+						q = (c / d); // floor
+						c = c % d;
+						u = u + q*v;
+					}
+				}
+
+				u = v*(1 - t) + t*(Modulus - u);
+			} else ret = ERR_NO_INVERSE;
+		}
+
+		if (ret == ERR_SUCCESS)
+			*Result = u;
+	} else ret = ERR_MODULUS_TOO_SMALL;
+
+	return ret;
+}
+
+size_t utils_pow_mod(const size_t Base, const size_t Power, const size_t Modulus)
+{
+	size_t ret = Base;
+
+	assert(Power > 0);
+	for (size_t i = 1; i < Power; ++i) {
+		ret *= Base;
+		ret %= Modulus;
+	}
+
+	return ret;
+}

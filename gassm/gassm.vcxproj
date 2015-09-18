@@ -19,9 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{97077DA9-D3EF-4953-ACD2-B07FB4C5D14F}</ProjectGuid>
+    <ProjectGuid>{3948BDA9-7586-40AC-8376-8C580C8E7DDF}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>gengen</RootNamespace>
+    <RootNamespace>gassm</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -149,15 +149,17 @@
   <ItemGroup>
     <ClCompile Include="..\shared\options.c" />
     <ClCompile Include="..\shared\utils.c" />
-    <ClCompile Include="generator.c" />
-    <ClCompile Include="gengen.c" />
+    <ClCompile Include="gassm.c" />
+    <ClCompile Include="kmer-table.c" />
+    <ClCompile Include="kmer.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\shared\err.h" />
     <ClInclude Include="..\shared\options.h" />
     <ClInclude Include="..\shared\utils.h" />
-    <ClInclude Include="generator.h" />
-    <ClInclude Include="gengen.h" />
+    <ClInclude Include="gassm.h" />
+    <ClInclude Include="kmer-table.h" />
+    <ClInclude Include="kmer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
