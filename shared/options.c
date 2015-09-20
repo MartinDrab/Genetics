@@ -443,21 +443,21 @@ ERR_VALUE options_parse_command_line(int argc, char **argv)
 {
 	int i = 0;
 	char *argName = NULL;
-	size_t argnameLen = 0;
+	size_t argNameLen = 0;
 	char *argValue = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	ret = ERR_SUCCESS;
 	while (ret == ERR_SUCCESS && i < argc) {
 		argName = argv[i];
-		argnameLen = strlen(argName);
+		argNameLen = strlen(argName);
 		argValue = NULL;
-		if (argnameLen > 2 && memcmp(argName, "--", 2 * sizeof(char)) == 0) {
+		if (argNameLen > 2 && memcmp(argName, "--", 2 * sizeof(char)) == 0) {
 			PPROGRAM_OPTION record = NULL;
 			
 			argName += 2;
-			argnameLen -= 2;
-			record = _get_empty_record(argName);
+			argNameLen -= 2;
+			record = _get_option_record(argName);
 			if (record != NULL) {
 				if (record->Type != otBoolean) {
 					if (i < argc - 1) {

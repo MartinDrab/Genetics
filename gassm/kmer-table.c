@@ -149,7 +149,7 @@ ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const PKMER KMer)
 	if (entry != NULL) {
 		if (_kmer_table_entry_empty(entry)) {
 			entry->KMer = kmer_copy(KMer);
-			ret = (_kmer_table_entry_empty(entry)) ? ERR_SUCCESS : ERR_OUT_OF_MEMORY;
+			ret = (!_kmer_table_entry_empty(entry)) ? ERR_SUCCESS : ERR_OUT_OF_MEMORY;
 		} else ret = ERR_ALREADY_EXISTS;
 	} else ret = ERR_TABLE_FULL;
 
@@ -171,6 +171,18 @@ ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const PKMER KMer, const size
 
 	return ret;
 }
+
+PKMER_TABLE_ENTRY kmer_table_get(const PKMER_TABLE Table, const PKMER KMer)
+{
+	PKMER_TABLE_ENTRY ret = NULL;
+
+	ret = _kmer_table_get_slot(Table, KMer);
+	if (ret != NULL && _kmer_table_entry_empty(ret))
+		ret = NULL;
+
+	return ret;
+}
+
 
 size_t kmer_hash(const PKMER_TABLE Table, const PKMER KMer)
 {

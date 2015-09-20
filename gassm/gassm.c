@@ -6,6 +6,8 @@
 #include "options.h"
 #include "kmer.h"
 #include "kmer-table.h"
+#include "kmer-edge.h"
+#include "kmer-graph.h"
 #include "gassm.h"
 
 
@@ -140,41 +142,147 @@ int main(int argc, char *argv[])
 				ret = option_get_UInt32(GASSM_OPTION_KMER_SIZE, &kmerSize);
 				if (ret == ERR_SUCCESS)
 					ret = option_get_String(GASSM_OPTION_TEST_INPUT_FILE, &testFile);
-				
+					
 				if (ret == ERR_SUCCESS) {
-					PKMER_TABLE kmerTable = NULL;
+					char *testData = NULL;
+					size_t testDataSize = 0;
 
-					ret = kmer_table_create(kmerSize, 2, 37, &kmerTable);
+					options_print();
+					ret = utils_file_read(testFile, &testData, &testDataSize);
 					if (ret == ERR_SUCCESS) {
-						char *testData = NULL;
-						size_t testDataSize = 0;
+						char *refSeq = NULL;
+						char **reads = NULL;
+						size_t readCount = 0;
 
-						ret = utils_file_read(testFile, &testData, &testDataSize);
+						ret = _parse_test_data(testData, testDataSize, &refSeq, &reads, &readCount);
 						if (ret == ERR_SUCCESS) {
-							char *refSeq = NULL;
-							char **reads = NULL;
-							size_t readCount = 0;
-
-							ret = _parse_test_data(testData, testDataSize, &refSeq, &reads, &readCount);
+							printf("Ref. sequence: %s\n", refSeq);
+							printf("Number of reads: %u\n", readCount);
+							for (size_t i = 0; i < readCount; ++i)
+								printf("Read #%u: %s\n", i, reads[i]);
+						
+							PKMER_GRAPH g = NULL;
+						
+							ret = kmer_graph_create(kmerSize, &g);
 							if (ret == ERR_SUCCESS) {
-								printf("Ref. sequence: %s\n", refSeq);
-								printf("Number of reads: %u\n", readCount);
-								for (size_t i = 0; i < readCount; ++i)
-									printf("Read #%u: %s\n", i, reads[i]);
+								PKMER sourceKMer = NULL;
+								PKMER destKMer = NULL;
 
-								_free_test_data(refSeq, reads, readCount);
+								printf("\nProcessing the reference sequence...");
+								sourceKMer = kmer_alloc(kmerSize, refSeq);
+								if (sourceKMer != NULL) {
+									printf("\nAdding vertext: ");
+									kmer_print(sourceKMer);
+									ret = kmer_graph_add_vertex(g, sourceKMer);
+									if (ret == ERR_SUCCESS) {
+										destKMer = kmer_alloc(kmerSize, refSeq + 1);
+										if (destKMer != NULL) {
+											size_t refSeqLen = strlen(refSeq);
+											
+											for (size_t i = 1; i < refSeqLen - kmerSize + 1; ++i) {
+												kmer_init(destKMer, refSeq + i);
+												printf("\nAdding vertext: ");
+												kmer_print(destKMer);
+												ret = kmer_graph_add_vertex(g, destKMer);
+												if (ret == ERR_ALREADY_EXISTS) {
+													ret = ERR_SUCCESS;
+													printf("\nAlready exists");
+												}
+
+												if (ret == ERR_SUCCESS) {
+													printf("\nAdding edge: ");
+													kmer_print(sourceKMer);
+													printf(" ---> ");
+													kmer_print(destKMer);
+													ret = kmer_graph_add_edge(g, sourceKMer, destKMer, 0);
+													if (ret == ERR_ALREADY_EXISTS) {
+														ret = ERR_SUCCESS;
+														printf("\nAlready exists");
+													}
+												
+													kmer_init_from_kmer(sourceKMer, destKMer);
+												}
+
+												if (ret != ERR_SUCCESS)
+													break;
+											}
+
+											if (ret == ERR_SUCCESS) {
+												for (size_t j = 0; j < readCount; ++j) {
+													char *currentRead = reads[j];
+													size_t currentReadlen = strlen(currentRead);
+
+													printf("\n\nProcessing read #%u: %s", j, currentRead);
+													kmer_init(sourceKMer, currentRead);
+													printf("\nAdding vertext: ");
+													kmer_print(sourceKMer);
+													ret = kmer_graph_add_vertex(g, sourceKMer);
+													if (ret == ERR_ALREADY_EXISTS) {
+														ret = ERR_SUCCESS;
+														printf("\nAlready exists");
+													}
+
+													for (size_t i = 1; i < currentReadlen - kmerSize + 1; ++i) {
+														kmer_init(destKMer, currentRead + i);
+														printf("\nAdding vertext: ");
+														kmer_print(destKMer);
+														ret = kmer_graph_add_vertex(g, destKMer);
+														if (ret == ERR_ALREADY_EXISTS) {
+															ret = ERR_SUCCESS;
+															printf("\nAlready exists");
+														}
+
+														if (ret == ERR_SUCCESS) {
+															printf("\nAdding edge: ");
+															kmer_print(sourceKMer);
+															printf(" ---> ");
+															kmer_print(destKMer);
+															ret = kmer_graph_add_edge(g, sourceKMer, destKMer, 1);
+															if (ret == ERR_ALREADY_EXISTS) {
+																PKMER_EDGE edge = NULL;
+
+																edge = kmer_graph_get_edge(g, sourceKMer, destKMer);
+																edge->Weight++;
+																ret = ERR_SUCCESS;
+																printf("\nAlready exists");
+															}
+
+															kmer_init_from_kmer(sourceKMer, destKMer);
+														}
+
+														if (ret != ERR_SUCCESS)
+															break;
+													}
+												}
+
+												if (ret == ERR_SUCCESS) {
+													printf("\nEdges (and vertices):");
+													kmer_edge_table_print(g->EdgeTable);
+												}
+											}
+										} else ret = ERR_OUT_OF_MEMORY;
+									}
+
+									kmer_free(sourceKMer);
+								} else ret = ERR_OUT_OF_MEMORY;
+
+								kmer_graph_destroy(g);
 							}
-							free(testData);
+
+							_free_test_data(refSeq, reads, readCount);
 						}
 
-						kmer_table_destroy(kmerTable);
+						free(testData);
 					}
+
 				}
 			}
 		}
 
 		options_module_finit();
 	}
+
+	getchar();
 
 	return ret;
 }

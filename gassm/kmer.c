@@ -34,6 +34,15 @@ void kmer_init(PKMER KMer, const char *Sequence)
 	return;
 }
 
+void kmer_init_from_kmer(PKMER Dest, const PKMER Source)
+{
+	assert(Dest->Size == Source->Size);
+	memcpy(Dest->Bases, Source->Bases, Dest->Size * sizeof(char));
+
+	return;
+}
+
+
 void kmer_free(PKMER KMer)
 {
 	free(KMer);
@@ -60,4 +69,12 @@ boolean kmer_equal(const PKMER K1, const PKMER K2)
 	assert(K1->Size == K2->Size);
 
 	return (memcmp(K1->Bases, K2->Bases, K1->Size*sizeof(char)) == 0);
+}
+
+void kmer_print(const PKMER KMer)
+{
+	for (size_t i = 0; i < KMer->Size; ++i)
+		putchar(kmer_get_base(KMer, i));
+
+	return;
 }

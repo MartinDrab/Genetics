@@ -26,6 +26,7 @@ ERR_VALUE kmer_table_extend(PKMER_TABLE Table);
 
 ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const PKMER KMer);
 ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const PKMER KMer, const size_t Hash);
+PKMER_TABLE_ENTRY kmer_table_get(const PKMER_TABLE Table, const PKMER KMer);
 
 size_t kmer_hash(const PKMER_TABLE Table, const PKMER KMer);
 size_t kmer_hash_advance(const PKMER_TABLE Table, const PKMER KMer, const size_t Hash, const char NewBase);

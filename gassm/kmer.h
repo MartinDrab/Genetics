@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 #include "err.h"
-
+#include "utils.h"
 
 
 
@@ -20,11 +20,12 @@ typedef struct _KMER {
 
 PKMER kmer_alloc(const uint32_t Size, const char *Sequence);
 void kmer_init(PKMER KMer, const char *Sequence);
+void kmer_init_from_kmer(PKMER Dest, const PKMER Source);
 void kmer_free(PKMER KMer);
 PKMER kmer_copy(const PKMER KMer);
 void kmer_advance(PKMER KMer, const char Base);
 boolean kmer_equal(const PKMER K1, const PKMER K2);
-
+void kmer_print(const PKMER KMer);
 
 
 #endif 

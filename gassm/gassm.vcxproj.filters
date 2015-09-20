@@ -30,6 +30,12 @@
     <ClCompile Include="kmer-table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="kmer-edge.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="kmer-graph.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\shared\err.h">
@@ -48,6 +54,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="gassm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="kmer-graph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="kmer-edge.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
