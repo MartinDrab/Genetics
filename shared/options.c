@@ -16,6 +16,7 @@
 static PPROGRAM_OPTION _optionTable = NULL;
 static size_t _optionTableSize = 0;
 static uint32_t _primes[OPTION_MAX_RECOMMENDED_LENGTH];
+static unsigned int _lastOrder = 0;
 
 /************************************************************************/
 /*                    HELPER MACROS                                     */
@@ -194,8 +195,11 @@ static ERR_VALUE _option_add(char *OptionName, EOptionType OptionType, void *Def
 					flag_set(record->Flags, PROGRAM_OPTION_FLAG_ALLOCATED);
 			}
 
-			if (ret == ERR_SUCCESS)
+			if (ret == ERR_SUCCESS) {
+				record->Order = _lastOrder;
+				++_lastOrder;
 				flag_set(record->Flags, PROGRAM_OPTION_FLAG_DEFAULT_VALUE);
+			}
 
 			if (ret != ERR_SUCCESS)
 				utils_free_string(record->Name);
@@ -481,15 +485,19 @@ void options_print(void)
 {
 	PPROGRAM_OPTION record = _optionTable;
 
-	for (size_t i = 0; i < _optionTableSize; ++i) {
-		if (flag_on(record->Flags, PROGRAM_OPTION_FLAG_IN_USE)) {
-			_option_print_name(record);
-			printf(" = ");
-			_option_print_value(record);
-			printf("\n");
-		}
+	for (unsigned int j = 0; j < _lastOrder; ++j) {
+		record = _optionTable;
+		for (size_t i = 0; i < _optionTableSize; ++i) {
+			if (flag_on(record->Flags, PROGRAM_OPTION_FLAG_IN_USE) && record->Order == j) {
+				_option_print_name(record);
+				printf(" = ");
+				_option_print_value(record);
+				printf("\n");
+				break;
+			}
 
-		++record;
+			++record;
+		}
 	}
 
 	return;

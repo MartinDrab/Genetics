@@ -50,6 +50,7 @@ typedef struct _PROGRAM_OPTION {
 		char *String;
 		boolean Boolean;
 	} Value;
+	unsigned int Order;
 } PROGRAM_OPTION, *PPROGRAM_OPTION;
 
 
