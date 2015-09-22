@@ -345,6 +345,9 @@ static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, char *StrValue)
 		} break;
 		case otInt64: {
 		} break;
+		case otUnknown: 
+		    assert(FALSE);
+		    break;
 	}
 
 	return ret;
@@ -360,8 +363,8 @@ static void _option_print_value(PPROGRAM_OPTION Record)
 		case otUInt16: printf("%u", Record->Value.UInt16); break;
 		case otInt32: printf("%i", Record->Value.Int32); break;
 		case otUInt32: printf("%u", Record->Value.UInt32); break;
-		case otInt64: printf("%lli", Record->Value.Int64); break;
-		case otUInt64: printf("%llu", Record->Value.UInt64); break;
+		case otInt64: printf("%jd", Record->Value.Int64); break;
+		case otUInt64: printf("%ju", Record->Value.UInt64); break;
 		case otFloat: printf("%f", Record->Value.Float); break;
 		case otDouble: printf("%lf", Record->Value.Double); break;
 		case otChar: printf("%c", Record->Value.Char); break;

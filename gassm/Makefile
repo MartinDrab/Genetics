@@ -1,49 +1,41 @@
 TARGET=gassm
 BINDIR=../bin
 CC=gcc
-CFLAGS= -Wall
+CFLAGS= -std=c99 -Wall
 SHAREDDIR=../shared
-OBJDIR=../tmp/$(TARGET)
-SHAREDOBJDIR=../tmp/shared
-
-SOURCE=\
-	gassm.c \
-	kmer.c \
-	kmer-edge.c \
-	kmer-graph.c \
-	kmer-table.c \
-
-SHAREDSOURCE=\
-	$(SHAREDDIR)\utils.c \
-	$(SHAREDDIR)\options.c
+TMPDIR=../tmp
+OBJDIR=$(TMPDIR)/$(TARGET)
+SHAREDOBJDIR=$(TMPDIR)/shared
+LIB= -lm
 
 OBJ=\
 	$(OBJDIR)/gassm.o \
 	$(OBJDIR)/kmer.o \
 	$(OBJDIR)/kmer-edge.o \
 	$(OBJDIR)/kmer-graph.o \
-	$(OBJDIR)/kmer-table.o
-
-SHAREDOBJ=\
+	$(OBJDIR)/kmer-table.o \
 	$(SHAREDOBJDIR)/utils.o \
 	$(SHAREDOBJDIR)/options.o
 
-INCLUDE= -I./ -I./../include -I./../shared
+INCLUDE= -I./ -I./../include -I./$(SHAREDDIR)
+SHAREDINCLUDE= -I./$(SHAREDDIR)
 
 $(OBJDIR)/%.o : %.c
+	@mkdir -p $(TMPDIR)
 	@mkdir -p $(OBJDIR)
 	@echo "Compiling $<"
-	@$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $(OBJDIR)/$@
+	@$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
-$(SHAREDOBJDIR)/%.o : %.c
+$(SHAREDOBJDIR)/%.o : $(SHAREDDIR)/%.c
+	@mkdir -p $(TMPDIR)
 	@mkdir -p $(SHAREDOBJDIR)
 	@echo "Compiling $<"
-	@$(CC) $(CFLAGS) $(INCLUDE) -c $(SHAREDSOURCE)/$< -o $(SHAREDOBJDIR)/$@
+	@$(CC) $(CFLAGS) $(SHAREDINCLUDE) -c $< -o $@
 
-$(TARGET): $(OBJ) $(SHAREDOBJ)
+$(TARGET): $(OBJ)
 	@mkdir -p $(BINDIR)
 	@echo "Linking $@"
-	@$(CC) $(OBJ) $(SHAREDOBJ) -o $(BINDIR)/$@
+	@$(CC) $(OBJ) -o $(BINDIR)/$@ $(LIB)
 
 all: $(TARGET)
 
