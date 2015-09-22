@@ -171,16 +171,20 @@ int main(int argc, char *argv[])
 								printf("\nProcessing the reference sequence...");
 								sourceKMer = kmer_alloc(kmerSize, refSeq);
 								if (sourceKMer != NULL) {
+									kmer_back(sourceKMer, '^');
 									printf("\nAdding vertext: ");
 									kmer_print(sourceKMer);
 									ret = kmer_graph_add_vertex(g, sourceKMer);
 									if (ret == ERR_SUCCESS) {
-										destKMer = kmer_alloc(kmerSize, refSeq + 1);
+										destKMer = kmer_alloc(kmerSize, refSeq);
 										if (destKMer != NULL) {
 											size_t refSeqLen = strlen(refSeq);
 											
-											for (size_t i = 1; i < refSeqLen - kmerSize + 1; ++i) {
-												kmer_init(destKMer, refSeq + i);
+											for (size_t i = 0; i <= refSeqLen - kmerSize + 1; ++i) {
+												if (i > refSeqLen - kmerSize)
+													kmer_advance(destKMer, '$');
+												else kmer_init(destKMer, refSeq + i);
+												
 												printf("\nAdding vertext: ");
 												kmer_print(destKMer);
 												ret = kmer_graph_add_vertex(g, destKMer);

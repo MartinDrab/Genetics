@@ -198,5 +198,5 @@ size_t kmer_hash(const PKMER_TABLE Table, const PKMER KMer)
 
 size_t kmer_hash_advance(const PKMER_TABLE Table, const PKMER KMer, const size_t Hash, const char NewBase)
 {
-	return (Hash*Table->Inverse + NewBase*Table->PowX);
+	return ((Hash + Table->Size - kmer_get_base(KMer, 0))*Table->Inverse + NewBase*Table->PowX);
 }

@@ -64,6 +64,15 @@ void kmer_advance(PKMER KMer, const char Base)
 	return;
 }
 
+void kmer_back(PKMER KMer, const char Base)
+{
+	memmove(KMer->Bases + 1, KMer->Bases, (KMer->Size - 1)*sizeof(char));
+	KMer->Bases[0] = Base;
+
+	return;
+}
+
+
 boolean kmer_equal(const PKMER K1, const PKMER K2)
 {
 	assert(K1->Size == K2->Size);
