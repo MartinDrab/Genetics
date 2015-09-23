@@ -4,7 +4,7 @@ CC=gcc
 CFLAGS= -Wall -std=c99
 SHAREDDIR=../shared
 TMPDIR=../tmp
-OBJDIR=..$(TMPDIR)/$(TARGET)
+OBJDIR=$(TMPDIR)/$(TARGET)
 SHAREDOBJDIR=$(TMPDIR)/shared
 LIBS= -lm
 
