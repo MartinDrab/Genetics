@@ -157,9 +157,9 @@ int main(int argc, char *argv[])
 						ret = _parse_test_data(testData, testDataSize, &refSeq, &reads, &readCount);
 						if (ret == ERR_SUCCESS) {
 							printf("Ref. sequence: %s\n", refSeq);
-							printf("Number of reads: %u\n", readCount);
+							printf("Number of reads: %zu\n", readCount);
 							for (size_t i = 0; i < readCount; ++i)
-								printf("Read #%u: %s\n", i, reads[i]);
+								printf("Read #%zu: %s\n", i, reads[i]);
 						
 							PKMER_GRAPH g = NULL;
 						
@@ -216,7 +216,7 @@ int main(int argc, char *argv[])
 													char *currentRead = reads[j];
 													size_t currentReadlen = strlen(currentRead);
 
-													printf("\n\nProcessing read #%u: %s", j, currentRead);
+													printf("\n\nProcessing read #%zu: %s", j, currentRead);
 													kmer_init(sourceKMer, currentRead);
 													printf("\nAdding vertext: ");
 													kmer_print(sourceKMer);
