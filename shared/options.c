@@ -18,12 +18,29 @@ static size_t _optionTableSize = 0;
 static uint32_t _primes[OPTION_MAX_RECOMMENDED_LENGTH];
 static unsigned int _lastOrder = 0;
 
+static const char *_optionTypeMap[otMaximumType] = {
+	"Unknown",
+	"8-bit signed integer",
+	"8-bit unsigned integer",
+	"16-bit signed integer",
+	"16-bit unsigned integer",
+	"32-bit signed integer",
+	"32-bit unsigned integer",
+	"64-bit signed integer",
+	"64-bit unsigned integer",
+	"float",
+	"double",
+	"character",
+	"string",
+	"boolean",
+};
+
 /************************************************************************/
 /*                    HELPER MACROS                                     */
 /************************************************************************/
 
 #define OPTION_GET_VALUE_FUNCTION_INTERNAL(aValueType, aValueTypeName, aOptionType) \
-	static ERR_VALUE _option_get_##aValueTypeName(PPROGRAM_OPTION OptionRecord, aValueType *Result) \
+	static ERR_VALUE _option_get_##aValueTypeName(const PPROGRAM_OPTION OptionRecord, aValueType *Result) \
 	{																		\
 		ERR_VALUE ret = ERR_INTERNAL_ERROR;									\
 																			\
@@ -38,7 +55,7 @@ static unsigned int _lastOrder = 0;
 
 
 #define OPTION_GET_VALUE_FUNCTION(aValueType, aValueTypeName, aOptionType) \
-	ERR_VALUE option_get_##aValueTypeName(char *OptionName, aValueType *Result) \
+	ERR_VALUE option_get_##aValueTypeName(const char *OptionName, aValueType *Result) \
 	{																			\
 		ERR_VALUE ret = ERR_INTERNAL_ERROR;										\
 		PPROGRAM_OPTION record = NULL;											\
@@ -52,7 +69,7 @@ static unsigned int _lastOrder = 0;
 	}																			\
 
 #define OPTION_ADD_FUNCTION(aValueType, aValueTypeName, aOptionType)					\
-	ERR_VALUE option_add_##aValueTypeName(char *OptionName, aValueType DefaultValue)		\
+	ERR_VALUE option_add_##aValueTypeName(const char *OptionName, const aValueType DefaultValue)		\
 	{																					\
 		ERR_VALUE ret = ERR_INTERNAL_ERROR;												\
 																						\
@@ -62,7 +79,7 @@ static unsigned int _lastOrder = 0;
 	}																					\
 
 #define OPTION_SET_FUNCTION(aValueType, aValueTypeName, aOptionType)					\
-	ERR_VALUE option_set_##aValueTypeName(char *OptionName, aValueType DefaultValue)	\
+	ERR_VALUE option_set_##aValueTypeName(const char *OptionName, const aValueType DefaultValue)	\
 	{																					\
 		ERR_VALUE ret = ERR_INTERNAL_ERROR;												\
 																						\
@@ -93,14 +110,15 @@ static void _init_primes(void)
 	return;
 }
 
-static size_t _hash_first(char *OptionName)
+static size_t _hash_first(const char *OptionName)
 {
 	size_t ret = 0;
+	char *optionName = (char *)OptionName;
 	size_t primeIndex = 0;
 
-	while (*OptionName != '\0') {
-		ret += (_primes[primeIndex] * *OptionName);
-		++OptionName;
+	while (*optionName != '\0') {
+		ret += (_primes[primeIndex] * *optionName);
+		++optionName;
 		++primeIndex;
 		if (primeIndex == OPTION_MAX_RECOMMENDED_LENGTH)
 			primeIndex = 0;
@@ -115,7 +133,7 @@ static size_t _hash_next(const size_t Hash, const size_t Attempt)
 	return (Hash + 2 * Attempt + 1);
 }
 
-static PPROGRAM_OPTION _get_option_record(char *OptionName)
+static PPROGRAM_OPTION _get_option_record(const char *OptionName)
 {
 	size_t firstHash = 0;
 	PPROGRAM_OPTION ret = NULL;
@@ -148,7 +166,7 @@ static PPROGRAM_OPTION _get_option_record(char *OptionName)
 	return ret;
 }
 
-static PPROGRAM_OPTION _get_empty_record(char *OptionName)
+static PPROGRAM_OPTION _get_empty_record(const char *OptionName)
 {
 	PPROGRAM_OPTION ret = NULL;
 	size_t firstHash = 0;
@@ -174,7 +192,7 @@ static PPROGRAM_OPTION _get_empty_record(char *OptionName)
 	return ret;
 }
 
-static ERR_VALUE _option_add(char *OptionName, EOptionType OptionType, void *DefaultValue, size_t ValueSize)
+static ERR_VALUE _option_add(const char *OptionName, const EOptionType OptionType, const void *DefaultValue, size_t ValueSize)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	PPROGRAM_OPTION record = NULL;
@@ -212,7 +230,7 @@ static ERR_VALUE _option_add(char *OptionName, EOptionType OptionType, void *Def
 	return ret;
 }
 
-static ERR_VALUE _option_set(char *OptionName, EOptionType OptionType, void *Value)
+static ERR_VALUE _option_set(const char *OptionName, const EOptionType OptionType, const void *Value)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	PPROGRAM_OPTION record = NULL;
@@ -254,12 +272,15 @@ static void _option_destroy(PPROGRAM_OPTION Record)
 		free(Record->Value.String);
 	}
 
+	if (flag_on(Record->Flags, PROGRAM_OPTION_FLAG_DESCRIPTION_ALLOCATED))
+		free(Record->Description);
+
 	Record->Flags = 0;
 
 	return;
 }
 
-static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, char *StrValue)
+static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, const char *StrValue)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
@@ -267,7 +288,7 @@ static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, char *StrValue)
 		case otUInt8:
 		case otUInt16:
 		case otUInt32: {
-			char *endptr = StrValue;
+			char *endptr = (char *)StrValue;
 			unsigned long result = 0;
 
 			result = strtoul(StrValue, &endptr, 0);
@@ -280,7 +301,7 @@ static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, char *StrValue)
 		case otInt8:
 		case otInt16:
 		case otInt32: {
-			char *endptr = StrValue;
+			char *endptr = (char *)StrValue;
 			long result = 0;
 
 			result = strtol(StrValue, &endptr, 0);
@@ -291,7 +312,7 @@ static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, char *StrValue)
 			}
 		} break;
 		case otFloat: {
-			char *endptr = StrValue;
+			char *endptr = (char *)StrValue;
 			float result = 0.0;
 
 			result = strtof(StrValue, &endptr);
@@ -302,7 +323,7 @@ static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, char *StrValue)
 			}
 		} break;
 		case otDouble: {
-			char *endptr = StrValue;
+			char *endptr = (char *)StrValue;
 			double result = 0.0;
 
 			result = strtod(StrValue, &endptr);
@@ -353,7 +374,7 @@ static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, char *StrValue)
 	return ret;
 }
 
-static void _option_print_value(PPROGRAM_OPTION Record)
+static void _option_print_value(const PPROGRAM_OPTION Record)
 {
 	assert(flag_on(Record->Flags, PROGRAM_OPTION_FLAG_IN_USE));
 	switch (Record->Type) {
@@ -376,7 +397,7 @@ static void _option_print_value(PPROGRAM_OPTION Record)
 	return;
 }
 
-static void _option_print_name(PPROGRAM_OPTION Record)
+static void _option_print_name(const PPROGRAM_OPTION Record)
 {
 	assert(flag_on(Record->Flags, PROGRAM_OPTION_FLAG_IN_USE));
 	printf("%s", Record->Name);
@@ -484,6 +505,48 @@ ERR_VALUE options_parse_command_line(int argc, char **argv)
 	return ret;
 }
 
+ERR_VALUE option_set_description(const char *Name, const char *Description)
+{
+	char *desc = NULL;
+	PPROGRAM_OPTION record = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	record = _get_option_record(Name);
+	if (record != NULL) {
+		ret = utils_copy_string(Description, &desc);
+		if (ret == ERR_SUCCESS) {
+			if (flag_on(record->Flags, PROGRAM_OPTION_FLAG_DESCRIPTION_ALLOCATED))
+				free(record->Description);
+
+			record->Description = desc;
+			flag_set(record->Flags, PROGRAM_OPTION_FLAG_DESCRIPTION_ALLOCATED);
+		}
+	} else ret = ERR_UNKNOWN_OPTION;
+
+
+	return ret;
+}
+
+
+ERR_VALUE option_set_description_const(const char *Name, const char *Description)
+{
+	PPROGRAM_OPTION record = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	record = _get_option_record(Name);
+	if (record != NULL) {
+		if (flag_on(record->Flags, PROGRAM_OPTION_FLAG_DESCRIPTION_ALLOCATED))
+			free(record->Description);
+
+		record->Description = (char *)Description;
+		flag_clear(record->Flags, PROGRAM_OPTION_FLAG_DESCRIPTION_ALLOCATED);
+		ret = ERR_SUCCESS;
+	} else ret = ERR_UNKNOWN_OPTION;
+
+	return ret;
+}
+
+
 void options_print(void)
 {
 	PPROGRAM_OPTION record = _optionTable;
@@ -496,6 +559,32 @@ void options_print(void)
 				printf(" = ");
 				_option_print_value(record);
 				printf("\n");
+				break;
+			}
+
+			++record;
+		}
+	}
+
+	return;
+}
+
+void options_print_help(void)
+{
+	PPROGRAM_OPTION record = _optionTable;
+
+	for (unsigned int j = 0; j < _lastOrder; ++j) {
+		record = _optionTable;
+		for (size_t i = 0; i < _optionTableSize; ++i) {
+			if (flag_on(record->Flags, PROGRAM_OPTION_FLAG_IN_USE) && record->Order == j) {
+				printf("--");
+				_option_print_name(record);
+				printf("\t");
+				if (record->Type != otBoolean)
+					printf("<%s>", _optionTypeMap[record->Type]);
+				else printf("\t\t");
+
+				printf("\t\t%s\n", record->Description);
 				break;
 			}
 

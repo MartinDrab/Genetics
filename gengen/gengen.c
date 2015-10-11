@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "utils.h"
 #include "options.h"
 #include "generator.h"
@@ -50,6 +51,46 @@ static ERR_VALUE _default_options(void)
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(GENGEN_OPTION_REPLACE_MAX, 0);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(GENGEN_OPTION_HELP, FALSE);
+
+	if (ret == ERR_SUCCESS) {
+		ret = option_set_description_const(GENGEN_OPTION_REGION_MIN, GENGEN_OPTION_REGION_MIN_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GENGEN_OPTION_REGION_MAX, GENGEN_OPTION_REGION_MAX_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GENGEN_OPTION_READ_LENGTH, GENGEN_OPTION_READ_LENGTH_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GENGEN_OPTION_READS_MIN, GENGEN_OPTION_READS_MIN_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GENGEN_OPTION_READS_MAX, GENGEN_OPTION_READS_MAX_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GENGEN_OPTION_NUCLEOTIDES, GENGEN_OPTION_NUCLEOTIDES_DESC);
+		assert(ret == ERR_SUCCESS);
+
+		ret = option_set_description_const(GENGEN_OPTION_INDEL_PROB, GENGEN_OPTION_INDEL_PROB_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GENGEN_OPTION_INDELS_MIN, GENGEN_OPTION_INDELS_MIN_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GENGEN_OPTION_INDELS_MAX, GENGEN_OPTION_INDELS_MAX_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GENGEN_OPTION_DISABLE_INS, GENGEN_OPTION_DISABLE_INS_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GENGEN_OPTION_DISABLE_DELS, GENGEN_OPTION_DISABLE_DELS_DESC);
+		assert(ret == ERR_SUCCESS);
+
+		ret = option_set_description_const(GENGEN_OPTION_REPLACE_PROB, GENGEN_OPTION_REPLACE_PROB_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GENGEN_OPTION_REPLACE_MIN, GENGEN_OPTION_REPLACE_MIN_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GENGEN_OPTION_REPLACE_MAX, GENGEN_OPTION_REPLACE_MAX_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GENGEN_OPTION_HELP, GENGEN_OPTION_HELP_DESC);
+		assert(ret == ERR_SUCCESS);
+
+		ret = ERR_SUCCESS;
+	}
 
 	return ret;
 }
@@ -112,53 +153,57 @@ int main(int argc, char *argv[])
 		if (ret == ERR_SUCCESS) {
 			ret = options_parse_command_line(argc - 1, argv + 1);
 			if (ret == ERR_SUCCESS) {
-				options_print();
-				printf("\n");
-				
-				uint32_t minRegion = 0;
-				uint32_t maxRegion = 0;
-				char *nucleotides = NULL;
+				if (argc == 1 || (argc == 2 && stricmp(argv[1], "--help") == 0 ||
+					stricmp(argv[1], "-h") == 0 || stricmp(argv[1], "/?") == 0 ||
+					stricmp(argv[1], "-?") == 0)) {
+					printf("Usage: gengen [options]");
+					options_print_help();
+				} else {
+					uint32_t minRegion = 0;
+					uint32_t maxRegion = 0;
+					char *nucleotides = NULL;
 
-				ret = option_get_UInt32(GENGEN_OPTION_REGION_MIN, &minRegion);
-				if (ret == ERR_SUCCESS)
-					ret = option_get_UInt32(GENGEN_OPTION_REGION_MAX, &maxRegion);
+					ret = option_get_UInt32(GENGEN_OPTION_REGION_MIN, &minRegion);
+					if (ret == ERR_SUCCESS)
+						ret = option_get_UInt32(GENGEN_OPTION_REGION_MAX, &maxRegion);
 
-				if (ret == ERR_SUCCESS)
-					ret = option_get_String(GENGEN_OPTION_NUCLEOTIDES, &nucleotides);
+					if (ret == ERR_SUCCESS)
+						ret = option_get_String(GENGEN_OPTION_NUCLEOTIDES, &nucleotides);
 
-				if (ret == ERR_SUCCESS) {
-					char *activeRegion = NULL;
-					size_t activeRegionLength = 0;
-
-					ret = generate_active_region(minRegion, maxRegion, nucleotides, &activeRegion, &activeRegionLength);
 					if (ret == ERR_SUCCESS) {
-						printf("%s\n", activeRegion);
-						
-						GENERATOR_READ_OPTIONS readOptions;
-						GENERATOR_INDEL_OPTIONS indelOptions;
-						GENERATOR_REPLACE_OPTIONS replaceOptions;
+						char *activeRegion = NULL;
+						size_t activeRegionLength = 0;
 
-						ret = _fill_read_options(&readOptions);
+						ret = generate_active_region(minRegion, maxRegion, nucleotides, &activeRegion, &activeRegionLength);
 						if (ret == ERR_SUCCESS) {
-							ret = _fill_indel_options(&indelOptions);
+							printf("%s\n", activeRegion);
+
+							GENERATOR_READ_OPTIONS readOptions;
+							GENERATOR_INDEL_OPTIONS indelOptions;
+							GENERATOR_REPLACE_OPTIONS replaceOptions;
+
+							ret = _fill_read_options(&readOptions);
 							if (ret == ERR_SUCCESS) {
-								ret = _fill_replace_options(&replaceOptions);
+								ret = _fill_indel_options(&indelOptions);
 								if (ret == ERR_SUCCESS) {
-									char **reads = NULL;
-									size_t readCount = 0;
-
-									ret = generate_reads(activeRegion, activeRegionLength, nucleotides, &readOptions, &indelOptions, &replaceOptions, &reads, &readCount);
+									ret = _fill_replace_options(&replaceOptions);
 									if (ret == ERR_SUCCESS) {
-										for (size_t i = 0; i < readCount; ++i)
-											printf("%s\n", reads[i]);
+										char **reads = NULL;
+										size_t readCount = 0;
 
-										free_reads(reads, readCount);
+										ret = generate_reads(activeRegion, activeRegionLength, nucleotides, &readOptions, &indelOptions, &replaceOptions, &reads, &readCount);
+										if (ret == ERR_SUCCESS) {
+											for (size_t i = 0; i < readCount; ++i)
+												printf("%s\n", reads[i]);
+
+											free_reads(reads, readCount);
+										}
 									}
 								}
 							}
+
+							free_active_region(activeRegion, activeRegionLength);
 						}
-						
-						free_active_region(activeRegion, activeRegionLength);
 					}
 				}
 
@@ -167,8 +212,6 @@ int main(int argc, char *argv[])
 
 		options_module_finit();
 	}
-
-	getchar();
 
 	return ret;
 }

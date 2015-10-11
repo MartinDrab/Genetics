@@ -19,7 +19,7 @@ typedef uint8_t boolean;
 
 #define strings_equal(S1, S2)					(strcmp(S1, S2) == 0)
 
-ERR_VALUE utils_copy_string(char *String, char **Result);
+ERR_VALUE utils_copy_string(const char *String, char **Result);
 ERR_VALUE utils_preallocate_string(const size_t Length, char **Result);
 void utils_free_string(char *String);
 

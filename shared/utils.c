@@ -14,7 +14,7 @@
 /*                      PUBLIC FUNCTIONS                                */
 /************************************************************************/
 
-ERR_VALUE utils_copy_string(char *String, char **Result)
+ERR_VALUE utils_copy_string(const char *String, char **Result)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	char *tmp = NULL;

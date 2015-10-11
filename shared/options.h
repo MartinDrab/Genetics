@@ -24,15 +24,18 @@ typedef enum _EOptionType {
 	otChar,
 	otString,
 	otBoolean,
+	otMaximumType,
 } EOptionType, *PEOptionType;
 
-#define PROGRAM_OPTION_FLAG_IN_USE				0x1
-#define PROGRAM_OPTION_FLAG_ALLOCATED			0x2
-#define PROGRAM_OPTION_FLAG_DEFAULT_VALUE		0x4
+#define PROGRAM_OPTION_FLAG_IN_USE					0x1
+#define PROGRAM_OPTION_FLAG_ALLOCATED				0x2
+#define PROGRAM_OPTION_FLAG_DEFAULT_VALUE			0x4
+#define PROGRAM_OPTION_FLAG_DESCRIPTION_ALLOCATED	0x8
 
-typedef struct _PROGRAM_OPTION {
+typedef struct _PROGRAM_PTION {
 	uint8_t Flags;
 	char *Name;
+	char *Description;
 	EOptionType Type;
 	size_t ValueSize;
 	union _PROGRAM_OPTION_VALUE_DATA {
@@ -55,7 +58,7 @@ typedef struct _PROGRAM_OPTION {
 
 
 #define OPTION_GET_VALUE_FUNCTION_HEADER(aValueType, aValueTypeName) \
-	ERR_VALUE option_get_##aValueTypeName(char *OptionName, aValueType *Result)
+	ERR_VALUE option_get_##aValueTypeName(const char *OptionName, aValueType *Result)
 
 OPTION_GET_VALUE_FUNCTION_HEADER(int8_t, Int8);
 OPTION_GET_VALUE_FUNCTION_HEADER(uint8_t, UInt8);
@@ -72,7 +75,7 @@ OPTION_GET_VALUE_FUNCTION_HEADER(char *, String);
 OPTION_GET_VALUE_FUNCTION_HEADER(boolean, Boolean);
 
 #define OPTION_ADD_FUNCTION_HEADER(aValueType, aValueTypeName)	\
-	ERR_VALUE option_add_##aValueTypeName(char *OptionName, aValueType DefaultValue)	
+	ERR_VALUE option_add_##aValueTypeName(const char *OptionName, const aValueType DefaultValue)	
 
 OPTION_ADD_FUNCTION_HEADER(int8_t, Int8);
 OPTION_ADD_FUNCTION_HEADER(uint8_t, UInt8);
@@ -89,7 +92,7 @@ OPTION_ADD_FUNCTION_HEADER(char *, String);
 OPTION_ADD_FUNCTION_HEADER(boolean, Boolean);
 
 #define OPTION_SET_FUNCTION_HEADER(aValueType, aValueTypeName)	\
-	ERR_VALUE option_set_##aValueTypeName(char *OptionName, aValueType DefaultValue)	
+	ERR_VALUE option_set_##aValueTypeName(const char *OptionName, const aValueType DefaultValue)	
 
 OPTION_SET_FUNCTION_HEADER(int8_t, Int8);
 OPTION_SET_FUNCTION_HEADER(uint8_t, UInt8);
@@ -105,8 +108,15 @@ OPTION_SET_FUNCTION_HEADER(char, Char);
 OPTION_SET_FUNCTION_HEADER(char *, String);
 OPTION_SET_FUNCTION_HEADER(boolean, Boolean);
 
+ERR_VALUE option_set_description_const(const char *Name, const char *Description);
+ERR_VALUE opttion_set_description(const char *Name, const char *Description);
+
+
 ERR_VALUE options_parse_command_line(int argc, char **argv);
 void options_print(void);
+void options_print_help(void);
+
+
 
 ERR_VALUE options_module_init(const size_t MaxOptions);
 void options_module_finit(void);
