@@ -127,10 +127,9 @@ ERR_VALUE kmer_edge_table_extend(PKMER_EDGE_TABLE Table)
 		for (size_t i = 0; i < Table->Size; ++i) {
 			if (!_kmer_edge_table_entry_empty(entry)) {
 				newSlot = _kmer_edge_table_get_slot(newTable, entry->Source, entry->Dest);
-				if (newSlot != NULL) {
-					newSlot->Source = entry->Dest;
-					newSlot->Dest = entry->Dest;
-				} else ret = ERR_TABLE_FULL;
+				if (newSlot != NULL)
+					memcpy(newSlot, entry, sizeof(KMER_EDGE));
+				else ret = ERR_TABLE_FULL;
 			}
 
 			if (ret != ERR_SUCCESS)
@@ -211,10 +210,11 @@ void kmer_edge_table_print(const PKMER_EDGE_TABLE Table)
 		edge = Table->Entries;
 		for (size_t j = 0; j < Table->Size; ++j) {
 			if (!_kmer_edge_table_entry_empty(edge) && edge->Order == i) {
-				printf("\nEdge %u (weight = %li): ", edge->Order, edge->Weight);
+				printf("\t");
 				kmer_print(edge->Source);
-				printf(" ---> ");
+				printf(" -> ");
 				kmer_print(edge->Dest);
+				printf(" [weight=%u];\n", edge->Weight);
 			}
 
 			++edge;

@@ -33,5 +33,11 @@ size_t utils_pow_mod(const size_t Base, const size_t Power, const size_t Modulus
 
 ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength);
 
+ERR_VALUE utils_malloc(const size_t Size, void **Address);
+ERR_VALUE utils_calloc(const size_t Count, const size_t Size, void **Address);
+void utils_free(void *Address);
+
+
+
 
 #endif

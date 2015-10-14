@@ -14,6 +14,7 @@
 /************************************************************************/
 
 static PPROGRAM_OPTION _optionTable = NULL;
+static PPROGRAM_OPTION _shortcutTable[256];
 static size_t _optionTableSize = 0;
 static uint32_t _primes[OPTION_MAX_RECOMMENDED_LENGTH];
 static unsigned int _lastOrder = 0;
@@ -546,6 +547,26 @@ ERR_VALUE option_set_description_const(const char *Name, const char *Description
 	return ret;
 }
 
+ERR_VALUE option_set_shortcut(const char *Name, const char Shortcut)
+{
+	PPROGRAM_OPTION record = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	record = _get_option_record(Name);
+	if (record != NULL) {
+		if (record->Shortcut != '\0') {
+			assert(_shortcutTable[record->Shortcut] == record);
+			_shortcutTable[record->Shortcut] = NULL;
+		}
+
+		if (_shortcutTable[Shortcut] == NULL) {
+			record->Shortcut = Shortcut;
+			ret = ERR_SUCCESS;
+		} else ret = ERR_ALREADY_EXISTS;
+	} else ret = ERR_UNKNOWN_OPTION;
+
+	return ret;
+}
 
 void options_print(void)
 {
@@ -577,6 +598,9 @@ void options_print_help(void)
 		record = _optionTable;
 		for (size_t i = 0; i < _optionTableSize; ++i) {
 			if (flag_on(record->Flags, PROGRAM_OPTION_FLAG_IN_USE) && record->Order == j) {
+				if (record->Shortcut != '\0')
+					printf("-%c, ", record->Shortcut);
+
 				printf("--");
 				_option_print_name(record);
 				printf("\t");
@@ -603,6 +627,7 @@ ERR_VALUE options_module_init(const size_t MaxOptions)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
+	memset(_shortcutTable, 0, sizeof(_shortcutTable));
 	if (utils_is_prime(MaxOptions)) {
 		_optionTableSize = MaxOptions;
 		_optionTable = (PPROGRAM_OPTION)calloc(_optionTableSize, sizeof(PROGRAM_OPTION));

@@ -10,7 +10,7 @@
 #define GASSM_OPTION_KMER_SIZE			"kmer-size"
 #define GASSM_OPTION_TEST_INPUT_FILE	"test-input-file"
 
-#define GASSM_OPTION_HELP				"--help"
+#define GASSM_OPTION_HELP				"help"
 
 /************************************************************************/
 /*                PROGRAM OPTIONS DESCRIPTION                           */

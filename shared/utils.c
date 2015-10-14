@@ -14,6 +14,41 @@
 /*                      PUBLIC FUNCTIONS                                */
 /************************************************************************/
 
+ERR_VALUE utils_malloc(const size_t Size, void **Address)
+{
+	void *addr = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	addr = malloc(Size);
+	if (addr != NULL) {
+		*Address = addr;
+		ret = ERR_SUCCESS;
+	} else ret = ERR_OUT_OF_MEMORY;
+
+	return ret;
+}
+
+ERR_VALUE utils_calloc(const size_t Count, const size_t Size, void **Address)
+{
+	void *addr = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	addr = calloc(Count, Size);
+	if (addr != NULL) {
+		*Address = addr;
+		ret = ERR_SUCCESS;
+	} else ret = ERR_OUT_OF_MEMORY;
+
+	return ret;
+}
+
+void utils_free(void *Address)
+{
+	free(Address);
+
+	return;
+}
+
 ERR_VALUE utils_copy_string(const char *String, char **Result)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;

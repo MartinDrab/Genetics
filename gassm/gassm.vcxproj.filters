@@ -36,6 +36,12 @@
     <ClCompile Include="kmer-graph.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="test-file.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="assembly.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\shared\err.h">
@@ -60,6 +66,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="kmer-edge.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="test-file.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="assembly.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

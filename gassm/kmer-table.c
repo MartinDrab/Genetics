@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <stdio.h>
 #include "err.h"
 #include "utils.h"
 #include "kmer.h"
@@ -118,7 +119,7 @@ ERR_VALUE kmer_table_extend(PKMER_TABLE Table)
 			if (!_kmer_table_entry_empty(entry)) {				
 				newSlot = _kmer_table_get_slot(newTable, entry->KMer);
 				if (newSlot != NULL)
-					newSlot->KMer = entry->KMer;
+					memcpy(newSlot, entry, sizeof(KMER_TABLE_ENTRY));
 				else ret = ERR_TABLE_FULL;
 			}
 
@@ -139,6 +140,25 @@ ERR_VALUE kmer_table_extend(PKMER_TABLE Table)
 
 	return ret;
 }
+
+void kmer_table_print(const PKMER_TABLE Table)
+{
+	PKMER_TABLE_ENTRY entry = NULL;
+
+	entry = Table->Entries;
+	for (size_t i = 0; i < Table->Size; ++i) {
+		if (entry->KMer != NULL) {
+			printf("\t");
+			kmer_print(entry->KMer);
+			printf(";\n");
+		}
+
+		++entry;
+	}
+
+	return;
+}
+
 
 ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const PKMER KMer)
 {

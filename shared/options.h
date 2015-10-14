@@ -34,6 +34,7 @@ typedef enum _EOptionType {
 
 typedef struct _PROGRAM_PTION {
 	uint8_t Flags;
+	char Shortcut;
 	char *Name;
 	char *Description;
 	EOptionType Type;
@@ -110,6 +111,7 @@ OPTION_SET_FUNCTION_HEADER(boolean, Boolean);
 
 ERR_VALUE option_set_description_const(const char *Name, const char *Description);
 ERR_VALUE opttion_set_description(const char *Name, const char *Description);
+ERR_VALUE option_set_shortcut(const char *Name, const char Shortcut);
 
 
 ERR_VALUE options_parse_command_line(int argc, char **argv);

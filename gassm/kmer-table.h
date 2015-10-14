@@ -6,6 +6,8 @@
 #include "err.h"
 #include "kmer.h"
 
+
+
 typedef struct _KMER_TABLE_ENTRY {
 	PKMER KMer;
 } KMER_TABLE_ENTRY, *PKMER_TABLE_ENTRY;
@@ -23,6 +25,7 @@ typedef struct _KMER_TABLE {
 ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t X, const size_t Size, PKMER_TABLE *Table);
 void kmer_table_destroy(PKMER_TABLE Table);
 ERR_VALUE kmer_table_extend(PKMER_TABLE Table);
+void kmer_table_print(const PKMER_TABLE Table);
 
 ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const PKMER KMer);
 ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const PKMER KMer, const size_t Hash);

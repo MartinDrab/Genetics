@@ -10,6 +10,8 @@ LIB= -lm
 
 OBJ=\
 	$(OBJDIR)/gassm.o \
+	$(OBJDIR)/test-file.o \
+	$(OBJDIR)/assembly.o \
 	$(OBJDIR)/kmer.o \
 	$(OBJDIR)/kmer-edge.o \
 	$(OBJDIR)/kmer-graph.o \
