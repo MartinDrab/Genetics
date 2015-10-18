@@ -214,7 +214,7 @@ void kmer_edge_table_print(const PKMER_EDGE_TABLE Table)
 				kmer_print(edge->Source);
 				printf(" -> ");
 				kmer_print(edge->Dest);
-				printf(" [weight=%u];\n", edge->Weight);
+				printf(" [weight=%lu];\n", edge->Weight);
 			}
 
 			++edge;

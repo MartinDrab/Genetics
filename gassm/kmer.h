@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <malloc.h>
+#include <alloca.h>
 #include "err.h"
 #include "utils.h"
 

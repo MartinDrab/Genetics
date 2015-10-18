@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <assert.h>
+#include <strings.h>
 #include "err.h"
 #include "utils.h"
 #include "options.h"
@@ -49,9 +50,9 @@ int main(int argc, char *argv[])
 		if (ret == ERR_SUCCESS) {
 			ret = options_parse_command_line(argc - 1, argv + 1);
 			if (ret == ERR_SUCCESS) {
-				if (argc == 1 || (argc == 2 && stricmp(argv[1], "--help") == 0 ||
-					stricmp(argv[1], "-h") == 0 || stricmp(argv[1], "/?") == 0 ||
-					stricmp(argv[1], "-?") == 0)) {
+				if (argc == 1 || (argc == 2 && (strcasecmp(argv[1], "--help") == 0 ||
+					strcasecmp(argv[1], "-h") == 0 || strcasecmp(argv[1], "/?") == 0 ||
+					strcasecmp(argv[1], "-?") == 0))) {
 					printf("Usage: gassm [options]\n");
 					options_print_help();
 				} else {
