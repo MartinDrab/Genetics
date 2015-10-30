@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <assert.h>
-#include <strings.h>
 #include "err.h"
 #include "utils.h"
 #include "options.h"
@@ -22,17 +21,37 @@ static ERR_VALUE _set_default_values(void)
 
 	ret = option_add_UInt32(GASSM_OPTION_KMER_SIZE, 3);
 	if (ret == ERR_SUCCESS)
-		ret = option_add_String(GASSM_OPTION_TEST_INPUT_FILE, "input.txt");
+		ret = option_add_String(GASSM_OPTION_REFSEQ_INPUT_FIL, "refseq.txt");
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(GASSM_OPTION_HELP, FALSE);
+		ret = option_add_String(GASSM_OPTION_REFSEQ_INPUT_TYPE, "test");
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(GASSM_OPTION_REFSEQ_SKIP_VERT, FALSE);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_String(GASSM_OPTION_READS_INPUT_FILE, "reads.txt");
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_String(GASSM_OPTION_READS_INPUT_TYPE, "test");
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(GASSM_OPTION_READS_SKIP_VERT, FALSE);
 
 	if (ret == ERR_SUCCESS) {
 		ret = option_set_description_const(GASSM_OPTION_KMER_SIZE, GASSM_OPTION_KMER_SIZE_DESC);
 		assert(ret == ERR_SUCCESS);
-		ret = option_set_description_const(GASSM_OPTION_TEST_INPUT_FILE, GASSM_OPTION_TEST_INPUT_FILE_DESC);
+		ret = option_set_description_const(GASSM_OPTION_REFSEQ_INPUT_FIL, GASSM_OPTION_REFSEQ_INPUT_FIL_DESC);
 		assert(ret == ERR_SUCCESS);
-		ret = option_set_description_const(GASSM_OPTION_HELP, GASSM_OPTION_HELP_DESC);
+		ret = option_set_description_const(GASSM_OPTION_REFSEQ_INPUT_TYPE, GASSM_OPTION_REFSEQ_INPUT_TYPE_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GASSM_OPTION_REFSEQ_SKIP_VERT, GASSM_OPTION_REFSEQ_SKIP_VERT_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GASSM_OPTION_READS_INPUT_FILE, GASSM_OPTION_READS_INPUT_FILE_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GASSM_OPTION_READS_INPUT_TYPE, GASSM_OPTION_READS_INPUT_TYPE_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GASSM_OPTION_READS_SKIP_VERT, GASSM_OPTION_READS_SKIP_VERT_DESC);
 		assert(ret == ERR_SUCCESS);
 	}
 

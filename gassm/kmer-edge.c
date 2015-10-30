@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "err.h"
+#include "utils.h"
 #include "kmer.h"
 #include "kmer-table.h"
 #include "kmer-edge.h"
@@ -17,6 +18,8 @@
 #define _next_hash_attempt(aHash, aAttempt, aModulus)				((aHash + 2 * aAttempt + 1) % aModulus)
 
 
+
+
 /************************************************************************/
 /*                          GLOBAL VARIABLES                            */
 /************************************************************************/
@@ -26,6 +29,10 @@ static unsigned int _lastOrder = 0;
 /************************************************************************/
 /*                        HELPER FUNCTIONS                              */
 /************************************************************************/
+
+static UTILS_TYPED_MALLOC_FUNCTION(KMER_EDGE_TABLE)
+static UTILS_TYPED_CALLOC_FUNCTION(KMER_EDGE)
+
 
 static PKMER_EDGE _kmer_edge_table_get_slot_hint(const PKMER_EDGE_TABLE Table, size_t Hash, const PKMER Source, const PKMER Dest)
 {
@@ -77,8 +84,8 @@ ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t X, const si
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	if (utils_is_prime(Size)) {
-		tmpTable = (PKMER_EDGE_TABLE)malloc(sizeof(KMER_EDGE_TABLE));
-		if (tmpTable != NULL) {
+		ret = utils_malloc_KMER_EDGE_TABLE(&tmpTable);
+		if (ret == ERR_SUCCESS) {
 			tmpTable->Size = Size;
 			tmpTable->X = X;
 			tmpTable->KMerSize = KMerSize;
@@ -86,26 +93,26 @@ ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t X, const si
 			ret = utils_mul_inverse(X, Size, &tmpTable->Inverse);
 			if (ret == ERR_SUCCESS) {
 				assert((X*tmpTable->Inverse % Size) == 1);
-				tmpTable->Entries = (PKMER_EDGE)calloc(tmpTable->Size, sizeof(KMER_EDGE));
-				if (tmpTable->Entries != NULL) {
+				ret = utils_calloc_KMER_EDGE(tmpTable->Size, &tmpTable->Entries);
+				if (ret == ERR_SUCCESS) {
 					memset(tmpTable->Entries, 0, tmpTable->Size*sizeof(KMER_EDGE));
 					*Table = tmpTable;
-					ret = ERR_SUCCESS;
-				} else ret = ERR_OUT_OF_MEMORY;
+				}
 			}
 
 			if (ret != ERR_SUCCESS)
-				free(tmpTable);
-		} else ret = ERR_OUT_OF_MEMORY;
+				utils_free(tmpTable);
+		}
 	} else ret = ERR_NOT_A_PRIME;
 
 	return ret;
 }
 
+
 void kmer_edge_table_destroy(PKMER_EDGE_TABLE Table)
 {
-	free(Table->Entries);
-	free(Table);
+	utils_free(Table->Entries);
+	utils_free(Table);
 
 	return;
 }
@@ -139,7 +146,7 @@ ERR_VALUE kmer_edge_table_extend(PKMER_EDGE_TABLE Table)
 		}
 
 		if (ret == ERR_SUCCESS) {
-			free(Table->Entries);
+			utils_free(Table->Entries);
 			memcpy(Table, newTable, sizeof(KMER_EDGE_TABLE));
 		}
 
@@ -149,6 +156,73 @@ ERR_VALUE kmer_edge_table_extend(PKMER_EDGE_TABLE Table)
 
 	return ret;
 }
+
+
+ERR_VALUE kmer_edge_table_copy(const PKMER_EDGE_TABLE Source, PKMER_EDGE_TABLE * Copied)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	PKMER_EDGE_TABLE tmpTable = NULL;
+
+	ret = utils_malloc_KMER_EDGE_TABLE(&tmpTable);
+	if (ret == ERR_SUCCESS) {
+		tmpTable->Inverse = Source->Inverse;
+		tmpTable->KMerSize = Source->KMerSize;
+		tmpTable->PowX = Source->PowX;
+		tmpTable->Size = Source->Size;
+		tmpTable->X = Source->X;
+		ret = utils_calloc_KMER_EDGE(tmpTable->Size, &tmpTable->Entries);
+		if (ret == ERR_SUCCESS) {
+			PKMER_EDGE sourceEntry = Source->Entries;
+			PKMER_EDGE destEntry = tmpTable->Entries;
+
+			memset(tmpTable->Entries, 0, sizeof(KMER_EDGE)*tmpTable->Size);
+			for (size_t i = 0; i < tmpTable->Size; ++i) {
+				if (!_kmer_edge_table_entry_empty(sourceEntry)) {
+					memcpy(destEntry, sourceEntry, sizeof(KMER_EDGE));
+					assert(sourceEntry->Source != NULL);
+					assert(sourceEntry->Dest != NULL);
+					destEntry->Source = kmer_copy(sourceEntry->Source);
+					if (destEntry->Source != NULL) {
+						destEntry->Dest = kmer_copy(sourceEntry->Dest);
+						if (destEntry->Dest == NULL) {
+							kmer_free(destEntry->Source);
+							ret = ERR_OUT_OF_MEMORY;
+						}
+					} else ret = ERR_OUT_OF_MEMORY;
+				}
+
+				if (ret != ERR_SUCCESS) {
+					--destEntry;
+					for (size_t j = 0; j < i; ++j) {
+						if (!_kmer_edge_table_entry_empty(destEntry)) {
+							kmer_free(destEntry->Dest);
+							kmer_free(destEntry->Source);
+						}
+
+						--destEntry;
+					}
+					
+					break;
+				}
+
+				++sourceEntry;
+				++destEntry;
+			}
+
+			if (ret == ERR_SUCCESS)
+				*Copied = tmpTable;
+
+			if (ret != ERR_SUCCESS)
+				utils_free(tmpTable->Entries);
+		}
+
+		if (ret != ERR_SUCCESS)
+			utils_free(tmpTable);
+	}
+
+	return ret;
+}
+
 
 PKMER_EDGE kmer_edge_table_get(const PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest)
 {
@@ -162,7 +236,7 @@ PKMER_EDGE kmer_edge_table_get(const PKMER_EDGE_TABLE Table, const PKMER Source,
 }
 
 
-ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest)
+ERR_VALUE kmer_edge_table_insert_ex(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest, PKMER_EDGE *Edge)
 {
 	PKMER_EDGE entry = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -176,11 +250,26 @@ ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const PKMER Source, con
 				ret = (entry->Dest != NULL) ? ERR_SUCCESS : ERR_OUT_OF_MEMORY;
 				if (ret == ERR_SUCCESS) {
 					entry->Order = _lastOrder;
+					*Edge = entry;
 					++_lastOrder;
 				}
 			} else ret = ERR_OUT_OF_MEMORY;
-		} else ret = ERR_ALREADY_EXISTS;
+		} else {
+			*Edge = entry;
+			ret = ERR_ALREADY_EXISTS;
+		}
 	} else ret = ERR_TABLE_FULL;
+
+	return ret;
+}
+
+
+ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest)
+{
+	PKMER_EDGE dummy = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = kmer_edge_table_insert_ex(Table, Source, Dest, &dummy);
 
 	return ret;
 }
@@ -214,7 +303,10 @@ void kmer_edge_table_print(const PKMER_EDGE_TABLE Table)
 				kmer_print(edge->Source);
 				printf(" -> ");
 				kmer_print(edge->Dest);
-				printf(" [weight=%lu];\n", edge->Weight);
+				printf(" [");
+				printf("weight=%lu", edge->Weight);
+				printf(",label=\"L: %u; W: %li\"", edge->Length, edge->Weight);
+				printf("];\n");
 			}
 
 			++edge;

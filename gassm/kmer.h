@@ -5,7 +5,9 @@
 
 #include <stdint.h>
 #include <malloc.h>
+#ifndef _MSC_VER
 #include <alloca.h>
+#endif
 #include "err.h"
 #include "utils.h"
 

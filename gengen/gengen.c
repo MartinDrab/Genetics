@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <strings.h>
 #include "utils.h"
 #include "options.h"
 #include "generator.h"

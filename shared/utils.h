@@ -2,9 +2,20 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+
+
+#include <assert.h>
 #include <stdint.h>
 #include <string.h>
 #include "err.h"
+
+
+
+#ifdef _MSC_VER
+#define strcasecmp				stricmp
+#else 
+#include <strings.h>
+#endif
 
 
 #define flag_on(aValue, aFlag)					(aValue & aFlag)
@@ -33,9 +44,24 @@ size_t utils_pow_mod(const size_t Base, const size_t Power, const size_t Modulus
 
 ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength);
 
+
+
 ERR_VALUE utils_malloc(const size_t Size, void **Address);
 ERR_VALUE utils_calloc(const size_t Count, const size_t Size, void **Address);
 void utils_free(void *Address);
+
+
+#define UTILS_TYPED_MALLOC_FUNCTION(aType)	\
+	ERR_VALUE utils_malloc_##aType(aType ** aResult)						\
+	{																		\
+		return utils_malloc(sizeof(aType), (void **)aResult);				\
+	}																		\
+
+#define UTILS_TYPED_CALLOC_FUNCTION(aType)									\
+	ERR_VALUE utils_calloc_##aType(const size_t Count, aType ** aResult)	\
+	{																		\
+		return utils_calloc(Count, sizeof(aType), (void **)aResult);		\
+	} \
 
 
 
