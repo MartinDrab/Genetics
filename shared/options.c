@@ -158,7 +158,7 @@ static PPROGRAM_OPTION _get_option_record(const char *OptionName)
 					ret = NULL;
 					break;
 				}
-				
+
 				++attempt;
 			} while (!strings_equal(ret->Name, OptionName));
 		}
@@ -367,7 +367,8 @@ static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, const char *StrVa
 		} break;
 		case otInt64: {
 		} break;
-		case otUnknown: 
+		case otUnknown:
+		case otMaximumType:
 		    assert(FALSE);
 		    break;
 	}
@@ -391,7 +392,7 @@ static void _option_print_value(const PPROGRAM_OPTION Record)
 		case otDouble: printf("%lf", Record->Value.Double); break;
 		case otChar: printf("%c", Record->Value.Char); break;
 		case otString: printf("%s", Record->Value.String); break;
-		case otBoolean: printf("%s", (Record->Value.Boolean) ? "true" : "false"); break;	
+		case otBoolean: printf("%s", (Record->Value.Boolean) ? "true" : "false"); break;
 		default: assert(0);  break;
 	}
 
@@ -482,7 +483,7 @@ ERR_VALUE options_parse_command_line(int argc, char **argv)
 		argName = argv[i];
 		argNameLen = strlen(argName);
 		argValue = NULL;
-		if (argNameLen > 2 && memcmp(argName, "--", 2 * sizeof(char)) == 0) {			
+		if (argNameLen > 2 && memcmp(argName, "--", 2 * sizeof(char)) == 0) {
 			argName += 2;
 			argNameLen -= 2;
 			record = _get_option_record(argName);

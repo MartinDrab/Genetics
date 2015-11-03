@@ -28,6 +28,10 @@ typedef uint8_t boolean;
 #define TRUE									(!FALSE)
 
 
+#ifndef min
+#define min(a,b)					((a) < (b) ? (a) : (b))
+#endif
+
 #define strings_equal(S1, S2)					(strcmp(S1, S2) == 0)
 
 ERR_VALUE utils_copy_string(const char *String, char **Result);
