@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <malloc.h>
+#include <stdio.h>
 #ifndef _MSC_VER
 #include <alloca.h>
 #endif
@@ -38,7 +39,7 @@ PKMER kmer_copy(const PKMER KMer);
 void kmer_advance(PKMER KMer, const char Base);
 void kmer_back(PKMER KMer, const char Base);
 boolean kmer_equal(const PKMER K1, const PKMER K2);
-void kmer_print(const PKMER KMer);
+void kmer_print(FILE *Stream, const PKMER KMer);
 
 
 #endif 

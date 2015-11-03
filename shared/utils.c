@@ -207,8 +207,8 @@ ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength)
 					char *tmpData = NULL;
 					size_t tmpSize = (size_t)fileSize;
 
-					tmpData = (char *)malloc(tmpSize);
-					if (tmpData != NULL) {
+					ret = utils_malloc(tmpSize, &tmpData);
+					if (ret == ERR_SUCCESS) {
 						if (fread(tmpData, 1, tmpSize, f) == tmpSize) {
 							*Data = tmpData;
 							*DataLength = tmpSize;
@@ -217,7 +217,7 @@ ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength)
 
 						if (ret != ERR_SUCCESS)
 							free(tmpData);
-					} else ret = ERR_OUT_OF_MEMORY;
+					}
 				} else ret = ERR_INTERNAL_ERROR;
 			} else ret = ERR_ERRNO_VALUE;
 		} else ret = ERR_INTERNAL_ERROR;

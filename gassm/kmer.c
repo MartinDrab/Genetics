@@ -80,10 +80,10 @@ boolean kmer_equal(const PKMER K1, const PKMER K2)
 	return (memcmp(K1->Bases, K2->Bases, K1->Size*sizeof(char)) == 0);
 }
 
-void kmer_print(const PKMER KMer)
+void kmer_print(FILE *Stream, const PKMER KMer)
 {
 	for (size_t i = 0; i < KMer->Size; ++i)
-		putchar(kmer_get_base(KMer, i));
+		fputc(kmer_get_base(KMer, i), Stream);
 
 	return;
 }

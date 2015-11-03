@@ -33,6 +33,7 @@ ERR_VALUE kmer_graph_create(const uint32_t KMerSize, PKMER_GRAPH *Graph)
 		tmpGraph->NumberOfEdges = 0;
 		tmpGraph->NumberOfVertices = 0;
 		tmpGraph->KMerSize = KMerSize;
+		tmpGraph->NumberOfBackwardEdges = 0;
 		ret = kmer_table_create(KMerSize, 2, 37, &tmpGraph->VertexTable);
 		if (ret == ERR_SUCCESS) {
 			ret = kmer_edge_table_create(KMerSize, 2, 37, &tmpGraph->EdgeTable);
@@ -89,16 +90,70 @@ ERR_VALUE kmer_graph_copy(const PKMER_GRAPH Source, PKMER_GRAPH *Copied)
 }
 
 
-void kmer_graph_print(const PKMER_GRAPH Graph)
+void kmer_graph_print(FILE *Stream, const PKMER_GRAPH Graph)
 {
-	printf("digraph G {\n");
-	printf("\t/* number of vertices: %u */\n", Graph->NumberOfVertices);
-	printf("\t/* number of edges: %u */\n", Graph->NumberOfEdges);
-	kmer_table_print(Graph->VertexTable);
-	kmer_edge_table_print(Graph->EdgeTable);
-	printf("}\n");
+	fprintf(Stream, "digraph G {\n");
+	fprintf(Stream, "\t/* number of vertices: %u */\n", Graph->NumberOfVertices);
+	fprintf(Stream, "\t/* number of edges: %u */\n", Graph->NumberOfEdges);
+	fprintf(Stream, "\t/* number of backward edges: %u */\n", Graph->NumberOfBackwardEdges);
+	kmer_table_print(Stream, Graph->VertexTable);
+	kmer_edge_table_print(Stream, Graph->EdgeTable);
+	fprintf(Stream, "}\n");
 
 	return;
+}
+
+ERR_VALUE kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph)
+{
+	PKMER_TABLE_ENTRY v = NULL;
+	PKMER x = NULL;
+	PKMER y = NULL;
+	PKMER_EDGE dummy = NULL;
+	PKMER_EDGE sourceEdge = NULL;
+	PKMER_EDGE destEdge = NULL;
+	long weight = 0;
+	uint32_t length = 0;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = kmer_table_first(Graph->VertexTable, &v);
+	while (ret == ERR_SUCCESS) {
+		if (v->DegreeIn == 1 && v->degreeOut == 1) {
+			x = v->AdvancedInfo.PassThroughVertex.Input;
+			assert(x != NULL);
+			y = v->AdvancedInfo.PassThroughVertex.Output;
+			assert(y != NULL);
+			if (!kmer_equal(x, y)) {
+				sourceEdge = kmer_edge_table_get(Graph->EdgeTable, x, v->KMer);
+				assert(sourceEdge != NULL);
+				destEdge = kmer_edge_table_get(Graph->EdgeTable, v->KMer, y);
+				assert(destEdge != NULL);
+				weight = sourceEdge->Weight;
+				length = sourceEdge->Length + destEdge->Length;
+				kmer_edge_table_delete(Graph->EdgeTable, sourceEdge->Source, sourceEdge->Dest);
+				kmer_edge_table_delete(Graph->EdgeTable, destEdge->Source, destEdge->Dest);
+				kmer_table_delete(Graph->VertexTable, v->KMer);
+				ret = kmer_edge_table_insert_ex(Graph->EdgeTable, x, y, &dummy);
+				if (ret == ERR_SUCCESS) {
+					dummy->Length = length;
+					dummy->Weight = weight;
+					v = kmer_table_get(Graph->VertexTable, x);
+					assert(v != NULL);
+					v->AdvancedInfo.PassThroughVertex.Output = y;
+					v = kmer_table_get(Graph->VertexTable, y);
+					assert(v != NULL);
+					v->AdvancedInfo.PassThroughVertex.Input = x;
+				}
+
+				--Graph->NumberOfVertices;
+				--Graph->NumberOfEdges;
+			}
+		}
+
+		if (ret == ERR_SUCCESS)
+			ret = kmer_table_next(Graph->VertexTable, v, &v);
+	}
+
+	return ret;
 }
 
 
@@ -127,16 +182,22 @@ ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, const PKMER Source, const PK
 	do {
 		ret = kmer_edge_table_insert_ex(Graph->EdgeTable, Source, Dest, &edge);
 		if (ret == ERR_SUCCESS) {
+			PKMER_TABLE_ENTRY u = NULL;
 			PKMER_TABLE_ENTRY v = NULL;
 
 			edge->Weight = weight;
 			edge->Length = Length;
-			v = kmer_table_get(Graph->VertexTable, edge->Source);
-			assert(v != NULL);
-			v->degreeOut++;
+			u = kmer_table_get(Graph->VertexTable, edge->Source);
+			assert(u != NULL);
+			u->degreeOut++;
+			u->AdvancedInfo.PassThroughVertex.Output = edge->Dest;
 			v = kmer_table_get(Graph->VertexTable, edge->Dest);
 			assert(v != NULL);
 			v->DegreeIn++;
+			v->AdvancedInfo.PassThroughVertex.Input = edge->Source;
+			if (v->Order <= u->Order)
+				Graph->NumberOfBackwardEdges++;
+
 			*Edge = edge;
 		}
 

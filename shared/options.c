@@ -474,6 +474,7 @@ ERR_VALUE options_parse_command_line(int argc, char **argv)
 	char *argName = NULL;
 	size_t argNameLen = 0;
 	char *argValue = NULL;
+	PPROGRAM_OPTION record = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	ret = ERR_SUCCESS;
@@ -481,12 +482,23 @@ ERR_VALUE options_parse_command_line(int argc, char **argv)
 		argName = argv[i];
 		argNameLen = strlen(argName);
 		argValue = NULL;
-		if (argNameLen > 2 && memcmp(argName, "--", 2 * sizeof(char)) == 0) {
-			PPROGRAM_OPTION record = NULL;
-			
+		if (argNameLen > 2 && memcmp(argName, "--", 2 * sizeof(char)) == 0) {			
 			argName += 2;
 			argNameLen -= 2;
 			record = _get_option_record(argName);
+			if (record != NULL) {
+				if (record->Type != otBoolean) {
+					if (i < argc - 1) {
+						++i;
+						argValue = argv[i];
+					} else ret = ERR_OPTION_VALUE_NOT_FOUND;
+				}
+
+				if (ret == ERR_SUCCESS)
+					ret = _set_record_value_str(record, argValue);
+			} else ret = ERR_UNKNOWN_OPTION;
+		} else if (argNameLen == 2 && argName[0] == '-') {
+			record = _shortcutTable[argName[1]];
 			if (record != NULL) {
 				if (record->Type != otBoolean) {
 					if (i < argc - 1) {
@@ -561,6 +573,7 @@ ERR_VALUE option_set_shortcut(const char *Name, const char Shortcut)
 
 		if (_shortcutTable[Shortcut] == NULL) {
 			record->Shortcut = Shortcut;
+			_shortcutTable[Shortcut] = record;
 			ret = ERR_SUCCESS;
 		} else ret = ERR_ALREADY_EXISTS;
 	} else ret = ERR_UNKNOWN_OPTION;
@@ -603,12 +616,11 @@ void options_print_help(void)
 
 				printf("--");
 				_option_print_name(record);
-				printf("\t");
+				printf(" ");
 				if (record->Type != otBoolean)
 					printf("<%s>", _optionTypeMap[record->Type]);
-				else printf("\t\t");
 
-				printf("\t\t%s\n", record->Description);
+				printf("\n\t%s\n", record->Description);
 				break;
 			}
 

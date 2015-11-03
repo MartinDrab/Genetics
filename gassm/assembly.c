@@ -5,6 +5,8 @@
 #include "utils.h"
 #include "kmer.h"
 #include "kmer-graph.h"
+#include "options.h"
+#include "gassm.h"
 #include "assembly.h"
 
 
@@ -40,65 +42,8 @@ static ERR_VALUE _attempt_skip_vertices(PKMER_GRAPH Graph, PKMER DestKMer, uint3
 	return ret;
 }
 
-/************************************************************************/
-/*                      PUBLIC FUNCTIONS                                */
-/************************************************************************/
 
-ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq)
-{
-	PKMER sourceKMer = NULL;
-	PKMER destKMer = NULL;
-	const uint32_t kmerSize = kmer_graph_get_kmer_size(Graph);
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	KMER_STACK_ALLOC(sourceKMer, kmerSize, RefSeq);
-	kmer_back(sourceKMer, 'B');
-	ret = kmer_graph_add_vertex(Graph, sourceKMer);
-	if (ret == ERR_SUCCESS) {
-		size_t refSeqLen = strlen(RefSeq);
-
-		KMER_STACK_ALLOC(destKMer, kmerSize, RefSeq);
-		kmer_back(destKMer, 'B');
-		size_t i = kmerSize - 1;
-		while (i <= refSeqLen) {
-			uint32_t addEdgeLength = 0;
-			
-			if (i == refSeqLen)
-				kmer_advance(destKMer, 'E');
-			else kmer_advance(destKMer, RefSeq[i]);
-
-			ret = kmer_graph_add_vertex(Graph, destKMer);
-			if (ret == ERR_ALREADY_EXISTS) {
-				ret = _attempt_skip_vertices(Graph, destKMer, &addEdgeLength, kmerSize, RefSeq, i, refSeqLen, TRUE);
-				if (ret == ERR_ALREADY_EXISTS)
-					ret = ERR_SUCCESS;
-			}
-
-			if (ret == ERR_SUCCESS) {
-				PKMER_EDGE edge = NULL;
-
-				ret = kmer_graph_add_edge_ex(Graph, sourceKMer, destKMer, 0, addEdgeLength + 1, &edge);
-				if (ret == ERR_ALREADY_EXISTS)
-					ret = ERR_SUCCESS;
-
-				if (addEdgeLength > 0) {
-					i += addEdgeLength;
-					kmer_init_from_kmer(sourceKMer, destKMer);
-				} else kmer_advance(sourceKMer, RefSeq[i]);
-			}
-
-			if (ret != ERR_SUCCESS)
-				break;
-
-			++i;
-		}
-	}
-
-	return ret;
-}
-
-
-ERR_VALUE kmer_graph_parse_read(PKMER_GRAPH Graph, const char *Read)
+static ERR_VALUE _kmer_graph_parse_read(PKMER_GRAPH Graph, const char *Read, const boolean SkipVertices)
 {
 	size_t readLen = 0;
 	PKMER sourceKMer = NULL;
@@ -121,7 +66,9 @@ ERR_VALUE kmer_graph_parse_read(PKMER_GRAPH Graph, const char *Read)
 		kmer_advance(destKMer, Read[i]);
 		ret = kmer_graph_add_vertex(Graph, destKMer);
 		if (ret == ERR_ALREADY_EXISTS) {
-//			ret = _attempt_skip_vertices(Graph, destKMer, &addEdgeLength, kmerSize, Read, i, readLen, FALSE);
+			if (SkipVertices)
+				ret = _attempt_skip_vertices(Graph, destKMer, &addEdgeLength, kmerSize, Read, i, readLen, FALSE);
+			
 			if (ret == ERR_ALREADY_EXISTS)
 				ret = ERR_SUCCESS;
 		}
@@ -138,7 +85,8 @@ ERR_VALUE kmer_graph_parse_read(PKMER_GRAPH Graph, const char *Read)
 			if (addEdgeLength > 0) {
 				i += addEdgeLength;
 				kmer_init_from_kmer(sourceKMer, destKMer);
-			} else kmer_advance(sourceKMer, Read[i]);
+			}
+			else kmer_advance(sourceKMer, Read[i]);
 		}
 
 		if (ret != ERR_SUCCESS)
@@ -150,17 +98,82 @@ ERR_VALUE kmer_graph_parse_read(PKMER_GRAPH Graph, const char *Read)
 	return ret;
 }
 
-ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, const char **Reads, const size_t ReadCount)
+/************************************************************************/
+/*                      PUBLIC FUNCTIONS                                */
+/************************************************************************/
+
+ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, const size_t RefSeqLen)
 {
+	PKMER sourceKMer = NULL;
+	PKMER destKMer = NULL;
+	boolean skip = FALSE;
+	const uint32_t kmerSize = kmer_graph_get_kmer_size(Graph);
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	for (size_t j = 0; j < ReadCount; ++j) {
-		const char *currentRead = Reads[j];
+	ret = option_get_Boolean(GASSM_OPTION_REFSEQ_SKIP_VERT, &skip);
+	if (ret == ERR_SUCCESS) {
+		KMER_STACK_ALLOC(sourceKMer, kmerSize, RefSeq);
+		kmer_back(sourceKMer, 'B');
+		ret = kmer_graph_add_vertex(Graph, sourceKMer);
+		if (ret == ERR_SUCCESS) {
+			KMER_STACK_ALLOC(destKMer, kmerSize, RefSeq);
+			kmer_back(destKMer, 'B');
+			size_t i = kmerSize - 1;
+			while (i <= RefSeqLen) {
+				uint32_t addEdgeLength = 0;
 
-		ret = kmer_graph_parse_read(Graph, currentRead);
-		if (ret != ERR_SUCCESS)
-			break;
+				if (i == RefSeqLen)
+					kmer_advance(destKMer, 'E');
+				else kmer_advance(destKMer, RefSeq[i]);
+
+				ret = kmer_graph_add_vertex(Graph, destKMer);
+				if (ret == ERR_ALREADY_EXISTS) {
+					if (skip)
+						ret = _attempt_skip_vertices(Graph, destKMer, &addEdgeLength, kmerSize, RefSeq, i, RefSeqLen, TRUE);
+					
+					if (ret == ERR_ALREADY_EXISTS)
+						ret = ERR_SUCCESS;
+				}
+
+				if (ret == ERR_SUCCESS) {
+					PKMER_EDGE edge = NULL;
+
+					ret = kmer_graph_add_edge_ex(Graph, sourceKMer, destKMer, 0, addEdgeLength + 1, &edge);
+					if (ret == ERR_ALREADY_EXISTS)
+						ret = ERR_SUCCESS;
+
+					if (addEdgeLength > 0) {
+						i += addEdgeLength;
+						kmer_init_from_kmer(sourceKMer, destKMer);
+					} else kmer_advance(sourceKMer, RefSeq[i]);
+				}
+
+				if (ret != ERR_SUCCESS)
+					break;
+
+				++i;
+			}
+		}
 	}
 
+	return ret;
+}
+
+
+ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, const char **Reads, const size_t ReadCount)
+{
+	boolean skip = FALSE;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = option_get_Boolean(GASSM_OPTION_READS_SKIP_VERT, &skip);
+	if (ret == ERR_SUCCESS) {
+		for (size_t j = 0; j < ReadCount; ++j) {
+			const char *currentRead = Reads[j];
+
+			ret = _kmer_graph_parse_read(Graph, currentRead, skip);
+			if (ret != ERR_SUCCESS)
+				break;
+		}
+	}
 	return ret;
 }

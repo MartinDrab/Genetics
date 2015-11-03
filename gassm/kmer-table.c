@@ -76,6 +76,7 @@ ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t X, const size_t 
 	if (utils_is_prime(Size)) {
 		ret = utils_malloc_KMER_TABLE(&tmpTable);
 		if (ret == ERR_SUCCESS) {
+			tmpTable->LastOrder = 0;
 			tmpTable->Size = Size;
 			tmpTable->X = X;
 			tmpTable->KMerSize = KMerSize;
@@ -121,6 +122,7 @@ ERR_VALUE kmer_table_extend(PKMER_TABLE Table)
 		PKMER_TABLE_ENTRY entry = Table->Entries;
 		PKMER_TABLE_ENTRY newSlot = NULL;
 
+		newTable->LastOrder = Table->LastOrder;
 		for (size_t i = 0; i < Table->Size; ++i) {
 			if (!_kmer_table_entry_empty(entry)) {				
 				newSlot = _kmer_table_get_slot(newTable, entry->KMer);
@@ -159,6 +161,7 @@ ERR_VALUE kmer_table_copy(const PKMER_TABLE Source, PKMER_TABLE * Copied)
 		tmpTable->KMerSize = Source->KMerSize;
 		tmpTable->PowX = Source->PowX;
 		tmpTable->Size = Source->Size;
+		tmpTable->LastOrder = Source->LastOrder;
 		ret = utils_calloc_KMER_TABLE_ENTRY(tmpTable->Size, &tmpTable->Entries);
 		if (ret == ERR_SUCCESS) {
 			PKMER_TABLE_ENTRY sourceEntry = Source->Entries;
@@ -202,19 +205,19 @@ ERR_VALUE kmer_table_copy(const PKMER_TABLE Source, PKMER_TABLE * Copied)
 }
 
 
-void kmer_table_print(const PKMER_TABLE Table)
+void kmer_table_print(FILE *Stream, const PKMER_TABLE Table)
 {
 	PKMER_TABLE_ENTRY entry = NULL;
 
 	entry = Table->Entries;
 	for (size_t i = 0; i < Table->Size; ++i) {
 		if (entry->KMer != NULL) {
-			printf("\t");
-			kmer_print(entry->KMer);
-			printf("[label=\"");
-			kmer_print(entry->KMer);
-			printf("\\nIN=%u; OUT=%u\"]", entry->DegreeIn, entry->degreeOut);
-			printf(";\n");
+			fprintf(Stream, "\t");
+			kmer_print(Stream, entry->KMer);
+			fprintf(Stream, "[label=\"");
+			kmer_print(Stream, entry->KMer);
+			fprintf(Stream, "\\nIN=%u; OUT=%u\"]", entry->DegreeIn, entry->degreeOut);
+			fprintf(Stream, ";\n");
 		}
 
 		++entry;
@@ -235,9 +238,29 @@ ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const PKMER KMer)
 			entry->DegreeIn = 0;
 			entry->degreeOut = 0;
 			entry->KMer = kmer_copy(KMer);
+			entry->Order = Table->LastOrder;
+			++Table->LastOrder;
+			memset(&entry->AdvancedInfo, 0, sizeof(entry->AdvancedInfo));
 			ret = (!_kmer_table_entry_empty(entry)) ? ERR_SUCCESS : ERR_OUT_OF_MEMORY;
 		} else ret = ERR_ALREADY_EXISTS;
 	} else ret = ERR_TABLE_FULL;
+
+	return ret;
+}
+
+ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const PKMER KMer)
+{
+	PKMER_TABLE_ENTRY entry = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	entry = _kmer_table_get_slot(Table, KMer);
+	if (entry != NULL) {
+		if (!_kmer_table_entry_empty(entry)) {
+			kmer_free(entry->KMer);
+			memset(entry, 0, sizeof(KMER_TABLE_ENTRY));
+			ret = ERR_SUCCESS;
+		} else ret = ERR_NOT_FOUND;
+	} else ret = ERR_NOT_FOUND;
 
 	return ret;
 }
@@ -253,6 +276,8 @@ ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const PKMER KMer, const size
 		if (_kmer_table_entry_empty(entry)) {
 			entry->DegreeIn = 0;
 			entry->degreeOut = 0;
+			entry->Order = Table->LastOrder;
+			++Table->LastOrder;
 			entry->KMer = kmer_copy(KMer);
 			ret = (_kmer_table_entry_empty(entry)) ? ERR_SUCCESS : ERR_OUT_OF_MEMORY;
 		} else ret = ERR_ALREADY_EXISTS;
@@ -269,6 +294,44 @@ PKMER_TABLE_ENTRY kmer_table_get(const PKMER_TABLE Table, const PKMER KMer)
 	ret = _kmer_table_get_slot(Table, KMer);
 	if (ret != NULL && _kmer_table_entry_empty(ret))
 		ret = NULL;
+
+	return ret;
+}
+
+ERR_VALUE kmer_table_first(const PKMER_TABLE Table, PKMER_TABLE_ENTRY *Slot)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	PKMER_TABLE_ENTRY entry = Table->Entries;
+
+	ret = ERR_NO_MORE_ENTRIES;
+	for (size_t i = 0; i < Table->Size; ++i) {
+		if (!_kmer_table_entry_empty(entry)) {
+			*Slot = entry;
+			ret = ERR_SUCCESS;
+			break;
+		}
+
+		++entry;
+	}
+
+	return ret;
+}
+
+ERR_VALUE kmer_table_next(const PKMER_TABLE Table, const PKMER_TABLE_ENTRY Current, PKMER_TABLE_ENTRY *Next)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	PKMER_TABLE_ENTRY entry = Current + 1;
+
+	ret = ERR_NO_MORE_ENTRIES;
+	for (size_t i = (Current - Table->Entries) + 1; i < Table->Size; ++i) {
+		if (!_kmer_table_entry_empty(entry)) {
+			*Next = entry;
+			ret = ERR_SUCCESS;
+			break;
+		}
+
+		++entry;
+	}
 
 	return ret;
 }

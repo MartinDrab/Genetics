@@ -235,6 +235,21 @@ PKMER_EDGE kmer_edge_table_get(const PKMER_EDGE_TABLE Table, const PKMER Source,
 	return ret;
 }
 
+ERR_VALUE kmer_edge_table_delete(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest)
+{
+	PKMER_EDGE edge = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	edge = _kmer_edge_table_get_slot(Table, Source, Dest);
+	if (edge != NULL && !_kmer_edge_table_entry_empty(edge)) {
+		utils_free(edge->Source);
+		utils_free(edge->Dest);
+		memset(edge, 0, sizeof(KMER_EDGE));
+	} else ret = ERR_NOT_FOUND;
+
+	return ret;
+}
+
 
 ERR_VALUE kmer_edge_table_insert_ex(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest, PKMER_EDGE *Edge)
 {
@@ -291,7 +306,7 @@ size_t kmer_edge_hash(const PKMER_EDGE_TABLE Table, const PKMER Source, const PK
 	return hash;
 }
 
-void kmer_edge_table_print(const PKMER_EDGE_TABLE Table)
+void kmer_edge_table_print(FILE *Stream, const PKMER_EDGE_TABLE Table)
 {
 	PKMER_EDGE edge = NULL;
 
@@ -299,14 +314,14 @@ void kmer_edge_table_print(const PKMER_EDGE_TABLE Table)
 		edge = Table->Entries;
 		for (size_t j = 0; j < Table->Size; ++j) {
 			if (!_kmer_edge_table_entry_empty(edge) && edge->Order == i) {
-				printf("\t");
-				kmer_print(edge->Source);
-				printf(" -> ");
-				kmer_print(edge->Dest);
-				printf(" [");
-				printf("weight=%lu", edge->Weight);
-				printf(",label=\"L: %u; W: %li\"", edge->Length, edge->Weight);
-				printf("];\n");
+				fprintf(Stream, "\t");
+				kmer_print(Stream, edge->Source);
+				fprintf(Stream, " -> ");
+				kmer_print(Stream, edge->Dest);
+				fprintf(Stream, " [");
+				fprintf(Stream, "weight=%lu", edge->Weight);
+				fprintf(Stream, ",label=\"L: %u; W: %li\"", edge->Length, edge->Weight);
+				fprintf(Stream, "];\n");
 			}
 
 			++edge;

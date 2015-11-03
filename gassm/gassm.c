@@ -9,7 +9,7 @@
 #include "kmer-table.h"
 #include "kmer-edge.h"
 #include "kmer-graph.h"
-#include "test-file.h"
+#include "input-file.h"
 #include "assembly.h"
 #include "gassm.h"
 
@@ -21,10 +21,10 @@ static ERR_VALUE _set_default_values(void)
 
 	ret = option_add_UInt32(GASSM_OPTION_KMER_SIZE, 3);
 	if (ret == ERR_SUCCESS)
-		ret = option_add_String(GASSM_OPTION_REFSEQ_INPUT_FIL, "refseq.txt");
+		ret = option_add_String(GASSM_OPTION_REFSEQ_INPUT_FILE, "refseq.txt");
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_String(GASSM_OPTION_REFSEQ_INPUT_TYPE, "test");
+		ret = option_add_String(GASSM_OPTION_REFSEQ_INPUT_TYPE, "fasta");
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_Boolean(GASSM_OPTION_REFSEQ_SKIP_VERT, FALSE);
@@ -33,15 +33,24 @@ static ERR_VALUE _set_default_values(void)
 		ret = option_add_String(GASSM_OPTION_READS_INPUT_FILE, "reads.txt");
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_String(GASSM_OPTION_READS_INPUT_TYPE, "test");
+		ret = option_add_String(GASSM_OPTION_READS_INPUT_TYPE, "none");
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_Boolean(GASSM_OPTION_READS_SKIP_VERT, FALSE);
 
+	if (ret == ERR_SUCCESS)
+		ret = option_add_String(GASSM_OPTION_OUTPUT_FILE, "-");
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_String(GASSM_OPTION_ACTION, "assembly");
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(GASSM_OPTION_VERBOSE, FALSE);
+
 	if (ret == ERR_SUCCESS) {
 		ret = option_set_description_const(GASSM_OPTION_KMER_SIZE, GASSM_OPTION_KMER_SIZE_DESC);
 		assert(ret == ERR_SUCCESS);
-		ret = option_set_description_const(GASSM_OPTION_REFSEQ_INPUT_FIL, GASSM_OPTION_REFSEQ_INPUT_FIL_DESC);
+		ret = option_set_description_const(GASSM_OPTION_REFSEQ_INPUT_FILE, GASSM_OPTION_REFSEQ_INPUT_FIL_DESC);
 		assert(ret == ERR_SUCCESS);
 		ret = option_set_description_const(GASSM_OPTION_REFSEQ_INPUT_TYPE, GASSM_OPTION_REFSEQ_INPUT_TYPE_DESC);
 		assert(ret == ERR_SUCCESS);
@@ -53,6 +62,23 @@ static ERR_VALUE _set_default_values(void)
 		assert(ret == ERR_SUCCESS);
 		ret = option_set_description_const(GASSM_OPTION_READS_SKIP_VERT, GASSM_OPTION_READS_SKIP_VERT_DESC);
 		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GASSM_OPTION_OUTPUT_FILE, GASSM_OPTION_OUTPUT_FILE_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GASSM_OPTION_ACTION, GASSM_OPTION_ACTION_DESC);
+		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GASSM_OPTION_VERBOSE, GASSM_OPTION_VERBOSE_DESC);
+		assert(ret == ERR_SUCCESS);
+
+		option_set_shortcut(GASSM_OPTION_KMER_SIZE, 'k');
+		option_set_shortcut(GASSM_OPTION_REFSEQ_INPUT_FILE, 'i');
+		option_set_shortcut(GASSM_OPTION_READS_INPUT_FILE, 'I');
+		option_set_shortcut(GASSM_OPTION_REFSEQ_INPUT_TYPE, 't');
+		option_set_shortcut(GASSM_OPTION_READS_INPUT_TYPE, 'T');
+		option_set_shortcut(GASSM_OPTION_REFSEQ_SKIP_VERT, 's');
+		option_set_shortcut(GASSM_OPTION_READS_SKIP_VERT, 'S');
+		option_set_shortcut(GASSM_OPTION_OUTPUT_FILE, 'o');
+		option_set_shortcut(GASSM_OPTION_ACTION, 'a');
+		option_set_shortcut(GASSM_OPTION_VERBOSE, 'v');
 	}
 
 	return ret;
@@ -76,42 +102,61 @@ int main(int argc, char *argv[])
 					options_print_help();
 				} else {
 					uint32_t kmerSize = 0;
-					char *testFile = NULL;
 
 					ret = option_get_UInt32(GASSM_OPTION_KMER_SIZE, &kmerSize);
-					if (ret == ERR_SUCCESS)
-						ret = option_get_String(GASSM_OPTION_TEST_INPUT_FILE, &testFile);
-
 					if (ret == ERR_SUCCESS) {
-						char *testData = NULL;
-						size_t testDataSize = 0;
+						char *refSeq = NULL;
+						size_t refSeqLen = 0;
+						char **reads = NULL;
+						size_t readCount = 0;
 
-						ret = utils_file_read(testFile, &testData, &testDataSize);
+						ret = input_get_refseq(&refSeq, &refSeqLen);
 						if (ret == ERR_SUCCESS) {
-							char *refSeq = NULL;
-							char **reads = NULL;
-							size_t readCount = 0;
-
-							ret = parse_test_data(testData, testDataSize, &refSeq, &reads, &readCount);
+							ret = input_get_reads(&reads, &readCount);
 							if (ret == ERR_SUCCESS) {
-								PKMER_GRAPH g = NULL;
+								PACTIVE_REGION regions = NULL;
+								size_t regionCount = 0;
 
-								ret = kmer_graph_create(kmerSize, &g);
+								ret = input_refseq_to_regions(refSeq, refSeqLen, &regions, &regionCount);
 								if (ret == ERR_SUCCESS) {
-									ret = kmer_graph_parse_ref_sequence(g, refSeq);
+									char *action = NULL;
+
+									ret = option_get_String(GASSM_OPTION_ACTION, &action);
 									if (ret == ERR_SUCCESS) {
-										ret = kmer_graph_parse_reads(g, reads, readCount);
-										if (ret == ERR_SUCCESS)
-											kmer_graph_print(g);
+										if (strcasecmp(action, "assembly") == 0) {
+											PKMER_GRAPH g = NULL;
+
+											ret = kmer_graph_create(kmerSize, &g);
+											if (ret == ERR_SUCCESS) {
+												ret = kmer_graph_parse_ref_sequence(g, regions[0].Sequence, regions[0].Length);
+												if (ret == ERR_SUCCESS)
+													ret = kmer_graph_parse_reads(g, reads, readCount);
+
+												if (ret == ERR_SUCCESS) {
+//													kmer_graph_delete_1to1_vertices(g);
+													kmer_graph_print(stdout, g);
+												}
+
+												kmer_graph_destroy(g);
+											}
+										} else if (strcasecmp(action, "regions") == 0) {
+											PACTIVE_REGION ar = regions;
+
+											fprintf(stdout, "%u regions\n", regionCount);
+											for (size_t i = 0; i < regionCount; ++i) {
+												fprintf(stdout, "  Offset: %llu, length: %llu\n", ar->Offset, ar->Length);
+												++ar;
+											}
+										}
 									}
 
-									kmer_graph_destroy(g);
+									input_free_regions(regions, regionCount);
 								}
 
-								free_test_data(refSeq, reads, readCount);
+								input_free_reads(reads, readCount);
 							}
 
-							free(testData);
+							input_free_refseq(refSeq, refSeqLen);
 						}
 					}
 				}

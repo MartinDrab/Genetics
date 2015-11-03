@@ -151,11 +151,11 @@
     <ClCompile Include="..\shared\utils.c" />
     <ClCompile Include="assembly.c" />
     <ClCompile Include="gassm.c" />
+    <ClCompile Include="input-file.c" />
     <ClCompile Include="kmer-edge.c" />
     <ClCompile Include="kmer-graph.c" />
     <ClCompile Include="kmer-table.c" />
     <ClCompile Include="kmer.c" />
-    <ClCompile Include="test-file.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\shared\err.h" />
@@ -163,11 +163,11 @@
     <ClInclude Include="..\shared\utils.h" />
     <ClInclude Include="assembly.h" />
     <ClInclude Include="gassm.h" />
+    <ClInclude Include="input-file.h" />
     <ClInclude Include="kmer-edge.h" />
     <ClInclude Include="kmer-graph.h" />
     <ClInclude Include="kmer-table.h" />
     <ClInclude Include="kmer.h" />
-    <ClInclude Include="test-file.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

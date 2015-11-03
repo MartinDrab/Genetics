@@ -26,6 +26,9 @@ typedef int ERR_VALUE;
 #define ERR_ALREADY_EXISTS						18
 #define ERR_ERRNO_VALUE							19
 #define ERR_FERROR								20
+#define ERR_UNKNOWN_REFSEQ_INPUT_TYPE			21
+#define ERR_UNKNOWN_READS_INPUT_TYPE			22
+#define ERR_NO_MORE_ENTRIES						23
 
 
 

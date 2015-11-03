@@ -12,7 +12,7 @@
 
 
 #ifdef _MSC_VER
-#define strcasecmp				stricmp
+#define strcasecmp				_stricmp
 #else 
 #include <strings.h>
 #endif

@@ -36,10 +36,10 @@
     <ClCompile Include="kmer-graph.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="test-file.c">
+    <ClCompile Include="assembly.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="assembly.c">
+    <ClCompile Include="input-file.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -68,10 +68,10 @@
     <ClInclude Include="kmer-edge.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="test-file.h">
+    <ClInclude Include="assembly.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="assembly.h">
+    <ClInclude Include="input-file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
