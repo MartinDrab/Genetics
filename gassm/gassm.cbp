@@ -8,7 +8,7 @@
 		<Build>
 			<Target title="Debug">
 				<Option output="bin/Debug/gassm" prefix_auto="1" extension_auto="1" />
-				<Option object_output="tmp/gassm/Debug/" />
+				<Option object_output="../tmp/gassm/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
@@ -17,7 +17,7 @@
 			</Target>
 			<Target title="Release">
 				<Option output="bin/Release/gassm" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj/gassm/Release/" />
+				<Option object_output="../tmp/gassm/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
@@ -31,6 +31,10 @@
 		<Compiler>
 			<Add option="-Wfatal-errors" />
 			<Add option="-Wall" />
+			<Add option="-std=c99" />
+			<Add directory="/home/martindrab/genetics/Genetics/gassm/" />
+			<Add directory="/home/martindrab/genetics/Genetics/shared/" />
+			<Add directory="/home/martindrab/genetics/Genetics/htslib/htslib" />
 		</Compiler>
 		<Unit filename="../shared/err.h" />
 		<Unit filename="../shared/options.c">
@@ -69,9 +73,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="kmer.h" />
-		<Unit filename="main.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Extensions>
 			<code_completion />
 			<debugger />
