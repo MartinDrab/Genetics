@@ -6,6 +6,11 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gengen", "gengen\gengen.vcxproj", "{97077DA9-D3EF-4953-ACD2-B07FB4C5D14F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gassm", "gassm\gassm.vcxproj", "{3948BDA9-7586-40AC-8376-8C580C8E7DDF}"
+	ProjectSection(ProjectDependencies) = postProject
+		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C} = {59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libkmer", "libkmer\libkmer.vcxproj", "{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,6 +36,14 @@ Global
 		{3948BDA9-7586-40AC-8376-8C580C8E7DDF}.Release|Win32.Build.0 = Release|Win32
 		{3948BDA9-7586-40AC-8376-8C580C8E7DDF}.Release|x64.ActiveCfg = Release|x64
 		{3948BDA9-7586-40AC-8376-8C580C8E7DDF}.Release|x64.Build.0 = Release|x64
+		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Debug|Win32.Build.0 = Debug|Win32
+		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Debug|x64.ActiveCfg = Debug|x64
+		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Debug|x64.Build.0 = Debug|x64
+		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Release|Win32.ActiveCfg = Release|Win32
+		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Release|Win32.Build.0 = Release|Win32
+		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Release|x64.ActiveCfg = Release|x64
+		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

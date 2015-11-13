@@ -288,7 +288,8 @@ static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, const char *StrVa
 	switch (Record->Type) {
 		case otUInt8:
 		case otUInt16:
-		case otUInt32: {
+		case otUInt32: 
+		case otUInt64: {
 			char *endptr = (char *)StrValue;
 			unsigned long result = 0;
 
@@ -301,7 +302,8 @@ static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, const char *StrVa
 		} break;
 		case otInt8:
 		case otInt16:
-		case otInt32: {
+		case otInt32:
+		case otInt64: {
 			char *endptr = (char *)StrValue;
 			long result = 0;
 
@@ -362,10 +364,6 @@ static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, const char *StrVa
 				flag_clear(Record->Flags, PROGRAM_OPTION_FLAG_DEFAULT_VALUE);
 				ret = ERR_SUCCESS;
 			} else ret = ERR_INVALID_BOOLEAN_VALUE;
-		} break;
-		case otUInt64: {
-		} break;
-		case otInt64: {
 		} break;
 		case otUnknown:
 		case otMaximumType:

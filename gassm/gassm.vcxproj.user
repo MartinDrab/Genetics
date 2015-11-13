@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>-i missed-sites.fa -k 40</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-i missed-sites.fa -k 5 -r 10000 -l 2000</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
@@ -11,7 +11,7 @@
     <LocalDebuggerWorkingDirectory>..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-i missed-sites.fa -k 40</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-i missed-sites.fa -k 5 -r 10000 -l 2000</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>

@@ -24,22 +24,10 @@
     <ClCompile Include="..\shared\utils.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="kmer.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="kmer-table.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="kmer-edge.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="kmer-graph.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="assembly.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="input-file.c">
+    <ClCompile Include="..\shared\input-file.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -53,25 +41,16 @@
     <ClInclude Include="..\shared\utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="kmer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="kmer-table.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="gassm.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="kmer-graph.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="kmer-edge.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="assembly.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="input-file.h">
+    <ClInclude Include="..\shared\input-file.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\libkmer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

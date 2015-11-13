@@ -16,6 +16,8 @@
 #define GASSM_OPTION_READS_SKIP_VERT	"reads-skip-vertices"
 #define GASSM_OPTION_OUTPUT_FILE		"output-file"
 #define GASSM_OPTION_ACTION				"action"
+#define GASSM_OPTION_REGION_START		"region-start"
+#define GASSM_OPTION_REGION_LENGTH		"region-length"
 
 #define GASSM_OPTION_HELP				"help"
 #define GASSM_OPTION_VERBOSE			"verbose"
@@ -34,6 +36,8 @@
 #define GASSM_OPTION_READS_SKIP_VERT_DESC	"When adding reads to the graph, attempt to skip vertices to avoid cycles"
 #define GASSM_OPTION_OUTPUT_FILE_DESC		"Specifies the place where the output should be stored"
 #define GASSM_OPTION_ACTION_DESC			"Action to take"
+#define GASSM_OPTION_REGION_START_DESC		"Offset to the start of the active region (relative to the start of the reference sequence)"
+#define GASSM_OPTION_REGION_LENGTH_DESC		"Length of the active region"
 
 #define GASSM_OPTION_HELP_DESC					"See this help"
 #define GASSM_OPTION_VERBOSE_DESC				"Produce verbose output"
