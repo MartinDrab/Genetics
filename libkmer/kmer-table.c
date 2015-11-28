@@ -145,6 +145,15 @@ ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t X, const size_t 
 
 void kmer_table_destroy(PKMER_TABLE Table)
 {
+	PKMER_TABLE_ENTRY entry = Table->Entries;
+
+	for (size_t i = 0; i < Table->Size; ++i) {
+		if (!_kmer_table_entry_empty(entry))
+			kmer_free(entry->KMer);
+
+		++entry;
+	}
+
 	utils_free(Table->Entries);
 	utils_free(Table);
 
@@ -181,7 +190,7 @@ ERR_VALUE kmer_table_extend(PKMER_TABLE Table)
 		}
 
 		if (ret == ERR_SUCCESS) {
-			free(Table->Entries);
+			utils_free(Table->Entries);
 			memcpy(Table, newTable, sizeof(KMER_TABLE));
 		}
 

@@ -20,12 +20,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\shared\utils.c" />
+    <ClCompile Include="assembly.c" />
     <ClCompile Include="kmer-edge.c" />
     <ClCompile Include="kmer-graph.c" />
     <ClCompile Include="kmer-table.c" />
     <ClCompile Include="kmer.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\assembly.h" />
     <ClInclude Include="..\include\kmer-edge.h" />
     <ClInclude Include="..\include\kmer-graph.h" />
     <ClInclude Include="..\include\kmer-table.h" />
@@ -90,6 +92,12 @@
     <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

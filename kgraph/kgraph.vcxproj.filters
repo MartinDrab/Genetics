@@ -15,16 +15,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="gassm.c">
+    <ClCompile Include="kgraph.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\input-file.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\shared\options.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\shared\utils.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\shared\input-file.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\shared\reads.c">
@@ -35,7 +35,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\shared\err.h">
+    <ClInclude Include="kgraph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\input-file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\shared\options.h">
@@ -44,13 +47,7 @@
     <ClInclude Include="..\shared\utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="gassm.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\shared\input-file.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\libkmer.h">
+    <ClInclude Include="..\shared\err.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\shared\reads.h">

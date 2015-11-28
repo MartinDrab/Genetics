@@ -11,6 +11,7 @@
 #include "kmer-graph.h"
 #include "input-file.h"
 #include "assembly.h"
+#include "reads.h"
 #include "gassm.h"
 
 
@@ -19,9 +20,9 @@ static ERR_VALUE _set_default_values(void)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = option_add_UInt32(GASSM_OPTION_KMER_SIZE, 3);
+	ret = option_add_UInt32(GASSM_OPTION_KMER_SIZE, 5);
 	if (ret == ERR_SUCCESS)
-		ret = option_add_String(GASSM_OPTION_REFSEQ_INPUT_FILE, "refseq.txt");
+		ret = option_add_String(GASSM_OPTION_REFSEQ_INPUT_FILE, "refseq.fa");
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_String(GASSM_OPTION_REFSEQ_INPUT_TYPE, "fasta");
@@ -30,10 +31,10 @@ static ERR_VALUE _set_default_values(void)
 		ret = option_add_Boolean(GASSM_OPTION_REFSEQ_SKIP_VERT, FALSE);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_String(GASSM_OPTION_READS_INPUT_FILE, "reads.txt");
+		ret = option_add_String(GASSM_OPTION_READS_INPUT_FILE, "reads.sam");
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_String(GASSM_OPTION_READS_INPUT_TYPE, "none");
+		ret = option_add_String(GASSM_OPTION_READS_INPUT_TYPE, "sam");
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_Boolean(GASSM_OPTION_READS_SKIP_VERT, FALSE);
@@ -156,7 +157,7 @@ int main(int argc, char *argv[])
 					if (ret == ERR_SUCCESS) {
 						char *refSeq = NULL;
 						size_t refSeqLen = 0;
-						char **reads = NULL;
+						PONE_READ *reads = NULL;
 						size_t readCount = 0;
 
 						ret = input_get_refseq(refSeqFileName, refSeqType, &refSeq, &refSeqLen);
@@ -177,9 +178,6 @@ int main(int argc, char *argv[])
 										ret = kmer_graph_create(kmerSize, &g);
 										if (ret == ERR_SUCCESS) {
 											ret = kmer_graph_parse_ref_sequence(g, refSeq + regionStart, regionLength, refSeqSkipVertices);
-											if (ret == ERR_SUCCESS)
-												ret = kmer_graph_parse_reads(g, reads, readCount, readsSkipVertices);
-
 											if (ret == ERR_SUCCESS) {
 												kmer_graph_delete_1to1_vertices(g);
 												kmer_graph_print(stdout, g);

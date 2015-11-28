@@ -8,7 +8,7 @@
 #include "kmer-table.h"
 #include "kmer-edge.h"
 #include "kmer-graph.h"
-
+#include "assembly.h"
 
 
 

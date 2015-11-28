@@ -12,6 +12,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gassm", "gassm\gassm.vcxpro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libkmer", "libkmer\libkmer.vcxproj", "{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kgraph", "kgraph\kgraph.vcxproj", "{DD15D856-4EBD-4F7F-865A-468937E94E88}"
+	ProjectSection(ProjectDependencies) = postProject
+		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C} = {59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -44,6 +49,14 @@ Global
 		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Release|Win32.Build.0 = Release|Win32
 		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Release|x64.ActiveCfg = Release|x64
 		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Release|x64.Build.0 = Release|x64
+		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Debug|Win32.Build.0 = Debug|Win32
+		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Debug|x64.ActiveCfg = Debug|x64
+		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Debug|x64.Build.0 = Debug|x64
+		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Release|Win32.ActiveCfg = Release|Win32
+		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Release|Win32.Build.0 = Release|Win32
+		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Release|x64.ActiveCfg = Release|x64
+		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

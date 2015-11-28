@@ -45,7 +45,7 @@ void kmer_init_from_kmer(PKMER Dest, const PKMER Source)
 
 void kmer_free(PKMER KMer)
 {
-	free(KMer);
+	utils_free(KMer);
 
 	return;
 }

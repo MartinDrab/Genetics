@@ -155,6 +155,17 @@ ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t X, const si
 
 void kmer_edge_table_destroy(PKMER_EDGE_TABLE Table)
 {
+	PKMER_EDGE entry = Table->Entries;
+
+	for (size_t i = 0; i < Table->Size; ++i) {
+		if (!_kmer_edge_table_entry_empty(entry)) {
+			kmer_free(entry->Source);
+			kmer_free(entry->Dest);
+		}
+
+		++entry;
+	}
+	
 	utils_free(Table->Entries);
 	utils_free(Table);
 
@@ -287,8 +298,8 @@ ERR_VALUE kmer_edge_table_delete(PKMER_EDGE_TABLE Table, const PKMER Source, con
 
 	edge = _kmer_edge_table_get_slot(Table, Source, Dest, totDelete);
 	if (edge != NULL && !_kmer_edge_table_entry_empty(edge)) {
-		utils_free(edge->Source);
-		utils_free(edge->Dest);
+		kmer_free(edge->Source);
+		kmer_free(edge->Dest);
 		memset(edge, 0, sizeof(KMER_EDGE));
 		edge->Deleted = TRUE;
 	} else ret = ERR_NOT_FOUND;

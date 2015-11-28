@@ -207,16 +207,17 @@ ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength)
 					char *tmpData = NULL;
 					size_t tmpSize = (size_t)fileSize;
 
-					ret = utils_malloc(tmpSize, &tmpData);
+					ret = utils_malloc(tmpSize + sizeof(char), &tmpData);
 					if (ret == ERR_SUCCESS) {
 						if (fread(tmpData, 1, tmpSize, f) == tmpSize) {
+							tmpData[tmpSize] = 0;
 							*Data = tmpData;
 							*DataLength = tmpSize;
 							ret = ERR_SUCCESS;
 						} else ret = ERR_FERROR;
 
 						if (ret != ERR_SUCCESS)
-							free(tmpData);
+							utils_free(tmpData);
 					}
 				} else ret = ERR_INTERNAL_ERROR;
 			} else ret = ERR_ERRNO_VALUE;

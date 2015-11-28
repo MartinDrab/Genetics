@@ -30,6 +30,9 @@
     <ClCompile Include="..\shared\utils.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="assembly.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\kmer.h">
@@ -51,6 +54,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\shared\err.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\assembly.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

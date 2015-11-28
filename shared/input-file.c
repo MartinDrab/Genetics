@@ -5,6 +5,8 @@
 #include "err.h"
 #include "utils.h"
 #include "options.h"
+#include "dym-array.h"
+#include "reads.h"
 #include "input-file.h"
 
 
@@ -14,6 +16,25 @@
 
 
 static UTILS_TYPED_CALLOC_FUNCTION(ACTIVE_REGION)
+
+
+static const char *_read_line(const char *LineStart)
+{
+	while (*LineStart != '\n' && *LineStart != '\r' && *LineStart != 26 && *LineStart != '\0')
+		++LineStart;
+
+	return LineStart;
+}
+
+
+static const char *_advance_to_next_line(const char *LineEnd)
+{
+	while (*LineEnd == '\n' || *LineEnd == '\r')
+		++LineEnd;
+
+	return LineEnd;
+}
+
 
 static boolean _fasta_read_seq_raw(char *Start, size_t Length, char **SeqStart, char **SeqEnd)
 {
@@ -126,7 +147,7 @@ void input_free_refseq(char *RefSeq, const size_t RefSeqLen)
 }
 
 
-ERR_VALUE input_get_reads(const char *Filename, const char *InputType, char ***Reads, size_t *ReadCount)
+ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ **Reads, size_t *ReadCount)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
@@ -136,50 +157,47 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, char ***R
 
 		ret = utils_file_read(Filename, &data, &dataLength);
 		if (ret == ERR_SUCCESS) {
-			char *start = data;
-			char *read = NULL;
-			size_t readLen = 0;
-			char **tmpReads = NULL;
-			size_t tmpReadsCount = 0;
+			ret = ERR_NOT_IMPLEMENTED;
+			utils_free(data);
+		}
+	} else if (strcasecmp(InputType, "sam") == 0) {
+		char *data = NULL;
+		size_t dataLength = 0;
 
-			*Reads = NULL;
-			*ReadCount = 0;
-			while (ret == ERR_SUCCESS && start != NULL && dataLength > 0) {
-				char *oldPos = start;
+		ret = utils_file_read(Filename, &data, &dataLength);
+		if (ret == ERR_SUCCESS) {
+			const char *line = data;
+			PONE_READ oneRead = NULL;
+			const char *lineEnd = _read_line(line);
+			DYM_ARRAY readArray;
 
-				ret = _fasta_read_seq(start, dataLength, &start, &read, &readLen);
+			dym_array_create(&readArray, 140);
+			while (ret == ERR_SUCCESS && line != lineEnd) {
+				ret = read_create_from_sam_line(line, &oneRead);
 				if (ret == ERR_SUCCESS) {
-					if (read != NULL) {
-						char **oldReads = tmpReads;
-
-						dataLength -= (start - oldPos);
-						ret = utils_calloc(tmpReadsCount + 1, sizeof(char *), (void **)&tmpReads);
-						if (ret == ERR_SUCCESS) {
-							memcpy(tmpReads, oldReads, tmpReadsCount*sizeof(char *));
-							tmpReads[tmpReadsCount] = read;
-							++tmpReadsCount;
-							if (oldReads != NULL)
-								utils_free(oldReads);
-						}
-					} else dataLength = 0;
-
+					ret = dym_array_push_back(&readArray, oneRead);
 					if (ret != ERR_SUCCESS)
-						utils_free(read);
+						read_destroy(oneRead);
 				}
 
-				if (ret != ERR_SUCCESS) {
-					for (size_t i = 0; i < tmpReadsCount; ++i)
-						utils_free(tmpReads[i]);
-
-					utils_free(tmpReads);
-				}
+				line = _advance_to_next_line(lineEnd);
+				lineEnd = _read_line(line);
 			}
 
 			if (ret == ERR_SUCCESS) {
-				*Reads = tmpReads;
-				*ReadCount = tmpReadsCount;
+				ret = dym_array_to_array(&readArray, Reads);
+				if (ret == ERR_SUCCESS)
+					*ReadCount = dym_array_size(&readArray);
 			}
 
+			if (ret != ERR_SUCCESS) {
+				size_t len = dym_array_size(&readArray);
+
+				for (size_t i = 0; i < len; ++i)
+					read_destroy((PONE_READ)dym_array_get(&readArray, i));
+			}
+
+			dym_array_destroy(&readArray);
 			utils_free(data);
 		}
 	} else if (strcasecmp(InputType, "none") == 0) {
@@ -192,11 +210,11 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, char ***R
 }
 
 
-void input_free_reads(char **Reads, const size_t Count)
+void input_free_reads(PONE_READ *Reads, const size_t Count)
 {
 	if (Count > 0) {
 		for (size_t i = 0; i < Count; ++i)
-			utils_free(Reads[i]);
+			read_destroy(Reads[i]);
 
 		utils_free(Reads);
 	}
@@ -315,6 +333,30 @@ ERR_VALUE input_refseq_to_regions(const char *RefSeq, const size_t RefSeqLen, PA
 				utils_free(tmpArray);
 		}
 	}
+
+	return ret;
+}
+
+
+ERR_VALUE input_get_region_by_offset(const PACTIVE_REGION Regions, const uint32_t Count, const uint64_t Offset, uint32_t *Index, uint64_t *RegionOffset)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	PACTIVE_REGION cur = Regions;
+	uint64_t o = Offset;
+
+	if (Offset >= cur->Offset) {
+		ret = ERR_OFFSET_TOO_HIGH;
+		for (uint32_t i = 0; i < Count; ++i) {
+			if (cur->Length > o) {
+				*RegionOffset = o;
+				*Index = i;
+				ret = ERR_SUCCESS;
+				break;
+			} else o -= cur->Length;
+
+			++cur;
+		}
+	} else ret = ERR_OFFSET_TOO_LOW;
 
 	return ret;
 }
