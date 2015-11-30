@@ -111,7 +111,7 @@ static PKMER_TABLE_ENTRY _kmer_table_get_slot(const PKMER_TABLE Table, const PKM
 /*                  PUBLIC FUNCTIONS                                    */
 /************************************************************************/
 
-ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t X, const size_t Size, PKMER_TABLE *Table)
+ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t X, const size_t Size, const KMER_TABLE_CALLBACKS *Callbacks, PKMER_TABLE *Table)
 {
 	PKMER_TABLE tmpTable = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -124,6 +124,7 @@ ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t X, const size_t 
 			tmpTable->X = X;
 			tmpTable->KMerSize = KMerSize;
 			tmpTable->PowX = utils_pow_mod(tmpTable->X, KMerSize - 1, tmpTable->Size);
+			tmpTable->Callbacks = *Callbacks;
 			ret = utils_mul_inverse(X, Size, &tmpTable->Inverse);
 			if (ret == ERR_SUCCESS) {
 				assert((X*tmpTable->Inverse % Size) == 1);
@@ -148,8 +149,10 @@ void kmer_table_destroy(PKMER_TABLE Table)
 	PKMER_TABLE_ENTRY entry = Table->Entries;
 
 	for (size_t i = 0; i < Table->Size; ++i) {
-		if (!_kmer_table_entry_empty(entry))
+		if (!_kmer_table_entry_empty(entry)) {
+			Table->Callbacks.OnDelete(Table, entry->Data);
 			kmer_free(entry->KMer);
+		}
 
 		++entry;
 	}
@@ -169,7 +172,7 @@ ERR_VALUE kmer_table_extend(PKMER_TABLE Table)
 
 	newSize = Table->Size * 2;
 	newSize = utils_next_prime(newSize);
-	ret = kmer_table_create(Table->KMerSize, Table->X, newSize, &newTable);
+	ret = kmer_table_create(Table->KMerSize, Table->X, newSize, &Table->Callbacks, &newTable);
 	if (ret == ERR_SUCCESS) {
 		PKMER_TABLE_ENTRY entry = Table->Entries;
 		PKMER_TABLE_ENTRY newSlot = NULL;
@@ -225,16 +228,23 @@ ERR_VALUE kmer_table_copy(const PKMER_TABLE Source, PKMER_TABLE * Copied)
 					memcpy(destEntry, sourceEntry, sizeof(KMER_TABLE_ENTRY));
 					if (sourceEntry->KMer != NULL) {
 						destEntry->KMer = kmer_copy(sourceEntry->KMer);
-						if (destEntry->KMer == NULL)
-							ret = ERR_OUT_OF_MEMORY;
+						if (destEntry->KMer != NULL) {
+							ret = Source->Callbacks.OnCopy(Source, sourceEntry->Data, &destEntry->Data);
+							if (ret == ERR_SUCCESS) {
+								tmpTable->Callbacks.OnInsert(tmpTable, destEntry->Data, tmpTable->LastOrder);
+								tmpTable->LastOrder++;
+							}
+						} else ret = ERR_OUT_OF_MEMORY;
 					}
 				}
 
 				if (ret != ERR_SUCCESS) {
 					--destEntry;
 					for (size_t j = 0; j < i; ++j) {
-						if (!_kmer_table_entry_empty(destEntry))
+						if (!_kmer_table_entry_empty(destEntry)) {
+							tmpTable->Callbacks.OnDelete(tmpTable, destEntry->Data);
 							kmer_free(destEntry->KMer);
+						}
 
 						--destEntry;
 					}
@@ -265,14 +275,8 @@ void kmer_table_print(FILE *Stream, const PKMER_TABLE Table)
 
 	entry = Table->Entries;
 	for (size_t i = 0; i < Table->Size; ++i) {
-		if (!_kmer_table_entry_empty(entry)) {
-			fprintf(Stream, "\t");
-			kmer_print(Stream, entry->KMer);
-			fprintf(Stream, "[label=\"");
-			kmer_print(Stream, entry->KMer);
-			fprintf(Stream, "\\nIN=%u; OUT=%u\"]", entry->DegreeIn, entry->degreeOut);
-			fprintf(Stream, ";\n");
-		}
+		if (!_kmer_table_entry_empty(entry))
+			Table->Callbacks.OnPrint(Table, entry->Data, Stream);
 
 		++entry;
 	}
@@ -281,7 +285,7 @@ void kmer_table_print(FILE *Stream, const PKMER_TABLE Table)
 }
 
 
-ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const PKMER KMer)
+ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const PKMER KMer, void *Data)
 {
 	PKMER_TABLE_ENTRY entry = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -290,13 +294,13 @@ ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const PKMER KMer)
 	if (entry != NULL) {
 		if (_kmer_table_entry_empty(entry)) {
 			entry->Deleted = FALSE;
-			entry->DegreeIn = 0;
-			entry->degreeOut = 0;
 			entry->KMer = kmer_copy(KMer);
-			entry->Order = Table->LastOrder;
-			++Table->LastOrder;
-			memset(&entry->AdvancedInfo, 0, sizeof(entry->AdvancedInfo));
+			entry->Data = Data;
 			ret = (!_kmer_table_entry_empty(entry)) ? ERR_SUCCESS : ERR_OUT_OF_MEMORY;
+			if (ret == ERR_SUCCESS) {
+				Table->Callbacks.OnInsert(Table, entry->Data, Table->LastOrder);
+				++Table->LastOrder;
+			}
 		} else ret = ERR_ALREADY_EXISTS;
 	} else ret = ERR_TABLE_FULL;
 
@@ -312,6 +316,7 @@ ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const PKMER KMer)
 	entry = _kmer_table_get_slot(Table, KMer, totDelete);
 	if (entry != NULL) {
 		if (!_kmer_table_entry_empty(entry)) {
+			Table->Callbacks.OnDelete(Table, entry->Data);
 			kmer_free(entry->KMer);
 			memset(entry, 0, sizeof(KMER_TABLE_ENTRY));
 			entry->Deleted = TRUE;
@@ -323,7 +328,7 @@ ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const PKMER KMer)
 }
 
 
-ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const PKMER KMer, const size_t Hash)
+ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const PKMER KMer, const size_t Hash, void *Data)
 {
 	PKMER_TABLE_ENTRY entry = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -332,12 +337,13 @@ ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const PKMER KMer, const size
 	if (entry != NULL) {
 		if (_kmer_table_entry_empty(entry)) {
 			entry->Deleted = FALSE;
-			entry->DegreeIn = 0;
-			entry->degreeOut = 0;
-			entry->Order = Table->LastOrder;
-			++Table->LastOrder;
+			entry->Data = Data;
 			entry->KMer = kmer_copy(KMer);
 			ret = (_kmer_table_entry_empty(entry)) ? ERR_SUCCESS : ERR_OUT_OF_MEMORY;
+			if (ret == ERR_SUCCESS) {
+				Table->Callbacks.OnInsert(Table, entry->Data, Table->LastOrder);
+				++Table->LastOrder;
+			}
 		} else ret = ERR_ALREADY_EXISTS;
 	} else ret = ERR_TABLE_FULL;
 
@@ -345,13 +351,17 @@ ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const PKMER KMer, const size
 }
 
 
-PKMER_TABLE_ENTRY kmer_table_get(const PKMER_TABLE Table, const PKMER KMer)
+void *kmer_table_get(const PKMER_TABLE Table, const PKMER KMer)
 {
-	PKMER_TABLE_ENTRY ret = NULL;
+	void *ret = NULL;
+	PKMER_TABLE_ENTRY entry = NULL;
 
-	ret = _kmer_table_get_slot(Table, KMer, totSearch);
-	if (ret != NULL && _kmer_table_entry_empty(ret))
-		ret = NULL;
+	entry = _kmer_table_get_slot(Table, KMer, totSearch);
+	if (entry != NULL && _kmer_table_entry_empty(entry))
+		entry = NULL;
+
+	if (entry != NULL)
+		ret = entry->Data;
 
 	return ret;
 }

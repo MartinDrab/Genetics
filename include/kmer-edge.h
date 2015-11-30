@@ -9,6 +9,12 @@
 #include "kmer.h"
 
 
+typedef enum _EKMerEdgeType {
+	kmetReference,
+	kmetRead,
+} EKMerEdgeType, *PEKMerEdgeType;
+
+
 /** Represents one edge in a kmer graph. */
 typedef struct _KMER_EDGE {
 	boolean Deleted;
@@ -23,6 +29,8 @@ typedef struct _KMER_EDGE {
 	uint32_t Length;
 	/** Edge creation order. */
 	unsigned int Order;
+	EKMerEdgeType Type;
+	double Probability;
 } KMER_EDGE, *PKMER_EDGE;
 
 
@@ -47,7 +55,10 @@ ERR_VALUE kmer_edge_table_copy(const PKMER_EDGE_TABLE Source, PKMER_EDGE_TABLE *
 ERR_VALUE kmer_edge_table_insert_ex(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest, PKMER_EDGE *Edge);
 ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest);
 ERR_VALUE kmer_edge_table_delete(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest);
+void kmer_edge_table_delete_by_entry(PKMER_EDGE_TABLE Table, PKMER_EDGE Entry);
 PKMER_EDGE kmer_edge_table_get(const PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest);
+ERR_VALUE kmer_edge_table_first(const PKMER_EDGE_TABLE Table, PKMER_EDGE *Slot);
+ERR_VALUE kmer_edge_table_next(const PKMER_EDGE_TABLE Table, const PKMER_EDGE Current, PKMER_EDGE *Next);
 
 size_t kmer_edge_hash(const PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest);
 void kmer_edge_table_print(FILE *Stream, const PKMER_EDGE_TABLE Table);

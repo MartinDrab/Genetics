@@ -46,5 +46,6 @@ typedef int ERR_VALUE;
 #define ERR_SAM_INVALID_QUAL					37
 #define ERR_SAM_SEQ_QUAL_LEN_MISMATCH			38
 
+#define ERR_NOT_IN_REGION						39
 
 #endif 

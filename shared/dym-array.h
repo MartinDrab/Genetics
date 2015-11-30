@@ -28,6 +28,10 @@ void *dym_array_remove(PDYM_ARRAY Array, const size_t Index);
 void *dym_array_remove_back(PDYM_ARRAY Array);
 ERR_VALUE dym_array_to_array(const PDYM_ARRAY Array, void ***NormalArray);
 ERR_VALUE dym_array_compact(PDYM_ARRAY Array);
+ERR_VALUE dym_array_copy(PDYM_ARRAY Dest, const DYM_ARRAY *Source);
+ERR_VALUE dym_array_prepare_for_insert(PDYM_ARRAY Array, const size_t NumberOfItems);
+void dym_array_replace(PDYM_ARRAY Array, const void *Item, const void *New);
+void dym_array_remove_by_item_fast(PDYM_ARRAY Array, const void *Item);
 
 
 

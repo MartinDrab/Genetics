@@ -179,6 +179,7 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ *Read)
 
 		if (ret == ERR_SUCCESS) {
 			if (tmpRead->ReadSequenceLen == tmpRead->QualityLen) {
+				tmpRead->Pos--;
 				for (size_t i = 0; i < tmpRead->QualityLen; ++i)
 					tmpRead->Quality[i] -= 33;
 

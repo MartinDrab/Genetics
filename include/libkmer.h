@@ -9,7 +9,7 @@
 #include "kmer-edge.h"
 #include "kmer-graph.h"
 #include "assembly.h"
-
+#include "paths.h"
 
 
 

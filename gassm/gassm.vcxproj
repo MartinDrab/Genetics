@@ -152,6 +152,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\shared\dym-array.c" />
+    <ClCompile Include="..\shared\general-queue.c" />
     <ClCompile Include="..\shared\input-file.c" />
     <ClCompile Include="..\shared\options.c" />
     <ClCompile Include="..\shared\reads.c" />
@@ -162,8 +163,10 @@
     <ClInclude Include="..\include\libkmer.h" />
     <ClInclude Include="..\shared\dym-array.h" />
     <ClInclude Include="..\shared\err.h" />
+    <ClInclude Include="..\shared\general-queue.h" />
     <ClInclude Include="..\shared\input-file.h" />
     <ClInclude Include="..\shared\options.h" />
+    <ClInclude Include="..\shared\paths.h" />
     <ClInclude Include="..\shared\reads.h" />
     <ClInclude Include="..\shared\utils.h" />
     <ClInclude Include="gassm.h" />

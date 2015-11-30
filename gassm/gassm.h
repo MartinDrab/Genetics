@@ -18,6 +18,7 @@
 #define GASSM_OPTION_ACTION				"action"
 #define GASSM_OPTION_REGION_START		"region-start"
 #define GASSM_OPTION_REGION_LENGTH		"region-length"
+#define GASSM_OPTION_WEIGHT_THRESHOLD	"weight-threshold"
 
 #define GASSM_OPTION_HELP				"help"
 #define GASSM_OPTION_VERBOSE			"verbose"
@@ -38,6 +39,7 @@
 #define GASSM_OPTION_ACTION_DESC			"Action to take"
 #define GASSM_OPTION_REGION_START_DESC		"Offset to the start of the active region (relative to the start of the reference sequence)"
 #define GASSM_OPTION_REGION_LENGTH_DESC		"Length of the active region"
+#define GASSM_OPTION_WEIGHT_THRESHOLD_DESC	"Edges with weights below this value will be deleted from the graph"
 
 #define GASSM_OPTION_HELP_DESC					"See this help"
 #define GASSM_OPTION_VERBOSE_DESC				"Produce verbose output"

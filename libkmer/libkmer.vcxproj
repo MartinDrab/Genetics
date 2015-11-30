@@ -19,6 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\shared\dym-array.c" />
+    <ClCompile Include="..\shared\general-queue.c" />
+    <ClCompile Include="..\shared\paths.c" />
     <ClCompile Include="..\shared\utils.c" />
     <ClCompile Include="assembly.c" />
     <ClCompile Include="kmer-edge.c" />
@@ -33,7 +36,10 @@
     <ClInclude Include="..\include\kmer-table.h" />
     <ClInclude Include="..\include\kmer.h" />
     <ClInclude Include="..\include\libkmer.h" />
+    <ClInclude Include="..\shared\dym-array.h" />
     <ClInclude Include="..\shared\err.h" />
+    <ClInclude Include="..\shared\general-queue.h" />
+    <ClInclude Include="..\shared\paths.h" />
     <ClInclude Include="..\shared\utils.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

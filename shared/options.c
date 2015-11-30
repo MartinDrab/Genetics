@@ -291,11 +291,12 @@ static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, const char *StrVa
 		case otUInt32: 
 		case otUInt64: {
 			char *endptr = (char *)StrValue;
-			unsigned long result = 0;
+			uint64_t result = 0;
 
-			result = strtoul(StrValue, &endptr, 0);
+			result = (uint64_t)strtoul(StrValue, &endptr, 0);
 			ret = (result != 0 || endptr != StrValue) ? ERR_SUCCESS : ERR_NOT_AN_UNSIGNED_INTEGRAL_NUMBER;
 			if (ret == ERR_SUCCESS) {
+				Record->Value.UInt64 = 0;
 				memcpy(&Record->Value, &result, Record->ValueSize);
 				flag_clear(Record->Flags, PROGRAM_OPTION_FLAG_DEFAULT_VALUE);
 			}
@@ -305,11 +306,12 @@ static ERR_VALUE _set_record_value_str(PPROGRAM_OPTION Record, const char *StrVa
 		case otInt32:
 		case otInt64: {
 			char *endptr = (char *)StrValue;
-			long result = 0;
+			int64_t result = 0;
 
-			result = strtol(StrValue, &endptr, 0);
+			result = (int64_t)strtol(StrValue, &endptr, 0);
 			ret = (result != 0 || endptr != StrValue) ? ERR_SUCCESS : ERR_NOT_AN_INTEGRAL_NUMBER;
 			if (ret == ERR_SUCCESS) {
+				Record->Value.Int64 = 0;
 				memcpy(&Record->Value, &result, Record->ValueSize);
 				flag_clear(Record->Flags, PROGRAM_OPTION_FLAG_DEFAULT_VALUE);
 			}
@@ -467,6 +469,7 @@ OPTION_SET_FUNCTION(char *, String, otString)
 OPTION_SET_FUNCTION(boolean, Boolean, otBoolean)
 
 
+
 ERR_VALUE options_parse_command_line(int argc, char **argv)
 {
 	int i = 0;
@@ -517,6 +520,7 @@ ERR_VALUE options_parse_command_line(int argc, char **argv)
 	return ret;
 }
 
+
 ERR_VALUE option_set_description(const char *Name, const char *Description)
 {
 	char *desc = NULL;
@@ -558,6 +562,7 @@ ERR_VALUE option_set_description_const(const char *Name, const char *Description
 	return ret;
 }
 
+
 ERR_VALUE option_set_shortcut(const char *Name, const char Shortcut)
 {
 	PPROGRAM_OPTION record = NULL;
@@ -580,6 +585,7 @@ ERR_VALUE option_set_shortcut(const char *Name, const char Shortcut)
 	return ret;
 }
 
+
 void options_print(void)
 {
 	PPROGRAM_OPTION record = _optionTable;
@@ -601,6 +607,7 @@ void options_print(void)
 
 	return;
 }
+
 
 void options_print_help(void)
 {

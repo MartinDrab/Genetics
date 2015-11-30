@@ -291,18 +291,26 @@ PKMER_EDGE kmer_edge_table_get(const PKMER_EDGE_TABLE Table, const PKMER Source,
 }
 
 
+void kmer_edge_table_delete_by_entry(PKMER_EDGE_TABLE Table, PKMER_EDGE Entry)
+{
+	kmer_free(Entry->Source);
+	kmer_free(Entry->Dest);
+	memset(Entry, 0, sizeof(KMER_EDGE));
+	Entry->Deleted = TRUE;
+
+	return;
+}
+
+
 ERR_VALUE kmer_edge_table_delete(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest)
 {
 	PKMER_EDGE edge = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	edge = _kmer_edge_table_get_slot(Table, Source, Dest, totDelete);
-	if (edge != NULL && !_kmer_edge_table_entry_empty(edge)) {
-		kmer_free(edge->Source);
-		kmer_free(edge->Dest);
-		memset(edge, 0, sizeof(KMER_EDGE));
-		edge->Deleted = TRUE;
-	} else ret = ERR_NOT_FOUND;
+	if (edge != NULL && !_kmer_edge_table_entry_empty(edge))
+		kmer_edge_table_delete_by_entry(Table, edge);
+	else ret = ERR_NOT_FOUND;
 
 	return ret;
 }
@@ -320,6 +328,8 @@ ERR_VALUE kmer_edge_table_insert_ex(PKMER_EDGE_TABLE Table, const PKMER Source, 
 			entry->Source = kmer_copy(Source);
 			if (entry->Source != NULL) {
 				entry->Dest = kmer_copy(Dest);
+				entry->Type = kmetReference;
+				entry->Probability = 0;
 				ret = (entry->Dest != NULL) ? ERR_SUCCESS : ERR_OUT_OF_MEMORY;
 				if (ret == ERR_SUCCESS) {
 					entry->Order = _lastOrder;
@@ -377,7 +387,7 @@ void kmer_edge_table_print(FILE *Stream, const PKMER_EDGE_TABLE Table)
 			kmer_print(Stream, edge->Dest);
 			fprintf(Stream, " [");
 			fprintf(Stream, "weight=%lu", edge->Weight);
-			fprintf(Stream, ",label=\"L: %u; W: %li\"", edge->Length, edge->Weight);
+			fprintf(Stream, ",label=\"L: %u; W: %li; P: %u\"", edge->Length, edge->Weight, (uint8_t)(edge->Probability * 100));
 			fprintf(Stream, "];\n");
 		}
 
@@ -385,4 +395,44 @@ void kmer_edge_table_print(FILE *Stream, const PKMER_EDGE_TABLE Table)
 	}
 
 	return;
+}
+
+
+ERR_VALUE kmer_edge_table_first(const PKMER_EDGE_TABLE Table, PKMER_EDGE *Slot)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	PKMER_EDGE entry = Table->Entries;
+
+	ret = ERR_NO_MORE_ENTRIES;
+	for (size_t i = 0; i < Table->Size; ++i) {
+		if (!_kmer_edge_table_entry_empty(entry)) {
+			*Slot = entry;
+			ret = ERR_SUCCESS;
+			break;
+		}
+
+		++entry;
+	}
+
+	return ret;
+}
+
+
+ERR_VALUE kmer_edge_table_next(const PKMER_EDGE_TABLE Table, const PKMER_EDGE Current, PKMER_EDGE *Next)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	PKMER_EDGE entry = Current + 1;
+
+	ret = ERR_NO_MORE_ENTRIES;
+	for (size_t i = (Current - Table->Entries) + 1; i < Table->Size; ++i) {
+		if (!_kmer_edge_table_entry_empty(entry)) {
+			*Next = entry;
+			ret = ERR_SUCCESS;
+			break;
+		}
+
+		++entry;
+	}
+
+	return ret;
 }

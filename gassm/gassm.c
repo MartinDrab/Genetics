@@ -11,6 +11,7 @@
 #include "kmer-graph.h"
 #include "input-file.h"
 #include "assembly.h"
+#include "libkmer.h"
 #include "reads.h"
 #include "gassm.h"
 
@@ -20,7 +21,7 @@ static ERR_VALUE _set_default_values(void)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = option_add_UInt32(GASSM_OPTION_KMER_SIZE, 5);
+	ret = option_add_UInt32(GASSM_OPTION_KMER_SIZE, 25);
 	if (ret == ERR_SUCCESS)
 		ret = option_add_String(GASSM_OPTION_REFSEQ_INPUT_FILE, "refseq.fa");
 
@@ -49,10 +50,13 @@ static ERR_VALUE _set_default_values(void)
 		ret = option_add_Boolean(GASSM_OPTION_VERBOSE, FALSE);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt64(GASSM_OPTION_REGION_START, 0);
+		ret = option_add_UInt64(GASSM_OPTION_REGION_START, 534000);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt64(GASSM_OPTION_REGION_LENGTH, 0);
+		ret = option_add_UInt64(GASSM_OPTION_REGION_LENGTH, 2000);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_UInt32(GASSM_OPTION_WEIGHT_THRESHOLD, 3);
 
 	if (ret == ERR_SUCCESS) {
 		ret = option_set_description_const(GASSM_OPTION_KMER_SIZE, GASSM_OPTION_KMER_SIZE_DESC);
@@ -79,6 +83,8 @@ static ERR_VALUE _set_default_values(void)
 		assert(ret == ERR_SUCCESS);
 		ret = option_set_description_const(GASSM_OPTION_REGION_LENGTH, GASSM_OPTION_REGION_LENGTH_DESC);
 		assert(ret == ERR_SUCCESS);
+		ret = option_set_description_const(GASSM_OPTION_WEIGHT_THRESHOLD, GASSM_OPTION_WEIGHT_THRESHOLD_DESC);
+		assert(ret == ERR_SUCCESS);
 
 		option_set_shortcut(GASSM_OPTION_KMER_SIZE, 'k');
 		option_set_shortcut(GASSM_OPTION_REFSEQ_INPUT_FILE, 'i');
@@ -92,6 +98,7 @@ static ERR_VALUE _set_default_values(void)
 		option_set_shortcut(GASSM_OPTION_VERBOSE, 'v');
 		option_set_shortcut(GASSM_OPTION_REGION_START, 'r');
 		option_set_shortcut(GASSM_OPTION_REGION_LENGTH, 'l');
+		option_set_shortcut(GASSM_OPTION_WEIGHT_THRESHOLD, 'w');
 	}
 
 	return ret;
@@ -124,9 +131,13 @@ int main(int argc, char *argv[])
 					char *refSeqFileName = NULL;
 					char *readsType = NULL;
 					char *readsFileName = NULL;
+					uint32_t wightThreshold = 0;
+					boolean verbose = FALSE;
 
-
-					ret = option_get_UInt32(GASSM_OPTION_KMER_SIZE, &kmerSize);
+					ret = option_get_Boolean(GASSM_OPTION_VERBOSE, &verbose);
+					if (ret == ERR_SUCCESS)
+						ret = option_get_UInt32(GASSM_OPTION_KMER_SIZE, &kmerSize);
+					
 					if (ret == ERR_SUCCESS)
 						ret = option_get_UInt64(GASSM_OPTION_REGION_START, &regionStart);
 
@@ -154,6 +165,9 @@ int main(int argc, char *argv[])
 					if (ret == ERR_SUCCESS)
 						ret = option_get_String(GASSM_OPTION_READS_INPUT_TYPE, &readsType);
 
+					if (ret == ERR_SUCCESS)
+						ret = option_get_UInt32(GASSM_OPTION_WEIGHT_THRESHOLD, &wightThreshold);
+
 					if (ret == ERR_SUCCESS) {
 						char *refSeq = NULL;
 						size_t refSeqLen = 0;
@@ -165,7 +179,7 @@ int main(int argc, char *argv[])
 							if (regionLength == 0)
 								regionLength = refSeqLen - regionStart;
 
-							ret = input_get_reads(readsFileName, readsType, &reads, &readCount);
+							ret = input_get_reads(readsFileName, readsType, regionStart, regionLength, &reads, &readCount);
 							if (ret == ERR_SUCCESS) {
 								PACTIVE_REGION regions = NULL;
 								size_t regionCount = 0;
@@ -179,8 +193,24 @@ int main(int argc, char *argv[])
 										if (ret == ERR_SUCCESS) {
 											ret = kmer_graph_parse_ref_sequence(g, refSeq + regionStart, regionLength, refSeqSkipVertices);
 											if (ret == ERR_SUCCESS) {
-												kmer_graph_delete_1to1_vertices(g);
-												kmer_graph_print(stdout, g);
+												ret = kmer_graph_parse_reads(g, reads, readCount, readsSkipVertices);
+												if (ret == ERR_SUCCESS) {
+													size_t pathCount = 0;
+													PKMER_GRAPH_PATH paths = NULL;
+
+													kmer_graph_delete_edges_under_threshold(g, wightThreshold);
+													kmer_graph_compute_edge_probablities(g);
+													ret = kmer_graph_find_best_paths(g, 64, regionLength - kmerSize + 2, &paths, &pathCount);
+													if (ret == ERR_SUCCESS) {
+														for (size_t i = 0; i < pathCount; ++i)
+															printf("%lf: %s\n", paths[i].Weight, paths[i].Sequence);
+
+														kmer_graph_paths_free(paths, pathCount);
+													}
+
+													kmer_graph_delete_1to1_vertices(g);
+													kmer_graph_print(stdout, g);
+												}
 											}
 
 											kmer_graph_destroy(g);

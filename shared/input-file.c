@@ -147,7 +147,7 @@ void input_free_refseq(char *RefSeq, const size_t RefSeqLen)
 }
 
 
-ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ **Reads, size_t *ReadCount)
+ERR_VALUE input_get_reads(const char *Filename, const char *InputType, const uint64_t RegionStart, const uint64_t RegionSize, PONE_READ **Reads, size_t *ReadCount)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
@@ -175,9 +175,21 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 			while (ret == ERR_SUCCESS && line != lineEnd) {
 				ret = read_create_from_sam_line(line, &oneRead);
 				if (ret == ERR_SUCCESS) {
-					ret = dym_array_push_back(&readArray, oneRead);
+					if (oneRead->Pos == (uint64_t)-1 ||
+						(RegionStart <= oneRead->Pos && oneRead->Pos < RegionStart + RegionSize) ||
+						(RegionStart <= oneRead->Pos + oneRead->ReadSequenceLen && oneRead->Pos + oneRead->ReadSequenceLen < RegionStart + RegionSize)) {
+						if (oneRead->ReadSequenceLen != (uint64_t)-1) {
+							// TODO: Well, let's cut  the read so it does not go outside the active region
+						}
+
+						ret = dym_array_push_back(&readArray, oneRead);
+					} else ret = ERR_NOT_IN_REGION;
+
 					if (ret != ERR_SUCCESS)
 						read_destroy(oneRead);
+				
+					if (ret == ERR_NOT_IN_REGION)
+						ret = ERR_SUCCESS;
 				}
 
 				line = _advance_to_next_line(lineEnd);

@@ -141,3 +141,82 @@ ERR_VALUE dym_array_compact(PDYM_ARRAY Array)
 {
 	return dym_array_reserve(Array, Array->ValidLength);
 }
+
+
+ERR_VALUE dym_array_copy(PDYM_ARRAY Dest, const DYM_ARRAY *Source)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = ERR_SUCCESS;
+	if (Dest->AllocatedLength < Source->AllocatedLength) {
+		void **tmp = NULL;
+
+		ret = utils_calloc(Source->ValidLength, sizeof(void *), (void **)&tmp);
+		if (ret == ERR_SUCCESS) {
+			utils_free(Dest->Data);
+			Dest->Data = tmp;
+			Dest->AllocatedLength = Source->ValidLength;
+		}
+	}
+
+	if (ret == ERR_SUCCESS) {
+		memcpy(Dest->Data, Source->Data, Source->ValidLength*sizeof(void *));
+		Dest->ValidLength = Source->ValidLength;
+	}
+
+	return ret;
+}
+
+
+ERR_VALUE dym_array_prepare_for_insert(PDYM_ARRAY Array, const size_t NumberOfItems)
+{
+	ERR_VALUE ret = ERR_SUCCESS;
+
+	ret = ERR_SUCCESS;
+	if (Array->AllocatedLength < Array->ValidLength + NumberOfItems)
+		ret = dym_array_reserve(Array, Array->ValidLength + NumberOfItems);
+
+	return ret;
+}
+
+
+void dym_array_replace(PDYM_ARRAY Array, const void *Item, const void *New)
+{
+	boolean found = FALSE;
+
+	for (size_t i = 0; i < Array->ValidLength; ++i) {
+		found = Array->Data[i] == Item;
+		if (found) {
+			Array->Data[i] = (void *)New;
+			break;
+		}
+	}
+
+	if (!found) {
+		assert(FALSE);
+	}
+
+	return;
+}
+
+
+void dym_array_remove_by_item_fast(PDYM_ARRAY Array, const void *Item)
+{
+	boolean found = FALSE;
+
+	for (size_t i = 0; i < Array->ValidLength; ++i) {
+		found = Array->Data[i] == Item;
+		if (found) {
+			--Array->ValidLength;
+			Array->Data[i] = Array->Data[Array->ValidLength];
+			break;
+		}
+	}
+
+	if (!found) {
+		assert(FALSE);
+	}
+
+	return;
+}
+
