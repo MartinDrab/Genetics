@@ -22,7 +22,7 @@ typedef struct _ONE_READ {
 } ONE_READ, *PONE_READ;
 
 
-
+ERR_VALUE read_create_from_test_line(const char *Line, const size_t Length, PONE_READ *Read);
 ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ *Read);
 ERR_VALUE read_create_from_fasta_seq(const char *Seq, const size_t SeqLen, const char *SeqName, const size_t SeqNameLen, PONE_READ *Read);
 void read_destroy(PONE_READ Read);

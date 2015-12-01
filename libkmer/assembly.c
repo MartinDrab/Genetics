@@ -139,8 +139,10 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 				PKMER_EDGE edge = NULL;
 
 				ret = kmer_graph_add_edge_ex(Graph, sourceKMer, destKMer, 0, addEdgeLength + 1, &edge);
-				if (ret == ERR_ALREADY_EXISTS)
+				if (ret == ERR_SUCCESS || ret == ERR_ALREADY_EXISTS) {
+					++edge->MaxPassCount;
 					ret = ERR_SUCCESS;
+				}
 
 				if (addEdgeLength > 0) {
 					i += addEdgeLength;
@@ -167,6 +169,7 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, const PONE_READ *Reads, cons
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
+	ret = ERR_SUCCESS;
 	for (size_t j = 0; j < ReadCount; ++j) {
 		const ONE_READ *currentRead = Reads[j];
 

@@ -1,4 +1,5 @@
 
+#include <omp.h>
 #include <stdio.h>
 #include <malloc.h>
 #include <assert.h>
@@ -13,6 +14,7 @@
 #include "assembly.h"
 #include "libkmer.h"
 #include "reads.h"
+#include "ssw.h"
 #include "gassm.h"
 
 
@@ -21,7 +23,7 @@ static ERR_VALUE _set_default_values(void)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = option_add_UInt32(GASSM_OPTION_KMER_SIZE, 25);
+	ret = option_add_UInt32(GASSM_OPTION_KMER_SIZE, 15);
 	if (ret == ERR_SUCCESS)
 		ret = option_add_String(GASSM_OPTION_REFSEQ_INPUT_FILE, "refseq.fa");
 
@@ -50,13 +52,16 @@ static ERR_VALUE _set_default_values(void)
 		ret = option_add_Boolean(GASSM_OPTION_VERBOSE, FALSE);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt64(GASSM_OPTION_REGION_START, 534000);
+		ret = option_add_UInt64(GASSM_OPTION_REGION_START, 534000); // 534000
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt64(GASSM_OPTION_REGION_LENGTH, 2000);
+		ret = option_add_UInt64(GASSM_OPTION_REGION_LENGTH, 2000); // 2000
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(GASSM_OPTION_WEIGHT_THRESHOLD, 3);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_UInt32(GASSM_OPTION_NUM_PATHS, 64);
 
 	if (ret == ERR_SUCCESS) {
 		ret = option_set_description_const(GASSM_OPTION_KMER_SIZE, GASSM_OPTION_KMER_SIZE_DESC);
@@ -85,7 +90,8 @@ static ERR_VALUE _set_default_values(void)
 		assert(ret == ERR_SUCCESS);
 		ret = option_set_description_const(GASSM_OPTION_WEIGHT_THRESHOLD, GASSM_OPTION_WEIGHT_THRESHOLD_DESC);
 		assert(ret == ERR_SUCCESS);
-
+		ret = option_set_description_const(GASSM_OPTION_NUM_PATHS, GASSM_OPTION_NUM_PATHS_DESC);
+		assert(ret == ERR_SUCCESS);
 		option_set_shortcut(GASSM_OPTION_KMER_SIZE, 'k');
 		option_set_shortcut(GASSM_OPTION_REFSEQ_INPUT_FILE, 'i');
 		option_set_shortcut(GASSM_OPTION_READS_INPUT_FILE, 'I');
@@ -99,6 +105,7 @@ static ERR_VALUE _set_default_values(void)
 		option_set_shortcut(GASSM_OPTION_REGION_START, 'r');
 		option_set_shortcut(GASSM_OPTION_REGION_LENGTH, 'l');
 		option_set_shortcut(GASSM_OPTION_WEIGHT_THRESHOLD, 'w');
+		option_set_shortcut(GASSM_OPTION_NUM_PATHS, 'p');
 	}
 
 	return ret;
@@ -132,6 +139,7 @@ int main(int argc, char *argv[])
 					char *readsType = NULL;
 					char *readsFileName = NULL;
 					uint32_t wightThreshold = 0;
+					uint32_t numPaths = 0;
 					boolean verbose = FALSE;
 
 					ret = option_get_Boolean(GASSM_OPTION_VERBOSE, &verbose);
@@ -168,6 +176,12 @@ int main(int argc, char *argv[])
 					if (ret == ERR_SUCCESS)
 						ret = option_get_UInt32(GASSM_OPTION_WEIGHT_THRESHOLD, &wightThreshold);
 
+					if (ret == ERR_SUCCESS)
+						ret = option_get_UInt32(GASSM_OPTION_NUM_PATHS, &numPaths);
+
+					if (verbose)
+						options_print();
+
 					if (ret == ERR_SUCCESS) {
 						char *refSeq = NULL;
 						size_t refSeqLen = 0;
@@ -197,18 +211,33 @@ int main(int argc, char *argv[])
 												if (ret == ERR_SUCCESS) {
 													size_t pathCount = 0;
 													PKMER_GRAPH_PATH paths = NULL;
-
-													kmer_graph_delete_edges_under_threshold(g, wightThreshold);
+													
+													if (wightThreshold > 0)
+														kmer_graph_delete_edges_under_threshold(g, wightThreshold);
+													
 													kmer_graph_compute_edge_probablities(g);
-													ret = kmer_graph_find_best_paths(g, 64, regionLength - kmerSize + 2, &paths, &pathCount);
+													ret = kmer_graph_find_best_paths(g, numPaths, regionLength - kmerSize + 2, &paths, &pathCount);
 													if (ret == ERR_SUCCESS) {
 														for (size_t i = 0; i < pathCount; ++i)
-															printf("%lf: %s\n", paths[i].Weight, paths[i].Sequence);
+															printf("%lE: %s\n", paths[i].Weight, paths[i].Sequence);
+
+														int i;
+// #pragma omp parallel for private(i), shared(numPaths, refSeq, regionStart, regionLength, paths, pathCount)
+														for (i = 0; i < pathCount; ++i) {
+															char *opString = NULL;
+															size_t opStringLen = 0;
+															
+															ret = ssw_simple(paths[i].Sequence, paths[i].Length, refSeq + regionStart, regionLength, 2, -1, -1, &opString, &opStringLen);
+															if (ret == ERR_SUCCESS) {
+																printf("%s\n", opString);
+																utils_free(opString);
+															}
+														}
 
 														kmer_graph_paths_free(paths, pathCount);
 													}
 
-													kmer_graph_delete_1to1_vertices(g);
+//													kmer_graph_delete_1to1_vertices(g);
 													kmer_graph_print(stdout, g);
 												}
 											}
@@ -223,6 +252,17 @@ int main(int argc, char *argv[])
 											fprintf(stdout, "  Type: %s, Offset: %llu, length: %llu\n", (ar->Type == artUnknown ? "Unknown" : "Valid" ), ar->Offset, ar->Length);
 											++ar;
 										}
+									} else if (strcasecmp(action, "sswtest") == 0) {
+										char *opString = NULL;
+										size_t opStringLen = 0;
+
+										ret = ssw_simple("TGAAAAAAA", 9, "AAAAAATA", 8, 2, -1, -1, &opString, &opStringLen);
+										if (ret == ERR_SUCCESS) {
+											printf("%s", opString);
+											utils_free(opString);
+										}
+
+										getchar();
 									}
 
 									input_free_regions(regions, regionCount);

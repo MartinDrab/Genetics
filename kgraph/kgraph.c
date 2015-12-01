@@ -84,6 +84,7 @@ ERR_VALUE _options_to_record(PKGRAPH_OPTIONS_RECORD Record)
 {
 	ERR_VALUE ret = ERR_SUCCESS;
 
+	omp_set_num_threads(4);
 	ret = option_get_String(KGRAPH_OPTION_INPUT_FILE, &Record->InputFile);
 	if (ret == ERR_SUCCESS)
 		ret = option_get_String(KGRAPH_OPTION_INPUT_TYPE, &Record->Inputtype);
@@ -208,6 +209,7 @@ int main(int argc, char *argv[])
 														remainingLength = 0;
 													}
 
+													printf("%u ", (uint32_t)(pos - seq));
 													for (size_t i = 0; i < kCount; ++i)
 														printf("%u ", resultArray[i]);
 

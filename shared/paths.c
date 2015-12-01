@@ -6,6 +6,71 @@
 #include "dym-array.h"
 #include "paths.h"
 
+
+/************************************************************************/
+/*                     HELPER FUNCTIONS                                 */
+/************************************************************************/
+
+
+
+static ERR_VALUE _place_new_path(PKMER_GRAPH_PATH Paths, size_t *PathCount, const size_t MaxPathCount, const double Weight, const char *Sequence, const size_t Length)
+{
+	PKMER_GRAPH_PATH p = Paths;
+	PKMER_GRAPH_PATH place = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	size_t tmpPathsCount = 0;
+
+	ret = ERR_SUCCESS;
+	tmpPathsCount = *PathCount;
+	for (size_t i = 0; i < tmpPathsCount; ++i) {
+		if (Weight >= p->Weight) {
+			place = p;
+			for (size_t j = tmpPathsCount; j > i; --j) {
+				if (j == MaxPathCount)
+					continue;
+
+				Paths[j] = Paths[j - 1];
+			}
+
+			place->Sequence = NULL;
+			break;
+		}
+
+		++p;
+	}
+
+	if (place == NULL && tmpPathsCount < MaxPathCount)
+		place = Paths + tmpPathsCount;
+
+	if (place != NULL) {
+		place->Weight = Weight;
+		if (place->Sequence != NULL)
+			utils_free(place->Sequence);
+
+		place->Length = Length;
+		ret = utils_copy_string(Sequence, &place->Sequence);
+		if (tmpPathsCount < MaxPathCount)
+			++tmpPathsCount;
+	}
+
+	*PathCount = tmpPathsCount;
+
+	return ret;
+}
+
+
+static void _stack_node_fill(PPATH_ELEMENT Node, const KMER_VERTEX *Vertex, const KMER_EDGE *Edge, const size_t EdgeIndex, const double Weight)
+{
+	Node->Edge = Edge;
+	Node->EdgeIndex = EdgeIndex;
+	Node->Vertex = Vertex;
+	Node->Weight = Weight;
+
+	return;
+}
+
+
+
 /************************************************************************/
 /*                      PUBLIC FUNCTIONS                                */
 /************************************************************************/
@@ -42,9 +107,7 @@ ERR_VALUE kmer_graph_find_best_paths(PKMER_GRAPH Graph, const size_t BestNumber,
 				}
 
 				currentStack = stack;
-				currentStack->EdgeIndex = 0;
-				currentStack->Vertex = Graph->StartingVertex;
-				currentStack->Weight = 1;
+				_stack_node_fill(currentStack, Graph->StartingVertex, NULL, 0, 0);
 				while (ret == ERR_SUCCESS && (currentStack != stack || stack->EdgeIndex < Graph->StartingVertex->degreeOut)) {
 					if (currentStack->Length < EdgeCount) {
 						if (currentStack->EdgeIndex < currentStack->Vertex->degreeOut) {
@@ -53,19 +116,20 @@ ERR_VALUE kmer_graph_find_best_paths(PKMER_GRAPH Graph, const size_t BestNumber,
 							PKMER_VERTEX successor = (PKMER_VERTEX)kmer_table_get(Graph->VertexTable, km);
 
 							++currentStack->EdgeIndex;
-							++currentStack;
-							currentStack->EdgeIndex = 0;
-							currentStack->Vertex = successor;
-							currentStack->Weight = (e->Probability) * (currentStack - 1)->Weight;
-							if (currentStack->Weight == 0)
-								currentStack->Weight = (currentStack - 1)->Weight;
-
-							if (tmpPathsCount < BestNumber || currentStack->Weight > tmpPaths[tmpPathsCount - 1].Weight) {
-								++seqIndex;
-								seq[seqIndex] = km->Bases[kmerSize - 1];
-								v = successor;
-							} else --currentStack;
+							if (e->MaxPassCount == 0 || e->PassCount < e->MaxPassCount) {
+								++currentStack;
+								_stack_node_fill(currentStack, successor, e, 0, ((e->Probability) + (currentStack - 1)->Weight));								
+								if (tmpPathsCount < BestNumber || currentStack->Weight > tmpPaths[BestNumber - 1].Weight) {
+									e->PassCount++;
+									++seqIndex;
+									seq[seqIndex] = km->Bases[kmerSize - 1];
+									v = successor;
+								} else --currentStack;
+							}
 						} else {
+							if (currentStack->Edge != NULL)
+								--currentStack->Edge->PassCount;
+							
 							--currentStack;
 							seq[seqIndex] = '\0';
 							--seqIndex;
@@ -76,42 +140,10 @@ ERR_VALUE kmer_graph_find_best_paths(PKMER_GRAPH Graph, const size_t BestNumber,
 						if (seq[seqIndex] == 'E')
 							seq[seqIndex] = '\0';
 
-						{
-							double w = currentStack->Weight;
-							PKMER_GRAPH_PATH place = NULL;
-							PKMER_GRAPH_PATH p = tmpPaths;
-
-							for (size_t i = 0; i < tmpPathsCount; ++i) {
-								if (w >= p->Weight) {
-									place = p;
-									for (size_t j = tmpPathsCount; j > i; --j) {
-										if (j == BestNumber)
-											continue;
-
-										tmpPaths[j] = tmpPaths[j - 1];
-									}
-
-									place->Sequence = NULL;
-									break;
-								}
-
-								++p;
-							}
-
-							if (place == NULL && tmpPathsCount < BestNumber)
-								place = tmpPaths + tmpPathsCount;
-
-							if (place != NULL) {
-								place->Weight = w;
-								if (place->Sequence != NULL)
-									utils_free(place->Sequence);
-
-								ret = utils_copy_string(seq, &place->Sequence);
-								if (tmpPathsCount < BestNumber)
-									++tmpPathsCount;
-							}
-						}
-
+						ret = _place_new_path(tmpPaths, &tmpPathsCount, BestNumber, currentStack->Weight, seq, currentStack->Length + kmerSize - 2);
+						if (currentStack->Edge != NULL)
+							--currentStack->Edge->PassCount;
+						
 						--currentStack;
 						v = currentStack->Vertex;
 						seq[seqIndex] = '\0';

@@ -1,5 +1,6 @@
 
 #include <stdint.h>
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -386,8 +387,11 @@ void kmer_edge_table_print(FILE *Stream, const PKMER_EDGE_TABLE Table)
 			fprintf(Stream, " -> ");
 			kmer_print(Stream, edge->Dest);
 			fprintf(Stream, " [");
-			fprintf(Stream, "weight=%lu", edge->Weight);
-			fprintf(Stream, ",label=\"L: %u; W: %li; P: %u\"", edge->Length, edge->Weight, (uint8_t)(edge->Probability * 100));
+			if (edge->MaxPassCount > 0)
+				fprintf(Stream, "color=green");
+			else fprintf(Stream, "color=red");
+
+			fprintf(Stream, ",label=\"L: %u; W: %li;\\nP: %f; M: %u\"", edge->Length, edge->Weight, (double)(edge->Probability), edge->MaxPassCount);
 			fprintf(Stream, "];\n");
 		}
 

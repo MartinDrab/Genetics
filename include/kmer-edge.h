@@ -31,6 +31,8 @@ typedef struct _KMER_EDGE {
 	unsigned int Order;
 	EKMerEdgeType Type;
 	double Probability;
+	uint32_t PassCount;
+	uint32_t MaxPassCount;
 } KMER_EDGE, *PKMER_EDGE;
 
 

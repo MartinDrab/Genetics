@@ -16,6 +16,7 @@ typedef struct _PATH_ELEMENT {
 	double Weight;
 	PKMER_VERTEX Vertex;
 	size_t EdgeIndex;
+	PKMER_EDGE Edge;
 } PATH_ELEMENT, *PPATH_ELEMENT;
 
 typedef struct _KMER_GRAPH_PATH {

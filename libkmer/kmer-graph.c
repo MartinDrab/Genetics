@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include <math.h>
 #include "err.h"
 #include "utils.h"
 #include "dym-array.h"
@@ -114,7 +115,7 @@ static ERR_VALUE _vertex_table_on_copy(struct _KMER_TABLE *Table, void *ItemData
 
 static void _vertex_table_on_print(struct _KMER_TABLE *Table, void *ItemData, FILE *Stream)
 {
-	char *colors[] = {"white", "green", "black", "red"};
+	char *colors[] = {"yellow", "green", "blue", "red"};
 	PKMER_VERTEX v = (PKMER_VERTEX)ItemData;
 
 
@@ -256,6 +257,7 @@ ERR_VALUE kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph)
 			if (!kmer_equal(x, y) && kmer_edge_table_get(Graph->EdgeTable, x, y) == NULL) {
 				PKMER oldV = v->KMer;
 				double prob = 0;
+				uint32_t maxPassCount = 0;
 
 				sourceEdge = kmer_edge_table_get(Graph->EdgeTable, x, v->KMer);
 				assert(sourceEdge != NULL);
@@ -269,6 +271,7 @@ ERR_VALUE kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph)
 				if (destWeight == 0)
 					destWeight = sourceWeight;
 
+				maxPassCount = min(sourceEdge->MaxPassCount, destEdge->MaxPassCount);
 				weight = (sourceWeight + destWeight) / 2;
 				prob = min(sourceEdge->Probability, destEdge->Probability);
 				length = sourceEdge->Length + destEdge->Length;
@@ -280,6 +283,8 @@ ERR_VALUE kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph)
 					dummy->Length = length;
 					dummy->Weight = weight;
 					dummy->Probability = prob;
+					dummy->MaxPassCount = maxPassCount;
+					dummy->PassCount = 0;
 					v = (PKMER_VERTEX)kmer_table_get(Graph->VertexTable, x);
 					assert(v != NULL);
 					dym_array_replace(&v->Successors, oldV, y);
@@ -386,13 +391,15 @@ void kmer_graph_compute_edge_probablities(PKMER_GRAPH Graph)
 		for (size_t i = 0; i < v->degreeOut; ++i) {
 			PKMER_EDGE e = kmer_edge_table_get(Graph->EdgeTable, v->KMer, (PKMER)dym_array_data(&v->Successors)[i]);
 		
-			total += e->Weight;
+			total += (e->Weight + 1);
 		}
 
 		for (size_t i = 0; i < v->degreeOut; ++i) {
 			PKMER_EDGE e = kmer_edge_table_get(Graph->EdgeTable, v->KMer, (PKMER)dym_array_data(&v->Successors)[i]);
 
-			e->Probability = (total != 0) ? ((double)e->Weight / (double)total) : (1/(double)v->degreeOut);
+			e->Probability = (total != 0) ? ((double)(e->Weight + 1) / (double)total) : (1/(double)v->degreeOut);
+			if (e->Probability != 0)
+				e->Probability = log(e->Probability);
 		}
 
 		ret = kmer_table_next(Graph->VertexTable, iter, &iter);
@@ -439,6 +446,8 @@ ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, const PKMER Source, const PK
 
 			edge->Weight = weight;
 			edge->Length = Length;
+			edge->PassCount = 0;
+			edge->MaxPassCount = 0;
 			u = kmer_table_get(Graph->VertexTable, edge->Source);
 			v = kmer_table_get(Graph->VertexTable, edge->Dest);
 			assert(u != NULL);

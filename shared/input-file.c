@@ -132,6 +132,30 @@ ERR_VALUE input_get_refseq(const char *FileName, const char *InputType, char **R
 			ret = _fasta_read_seq(data, dataLength, &dummy, RefSeq, RefSeqLen);
 			utils_free(data);
 		}
+	} else if (strcasecmp(InputType, "test") == 0) {
+		char *data = NULL;
+		char *dummy = NULL;
+		size_t dataLength = 0;
+
+		ret = utils_file_read(FileName, &data, &dataLength);
+		if (ret == ERR_SUCCESS) {
+			const char *end = NULL;
+			size_t len = 0;
+
+			end = _read_line(data);
+			len = (end - data);
+			if (len > 0) {
+				ret = utils_calloc(len + 1, sizeof(char), &dummy);
+				if (ret == ERR_SUCCESS) {
+					memcpy(dummy, data, len*sizeof(char));
+					dummy[len] = '\0';
+					*RefSeq = dummy;
+					*RefSeqLen = len;
+				}
+			} else ret = ERR_INTERNAL_ERROR;
+
+			utils_free(data);
+		}
 	} else ret = ERR_UNKNOWN_REFSEQ_INPUT_TYPE;
 
 	return ret;
@@ -216,6 +240,45 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, const uin
 		*Reads = NULL;
 		*ReadCount = 0;
 		ret = ERR_SUCCESS;
+	} else if (strcasecmp(InputType, "test") == 0) {
+		char *data = NULL;
+		size_t dataLength = 0;
+
+		ret = utils_file_read(Filename, &data, &dataLength);
+		if (ret == ERR_SUCCESS) {
+			const char *start = data;
+			const char *end = _read_line(start);
+			DYM_ARRAY ra;
+
+			dym_array_create(&ra, 140);
+			while (ret == ERR_SUCCESS && start != end) {
+				PONE_READ r = NULL;
+
+				ret = read_create_from_test_line(start, end - start, &r);
+				if (ret == ERR_SUCCESS) {
+					ret = dym_array_push_back(&ra, r);
+					if (ret != ERR_SUCCESS)
+						read_destroy(r);
+				}
+				
+				start = _advance_to_next_line(end);
+				end = _read_line(start);
+			}
+
+			if (ret == ERR_SUCCESS) {
+				ret = dym_array_to_array(&ra, Reads);
+				if (ret == ERR_SUCCESS)
+					*ReadCount = dym_array_size(&ra);
+			}
+
+			if (ret != ERR_SUCCESS) {
+				for (size_t i = 0; i < dym_array_size(&ra); ++i)
+					read_destroy((PONE_READ)dym_array_data(&ra)[i]);
+			}
+
+			dym_array_destroy(&ra);
+			utils_free(data);
+		}
 	} else ret = ERR_UNKNOWN_READS_INPUT_TYPE;
 
 	return ret;

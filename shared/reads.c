@@ -90,6 +90,31 @@ static const char *_sam_read_int_field(const char *Start, int32_t *Value)
 /*                          PUBLIC FUNCTIONS                            */
 /************************************************************************/
 
+ERR_VALUE read_create_from_test_line(const char *Line, const size_t Length, PONE_READ *Read)
+{
+	PONE_READ tmpRead = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_calloc(1, sizeof(ONE_READ), &tmpRead);
+	if (ret == ERR_SUCCESS) {
+		memset(tmpRead, 0, sizeof(ONE_READ));
+		tmpRead->Pos = (uint64_t)-1;
+		tmpRead->ReadSequenceLen = Length;
+		ret = utils_calloc(Length + 1, sizeof(char), &tmpRead->ReadSequence);
+		if (ret == ERR_SUCCESS) {
+			memcpy(tmpRead->ReadSequence, Line, Length*sizeof(char));
+			tmpRead->ReadSequence[Length] = '\0';
+			*Read = tmpRead;
+		}
+
+		if (ret != ERR_SUCCESS)
+			utils_free(tmpRead);
+	}
+
+	return ret;
+}
+
+
 ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ *Read)
 {
 	PONE_READ tmpRead = NULL;
