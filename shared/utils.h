@@ -24,9 +24,12 @@
 
 typedef uint8_t boolean;
 
+#ifndef FALSE
 #define FALSE									0
+#endif
+#ifndef TRUE
 #define TRUE									(!FALSE)
-
+#endif
 
 #ifndef min
 #define min(a,b)					((a) < (b) ? (a) : (b))

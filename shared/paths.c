@@ -89,6 +89,8 @@ ERR_VALUE kmer_graph_find_best_paths(PKMER_GRAPH Graph, const size_t BestNumber,
 	PPATH_ELEMENT currentStack = NULL;
 	char *seq = NULL;
 	size_t seqIndex = 0;
+	size_t currentLength = 0;
+	const size_t stackSize = (EdgeCount * 2);
 
 	ret = utils_calloc(EdgeCount + kmerSize + 1, sizeof(char), (void **)&seq);
 	if (ret == ERR_SUCCESS) {
@@ -99,17 +101,26 @@ ERR_VALUE kmer_graph_find_best_paths(PKMER_GRAPH Graph, const size_t BestNumber,
 		ret = utils_calloc(BestNumber, sizeof(KMER_GRAPH_PATH), (void **)&tmpPaths);
 		if (ret == ERR_SUCCESS) {
 			memset(tmpPaths, 0, BestNumber*sizeof(KMER_GRAPH_PATH));
-			ret = utils_calloc(EdgeCount + 1, sizeof(PATH_ELEMENT), (void **)&stack);
+			ret = utils_calloc(stackSize, sizeof(PATH_ELEMENT), (void **)&stack);
 			if (ret == ERR_SUCCESS) {
-				for (size_t i = 0; i < EdgeCount + 1; ++i) {
+				for (size_t i = 0; i < EdgeCount + 1; ++i)
 					memset(stack + i, 0, sizeof(PATH_ELEMENT));
-					stack[i].Length = i;
-				}
 
 				currentStack = stack;
 				_stack_node_fill(currentStack, Graph->StartingVertex, NULL, 0, 0);
 				while (ret == ERR_SUCCESS && (currentStack != stack || stack->EdgeIndex < Graph->StartingVertex->degreeOut)) {
-					if (currentStack->Length < EdgeCount) {
+					if (seq[seqIndex] == 'E') {
+						seq[seqIndex] = '\0';
+						ret = _place_new_path(tmpPaths, &tmpPathsCount, BestNumber, currentStack->Weight, seq, currentLength + kmerSize - 2);
+						
+						if (currentStack->Edge != NULL)
+							--currentStack->Edge->PassCount;
+
+						--currentLength;
+						--currentStack;
+						v = currentStack->Vertex;
+						--seqIndex;
+					} else if (currentLength < stackSize) {
 						if (currentStack->EdgeIndex < currentStack->Vertex->degreeOut) {
 							PKMER km = (PKMER)dym_array_data(&v->Successors)[currentStack->EdgeIndex];
 							PKMER_EDGE e = kmer_graph_get_edge(Graph, v->KMer, km);
@@ -122,25 +133,23 @@ ERR_VALUE kmer_graph_find_best_paths(PKMER_GRAPH Graph, const size_t BestNumber,
 								if (tmpPathsCount < BestNumber || currentStack->Weight > tmpPaths[BestNumber - 1].Weight) {
 									e->PassCount++;
 									++seqIndex;
+									++currentLength;
 									seq[seqIndex] = km->Bases[kmerSize - 1];
 									v = successor;
 								} else --currentStack;
 							}
 						} else {
+							--currentLength;
 							if (currentStack->Edge != NULL)
 								--currentStack->Edge->PassCount;
 							
 							--currentStack;
+							v = currentStack->Vertex;
 							seq[seqIndex] = '\0';
 							--seqIndex;
-							v = currentStack->Vertex;
 						}
 					} else {
-						assert(currentStack->Length == EdgeCount);
-						if (seq[seqIndex] == 'E')
-							seq[seqIndex] = '\0';
-
-						ret = _place_new_path(tmpPaths, &tmpPathsCount, BestNumber, currentStack->Weight, seq, currentStack->Length + kmerSize - 2);
+						--currentLength;
 						if (currentStack->Edge != NULL)
 							--currentStack->Edge->PassCount;
 						

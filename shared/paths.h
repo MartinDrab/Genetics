@@ -12,7 +12,6 @@
 
 
 typedef struct _PATH_ELEMENT {
-	size_t Length;
 	double Weight;
 	PKMER_VERTEX Vertex;
 	size_t EdgeIndex;

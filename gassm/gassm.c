@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <assert.h>
+#include <windows.h>
 #include "err.h"
 #include "utils.h"
 #include "options.h"
@@ -61,7 +62,7 @@ static ERR_VALUE _set_default_values(void)
 		ret = option_add_UInt32(GASSM_OPTION_WEIGHT_THRESHOLD, 3);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(GASSM_OPTION_NUM_PATHS, 64);
+		ret = option_add_UInt32(GASSM_OPTION_NUM_PATHS, 4);
 
 	if (ret == ERR_SUCCESS) {
 		ret = option_set_description_const(GASSM_OPTION_KMER_SIZE, GASSM_OPTION_KMER_SIZE_DESC);
@@ -111,11 +112,42 @@ static ERR_VALUE _set_default_values(void)
 	return ret;
 }
 
+typedef enum _ETimeMeasuredActionType{
+	tmatReadRefSeq,
+	tmatReadReads,
+	tmatRefseqToRegions,
+	tmatGraphCreate,
+	tmatGraphProcessRefSeq,
+	tmatProcessReads,
+	tmatThresholds,
+	tmatProbabilities,
+	tmatPathSearch,
+	tmatSSWSimple,
+	tmatSSWClever,
+	tmatMax,
+} EMeasuredActionType, *PEMeasuredActionType;
+
+static int _timeArray[tmatMax];
+static char *_timeArrayStr[] = {
+	"Reading ref. seq.",
+	"Reading reads",
+	"Ref. seq. to regions",
+	"Graph create",
+	"Refseq to graph",
+	"Reads to graph",
+	"Threshold optimization",
+	"Edge probabilities",
+	"Path search",
+	"SSW simple",
+	"SSW clever",
+};
+
 
 int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
+	memset(_timeArray, 0, sizeof(_timeArray));
 	ret = options_module_init(37);
 	if (ret == ERR_SUCCESS) {
 		ret = _set_default_values();
@@ -187,9 +219,12 @@ int main(int argc, char *argv[])
 						size_t refSeqLen = 0;
 						PONE_READ *reads = NULL;
 						size_t readCount = 0;
+						int t = GetTickCount();
 
 						ret = input_get_refseq(refSeqFileName, refSeqType, &refSeq, &refSeqLen);
 						if (ret == ERR_SUCCESS) {
+							_timeArray[tmatReadRefSeq] = GetTickCount() - t;
+							t = GetTickCount();
 							if (regionLength == 0)
 								regionLength = refSeqLen - regionStart;
 
@@ -198,47 +233,98 @@ int main(int argc, char *argv[])
 								PACTIVE_REGION regions = NULL;
 								size_t regionCount = 0;
 
+								_timeArray[tmatReadReads] = GetTickCount() - t;
+								t = GetTickCount();
 								ret = input_refseq_to_regions(refSeq, refSeqLen, &regions, &regionCount);
 								if (ret == ERR_SUCCESS) {
+									_timeArray[tmatRefseqToRegions] = GetTickCount() - t;
+									t = GetTickCount();
 									if (strcasecmp(action, "assembly") == 0) {
 										PKMER_GRAPH g = NULL;
-
+										
 										ret = kmer_graph_create(kmerSize, &g);
 										if (ret == ERR_SUCCESS) {
+											_timeArray[tmatGraphCreate] = GetTickCount() - t;
+											t = GetTickCount();
 											ret = kmer_graph_parse_ref_sequence(g, refSeq + regionStart, regionLength, refSeqSkipVertices);
 											if (ret == ERR_SUCCESS) {
+												_timeArray[tmatGraphProcessRefSeq] = GetTickCount() - t;
+												t = GetTickCount();
 												ret = kmer_graph_parse_reads(g, reads, readCount, readsSkipVertices);
 												if (ret == ERR_SUCCESS) {
 													size_t pathCount = 0;
 													PKMER_GRAPH_PATH paths = NULL;
 													
-													if (wightThreshold > 0)
+													_timeArray[tmatProcessReads] = GetTickCount() - t;
+													t = GetTickCount();
+													if (wightThreshold > 0) {
 														kmer_graph_delete_edges_under_threshold(g, wightThreshold);
-													
+														_timeArray[tmatThresholds] = GetTickCount() - t;
+														t = GetTickCount();
+													}
+
 													kmer_graph_compute_edge_probablities(g);
+													_timeArray[tmatProbabilities] = GetTickCount() - t;
+													t = GetTickCount();
 													ret = kmer_graph_find_best_paths(g, numPaths, regionLength - kmerSize + 2, &paths, &pathCount);
 													if (ret == ERR_SUCCESS) {
+														_timeArray[tmatPathSearch] = GetTickCount() - t;
+														t = GetTickCount();
 														for (size_t i = 0; i < pathCount; ++i)
-															printf("%lE: %s\n", paths[i].Weight, paths[i].Sequence);
+															printf("%lE: %u %s\n", paths[i].Weight, paths[i].Length, paths[i].Sequence);
 
+														int64_t totalSSWSimpleTime = 0;
+														int64_t totalSSWCleverTime = 0;
 														int i;
 // #pragma omp parallel for private(i), shared(numPaths, refSeq, regionStart, regionLength, paths, pathCount)
 														for (i = 0; i < pathCount; ++i) {
 															char *opString = NULL;
 															size_t opStringLen = 0;
 															
-															ret = ssw_simple(paths[i].Sequence, paths[i].Length, refSeq + regionStart, regionLength, 2, -1, -1, &opString, &opStringLen);
+															t = GetTickCount();
+															ret = ssw_clever(paths[i].Sequence, paths[i].Length, refSeq + regionStart, regionLength, 2, -1, -1, &opString, &opStringLen);
 															if (ret == ERR_SUCCESS) {
-																printf("%s\n", opString);
+																char *opString2 = NULL;
+																size_t opStringLen2 = 0;
+
+																totalSSWCleverTime += (GetTickCount() - t);
+																t = GetTickCount();
+																/*
+																ret = ssw_simple(paths[i].Sequence, paths[i].Length, refSeq + regionStart, regionLength, 2, -1, -1, &opString2, &opStringLen2);
+																if (ret == ERR_SUCCESS) {
+																	totalSSWSimpleTime += (GetTickCount() - t);
+																	if (opStringLen != opStringLen2 || strcasecmp(opString, opString2) != 0)
+																		fprintf(stderr, "SSW-MISMATCH:\n%s\n%s\n", opString, opString2);						
+
+																	utils_free(opString2);
+																}
+																*/
+																write_differences(refSeq, regionStart, regionLength, opString, paths[i].Sequence);
 																utils_free(opString);
+																printf("\n");
 															}
+
+															if (ret != ERR_SUCCESS)
+																break;
+														}
+
+														if (ret == ERR_SUCCESS) {
+															_timeArray[tmatSSWSimple] = totalSSWSimpleTime / pathCount;
+															_timeArray[tmatSSWClever] = totalSSWCleverTime / pathCount;
 														}
 
 														kmer_graph_paths_free(paths, pathCount);
 													}
 
-//													kmer_graph_delete_1to1_vertices(g);
-													kmer_graph_print(stdout, g);
+													if (ret == ERR_SUCCESS) {
+														for (size_t i = 0; i < tmatMax; ++i) {
+															fprintf(stderr, "%s: %u ms\n", _timeArrayStr[i], _timeArray[i]);
+														}
+
+														fprintf(stderr, "\n");
+														kmer_graph_delete_1to1_vertices(g);
+														kmer_graph_print(stdout, g);
+													}
 												}
 											}
 
