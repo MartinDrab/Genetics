@@ -160,9 +160,9 @@
     <ClCompile Include="..\shared\input-file.c" />
     <ClCompile Include="..\shared\options.c" />
     <ClCompile Include="..\shared\reads.c" />
+    <ClCompile Include="..\shared\ssw.c" />
     <ClCompile Include="..\shared\utils.c" />
     <ClCompile Include="gassm.c" />
-    <ClCompile Include="ssw.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\libkmer.h" />
@@ -173,9 +173,9 @@
     <ClInclude Include="..\shared\options.h" />
     <ClInclude Include="..\shared\paths.h" />
     <ClInclude Include="..\shared\reads.h" />
+    <ClInclude Include="..\shared\ssw.h" />
     <ClInclude Include="..\shared\utils.h" />
     <ClInclude Include="gassm.h" />
-    <ClInclude Include="ssw.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

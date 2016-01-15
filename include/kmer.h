@@ -21,8 +21,8 @@ typedef struct _KMER {
 
 
 #define kmer_get_size(aKMer)					((aKMer)->Size)
-#define kmer_get_base(aKMer, aIndex)			((aKMer)->Bases[aIndex])
-#define kmer_set_base(aKMer, aIndex, aBase)		((aKmer)->Bases[aIndex] = aBase)
+#define kmer_get_base(aKMer, aIndex)			((aKMer)->Bases[(aIndex)])
+#define kmer_set_base(aKMer, aIndex, aBase)		((aKmer)->Bases[(aIndex)] = (aBase))
 
 PKMER kmer_alloc(const uint32_t Size, const char *Sequence);
 #define KMER_STACK_ALLOC(aVariable, aSize, aSequence)			\

@@ -77,12 +77,13 @@ static ERR_VALUE _kmer_graph_parse_read(PKMER_GRAPH Graph, const ONE_READ *Read,
 		if (ret == ERR_SUCCESS) {
 			PKMER_EDGE edge = NULL;
 
-			ret = kmer_graph_add_edge_ex(Graph, sourceKMer, destKMer, 1, addEdgeLength + 1, &edge);
+			ret = kmer_graph_add_edge_ex(Graph, sourceKMer, destKMer, 1, addEdgeLength + 1, kmetRead, &edge);
 			if (ret == ERR_ALREADY_EXISTS) {
 				edge->Weight++;
 				ret = ERR_SUCCESS;
-			} else edge->Type = kmetRead;
+			}
 
+			edge->MaxPassCount++;
 			if (addEdgeLength > 0) {
 				i += addEdgeLength;
 				kmer_init_from_kmer(sourceKMer, destKMer);
@@ -138,7 +139,7 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 			if (ret == ERR_SUCCESS) {
 				PKMER_EDGE edge = NULL;
 
-				ret = kmer_graph_add_edge_ex(Graph, sourceKMer, destKMer, 0, addEdgeLength + 1, &edge);
+				ret = kmer_graph_add_edge_ex(Graph, sourceKMer, destKMer, 0, addEdgeLength + 1, kmetReference, &edge);
 				if (ret == ERR_SUCCESS || ret == ERR_ALREADY_EXISTS) {
 					++edge->MaxPassCount;
 					ret = ERR_SUCCESS;

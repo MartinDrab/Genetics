@@ -1,0 +1,10 @@
+digraph {
+	1 [style=filled,color=yellow];
+	2 [style=filled,color=green];
+	3 [style=filled,color=green];
+	4;
+	1 -> 2;
+	2 -> 3;
+	3 -> 2;
+	3 -> 4;
+}

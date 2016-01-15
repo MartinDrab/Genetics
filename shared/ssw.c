@@ -548,3 +548,55 @@ ERR_VALUE write_differences(const char *RefSeq, const size_t RegionStart, const 
 
 	return ret;
 }
+
+
+void opstring_statistics(const char *OpString, const size_t OpStringLen, SSW_STATISTICS *Statistics)
+{
+	EGapType gt = gtMatch;
+
+	memset(Statistics, 0, sizeof(SSW_STATISTICS));
+	for (size_t i = 0; i < OpStringLen; ++i) {
+		switch (*OpString) {
+			case 'X':
+				switch (gt) {
+					case gtDeletion: ++Statistics->DeleteGapCount; break;
+					case gtInsertion: ++Statistics->InsertGapCount; break;
+				}
+
+				++Statistics->TotalMismatches;
+				gt = gtMismatch;
+				break;
+			case 'I':
+				switch (gt) {
+					case gtMismatch: ++Statistics->MismatchGapCount; break;
+					case gtDeletion: ++Statistics->DeleteGapCount; break;
+				}
+
+				++Statistics->TotalInsertions;
+				gt = gtInsertion;
+				break;
+			case 'D':
+				switch (gt) {
+					case gtMismatch: ++Statistics->MismatchGapCount; break;
+					case gtInsertion: ++Statistics->InsertGapCount; break;
+				}
+
+				++Statistics->TotalDeletions;
+				gt = gtDeletion;
+				break;
+			case 'M':
+				switch (gt) {
+					case gtMismatch: ++Statistics->MismatchGapCount; break;
+					case gtInsertion: ++Statistics->InsertGapCount; break;
+					case gtDeletion: ++Statistics->DeleteGapCount; break;
+				}
+
+				gt = gtMatch;
+				break;
+		}
+
+		++OpString;
+	}
+
+	return;
+}

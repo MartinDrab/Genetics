@@ -36,7 +36,7 @@
     <ClCompile Include="..\shared\general-queue.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ssw.c">
+    <ClCompile Include="..\shared\ssw.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -71,7 +71,7 @@
     <ClInclude Include="..\shared\paths.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ssw.h">
+    <ClInclude Include="..\shared\ssw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

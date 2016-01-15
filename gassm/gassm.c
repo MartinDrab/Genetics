@@ -254,7 +254,8 @@ int main(int argc, char *argv[])
 												if (ret == ERR_SUCCESS) {
 													size_t pathCount = 0;
 													PKMER_GRAPH_PATH paths = NULL;
-													
+													PATH_SCORING scoringWeights;
+
 													_timeArray[tmatProcessReads] = GetTickCount() - t;
 													t = GetTickCount();
 													if (wightThreshold > 0) {
@@ -263,63 +264,32 @@ int main(int argc, char *argv[])
 														t = GetTickCount();
 													}
 
+													kmer_graph_delete_trailing_things(g);
 													kmer_graph_compute_edge_probablities(g);
+													kmer_graph_compute_shurtcuts(g, regionLength);
 													_timeArray[tmatProbabilities] = GetTickCount() - t;
 													t = GetTickCount();
-													ret = kmer_graph_find_best_paths(g, numPaths, regionLength - kmerSize + 2, &paths, &pathCount);
+													scoringWeights.EdgeProbabilityWeight = 1;
+													scoringWeights.SSWWeight = 8;
+													scoringWeights.Match = 2;
+													scoringWeights.Mismatch = -1;
+													scoringWeights.Indel = -1;
+													ret = kmer_graph_find_best_paths(g, refSeq + regionStart, regionLength, numPaths, &scoringWeights, &paths, &pathCount);
 													if (ret == ERR_SUCCESS) {
 														_timeArray[tmatPathSearch] = GetTickCount() - t;
 														t = GetTickCount();
 														for (size_t i = 0; i < pathCount; ++i)
 															printf("%lE: %u %s\n", paths[i].Weight, paths[i].Length, paths[i].Sequence);
 
-														int64_t totalSSWSimpleTime = 0;
-														int64_t totalSSWCleverTime = 0;
-														int i;
-// #pragma omp parallel for private(i), shared(numPaths, refSeq, regionStart, regionLength, paths, pathCount)
-														for (i = 0; i < pathCount; ++i) {
-															char *opString = NULL;
-															size_t opStringLen = 0;
-															
-															t = GetTickCount();
-															ret = ssw_clever(paths[i].Sequence, paths[i].Length, refSeq + regionStart, regionLength, 2, -1, -1, &opString, &opStringLen);
-															if (ret == ERR_SUCCESS) {
-																char *opString2 = NULL;
-																size_t opStringLen2 = 0;
-
-																totalSSWCleverTime += (GetTickCount() - t);
-																t = GetTickCount();
-																/*
-																ret = ssw_simple(paths[i].Sequence, paths[i].Length, refSeq + regionStart, regionLength, 2, -1, -1, &opString2, &opStringLen2);
-																if (ret == ERR_SUCCESS) {
-																	totalSSWSimpleTime += (GetTickCount() - t);
-																	if (opStringLen != opStringLen2 || strcasecmp(opString, opString2) != 0)
-																		fprintf(stderr, "SSW-MISMATCH:\n%s\n%s\n", opString, opString2);						
-
-																	utils_free(opString2);
-																}
-																*/
-																write_differences(refSeq, regionStart, regionLength, opString, paths[i].Sequence);
-																utils_free(opString);
-																printf("\n");
-															}
-
-															if (ret != ERR_SUCCESS)
-																break;
-														}
-
-														if (ret == ERR_SUCCESS) {
-															_timeArray[tmatSSWSimple] = totalSSWSimpleTime / pathCount;
-															_timeArray[tmatSSWClever] = totalSSWCleverTime / pathCount;
-														}
+														for (size_t i = 0; i < pathCount; ++i)
+															write_differences(refSeq, regionStart, regionLength, paths[i].OpString, paths[i].Sequence);
 
 														kmer_graph_paths_free(paths, pathCount);
 													}
 
 													if (ret == ERR_SUCCESS) {
-														for (size_t i = 0; i < tmatMax; ++i) {
+														for (size_t i = 0; i < tmatMax; ++i)
 															fprintf(stderr, "%s: %u ms\n", _timeArrayStr[i], _timeArray[i]);
-														}
 
 														fprintf(stderr, "\n");
 														kmer_graph_delete_1to1_vertices(g);
