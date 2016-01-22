@@ -1,0 +1,1005 @@
+
+<!-- saved from url=(0592)http://sciverse-shindig.elsevier.com/gadgets/ifr?container=default&mid=6&nocache=1&country=ALL&lang=ALL&view=profile&parent=http%3A%2F%2Fwww.sciencedirect.com%2Fscience%2Farticle%2Fpii%2FS0888754310000492%3A%2F%2Fwww.sciencedirect.com&up_startMeInvisible=y&up_SiteCatalyst=http%3A%2F%2Fcdn.els-cdn.com%2Fgadgets%2Fprod%2Fjs%2Fv3%2Fs_code_1.js&up_Beacon=http%3A%2F%2Fcdn.els-cdn.com%2Fgadgets%2Fprod%2Fjs%2Fv1%2Fs_beacon.js&up_gadgetId=299152&st=john.doe:john.doe:appid:cont:url:0:default&url=http%3A%2F%2Fae-content.elsevier.com%2Fsvapp%2F299152%2Fprod%2Fprivate%2Fspec.xml#rpctoken=748422977 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style type="text/css">body,td,div,span,p{font-family:arial,sans-serif;}a {color:#0000cc;}a:visited {color:#551a8b;}a:active {color:#ff0000;}body{margin: 0px;padding: 0px;background-color:white;}</style><script>window['__isgadget']=true;</script><script src="core-rpc.js"></script><script>var opensocial=opensocial||{};
+opensocial.requestSendMessage=function(A,D,B,C){return opensocial.Container.get().requestSendMessage(A,D,B,C)
+};
+opensocial.requestShareApp=function(A,D,B,C){opensocial.Container.get().requestShareApp(A,D,B,C)
+};
+opensocial.requestCreateActivity=function(C,B,A){if(!C||(!C.getField(opensocial.Activity.Field.TITLE)&&!C.getField(opensocial.Activity.Field.TITLE_ID))){if(A){window.setTimeout(function(){A(new opensocial.ResponseItem(null,null,opensocial.ResponseItem.Error.BAD_REQUEST,"You must pass in an activity with a title or title id."))
+},0)
+}return 
+}opensocial.Container.get().requestCreateActivity(C,B,A)
+};
+opensocial.CreateActivityPriority={HIGH:"HIGH",LOW:"LOW"};
+opensocial.hasPermission=function(A){return opensocial.Container.get().hasPermission(A)
+};
+opensocial.requestPermission=function(B,C,A){opensocial.Container.get().requestPermission(B,C,A)
+};
+opensocial.Permission={VIEWER:"viewer"};
+opensocial.getEnvironment=function(){return opensocial.Container.get().getEnvironment()
+};
+opensocial.newDataRequest=function(){return opensocial.Container.get().newDataRequest()
+};
+opensocial.newActivity=function(A){return opensocial.Container.get().newActivity(A)
+};
+opensocial.newAlbum=function(A){return opensocial.Container.get().newAlbum(A)
+};
+opensocial.newMediaItem=function(C,A,B){return opensocial.Container.get().newMediaItem(C,A,B)
+};
+opensocial.newMessage=function(A,B){return opensocial.Container.get().newMessage(A,B)
+};
+opensocial.EscapeType={HTML_ESCAPE:"htmlEscape",NONE:"none"};
+opensocial.newIdSpec=function(A){return opensocial.Container.get().newIdSpec(A)
+};
+opensocial.newNavigationParameters=function(A){return opensocial.Container.get().newNavigationParameters(A)
+};
+opensocial.invalidateCache=function(){opensocial.Container.get().invalidateCache()
+};
+Function.prototype.inherits=function(A){function B(){}B.prototype=A.prototype;
+this.superClass_=A.prototype;
+this.prototype=new B();
+this.prototype.constructor=this
+};;
+opensocial.Activity=function(A){this.fields_=A
+};
+opensocial.Activity.Field={TITLE_ID:"titleId",TITLE:"title",TEMPLATE_PARAMS:"templateParams",URL:"url",MEDIA_ITEMS:"mediaItems",BODY_ID:"bodyId",BODY:"body",EXTERNAL_ID:"externalId",STREAM_TITLE:"streamTitle",STREAM_URL:"streamUrl",STREAM_SOURCE_URL:"streamSourceUrl",STREAM_FAVICON_URL:"streamFaviconUrl",PRIORITY:"priority",ID:"id",USER_ID:"userId",APP_ID:"appId",POSTED_TIME:"postedTime"};
+opensocial.Activity.prototype.getId=function(){return this.getField(opensocial.Activity.Field.ID)
+};
+opensocial.Activity.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};
+opensocial.Activity.prototype.setField=function(A,B){return(this.fields_[A]=B)
+};;
+opensocial.Address=function(A){this.fields_=A||{}
+};
+opensocial.Address.Field={TYPE:"type",UNSTRUCTURED_ADDRESS:"unstructuredAddress",PO_BOX:"poBox",STREET_ADDRESS:"streetAddress",EXTENDED_ADDRESS:"extendedAddress",REGION:"region",LOCALITY:"locality",POSTAL_CODE:"postalCode",COUNTRY:"country",LATITUDE:"latitude",LONGITUDE:"longitude"};
+opensocial.Address.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};;
+opensocial.Album=function(A){this.fields_=A||{}
+};
+opensocial.Album.Field={DESCRIPTION:"description",ID:"id",LOCATION:"location",MEDIA_ITEM_COUNT:"mediaITemCount",MEDIA_MIME_TYPE:"MEDIA_MIME_TYPE",MEDIA_TYPE:"MEDIA_TYPE",OWNER_ID:"ownerId",THUMBNAIL_URL:"thumbnailUrl",TITLE:"title"};
+opensocial.Album.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};
+opensocial.Album.prototype.setField=function(A,B){return this.fields_[A]=B
+};;
+opensocial.BodyType=function(A){this.fields_=A||{}
+};
+opensocial.BodyType.Field={BUILD:"build",HEIGHT:"height",WEIGHT:"weight",EYE_COLOR:"eyeColor",HAIR_COLOR:"hairColor"};
+opensocial.BodyType.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};;
+opensocial.Collection=function(C,B,A){this.array_=C||[];
+this.offset_=B||0;
+this.totalSize_=A||this.array_.length
+};
+opensocial.Collection.prototype.getById=function(C){for(var A=0;
+A<this.size();
+A++){var B=this.array_[A];
+if(B.getId()===C){return B
+}}return null
+};
+opensocial.Collection.prototype.size=function(){return this.array_.length
+};
+opensocial.Collection.prototype.each=function(B){for(var A=0;
+A<this.size();
+A++){B(this.array_[A])
+}};
+opensocial.Collection.prototype.asArray=function(){return this.array_
+};
+opensocial.Collection.prototype.getTotalSize=function(){return this.totalSize_
+};
+opensocial.Collection.prototype.getOffset=function(){return this.offset_
+};;
+opensocial.Container=function(){};
+opensocial.Container.container_=null;
+opensocial.Container.setContainer=function(A){opensocial.Container.container_=A
+};
+opensocial.Container.get=function(){return opensocial.Container.container_
+};
+opensocial.Container.prototype.getEnvironment=function(){};
+opensocial.Container.prototype.requestSendMessage=function(A,D,B,C){gadgets.rpc.call(null,"requestSendMessage",B,A,D,B,C)
+};
+opensocial.Container.prototype.requestShareApp=function(A,D,B,C){if(B){window.setTimeout(function(){B(new opensocial.ResponseItem(null,null,opensocial.ResponseItem.Error.NOT_IMPLEMENTED,null))
+},0)
+}};
+opensocial.Container.prototype.requestCreateActivity=function(C,B,A){if(A){window.setTimeout(function(){A(new opensocial.ResponseItem(null,null,opensocial.ResponseItem.Error.NOT_IMPLEMENTED,null))
+},0)
+}};
+opensocial.Container.prototype.hasPermission=function(A){return false
+};
+opensocial.Container.prototype.requestPermission=function(B,C,A){if(A){window.setTimeout(function(){A(new opensocial.ResponseItem(null,null,opensocial.ResponseItem.Error.NOT_IMPLEMENTED,null))
+},0)
+}};
+opensocial.Container.prototype.requestData=function(A,B){};
+opensocial.Container.prototype.newCreateAlbumRequest=function(B,A){};
+opensocial.Container.prototype.newCreateMediaItemRequest=function(A,C,B){};
+opensocial.Container.prototype.newDeleteAlbumRequest=function(A,B){};
+opensocial.Container.prototype.newFetchPersonRequest=function(B,A){};
+opensocial.Container.prototype.newFetchPeopleRequest=function(A,B){};
+opensocial.Container.prototype.newFetchPersonAppDataRequest=function(A,C,B){};
+opensocial.Container.prototype.newUpdatePersonAppDataRequest=function(A,B){};
+opensocial.Container.prototype.newRemovePersonAppDataRequest=function(A){};
+opensocial.Container.prototype.newUpdateAlbumRequest=function(A,B,C){};
+opensocial.Container.prototype.newUpdateMediaItemRequest=function(A,C,B,D){};
+opensocial.Container.prototype.newFetchActivitiesRequest=function(A,B){};
+opensocial.Container.prototype.newFetchAlbumsRequest=function(A,B){};
+opensocial.Container.prototype.newFetchMessageCollectionsRequest=function(A,B){};
+opensocial.Container.prototype.newFetchMessagesRequest=function(A,C,B){};
+opensocial.Container.prototype.newCollection=function(C,B,A){return new opensocial.Collection(C,B,A)
+};
+opensocial.Container.prototype.newPerson=function(A,B,C){return new opensocial.Person(A,B,C)
+};
+opensocial.Container.prototype.newActivity=function(A){return new opensocial.Activity(A)
+};
+opensocial.Container.prototype.newAlbum=function(A){return new opensocial.Album(A)
+};
+opensocial.Container.prototype.newMediaItem=function(C,A,B){return new opensocial.MediaItem(C,A,B)
+};
+opensocial.Container.prototype.newMessage=function(A,B){return new opensocial.Message(A,B)
+};
+opensocial.Container.prototype.newIdSpec=function(A){return new opensocial.IdSpec(A)
+};
+opensocial.Container.prototype.newNavigationParameters=function(A){return new opensocial.NavigationParameters(A)
+};
+opensocial.Container.prototype.newResponseItem=function(A,C,B,D){return new opensocial.ResponseItem(A,C,B,D)
+};
+opensocial.Container.prototype.newDataResponse=function(A,B){return new opensocial.DataResponse(A,B)
+};
+opensocial.Container.prototype.newDataRequest=function(){return new opensocial.DataRequest()
+};
+opensocial.Container.prototype.newEnvironment=function(B,A){return new opensocial.Environment(B,A)
+};
+opensocial.Container.prototype.invalidateCache=function(){};
+opensocial.Container.isArray=function(A){return A instanceof Array
+};
+opensocial.Container.getField=function(A,B,C){var D=A[B];
+return opensocial.Container.escape(D,C,false)
+};
+opensocial.Container.escape=function(C,B,A){if(B&&B[opensocial.DataRequest.DataRequestFields.ESCAPE_TYPE]==opensocial.EscapeType.NONE){return C
+}else{return gadgets.util.escape(C,A)
+}};;
+opensocial.DataRequest=function(){this.requestObjects_=[]
+};
+opensocial.DataRequest.prototype.requestObjects_=null;
+opensocial.DataRequest.prototype.getRequestObjects=function(){return this.requestObjects_
+};
+opensocial.DataRequest.prototype.add=function(B,A){return this.requestObjects_.push({key:A,request:B})
+};
+opensocial.DataRequest.prototype.send=function(A){var B=A||function(){};
+opensocial.Container.get().requestData(this,B)
+};
+opensocial.DataRequest.SortOrder={TOP_FRIENDS:"topFriends",NAME:"name"};
+opensocial.DataRequest.FilterType={ALL:"all",HAS_APP:"hasApp",TOP_FRIENDS:"topFriends",IS_FRIENDS_WITH:"isFriendsWith"};
+opensocial.DataRequest.PeopleRequestFields={PROFILE_DETAILS:"profileDetail",SORT_ORDER:"sortOrder",FILTER:"filter",FILTER_OPTIONS:"filterOptions",FIRST:"first",MAX:"max",APP_DATA:"appData",ESCAPE_TYPE:"escapeType"};
+opensocial.DataRequest.prototype.addDefaultParam=function(C,B,A){C[B]=C[B]||A
+};
+opensocial.DataRequest.prototype.addDefaultProfileFields=function(B){var A=opensocial.DataRequest.PeopleRequestFields;
+var C=B[A.PROFILE_DETAILS]||[];
+B[A.PROFILE_DETAILS]=C.concat([opensocial.Person.Field.ID,opensocial.Person.Field.NAME,opensocial.Person.Field.THUMBNAIL_URL])
+};
+opensocial.DataRequest.prototype.asArray=function(A){if(opensocial.Container.isArray(A)){return A
+}else{return[A]
+}};
+opensocial.DataRequest.prototype.newCreateAlbumRequest=function(B,A){return opensocial.Container.get().newCreateAlbumRequest(B,A)
+};
+opensocial.DataRequest.prototype.newCreateMediaItemRequest=function(A,C,B){return opensocial.Container.get().newCreateMediaItemRequest(A,C,B)
+};
+opensocial.DataRequest.prototype.newDeleteAlbumRequest=function(A,B){return opensocial.Container.get().newDeleteAlbumRequest(A,B)
+};
+opensocial.DataRequest.prototype.newFetchPersonRequest=function(B,A){A=A||{};
+this.addDefaultProfileFields(A);
+return opensocial.Container.get().newFetchPersonRequest(B,A)
+};
+opensocial.DataRequest.prototype.newFetchPeopleRequest=function(B,C){C=C||{};
+var A=opensocial.DataRequest.PeopleRequestFields;
+this.addDefaultProfileFields(C);
+this.addDefaultParam(C,A.SORT_ORDER,opensocial.DataRequest.SortOrder.TOP_FRIENDS);
+this.addDefaultParam(C,A.FILTER,opensocial.DataRequest.FilterType.ALL);
+this.addDefaultParam(C,A.FIRST,0);
+this.addDefaultParam(C,A.MAX,20);
+return opensocial.Container.get().newFetchPeopleRequest(B,C)
+};
+opensocial.DataRequest.AlbumRequestFields={FIRST:"first",MAX:"max"};
+opensocial.DataRequest.DataRequestFields={ESCAPE_TYPE:"escapeType"};
+opensocial.DataRequest.prototype.newFetchPersonAppDataRequest=function(A,C,B){return opensocial.Container.get().newFetchPersonAppDataRequest(A,this.asArray(C),B)
+};
+opensocial.DataRequest.prototype.newUpdateAlbumRequest=function(A,B,C){return opensocial.Container.get().newUpdateAlbumRequest(A,B,C)
+};
+opensocial.DataRequest.prototype.newUpdateMediaItemRequest=function(A,C,B,D){return opensocial.Container.get().newUpdateMediaItemRequest(A,C,B,D)
+};
+opensocial.DataRequest.prototype.newUpdatePersonAppDataRequest=function(A,B){return opensocial.Container.get().newUpdatePersonAppDataRequest(A,B)
+};
+opensocial.DataRequest.prototype.newRemovePersonAppDataRequest=function(A){return opensocial.Container.get().newRemovePersonAppDataRequest(A)
+};
+opensocial.DataRequest.ActivityRequestFields={APP_ID:"appId",FIRST:"first",MAX:"max"};
+opensocial.DataRequest.prototype.newFetchActivitiesRequest=function(B,C){C=C||{};
+var A=opensocial.DataRequest.ActivityRequestFields;
+this.addDefaultParam(C,A.FIRST,0);
+this.addDefaultParam(C,A.MAX,20);
+return opensocial.Container.get().newFetchActivitiesRequest(B,C)
+};
+opensocial.DataRequest.prototype.newFetchAlbumsRequest=function(A,B){B=B||{};
+return opensocial.Container.get().newFetchAlbumsRequest(A,B)
+};
+opensocial.DataRequest.prototype.newFetchMessageCollectionsRequest=function(A,B){B=B||{};
+return opensocial.Container.get().newFetchMessageCollectionsRequest(A,B)
+};
+opensocial.DataRequest.prototype.newFetchMessagesRequest=function(A,C,B){B=B||{};
+return opensocial.Container.get().newFetchMessagesRequest(A,C,B)
+};;
+opensocial.DataResponse=function(A,B,C){this.responseItems_=A;
+this.globalError_=B;
+this.errorMessage_=C
+};
+opensocial.DataResponse.prototype.hadError=function(){return !!this.globalError_
+};
+opensocial.DataResponse.prototype.getErrorMessage=function(){return this.errorMessage_
+};
+opensocial.DataResponse.prototype.get=function(A){return this.responseItems_[A]
+};;
+opensocial.Email=function(A){this.fields_=A||{}
+};
+opensocial.Email.Field={TYPE:"type",ADDRESS:"address"};
+opensocial.Email.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};;
+opensocial.Enum=function(B,A){this.key=B;
+this.displayValue=A
+};
+opensocial.Enum.prototype.getKey=function(){return gadgets.util.escape(this.key)
+};
+opensocial.Enum.prototype.getDisplayValue=function(){return gadgets.util.escape(this.displayValue)
+};
+opensocial.Enum.Smoker={NO:"NO",YES:"YES",SOCIALLY:"SOCIALLY",OCCASIONALLY:"OCCASIONALLY",REGULARLY:"REGULARLY",HEAVILY:"HEAVILY",QUITTING:"QUITTING",QUIT:"QUIT"};
+opensocial.Enum.Drinker={NO:"NO",YES:"YES",SOCIALLY:"SOCIALLY",OCCASIONALLY:"OCCASIONALLY",REGULARLY:"REGULARLY",HEAVILY:"HEAVILY",QUITTING:"QUITTING",QUIT:"QUIT"};
+opensocial.Enum.Gender={MALE:"MALE",FEMALE:"FEMALE"};
+opensocial.Enum.LookingFor={DATING:"DATING",FRIENDS:"FRIENDS",RELATIONSHIP:"RELATIONSHIP",NETWORKING:"NETWORKING",ACTIVITY_PARTNERS:"ACTIVITY_PARTNERS",RANDOM:"RANDOM"};
+opensocial.Enum.Presence={AWAY:"AWAY",CHAT:"CHAT",DND:"DND",OFFLINE:"OFFLINE",ONLINE:"ONLINE",XA:"XA"};;
+opensocial.Environment=function(B,A){this.domain=B;
+this.supportedFields=A
+};
+opensocial.Environment.prototype.getDomain=function(){return this.domain
+};
+opensocial.Environment.ObjectType={PERSON:"person",ADDRESS:"address",BODY_TYPE:"bodyType",EMAIL:"email",NAME:"name",ORGANIZATION:"organization",PHONE:"phone",URL:"url",ACTIVITY:"activity",MEDIA_ITEM:"mediaItem",MESSAGE:"message",MESSAGE_TYPE:"messageType",SORT_ORDER:"sortOrder",FILTER_TYPE:"filterType"};
+opensocial.Environment.prototype.supportsField=function(A,C){var B=this.supportedFields[A]||[];
+return !!B[C]
+};;
+opensocial.IdSpec=function(A){this.fields_=A||{}
+};
+opensocial.IdSpec.Field={USER_ID:"userId",GROUP_ID:"groupId",NETWORK_DISTANCE:"networkDistance"};
+opensocial.IdSpec.PersonId={OWNER:"OWNER",VIEWER:"VIEWER"};
+opensocial.IdSpec.GroupId={SELF:"SELF",FRIENDS:"FRIENDS",ALL:"ALL"};
+opensocial.IdSpec.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};
+opensocial.IdSpec.prototype.setField=function(A,B){return(this.fields_[A]=B)
+};;
+opensocial.MediaItem=function(D,B,C){this.fields_={};
+if(C){for(var A in C){if(C.hasOwnProperty(A)){this.fields_[A]=C[A]
+}}}this.fields_[opensocial.MediaItem.Field.MIME_TYPE]=D;
+this.fields_[opensocial.MediaItem.Field.URL]=B
+};
+opensocial.MediaItem.Type={IMAGE:"image",VIDEO:"video",AUDIO:"audio"};
+opensocial.MediaItem.Field={TYPE:"type",MIME_TYPE:"mimeType",URL:"url"};
+opensocial.MediaItem.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};
+opensocial.MediaItem.prototype.setField=function(A,B){return(this.fields_[A]=B)
+};;
+opensocial.MessageCollection=function(A){this.fields_=A||{}
+};
+opensocial.MessageCollection.Field={ID:"id",TITLE:"title",TOTAL:"total",UNREAD:"unread",UPDATED:"updated",URLS:"urls"};
+opensocial.MessageCollection.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};
+opensocial.MessageCollection.prototype.setField=function(A,B){return this.fields_[A]=B
+};;
+opensocial.Message=function(A,B){if(typeof A=="string"){this.fields_=B||{};
+this.fields_[opensocial.Message.Field.BODY]=A
+}else{this.fields_=A||{}
+}};
+opensocial.Message.Field={APP_URL:"appUrl",BODY:"body",BODY_ID:"bodyId",COLLECTION_IDS:"collectionIds",ID:"id",PARENT_ID:"parentId",RECIPIENTS:"recipients",SENDER_ID:"senderId",STATUS:"status",TIME_SENT:"timeSent",TITLE:"title",TITLE_ID:"titleId",TYPE:"type",UPDATED:"updated",URLS:"urls"};
+opensocial.Message.Type={EMAIL:"email",NOTIFICATION:"notification",PRIVATE_MESSAGE:"privateMessage",PUBLIC_MESSAGE:"publicMessage"};
+opensocial.Message.Status={NEW:"new",DELETED:"deleted",FLAGGED:"flagged"};
+opensocial.Message.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};
+opensocial.Message.prototype.setField=function(A,B){return(this.fields_[A]=B)
+};;
+opensocial.Name=function(A){this.fields_=A||{}
+};
+opensocial.Name.Field={FAMILY_NAME:"familyName",GIVEN_NAME:"givenName",ADDITIONAL_NAME:"additionalName",HONORIFIC_PREFIX:"honorificPrefix",HONORIFIC_SUFFIX:"honorificSuffix",UNSTRUCTURED:"unstructured"};
+opensocial.Name.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};;
+opensocial.NavigationParameters=function(A){this.fields_=A||{}
+};
+opensocial.NavigationParameters.Field={VIEW:"view",OWNER:"owner",PARAMETERS:"parameters"};
+opensocial.NavigationParameters.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};
+opensocial.NavigationParameters.prototype.setField=function(A,B){return(this.fields_[A]=B)
+};
+opensocial.NavigationParameters.DestinationType={VIEWER_DESTINATION:"viewerDestination",RECIPIENT_DESTINATION:"recipientDestination"};;
+opensocial.Organization=function(A){this.fields_=A||{}
+};
+opensocial.Organization.Field={NAME:"name",TITLE:"title",DESCRIPTION:"description",FIELD:"field",SUB_FIELD:"subField",START_DATE:"startDate",END_DATE:"endDate",SALARY:"salary",ADDRESS:"address",WEBPAGE:"webpage"};
+opensocial.Organization.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};;
+opensocial.Person=function(A,B,C){this.fields_=A||{};
+this.isOwner_=B;
+this.isViewer_=C
+};
+opensocial.Person.Field={ID:"id",NAME:"name",NICKNAME:"nickname",THUMBNAIL_URL:"thumbnailUrl",PROFILE_URL:"profileUrl",CURRENT_LOCATION:"currentLocation",ADDRESSES:"addresses",EMAILS:"emails",PHONE_NUMBERS:"phoneNumbers",ABOUT_ME:"aboutMe",STATUS:"status",PROFILE_SONG:"profileSong",PROFILE_VIDEO:"profileVideo",GENDER:"gender",SEXUAL_ORIENTATION:"sexualOrientation",RELATIONSHIP_STATUS:"relationshipStatus",AGE:"age",DATE_OF_BIRTH:"dateOfBirth",BODY_TYPE:"bodyType",ETHNICITY:"ethnicity",SMOKER:"smoker",DRINKER:"drinker",CHILDREN:"children",PETS:"pets",LIVING_ARRANGEMENT:"livingArrangement",TIME_ZONE:"timeZone",LANGUAGES_SPOKEN:"languagesSpoken",JOBS:"jobs",JOB_INTERESTS:"jobInterests",SCHOOLS:"schools",INTERESTS:"interests",URLS:"urls",MUSIC:"music",MOVIES:"movies",TV_SHOWS:"tvShows",BOOKS:"books",ACTIVITIES:"activities",SPORTS:"sports",HEROES:"heroes",QUOTES:"quotes",CARS:"cars",FOOD:"food",TURN_ONS:"turnOns",TURN_OFFS:"turnOffs",TAGS:"tags",ROMANCE:"romance",SCARED_OF:"scaredOf",HAPPIEST_WHEN:"happiestWhen",FASHION:"fashion",HUMOR:"humor",LOOKING_FOR:"lookingFor",RELIGION:"religion",POLITICAL_VIEWS:"politicalViews",HAS_APP:"hasApp",NETWORK_PRESENCE:"networkPresence"};
+opensocial.Person.prototype.getId=function(){return this.getField(opensocial.Person.Field.ID)
+};
+var ORDERED_NAME_FIELDS_=[opensocial.Name.Field.HONORIFIC_PREFIX,opensocial.Name.Field.GIVEN_NAME,opensocial.Name.Field.FAMILY_NAME,opensocial.Name.Field.HONORIFIC_SUFFIX,opensocial.Name.Field.ADDITIONAL_NAME];
+opensocial.Person.prototype.getDisplayName=function(){var B=this.getField(opensocial.Person.Field.NAME);
+if(B){var E=B.getField(opensocial.Name.Field.UNSTRUCTURED);
+if(E){return E
+}var D="";
+for(var C=0;
+C<ORDERED_NAME_FIELDS_.length;
+C++){var A=B.getField(ORDERED_NAME_FIELDS_[C]);
+if(A){D+=A+" "
+}}return D.replace(/^\s+|\s+$/g,"")
+}return this.getField(opensocial.Person.Field.NICKNAME)
+};
+opensocial.Person.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};
+opensocial.Person.prototype.getAppData=function(A){};
+opensocial.Person.prototype.isViewer=function(){return !!this.isViewer_
+};
+opensocial.Person.prototype.isOwner=function(){return !!this.isOwner_
+};;
+opensocial.Phone=function(A){this.fields_=A||{}
+};
+opensocial.Phone.Field={TYPE:"type",NUMBER:"number"};
+opensocial.Phone.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};;
+opensocial.ResponseItem=function(A,C,B,D){this.originalDataRequest_=A;
+this.data_=C;
+this.errorCode_=B;
+this.errorMessage_=D
+};
+opensocial.ResponseItem.prototype.hadError=function(){return !!this.errorCode_
+};
+opensocial.ResponseItem.Error={NOT_IMPLEMENTED:"notImplemented",UNAUTHORIZED:"unauthorized",FORBIDDEN:"forbidden",BAD_REQUEST:"badRequest",INTERNAL_ERROR:"internalError",LIMIT_EXCEEDED:"limitExceeded"};
+opensocial.ResponseItem.prototype.getErrorCode=function(){return this.errorCode_
+};
+opensocial.ResponseItem.prototype.getErrorMessage=function(){return this.errorMessage_
+};
+opensocial.ResponseItem.prototype.getOriginalDataRequest=function(){return this.originalDataRequest_
+};
+opensocial.ResponseItem.prototype.getData=function(){return this.data_
+};;
+opensocial.Url=function(A){this.fields_=A||{}
+};
+opensocial.Url.Field={TYPE:"type",LINK_TEXT:"linkText",ADDRESS:"address"};
+opensocial.Url.prototype.getField=function(A,B){return opensocial.Container.getField(this.fields_,A,B)
+};;
+var tamings___=tamings___||[];
+tamings___.push(function(A){___.grantRead(opensocial,"CreateActivityPriority");
+___.grantRead(opensocial,"EscapeType");
+___.grantRead(opensocial.Activity,"Field");
+___.grantRead(opensocial.Address,"Field");
+___.grantRead(opensocial.Album,"Field");
+___.grantRead(opensocial.BodyType,"Field");
+___.grantRead(opensocial.DataRequest,"ActivityRequestFields");
+___.grantRead(opensocial.DataRequest,"DataRequestFields");
+___.grantRead(opensocial.DataRequest,"FilterType");
+___.grantRead(opensocial.DataRequest,"Group");
+___.grantRead(opensocial.DataRequest,"PeopleRequestFields");
+___.grantRead(opensocial.DataRequest,"SortOrder");
+___.grantRead(opensocial.Email,"Field");
+___.grantRead(opensocial.Enum,"Smoker");
+___.grantRead(opensocial.Enum,"Drinker");
+___.grantRead(opensocial.Enum,"Gender");
+___.grantRead(opensocial.Enum,"LookingFor");
+___.grantRead(opensocial.Enum,"Presence");
+___.grantRead(opensocial.IdSpec,"Field");
+___.grantRead(opensocial.IdSpec,"GroupId");
+___.grantRead(opensocial.IdSpec,"PersonId");
+___.grantRead(opensocial.MediaItem,"Field");
+___.grantRead(opensocial.Message,"Field");
+___.grantRead(opensocial.MessageCollection,"Field");
+___.grantRead(opensocial.Name,"Field");
+___.grantRead(opensocial.NavigationParameters,"Field");
+___.grantRead(opensocial.Organization,"Field");
+___.grantRead(opensocial.Person,"Field");
+___.grantRead(opensocial.Phone,"Field");
+___.grantRead(opensocial.ResponseItem,"Error");
+___.grantRead(opensocial.Url,"Field");
+___.grantRead(JsonRpcRequestItem,"rpc");
+___.grantRead(JsonRpcRequestItem,"processData");
+___.grantRead(JsonRpcRequestItem,"processResponse");
+___.grantRead(JsonRpcRequestItem,"errors");
+___.grantInnocentMethod(JsonPerson.prototype,"getDisplayName");
+___.grantInnocentMethod(JsonPerson.prototype,"getAppData");
+caja___.whitelistCtors([[window,"JsonRpcRequestItem",Object],[opensocial,"Activity",Object],[opensocial,"Address",Object],[opensocial,"Album",Object],[opensocial,"BodyType",Object],[opensocial,"Container",Object],[opensocial,"Collection",Object],[opensocial,"DataRequest",Object],[opensocial,"DataResponse",Object],[opensocial,"Email",Object],[opensocial,"Enum",Object],[opensocial,"Environment",Object],[opensocial,"IdSpec",Object],[opensocial,"MediaItem",Object],[opensocial,"Message",Object],[opensocial,"Name",Object],[opensocial,"NavigationParameters",Object],[opensocial,"Organization",Object],[opensocial,"Person",Object],[opensocial,"Phone",Object],[opensocial,"ResponseItem",Object],[opensocial,"Url",Object]]);
+caja___.whitelistMeths([[opensocial.Activity,"getField"],[opensocial.Activity,"getId"],[opensocial.Activity,"setField"],[opensocial.Address,"getField"],[opensocial.Album,"getField"],[opensocial.BodyType,"getField"],[opensocial.Container,"getEnvironment"],[opensocial.Container,"requestSendMessage"],[opensocial.Container,"requestShareApp"],[opensocial.Container,"requestCreateActivity"],[opensocial.Container,"hasPermission"],[opensocial.Container,"requestPermission"],[opensocial.Container,"requestData"],[opensocial.Container,"newCreateAlbumRequest"],[opensocial.Container,"newCreateMediaItemRequest"],[opensocial.Container,"newDeleteAlbumRequest"],[opensocial.Container,"newFetchPersonRequest"],[opensocial.Container,"newFetchPeopleRequest"],[opensocial.Container,"newFetchPersonAppDataRequest"],[opensocial.Container,"newUpdatePersonAppDataRequest"],[opensocial.Container,"newRemovePersonAppDataRequest"],[opensocial.Container,"newUpdateAlbumRequest"],[opensocial.Container,"newUpdateMediaItemRequest"],[opensocial.Container,"newFetchActivitiesRequest"],[opensocial.Container,"newFetchAlbumsRequest"],[opensocial.Container,"newFetchMessageCollectionsRequest"],[opensocial.Container,"newFetchMessagesRequest"],[opensocial.Container,"newCollection"],[opensocial.Container,"newPerson"],[opensocial.Container,"newActivity"],[opensocial.Container,"newMediaItem"],[opensocial.Container,"newMessage"],[opensocial.Container,"newIdSpec"],[opensocial.Container,"newNavigationParameters"],[opensocial.Container,"newResponseItem"],[opensocial.Container,"newDataResponse"],[opensocial.Container,"newDataRequest"],[opensocial.Container,"newEnvironment"],[opensocial.Container,"invalidateCache"],[opensocial.Collection,"asArray"],[opensocial.Collection,"each"],[opensocial.Collection,"getById"],[opensocial.Collection,"getOffset"],[opensocial.Collection,"getTotalSize"],[opensocial.Collection,"size"],[opensocial.DataRequest,"add"],[opensocial.DataRequest,"newCreateAlbumRequest"],[opensocial.DataRequest,"newCreateMediaItemRequest"],[opensocial.DataRequest,"newDeleteAlbumRequest"],[opensocial.DataRequest,"newFetchActivitiesRequest"],[opensocial.DataRequest,"newFetchAlbumsRequest"],[opensocial.DataRequest,"newFetchPeopleRequest"],[opensocial.DataRequest,"newFetchPersonAppDataRequest"],[opensocial.DataRequest,"newUpdateAlbumRequest"],[opensocial.DataRequest,"newUpdateMediaItemRequest"],[opensocial.DataRequest,"newFetchPersonRequest"],[opensocial.DataRequest,"newRemovePersonAppDataRequest"],[opensocial.DataRequest,"newUpdatePersonAppDataRequest"],[opensocial.DataRequest,"send"],[opensocial.DataResponse,"get"],[opensocial.DataResponse,"getErrorMessage"],[opensocial.DataResponse,"hadError"],[opensocial.Email,"getField"],[opensocial.Enum,"getDisplayValue"],[opensocial.Enum,"getKey"],[opensocial.Environment,"getDomain"],[opensocial.Environment,"supportsField"],[opensocial.IdSpec,"getField"],[opensocial.IdSpec,"setField"],[opensocial.MediaItem,"getField"],[opensocial.MediaItem,"setField"],[opensocial.Message,"getField"],[opensocial.Message,"setField"],[opensocial.Name,"getField"],[opensocial.NavigationParameters,"getField"],[opensocial.NavigationParameters,"setField"],[opensocial.Organization,"getField"],[opensocial.Person,"getDisplayName"],[opensocial.Person,"getField"],[opensocial.Person,"getId"],[opensocial.Person,"isOwner"],[opensocial.Person,"isViewer"],[opensocial.Phone,"getField"],[opensocial.ResponseItem,"getData"],[opensocial.ResponseItem,"getErrorCode"],[opensocial.ResponseItem,"getErrorMessage"],[opensocial.ResponseItem,"getOriginalDataRequest"],[opensocial.ResponseItem,"hadError"],[opensocial.Url,"getField"]]);
+caja___.whitelistFuncs([[opensocial.Container,"setContainer"],[opensocial.Container,"get"],[opensocial.Container,"getField"],[opensocial,"getEnvironment"],[opensocial,"hasPermission"],[opensocial,"newActivity"],[opensocial,"newDataRequest"],[opensocial,"newIdSpec"],[opensocial,"newMediaItem"],[opensocial,"newMessage"],[opensocial,"newNavigationParameters"],[opensocial,"requestCreateActivity"],[opensocial,"requestPermission"],[opensocial,"requestSendMessage"],[opensocial,"requestShareApp"]])
+});;
+gadgets.rpc.register("update_security_token",function(A){shindig.auth.updateSecurityToken(A)
+});;
+window.FieldTranslations=(function(){function B(C){if(C){C.key=C.value
+}}function A(C){if(C){C.address=C.value
+}}return{translateEnumJson:B,translateUrlJson:A,translateServerPersonToJsPerson:function(J,D){if(J.emails){for(var G=0;
+G<J.emails.length;
+G++){J.emails[G].address=J.emails[G].value
+}}if(J.phoneNumbers){for(var C=0;
+C<J.phoneNumbers.length;
+C++){J.phoneNumbers[C].number=J.phoneNumbers[C].value
+}}if(J.birthday){J.dateOfBirth=J.birthday
+}if(J.utcOffset){J.timeZone=J.utcOffset
+}if(J.addresses){for(var F=0;
+F<J.addresses.length;
+F++){J.addresses[F].unstructuredAddress=J.addresses[F].formatted
+}}if(J.gender){var H=J.gender=="male"?"MALE":(J.gender=="female")?"FEMALE":null;
+J.gender={key:H,displayValue:J.gender}
+}A(J.profileSong);
+A(J.profileVideo);
+if(J.urls){for(var I=0;
+I<J.urls.length;
+I++){A(J.urls[I])
+}}B(J.drinker);
+B(J.lookingFor);
+B(J.networkPresence);
+B(J.smoker);
+if(J.organizations){J.jobs=[];
+J.schools=[];
+for(var E=0;
+E<J.organizations.length;
+E++){var K=J.organizations[E];
+if(K.type=="job"){J.jobs.push(K)
+}else{if(K.type=="school"){J.schools.push(K)
+}}}}if(J.name){J.name.unstructured=J.name.formatted
+}if(J.appData){J.appData=opensocial.Container.escape(J.appData,D,true)
+}},translateJsPersonFieldsToServerFields:function(C){for(var D=0;
+D<C.length;
+D++){if(C[D]=="dateOfBirth"){C[D]="birthday"
+}else{if(C[D]=="timeZone"){C[D]="utcOffset"
+}else{if(C[D]=="jobs"){C[D]="organizations"
+}else{if(C[D]=="schools"){C[D]="organizations"
+}}}}}C.push("id");
+C.push("displayName")
+},translateIsoStringToDate:function(C){var E="([0-9]{4})(-([0-9]{2})(-([0-9]{2})(T([0-9]{2}):([0-9]{2})(:([0-9]{2})(.([0-9]+))?)?(Z|(([-+])([0-9]{2}):([0-9]{2})))?)?)?)?";
+var H=C.match(new RegExp(E));
+var G=0;
+var D=new Date(H[1],0,1);
+if(H[3]){D.setMonth(H[3]-1)
+}if(H[5]){D.setDate(H[5])
+}if(H[7]){D.setHours(H[7])
+}if(H[8]){D.setMinutes(H[8])
+}if(H[10]){D.setSeconds(H[10])
+}if(H[12]){D.setMilliseconds(Number("0."+H[12])*1000)
+}if(H[14]){G=(Number(H[16])*60)+Number(H[17]);
+G*=((H[15]=="-")?1:-1)
+}G-=D.getTimezoneOffset();
+var F=(Number(D)+(G*60*1000));
+return new Date(Number(F))
+},addAppDataAsProfileFields:function(F){if(F){if(F.appData){var C=F.appData;
+if(typeof C==="string"){C=[C]
+}var E=F.profileDetail||[];
+for(var D=0;
+D<C.length;
+D++){if(C[D]==="*"){E.push("appData")
+}else{E.push("appData."+C[D])
+}}F.appData=C
+}}},translateStandardArguments:function(D,C){if(D.first){C.startIndex=D.first
+}if(D.max){C.count=D.max
+}if(D.sortOrder){C.sortBy=D.sortOrder
+}if(D.filter){C.filterBy=D.filter
+}if(D.filterOp){C.filterOp=D.filterOp
+}if(D.filterValue){C.filterValue=D.filterValue
+}if(D.fields){C.fields=D.fields
+}},translateNetworkDistance:function(C,D){if(C.getField("networkDistance")){D.networkDistance=C.getField("networkDistance")
+}}}
+})();;
+var JsonActivity=function(A,B){A=A||{};
+if(!B){JsonActivity.constructArrayObject(A,"mediaItems",JsonMediaItem)
+}opensocial.Activity.call(this,A)
+};
+JsonActivity.inherits(opensocial.Activity);
+JsonActivity.prototype.toJsonObject=function(){var C=JsonActivity.copyFields(this.fields_);
+var D=C.mediaItems||[];
+var A=[];
+for(var B=0;
+B<D.length;
+B++){A[B]=D[B].toJsonObject()
+}C.mediaItems=A;
+return C
+};
+var JsonMediaItem=function(A){opensocial.MediaItem.call(this,A.mimeType,A.url,A)
+};
+JsonMediaItem.inherits(opensocial.MediaItem);
+JsonMediaItem.prototype.toJsonObject=function(){return JsonActivity.copyFields(this.fields_)
+};
+JsonActivity.constructArrayObject=function(D,E,B){var C=D[E];
+if(C){for(var A=0;
+A<C.length;
+A++){C[A]=new B(C[A])
+}}};
+JsonActivity.copyFields=function(A){var B={};
+for(var C in A){B[C]=A[C]
+}return B
+};;
+var JsonPerson=function(A){A=A||{};
+JsonPerson.constructObject(A,"bodyType",opensocial.BodyType);
+JsonPerson.constructObject(A,"currentLocation",opensocial.Address);
+JsonPerson.constructObject(A,"name",opensocial.Name);
+JsonPerson.constructObject(A,"profileSong",opensocial.Url);
+JsonPerson.constructObject(A,"profileVideo",opensocial.Url);
+JsonPerson.constructDate(A,"dateOfBirth");
+JsonPerson.constructArrayObject(A,"addresses",opensocial.Address);
+JsonPerson.constructArrayObject(A,"emails",opensocial.Email);
+JsonPerson.constructArrayObject(A,"jobs",opensocial.Organization);
+JsonPerson.constructArrayObject(A,"phoneNumbers",opensocial.Phone);
+JsonPerson.constructArrayObject(A,"schools",opensocial.Organization);
+JsonPerson.constructArrayObject(A,"urls",opensocial.Url);
+JsonPerson.constructEnum(A,"gender");
+JsonPerson.constructEnum(A,"smoker");
+JsonPerson.constructEnum(A,"drinker");
+JsonPerson.constructEnum(A,"networkPresence");
+JsonPerson.constructEnumArray(A,"lookingFor");
+opensocial.Person.call(this,A,A.isOwner,A.isViewer)
+};
+JsonPerson.inherits(opensocial.Person);
+JsonPerson.constructEnum=function(B,C){var A=B[C];
+if(A){B[C]=new opensocial.Enum(A.key,A.displayValue)
+}};
+JsonPerson.constructEnumArray=function(C,D){var B=C[D];
+if(B){for(var A=0;
+A<B.length;
+A++){B[A]=new opensocial.Enum(B[A].key,B[A].displayValue)
+}}};
+JsonPerson.constructObject=function(C,D,A){var B=C[D];
+if(B){C[D]=new A(B)
+}};
+JsonPerson.constructDate=function(B,C){var A=B[C];
+if(A){B[C]=FieldTranslations.translateIsoStringToDate(A)
+}};
+JsonPerson.constructArrayObject=function(D,E,B){var C=D[E];
+if(C){for(var A=0;
+A<C.length;
+A++){C[A]=new B(C[A])
+}}};
+JsonPerson.prototype.getDisplayName=function(){return this.getField("displayName")
+};
+JsonPerson.prototype.getAppData=function(B){var A=this.getField("appData");
+return A&&A[B]
+};;
+var JsonMessageCollection=function(A){A=A||{};
+opensocial.MessageCollection.call(this,A)
+};
+JsonMessageCollection.inherits(opensocial.MessageCollection);
+JsonMessageCollection.prototype.toJsonObject=function(){return JsonMessageCollection.copyFields(this.fields_)
+};
+JsonMessageCollection.copyFields=function(A){var B={};
+for(var C in A){B[C]=A[C]
+}return B
+};;
+var JsonMessage=function(A,B){B=B||{};
+opensocial.Message.call(this,A,B)
+};
+JsonMessage.inherits(opensocial.Message);
+JsonMessage.prototype.toJsonObject=function(){return JsonMessage.copyFields(this.fields_)
+};
+JsonMessage.copyFields=function(A){var B={};
+for(var C in A){B[C]=A[C]
+}return B
+};;
+var JsonRpcContainer=function(C){opensocial.Container.call(this);
+var H=C.path;
+this.path_=H.replace("%host%",document.location.host);
+var F=C.invalidatePath;
+this.invalidatePath_=F.replace("%host%",document.location.host);
+var G=C.supportedFields;
+var E={};
+for(var B in G){if(G.hasOwnProperty(B)){E[B]={};
+for(var D=0;
+D<G[B].length;
+D++){var A=G[B][D];
+E[B][A]=true
+}}}this.environment_=new opensocial.Environment(C.domain,E);
+this.securityToken_=shindig.auth.getSecurityToken();
+gadgets.rpc.register("shindig.requestShareApp_callback",JsonRpcContainer.requestShareAppCallback_)
+};
+var JsonRpcRequestItem=function(B,A){this.rpc=B;
+this.processData=A||function(C){return C
+};
+this.processResponse=function(C,F,E,D){var G=E?JsonRpcContainer.translateHttpError(E.code):null;
+return new opensocial.ResponseItem(C,E?null:this.processData(F),G,D)
+}
+};
+(function(){var A={};
+JsonRpcContainer.inherits(opensocial.Container);
+JsonRpcContainer.prototype.getEnvironment=function(){return this.environment_
+};
+JsonRpcContainer.prototype.requestShareApp=function(F,H,C,D){var E="cId_"+Math.random();
+A[E]=C;
+var B=gadgets.util.unescapeString(H.getField(opensocial.Message.Field.BODY));
+if(!B||B.length===0){var G=gadgets.util.unescapeString(H.getField(opensocial.Message.Field.BODY_ID));
+B=gadgets.Prefs.getMsg(G)
+}gadgets.rpc.call("..","shindig.requestShareApp",null,E,F,B)
+};
+JsonRpcContainer.requestShareAppCallback_=function(F,G,C,E){callback=A[F];
+if(callback){A[F]=null;
+var D=null;
+if(E){D={recipientIds:E}
+}var B=new opensocial.ResponseItem(null,D,C);
+callback(B)
+}};
+JsonRpcContainer.prototype.requestCreateActivity=function(E,C,B){B=B||function(){};
+var D=opensocial.newDataRequest();
+var F=opensocial.newIdSpec({userId:"VIEWER"});
+D.add(this.newCreateActivityRequest(F,E),"key");
+D.send(function(G){B(G.get("key"))
+})
+};
+JsonRpcContainer.prototype.requestData=function(G,K){K=K||function(){};
+var E=G.getRequestObjects();
+var I=E.length;
+if(I===0){window.setTimeout(function(){K(new opensocial.DataResponse({},true))
+},0);
+return 
+}var L=new Array(I);
+for(var F=0;
+F<I;
+F++){var J=E[F];
+L[F]=J.request.rpc;
+if(J.key){L[F].id=J.key
+}}var C=function(X){if(X.errors[0]){JsonRpcContainer.generateErrorResponse(X,E,K);
+return 
+}X=X.result||X.data;
+var N=false;
+var W={};
+for(var R=0;
+R<X.length;
+R++){X[X[R].id]=X[R]
+}for(var O=0;
+O<E.length;
+O++){var Q=E[O];
+var P=X[O];
+if(Q.key&&P.id!==Q.key){throw"Request key("+Q.key+") and response id("+P.id+") do not match"
+}var M=P.result||P.data;
+var U=P.error;
+var T="";
+if(U){T=U.message
+}var S=Q.request.processResponse(Q.request,M,U,T);
+N=N||S.hadError();
+if(Q.key){W[Q.key]=S
+}}var V=new opensocial.DataResponse(W,N);
+K(V)
+};
+var H={CONTENT_TYPE:"JSON",METHOD:"POST",AUTHORIZATION:"SIGNED",POST_DATA:gadgets.json.stringify(L)};
+var B=[this.path_];
+var D=shindig.auth.getSecurityToken();
+if(D){B.push("?st=",encodeURIComponent(D))
+}this.sendRequest(B.join(""),C,H,"application/json")
+};
+JsonRpcContainer.prototype.sendRequest=function(B,E,C,D){gadgets.io.makeNonProxiedRequest(B,E,C,D)
+};
+JsonRpcContainer.generateErrorResponse=function(B,E,G){var C=JsonRpcContainer.translateHttpError(B.rc||B.result.error||B.data.error)||opensocial.ResponseItem.Error.INTERNAL_ERROR;
+var F={};
+for(var D=0;
+D<E.length;
+D++){F[E[D].key]=new opensocial.ResponseItem(E[D].request,null,C)
+}G(new opensocial.DataResponse(F,true))
+};
+JsonRpcContainer.translateHttpError=function(B){if(B==501){return opensocial.ResponseItem.Error.NOT_IMPLEMENTED
+}else{if(B==401){return opensocial.ResponseItem.Error.UNAUTHORIZED
+}else{if(B==403){return opensocial.ResponseItem.Error.FORBIDDEN
+}else{if(B==400){return opensocial.ResponseItem.Error.BAD_REQUEST
+}else{if(B==500){return opensocial.ResponseItem.Error.INTERNAL_ERROR
+}else{if(B==404){return opensocial.ResponseItem.Error.BAD_REQUEST
+}else{if(B==417){return opensocial.ResponseItem.Error.LIMIT_EXCEEDED
+}}}}}}}};
+JsonRpcContainer.prototype.makeIdSpec=function(B){return opensocial.newIdSpec({userId:B})
+};
+JsonRpcContainer.prototype.translateIdSpec=function(B){var E=B.getField("userId");
+var D=B.getField("groupId");
+if(!opensocial.Container.isArray(E)){E=[E]
+}for(var C=0;
+C<E.length;
+C++){if(E[C]==="OWNER"){E[C]="@owner"
+}else{if(E[C]==="VIEWER"){E[C]="@viewer"
+}}}if(D==="FRIENDS"){D="@friends"
+}else{if(D=="ALL"){D="@all"
+}else{if(D==="SELF"||!D){D="@self"
+}}}return{userId:E,groupId:D}
+};
+JsonRpcContainer.prototype.newFetchPersonRequest=function(E,D){var B=this.newFetchPeopleRequest(this.makeIdSpec(E),D);
+var C=this;
+return new JsonRpcRequestItem(B.rpc,function(F){return C.createPersonFromJson(F,D)
+})
+};
+JsonRpcContainer.prototype.newFetchPeopleRequest=function(B,D){var E={method:"people.get"};
+E.params=this.translateIdSpec(B);
+FieldTranslations.addAppDataAsProfileFields(D);
+FieldTranslations.translateStandardArguments(D,E.params);
+FieldTranslations.translateNetworkDistance(B,E.params);
+if(D.profileDetail){FieldTranslations.translateJsPersonFieldsToServerFields(D.profileDetail);
+E.params.fields=D.profileDetail
+}var C=this;
+return new JsonRpcRequestItem(E,function(I){var H;
+if(I.list){H=I.list
+}else{H=[I]
+}var G=[];
+for(var F=0;
+F<H.length;
+F++){G.push(C.createPersonFromJson(H[F],D))
+}return new opensocial.Collection(G,I.startIndex,I.totalResults)
+})
+};
+JsonRpcContainer.prototype.createPersonFromJson=function(B,C){FieldTranslations.translateServerPersonToJsPerson(B,C);
+return new JsonPerson(B)
+};
+JsonRpcContainer.prototype.getFieldsList=function(B){if(this.hasNoKeys(B)||this.isWildcardKey(B[0])){return[]
+}else{return B
+}};
+JsonRpcContainer.prototype.hasNoKeys=function(B){return !B||B.length===0
+};
+JsonRpcContainer.prototype.isWildcardKey=function(B){return B==="*"
+};
+JsonRpcContainer.prototype.newFetchPersonAppDataRequest=function(B,D,C){var E={method:"appdata.get"};
+E.params=this.translateIdSpec(B);
+E.params.appId="@app";
+E.params.fields=this.getFieldsList(D);
+FieldTranslations.translateNetworkDistance(B,E.params);
+return new JsonRpcRequestItem(E,function(F){return opensocial.Container.escape(F,C,true)
+})
+};
+JsonRpcContainer.prototype.newUpdatePersonAppDataRequest=function(B,C){var D={method:"appdata.update"};
+D.params={userId:["@viewer"],groupId:"@self"};
+D.params.appId="@app";
+D.params.data={};
+D.params.data[B]=C;
+D.params.fields=B;
+return new JsonRpcRequestItem(D)
+};
+JsonRpcContainer.prototype.newRemovePersonAppDataRequest=function(B){var C={method:"appdata.delete"};
+C.params={userId:["@viewer"],groupId:"@self"};
+C.params.appId="@app";
+C.params.fields=this.getFieldsList(B);
+return new JsonRpcRequestItem(C)
+};
+JsonRpcContainer.prototype.newFetchActivitiesRequest=function(B,C){var D={method:"activities.get"};
+D.params=this.translateIdSpec(B);
+D.params.appId="@app";
+FieldTranslations.translateStandardArguments(C,D.params);
+FieldTranslations.translateNetworkDistance(B,D.params);
+return new JsonRpcRequestItem(D,function(F){F=F.list;
+var G=[];
+for(var E=0;
+E<F.length;
+E++){G.push(new JsonActivity(F[E]))
+}return new opensocial.Collection(G)
+})
+};
+JsonRpcContainer.prototype.newActivity=function(B){return new JsonActivity(B,true)
+};
+JsonRpcContainer.prototype.newMediaItem=function(D,B,C){C=C||{};
+C.mimeType=D;
+C.url=B;
+return new JsonMediaItem(C)
+};
+JsonRpcContainer.prototype.newCreateActivityRequest=function(B,C){var D={method:"activities.create"};
+D.params=this.translateIdSpec(B);
+D.params.appId="@app";
+FieldTranslations.translateNetworkDistance(B,D.params);
+D.params.activity=C.toJsonObject();
+return new JsonRpcRequestItem(D)
+};
+JsonRpcContainer.prototype.invalidateCache=function(){var F={method:"cache.invalidate"};
+var C={invalidationKeys:["@viewer"]};
+F.params=C;
+var E={CONTENT_TYPE:"JSON",METHOD:"POST",AUTHORIZATION:"SIGNED",POST_DATA:gadgets.json.stringify(F)};
+var B=[this.invalidatePath_];
+var D=shindig.auth.getSecurityToken();
+if(D){B.push("?st=",encodeURIComponent(D))
+}this.sendRequest(B.join(""),null,E,"application/json")
+}
+})();
+JsonRpcContainer.prototype.newMessage=function(A,B){return new JsonMessage(A,B)
+};
+JsonRpcContainer.prototype.newMessageCollection=function(A){return new JsonMessageCollection(A)
+};
+JsonRpcContainer.prototype.newFetchMessageCollectionsRequest=function(A,B){var C={method:"messages.get"};
+C.params=this.translateIdSpec(A);
+return new JsonRpcRequestItem(C,function(E){E=E.list;
+var F=[];
+for(var D=0;
+D<E.length;
+D++){F.push(new JsonMessageCollection(E[D]))
+}return new opensocial.Collection(F)
+})
+};
+JsonRpcContainer.prototype.newFetchMessagesRequest=function(A,C,B){var D={method:"messages.get"};
+D.params=this.translateIdSpec(A);
+D.params.msgCollId=C;
+return new JsonRpcRequestItem(D,function(G){G=G.list;
+var F=[];
+for(var E=0;
+E<G.length;
+E++){F.push(new JsonMessage(G[E]))
+}return new opensocial.Collection(F)
+})
+};;
+
+      var requiredConfig = {
+        "path": gadgets.config.NonEmptyStringValidator,
+        "invalidatePath": gadgets.config.NonEmptyStringValidator,
+        "domain": gadgets.config.NonEmptyStringValidator,
+        "enableCaja": gadgets.config.BooleanValidator,
+        "supportedFields": gadgets.config.ExistsValidator
+      };
+
+      gadgets.config.register("opensocial", requiredConfig,
+        function(config) {
+          ShindigContainer = function() {
+            JsonRpcContainer.call(this, config["opensocial"]);
+          };
+          ShindigContainer.inherits(JsonRpcContainer);
+
+          opensocial.Container.setContainer(new ShindigContainer());
+      });
+    ;
+gadgets.sciverse={};
+(function(){gadgets.sciverse.getAllResults=function(A){gadgets.rpc.call(null,"getAllResults",A,null)
+};
+gadgets.sciverse.getArticleContent=function(A){if(typeof (A)=="undefined"||A==null){return 
+}var B="gac";
+gadgets.rpc.call(null,"getArticleContent",null,false,B);
+gadgets.rpc.register(B,A)
+};
+gadgets.sciverse.getCurrentArticleContent=function(A){if(typeof (A)=="undefined"||A==null){return 
+}var B="gcac";
+gadgets.rpc.call(null,"getArticleContent",null,true,B);
+gadgets.rpc.register(B,A)
+};
+gadgets.sciverse.getContent=function(B,A){if(typeof (A)=="undefined"||A==null){return 
+}gadgets.rpc.call(null,"getContent",null,B);
+gadgets.rpc.register(B,A)
+};
+gadgets.sciverse.getContextInfo=function(A){gadgets.rpc.call(null,"getContextInfo",A,null)
+};
+gadgets.sciverse.getGadgetContext=function(A){gadgets.rpc.call(null,"getGadgetContext",A,null)
+};
+gadgets.sciverse.getBrowserProperty=function(A){gadgets.rpc.call(null,"getBrowserProperty",A,null)
+};
+gadgets.sciverse.getEuidCookie=function(A){gadgets.rpc.call(null,"getEuidCookie",A,null)
+};
+gadgets.sciverse.getPageUrl=function(A){gadgets.rpc.call("","getPageUrl",A,null)
+};
+gadgets.sciverse.getResults=function(A,B){gadgets.rpc.call(null,"getResults",B,A)
+};
+gadgets.sciverse.getSubjectAreas=function(B,A){if(typeof (A)=="undefined"||A==null){return 
+}gadgets.rpc.call(null,"getSubjectAreas",null,B);
+gadgets.rpc.register(B,A)
+};
+gadgets.sciverse.getSubType=function(B,A){if(typeof (A)=="undefined"||A==null){return 
+}gadgets.rpc.call(null,"getSubType",null,B);
+gadgets.rpc.register(B,A)
+};
+gadgets.sciverse.addButtonsToAllResults=function(D,A,C,B){if(typeof (D)=="undefined"||D==null){return 
+}if(typeof (B)=="undefined"||B==null){return 
+}gadgets.rpc.call("","addButtons",D,null,A,C);
+gadgets.rpc.register(C,B)
+};
+gadgets.sciverse.addButtonsToResults=function(E,A,B,D,C){if(typeof (E)=="undefined"||E==null){return 
+}if(typeof (C)=="undefined"||C==null){return 
+}gadgets.rpc.call("","addButtons",E,A,B,D);
+gadgets.rpc.register(D,C)
+};
+gadgets.sciverse.closeAllMyHovers=function(){gadgets.rpc.call("","closeAllMyHovers",null,null)
+};
+gadgets.sciverse.closeCanvasView=function(){gadgets.rpc.call("","closeCanvasView",null,null)
+};
+gadgets.sciverse.closeHover=function(A){if(typeof (A)=="undefined"||A==null){return 
+}gadgets.rpc.call(null,"closeHover",null,A)
+};
+gadgets.sciverse.entitleGadget=function(A){gadgets.rpc.call("","entitleGadget",null,A)
+};
+gadgets.sciverse.executeSearch=function(A){gadgets.rpc.call(null,"executeSearch",null,A)
+};
+gadgets.sciverse.invokeColumnView=function(B,A){gadgets.rpc.call(null,"invokeColumnView",null,B,A)
+};
+gadgets.sciverse.invokeResultsView=function(A,B){gadgets.rpc.call(null,"invokeResultsView",null,A,B)
+};
+gadgets.sciverse.invokeWorkSpaceView=function(A){gadgets.rpc.call(null,"invokeWorkSpaceView",null,A)
+};
+gadgets.sciverse.callAPPIndexService=function(A){gadgets.rpc.call(null,"callAPPIndexService",null,A)
+};
+gadgets.sciverse.makeContentApiRequest=function(B,F,D){var C="1";
+var A="?";
+if(B.indexOf("?")>-1){A="&"
+}B=[B,A,"nocache=",C].join("");
+var E={};
+E[gadgets.io.RequestParameters.HEADERS]=D;
+E[gadgets.io.RequestParameters.AUTHORIZATION]=gadgets.io.AuthorizationType.NONE;
+if(D.Accept=="application/json"){E[gadgets.io.RequestParameters.CONTENT_TYPE]=gadgets.io.ContentType.JSON
+}else{if(D.Accept=="application/atom+xml"){E[gadgets.io.RequestParameters.CONTENT_TYPE]=gadgets.io.ContentType.FEED
+}}gadgets.io.makeRequest(B,F,E)
+};
+gadgets.sciverse.makeMeInvisible=function(){gadgets.rpc.call("","makeMeInvisible",null,null)
+};
+gadgets.sciverse.makeMeVisible=function(){gadgets.rpc.call("","makeMeVisible",null,null)
+};
+gadgets.sciverse.makeRequest=function(B,F,E,C){if(typeof (C)=="undefined"||C==null){C=true
+}if(C){var D="1";
+var A="?";
+if(B.indexOf("?")>-1){A="&"
+}B=[B,A,"nocache=",D].join("")
+}gadgets.io.makeRequest(B,F,E)
+};
+gadgets.sciverse.linkText=function(D,B,F,A,E,C){if(typeof (C)=="undefined"||C==null){return 
+}gadgets.rpc.call("","linkText",null,D,B,F,A,E);
+gadgets.rpc.register(E,C)
+};
+gadgets.sciverse.linkTagText=function(C,F,G,H,K,J,A,E,I,B,D){if(typeof (B)=="undefined"||B==null){return 
+}if(typeof D==="undefined"){D=false
+}gadgets.rpc.call("","linkTagText",null,C,F,G,H,K,J,A,E,D,I);
+gadgets.rpc.register(I,B)
+};
+gadgets.sciverse.removeButtonsFromAllResults=function(){gadgets.rpc.call("","removeButtons",null,null)
+};
+gadgets.sciverse.removeButtonsFromResults=function(A,B){gadgets.rpc.call("","removeButtons",null,A,B)
+};
+gadgets.sciverse.returnQuerySuggestions=function(B,A){if(typeof (B)=="undefined"||B==null||typeof (A)=="undefined"||A==null){return 
+}gadgets.rpc.call(null,"suggest",null,B,A)
+};
+gadgets.sciverse.showHoverView=function(B,A,C){if(typeof (C)=="undefined"||C==null){return 
+}gadgets.rpc.call(null,"showHoverView",C,B,A)
+};
+gadgets.sciverse.subscribeHighlightedText=function(B,A){if(typeof (A)=="undefined"||A==null){return 
+}gadgets.rpc.call(null,"subscribe",null,"highlightedText",B);
+gadgets.rpc.register(B,A)
+};
+gadgets.sciverse.subscribeToWindowScroll=function(B,A){if(typeof (A)=="undefined"||A==null){return 
+}gadgets.rpc.call(null,"subscribe",null,"windowscroll",B);
+gadgets.rpc.register(B,A)
+};
+gadgets.sciverse.subscribeToInterRef=function(B,A){if(typeof (A)=="undefined"||A==null){return 
+}gadgets.rpc.call(null,"subscribe",null,"interRef",B);
+gadgets.rpc.register(B,A)
+};
+gadgets.sciverse.subscribeToNavigatorSelection=function(B,A){if(typeof (A)=="undefined"||A==null){alert("Please provide a callback handler");
+return 
+}gadgets.rpc.call(null,"subscribe",null,"selection",B);
+gadgets.rpc.register(B,A)
+};
+gadgets.sciverse.subscribeToResults=function(B,A){if(typeof (A)=="undefined"||A==null){return 
+}gadgets.rpc.call(null,"subscribe",null,"results",B);
+gadgets.rpc.register(B,A)
+};
+gadgets.sciverse.subscribeToQuery=function(B,A){if(typeof (A)=="undefined"||A==null){return 
+}gadgets.rpc.call(null,"subscribe",null,"query",B);
+gadgets.rpc.register(B,A)
+}
+}());;
+gadgets.hub={};
+(function(){gadgets.hub.executeSearch=function(A){gadgets.rpc.call(null,"executeHubSearch",null,A)
+};
+gadgets.hub.subscribeToSummaryView=function(B,A){if(typeof (A)=="undefined"||A==null){return 
+}gadgets.rpc.call(null,"subscribe",null,"hubSummaryView",B);
+gadgets.rpc.register(B,A)
+}
+}());;
+gadgets.config.init({"opensocial":{"path":"http://%host%/rpc","domain":"shindig","invalidatePath":"http://%host%/rpc","supportedFields":{"activity":["appId","body","bodyId","externalId","id","mediaItems","postedTime","priority","streamFaviconUrl","streamSourceUrl","streamTitle","streamUrl","templateParams","title","url","userId"],"mediaItem":["album_id","created","description","duration","file_size","id","language","last_updated","location","mime_type","num_comments","num_views","num_votes","rating","start_time","tagged_people","tags","thumbnail_url","title","type","url"],"person":["id",{"name":["familyName","givenName","unstructured"]},"thumbnailUrl","profileUrl"],"album":["id","thumbnailUrl","title","description","location","ownerId"]},"enableCaja":false},"shindig.auth":{},"rpc":{"passReferrer":"c2p:query","parentRelayUrl":"/container/rpc_relay.html","useLegacyProtocol":false,"commSwf":"http://idc311-sciverse-shindig.elsevier.com/xpc.swf"},"core.util":{"sciverse":{},"opensocial-templates":{},"core":{},"hub":{},"opensocial-0.9":{}},"core.io":{"proxyUrl":"//%host%/gadgets/proxy?container=default&refresh=%refresh%&url=%url%%rewriteMime%","jsonProxyUrl":"//%host%/gadgets/makeRequest"}});
+</script><script>gadgets.Prefs.setMessages_({});gadgets.Prefs.setDefaultPrefs_({"startMeInvisible":"y"});gadgets.io.preloaded_=[];</script>
+  </head><body dir="ltr"><script type="text/javascript">
+		//Get the context info from where 
+		//you get app id to be added
+		function init() {
+			gadgets.sciverse.getContextInfo(contextInfoCallback);
+		}
+		
+		function contextInfoCallback(contextInfo) {
+			//Get the app id
+			var appId = contextInfo["svAppaddApp"];
+			if (appId) {
+				var entitlementobj = {};
+				entitlementobj['gadgetID'] = appId;
+				entitlementobj['gadgetName'] = "";
+				//Call the entitle gadget
+				gadgets.sciverse.entitleGadget(entitlementobj);
+			}
+			//Even after starting the gadget as invisible, sometimes the entitling 
+			//gadget shows up which is not needed. Forcing it to be invisible. 
+			gadgets.sciverse.makeMeInvisible();
+		}
+
+		gadgets.util.registerOnLoadHandler(init);
+	</script><script>gadgets.util.runOnLoadHandlers();</script></body></html>

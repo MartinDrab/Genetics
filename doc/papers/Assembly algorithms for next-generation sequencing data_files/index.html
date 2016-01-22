@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<!-- saved from url=(0106)http://elsevier-apps.sciverse.com/CytoscapeWeb/index.html?doi=10.1016/j.ygeno.2010.03.001&domain=0&index=0 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><script type="text/javascript" async="async" src="elseviergadget.js"></script>
+	<title>Cytoscape Web</title>
+	<meta charset="utf-8">
+	<link href="style.css" rel="stylesheet">
+	<link href="slider-style.css" rel="stylesheet">
+	<link rel="stylesheet" type="text/css" href="jquery.qtip.css">
+	<script type="text/javascript" src="s_code_1(1).js"></script></head><body><div id="mboxScriptContainer" style="display:none;visibility:hidden;"></div><style>.mboxDefault{visibility:hidden;}</style>
+	<script type="text/javascript" src="jquey-2.0.3.min.js"></script>			
+	<script type="text/javascript" src="main.js"></script>    
+	<script type="text/javascript" src="jquery.qtip.js"></script>	
+	<script type="text/javascript" src="cytoscape.min.js"></script>
+	<script type="text/javascript" src="cytoscape-qtip.js"></script>
+	<script type="text/javascript" src="range-slider.js"></script>	
+	
+	
+	<!-- A jQuery plugin that adds cross-browser mouse wheel support https://github.com/jquery/jquery-mousewheel -->
+	<script type="text/javascript" src="jquery.mousewheel.min.js"></script>
+	
+	
+		<div id="appContainerId">
+			<form id="dummyForm">
+				<input type="hidden" id="imgBase64Content" name="imgBase64Content">
+			</form>			
+			<div class="titlebar" title="More information about this application">
+				<span class="headerTxt" onclick="openArticlePage()">Network diagrams for this article</span>
+			</div>			
+			
+			<div class="mainContainer">
+				<div id="headerDiv" title="More information about this application">
+					<span class="headerTxt" onclick="openArticlePage()">Network diagrams for this article</span>
+					<a id="newWindowLink" target="_blank" rel="noreferrer">
+					<img id="newWindowIcon" src="detach.png" title="Open in a new window">
+					</a>
+				</div>			
+				<div class="networkDiv">
+					<select id="network_cmb"></select>
+				</div>
+				<div class="cyContainer cyGadgetView">
+					<img class="preloader" src="loading.gif">					
+					<!-- <div id="cy" class="cyGadgetView"></div> -->
+				</div>
+				<div id="invalidNetwork">Our tool cannot visualize this file but you can still download it and visualize it on the desktop application</div>				
+				<div class="checkLabelDiv">
+					<div class="nodeDiv">
+						<input id="nodeLabel" type="checkbox" class="checkboxAlignCss" checked="true">
+						<label for="nodeLabel" class="checkboxLabelCss nodeTxt">Node labels</label>
+					</div>
+					<div class="edgeDiv">
+						<input id="edgeLabel" class="checkboxAlignCss" type="checkbox" checked="true">
+						<label for="edgeLabel" class="checkboxLabelCss edgeTxt">Edge labels</label>
+					</div>
+					<div class="resetDiv">
+						<a id="resetLink" href="http://elsevier-apps.sciverse.com/CytoscapeWeb/index.html?doi=10.1016/j.ygeno.2010.03.001&amp;domain=0&amp;index=0#">Reset</a>
+					</div>
+				</div>
+				<div class="zoomDiv">
+					<div class="zoomLbl">Zoom</div>
+					<div class="rangeDiv">
+						<div id="range-Slider"></div>
+					</div>
+				</div>
+				
+				<div class="expIcon">					
+					<img id="explrImg" src="icon_explore.png" title="Explore in a new window">						
+					<a id="explrLink" href="http://elsevier-apps.sciverse.com/CytoscapeWeb/index.html?doi=10.1016/j.ygeno.2010.03.001&amp;domain=0&amp;index=0#">Explore network</a>
+				</div>
+				
+				<div class="dwnloagDiv">
+					<div class="dwnImgDiv">
+						<a id="dwnImgId" href="http://elsevier-apps.sciverse.com/CytoscapeWeb/index.html?doi=10.1016/j.ygeno.2010.03.001&amp;domain=0&amp;index=0#">
+						<img class="dwnImg" title="Download image" src="icon-save.gif"></a>
+					</div>
+					<a id="dwnImgLink" href="http://elsevier-apps.sciverse.com/CytoscapeWeb/index.html?doi=10.1016/j.ygeno.2010.03.001&amp;domain=0&amp;index=0#">Download image</a>
+					<div class="dwnNetDiv">
+						<a id="dwnNetId" href="http://elsevier-apps.sciverse.com/CytoscapeWeb/index.html?doi=10.1016/j.ygeno.2010.03.001&amp;domain=0&amp;index=0#">
+						<img class="dwnImg" title="Download network" src="icon-save.gif"></a>
+					</div>
+					<a id="dwnNetLink" href="http://elsevier-apps.sciverse.com/CytoscapeWeb/index.html?doi=10.1016/j.ygeno.2010.03.001&amp;domain=0&amp;index=0#">Download network</a>
+				</div>
+				<div class="poweredByDiv">
+					<p class="footerTxt">Powered by</p>
+					<img class="cytoscapeImg" src="Cytoscape-logo-small.png">
+					<!-- <div class="footerText">
+						Powered by
+					</div>
+					<a id="footerLink" href="http://www.cytoscape.org/" target="_blank">
+						<img id="footerImage" src="css/icon/Cytoscape-logo-small.png">
+					</a> -->
+				</div>
+			</div>
+		</div>		
+	
+</body></html>

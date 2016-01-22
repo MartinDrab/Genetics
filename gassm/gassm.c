@@ -264,6 +264,7 @@ int main(int argc, char *argv[])
 														t = GetTickCount();
 													}
 
+													// TODO: Nepocitat SSW pro heuristiku, ale pouzit delku cesty (tam je videt inserce/delece celkova)
 													kmer_graph_delete_trailing_things(g);
 													kmer_graph_compute_edge_probablities(g);
 													kmer_graph_compute_shurtcuts(g, regionLength);

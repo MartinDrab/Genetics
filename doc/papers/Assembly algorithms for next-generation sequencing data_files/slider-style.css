@@ -1,0 +1,69 @@
+.range-slider {
+	margin:0;	
+}
+.range-slider-track {
+	width:auto;
+	height:20px;
+	margin:0 auto;
+	position:relative;
+	/*cursor:e-resize;*/
+}
+.range-slider-track:before {
+	content:"";
+	display:block;
+	position:absolute;
+	top:9px;
+	left:0;
+	width:100%;
+	height:2px;
+	background-color:#aaaaaa;
+	border: 1px solid #f8f8f8;
+}
+.range-slider-track .dragger {
+	display:block;
+	outline: none;
+	width:10px;
+	height:inherit;
+	position:relative;
+	z-index:2;
+	cursor:inherit;	
+	border-radius: 2px;	
+	border: 1px solid #d3d3d3;
+	background: linear-gradient(to bottom, #ECECFB 0%, #ECECFB 0%, #efefef 100%) repeat scroll 0 0 rgba(0, 0, 0, 0);
+}
+
+
+.range-slider-track .dragger:hover {   
+	border: 1px solid #aaaaaa;
+	background: linear-gradient(to bottom, #f8f8f8 0%, #f8f8f8 0%, #efefef 100%) repeat scroll 0 0 rgba(0, 0, 0, 0);
+}
+
+.range-slider-vertical {
+	display:inline-block;
+	vertical-align:middle;
+	/*margin:0 1em 1em 0;*/
+}
+.range-slider-vertical .range-slider-track {
+	cursor:n-resize;
+	width:20px;
+	height:100px;
+}
+.range-slider-vertical .range-slider-track:before {
+	top:0;
+	right:auto;
+	left:9px;
+	width:2px;
+	height:100%;
+}
+.range-slider-vertical .range-slider-track .dragger {
+	width:inherit;
+	height:10px;
+}
+.no-select {
+	-webkit-touch-callout:none;
+	-webkit-user-select:none;
+	-khtml-user-select:none;
+	-moz-user-select:none;
+	-ms-user-select:none;
+	user-select:none;
+}

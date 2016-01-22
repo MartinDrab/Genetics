@@ -1,0 +1,293 @@
+/* Reset Style 	*/	
+div, dl, dt, dd, ul, ol, li, h1, h2, h3, h4, h5, h6, pre, form, fieldset, input, textarea, p,span, blockquote, th, td { margin:0; padding:0; }
+table { border-collapse:collapse; border-spacing:0; }
+fieldset, img, iframe { border:0; }
+address, caption, cite, code, dfn, em, strong, th, var { font-style:normal; font-weight:normal; }
+ol, ul { list-style:none; }
+caption, th { text-align:left; }
+h1, h2, h3, h4, h5, h6 { font-size:100%; font-weight:normal; }
+q:before, q:after { content:''; }
+abbr, acronym { border:0; }
+
+html, body { 
+	color: #2e2e2e;
+	font-size: 12px;
+	font-family: Arial, Verdana, sans-serif;
+	line-height: 16px;
+	overflow: hidden;
+	background-color: #ffffff;
+	margin: 0px;
+}
+
+.appContainer{
+	margin: auto;
+	border: 1px solid #d7d7d7;
+	width: 785px;
+}
+
+#appContainerId{
+	height: 100%;
+}
+
+.titlebar{
+	background-image: url("http://elsevier-apps.sciverse.com/PeerReviewWeb/images/appheader-background.png");
+	background-repeat: repeat-x;
+	color: #5C5C5C;
+	height: 18px;
+	min-width: 240px;
+	padding: 6px;
+	text-align: left;
+	display: none;
+}
+
+#cy{
+	outline: none;
+	width: 100%;
+	height: 100%;
+	background: #FFFFFF;
+}
+
+.cyGadgetView{
+	position: relative;
+	width: 100%;
+	height: 200px;
+	background: #FFFFFF;
+}
+
+.cyFullView { 
+	position: relative;
+	width: 765px;
+	height: 534px;
+	background: #FFFFFF;
+}
+
+.preloader{
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto; /* presto! */
+}
+
+#titleTxt{
+	font-size: 16px;
+	color: #5c5c5c;
+}
+
+.mainContainer {
+	padding: 10px;
+	min-width: 273px;	
+}
+
+#newWindowIcon{
+	cursor: pointer;
+}
+
+#headerDiv {				
+	color: #5C5C5C;
+	white-space: nowrap;
+	padding: 0 0 30px 0;
+}
+
+.headerTxt {
+	color: #5C5C5C;
+	font-size:13px;				
+	font-weight:bold;
+	cursor: pointer;
+}
+
+#network_cmb{	
+	width: 100%;
+	height: 22px;	
+}
+
+.networkDiv{
+	padding: 0 5px 10px 0;
+	width: 100%;
+}
+
+.content_div{
+	padding: 10px;
+}
+
+.checkLabelDiv {	
+	padding: 5px 0 18px 3px;
+}
+
+.nodeDiv {	
+	font-size: 11px;
+	color: #2e2e2e;		
+	display: inline-block;
+	width: 33%;	
+}
+
+.edgeDiv {	
+	color: #2e2e2e;
+    display: inline-block;
+    font-size: 11px;   
+    text-align: center;
+    width: 33%;
+}
+
+.resetDiv{	
+	display: inline-block;
+    text-align: right;
+    width: 30%;
+}
+
+#resetLink {
+	font-size: 11px;
+	color: #316c9d;
+	text-decoration: none;
+}
+
+#resetLink:hover {
+    text-decoration: underline;
+}
+.zoomDiv{
+	display: table;
+	padding: 0 0 18px 3px;	
+}
+
+.zoomLbl{
+	vertical-align: middle;
+	display: table-cell;
+	padding: 0 10px 0 0;
+}
+
+.rangeDiv{	
+	display: table-cell;
+	width: 100%;
+	padding: 0 6px;
+}
+
+.expIcon {	
+	padding: 0 0 18px 3px;
+}
+
+#explrImg {
+	cursor: pointer;
+	display: inline-block;
+    height: 12px;
+    vertical-align: middle;
+    width: 12px;
+}
+
+#explrLink {
+	color: #316c9d;
+    display: inline-block;
+    font-size: 12px;
+    padding: 0 0 0 18px;
+	vertical-align: middle;
+    text-decoration: none;
+}
+
+#explrLink:hover {
+    text-decoration: underline;
+}
+
+.dwnloagDiv {	
+	padding: 0 0 0 3px;
+}
+
+.dwnImg{
+	vertical-align: middle;
+}
+
+#dwnImgId{
+	display: inline-block;
+	padding: 0 18px 0 0;	
+}
+
+.dwnNetDiv{	
+	display: none;
+}
+
+#dwnNetId{
+	display: inline-block;
+	padding: 0 18px 0 0;
+}
+
+.dwnImgDiv{
+	display: inline-block;	
+}
+	
+#dwnImgLink{
+	font-size: 12px;
+	color: #316c9d;
+	text-decoration: none;
+	display: inline-block;
+	vertical-align: middle;
+	padding: 0 25px 0 0;
+}
+
+#dwnImgLink:hover {
+    text-decoration: underline;
+}
+
+#dwnNetLink{
+	font-size: 12px;
+	color: #316c9d;
+	text-decoration: none;
+	display: inline-block;	
+	vertical-align: middle;
+}
+
+#dwnNetLink:hover {
+    text-decoration: underline;
+}
+
+.checkboxAlignCss{
+	display:inline-block;
+	vertical-align:middle;
+}
+
+.checkboxLabelCss{
+	padding: 0 0 0 3px;
+	display:inline-block;
+	vertical-align:middle;
+}
+
+.footerText{
+	clear: both;
+    float: left;
+    font-family: arial;
+    font-size: 11px;
+    padding-left: 40%;
+    padding-top: 20px;
+    padding-right: 5px;
+}
+
+.poweredByDiv{	
+	padding: 18px 0 0 0;
+	text-align: right;
+	height: 36px;
+}
+
+.footerTxt{	
+	display: inline-block;
+    font-size: 11px;   
+    padding: 12px 0 0 0;
+    vertical-align: top
+}
+
+.cytoscapeImg{
+	cursor: pointer;
+}
+
+#footerLink{
+	outline: 0;
+}
+
+#footerImage{
+	
+}
+
+#invalidNetwork{
+	width: 273px;
+	display: none;
+	padding: 50px 0 60px 5px;	
+	font-weight: bold;
+	text-align: center;
+}

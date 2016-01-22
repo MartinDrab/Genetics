@@ -1,0 +1,3 @@
+MendeleyImporterApi={};
+(function(a){function f(b){return function(){return c[b]}}function g(b){return function(a){c[b]=a}}function h(){this.setOpenedWithApi(!0);document.getElementsByTagName("body")[0].appendChild(document.createElement("script")).setAttribute("src",k)}function l(){try{document.getElementById("mendeley-bookmarklet-close").click()}catch(a){}}var c={},k=SDM.ep.mendeleyJS;(function(){a.open=h;a.close=l;a.setOpenedWithApi=g("openedWithApi");a.getOpenedWithApi=f("openedWithApi");for(var b=["HostId","UserIdentityCallback",
+"DataCallback"],e=0,c=b.length;e<c;e++){var d=b[e];a["register"+d]=g(d);a["get"+d]=f(d)}})()})(MendeleyImporterApi);
