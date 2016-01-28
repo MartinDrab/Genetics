@@ -49,7 +49,7 @@ static const char *_optionTypeMap[otMaximumType] = {
 		if (OptionRecord->Type == aOptionType) {							\
 			*Result = OptionRecord->Value.aValueTypeName;					\
 			ret = ERR_SUCCESS;												\
-								} else ret = ERR_TYPE_MISMATCH;										\
+		} else ret = ERR_TYPE_MISMATCH;										\
 																			\
 		return ret;															\
 	}																		\

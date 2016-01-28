@@ -11,12 +11,19 @@
 #include "kmer-edge.h"
 
 
+typedef struct _KMER_EDGE;
+
 typedef enum _EKMerVertexType {
 	kmvtRefSeqStart,
 	kmvtRefSeqMiddle,
 	kmvtRefSeqEnd,
 	kmvtRead,
 } EKMerVertexType, PEKMerVertexType;
+
+typedef struct _KMER_VERTEX_PASS {
+	struct _KMER_EDGE *Incomming;
+	struct _KMER_EDGE *Outgoing;
+} KMER_VERTEX_PASS, *PKMER_VERTEX_PASS;
 
 typedef struct _KMER_VERTEX {
 	PKMER KMer;
@@ -26,6 +33,10 @@ typedef struct _KMER_VERTEX {
 	EKMerVertexType Type;
 	DYM_ARRAY Successors;
 	DYM_ARRAY Predecessors;
+	
+	PKMER_VERTEX_PASS Passes;
+	size_t PassCount;
+	PKMER_VERTEX_PASS CurrentPass;
 } KMER_VERTEX, *PKMER_VERTEX;
 
 typedef enum _EKMerEdgeType {
@@ -81,6 +92,7 @@ typedef struct _KMER_GRAPH {
 #define kmer_vertex_get_successor(aVertex, aIndex)			(kmer_vertex_get_succ_edge((aVertex), (aIndex))->Dest)
 #define kmer_vertex_get_predecessor(aVertex, aIndex)		(kmer_vertex_get_pred_edge((aVertex), (aIndex))->Source)
 
+ERR_VALUE kmer_vertex_add_pass(PKMER_VERTEX Vertex, const struct _KMER_EDGE *Incomming, const struct _KMER_EDGE *Outgoing);
 
 ERR_VALUE kmer_graph_create(const uint32_t KMerSize, PKMER_GRAPH *Graph);
 void kmer_graph_destroy(PKMER_GRAPH Graph);
@@ -96,6 +108,7 @@ void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph);
 ERR_VALUE kmer_graph_add_vertex(PKMER_GRAPH Graph, const PKMER KMer, const EKMerVertexType Type);
 ERR_VALUE kmer_graph_add_edge(PKMER_GRAPH Graph, const PKMER Source, const PKMER Dest, const long weight);
 ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, const PKMER Source, const PKMER Dest, const long weight, const uint32_t Length, const EKMerEdgeType Type, PKMER_EDGE *Edge);
+ERR_VALUE kmer_graph_get_seq(const KMER_GRAPH *Graph, char **Seq, size_t *SeqLen);
 
 PKMER_EDGE kmer_graph_get_edge(const PKMER_GRAPH Graph, const PKMER Source, const PKMER Dest);
 

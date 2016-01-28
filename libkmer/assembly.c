@@ -115,6 +115,8 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 	kmer_back(sourceKMer, 'B');
 	ret = kmer_graph_add_vertex(Graph, sourceKMer, kmvtRefSeqStart);
 	if (ret == ERR_SUCCESS) {
+		PKMER_EDGE lastEdge = NULL;
+		
 		kmer_graph_set_starting_vertex(Graph, sourceKMer);
 		KMER_STACK_ALLOC(destKMer, kmerSize, RefSeq);
 		kmer_back(destKMer, 'B');
@@ -138,6 +140,7 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 
 			if (ret == ERR_SUCCESS) {
 				PKMER_EDGE edge = NULL;
+				PKMER_VERTEX sourceVertex = NULL;
 
 				ret = kmer_graph_add_edge_ex(Graph, sourceKMer, destKMer, 0, addEdgeLength + 1, kmetReference, &edge);
 				if (ret == ERR_SUCCESS || ret == ERR_ALREADY_EXISTS) {
@@ -145,11 +148,15 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 					ret = ERR_SUCCESS;
 				}
 
-				if (addEdgeLength > 0) {
-					i += addEdgeLength;
-					kmer_init_from_kmer(sourceKMer, destKMer);
+				sourceVertex = kmer_table_get(Graph->VertexTable, sourceKMer);
+				ret = kmer_vertex_add_pass(sourceVertex, lastEdge, edge);
+				if (ret == ERR_SUCCESS) {
+					lastEdge = edge;
+					if (addEdgeLength > 0) {
+						i += addEdgeLength;
+						kmer_init_from_kmer(sourceKMer, destKMer);
+					} else kmer_advance(sourceKMer, RefSeq[i]);
 				}
-				else kmer_advance(sourceKMer, RefSeq[i]);
 			}
 
 			if (ret != ERR_SUCCESS)

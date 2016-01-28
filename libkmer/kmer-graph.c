@@ -41,6 +41,9 @@ static ERR_VALUE _vertex_create(const PKMER KMer, EKMerVertexType Type, PKMER_VE
 			tmp->Type = Type;
 			dym_array_create(&tmp->Successors, 140);
 			dym_array_create(&tmp->Predecessors, 140);
+			tmp->PassCount = 0;
+			tmp->CurrentPass = NULL;
+			tmp->Passes = NULL;
 			*Result = tmp;
 		}
 
@@ -54,6 +57,9 @@ static ERR_VALUE _vertex_create(const PKMER KMer, EKMerVertexType Type, PKMER_VE
 
 static void _vertex_destroy(PKMER_VERTEX Vertex)
 {
+	if (Vertex->PassCount > 0)
+		utils_free(Vertex->Passes);
+
 	dym_array_destroy(&Vertex->Predecessors);
 	dym_array_destroy(&Vertex->Successors);
 	kmer_free(Vertex->KMer);
@@ -77,8 +83,22 @@ static ERR_VALUE _vertex_copy(const KMER_VERTEX *Vertex, PKMER_VERTEX *Result)
 		ret = dym_array_copy(&tmp->Successors, &Vertex->Successors);
 		if (ret == ERR_SUCCESS) {
 			ret = dym_array_copy(&tmp->Predecessors, &Vertex->Predecessors);
-			if (ret == ERR_SUCCESS)
-				*Result = tmp;
+			if (ret == ERR_SUCCESS) {
+				tmp->PassCount = Vertex->PassCount;
+				if (tmp->PassCount > 0) {
+					ret = utils_calloc(tmp->PassCount, sizeof(KMER_VERTEX_PASS), &tmp->Passes);
+					if (ret == ERR_SUCCESS) {
+						memcpy(tmp->Passes, Vertex->Passes, tmp->PassCount*sizeof(KMER_VERTEX_PASS));
+						tmp->CurrentPass = tmp->Passes + (Vertex->CurrentPass - Vertex->Passes);
+					}
+
+					if (ret != ERR_SUCCESS)
+						tmp->PassCount = 0;
+				}
+
+				if (ret == ERR_SUCCESS)
+					*Result = tmp;
+			}			
 		}
 
 		if (ret != ERR_SUCCESS)
@@ -707,4 +727,59 @@ ERR_VALUE kmer_graph_add_edge(PKMER_GRAPH Graph, const PKMER Source, const PKMER
 PKMER_EDGE kmer_graph_get_edge(const PKMER_GRAPH Graph, const PKMER Source, const PKMER Dest)
 {
 	return (PKMER_EDGE)kmer_edge_table_get_data(Graph->EdgeTable, Source, Dest);
+}
+
+
+ERR_VALUE kmer_graph_get_seq(const KMER_GRAPH *Graph, char **Seq, size_t *SeqLen)
+{
+	size_t l = 0;
+	char *s = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_calloc(Graph->NumberOfEdges + Graph->KMerSize + 10, sizeof(char), (void **)&s);
+	if (ret == ERR_SUCCESS) {
+		PKMER_VERTEX v = Graph->StartingVertex;
+
+		l = Graph->KMerSize - 1;
+		for (size_t i = 0; i < l; i++)
+			s[i] = kmer_get_base(v->KMer, i + 1);
+	
+		v = kmer_vertex_get_successor(v, 0);
+		while (v != Graph->EndingVertex) {
+			PKMER_VERTEX old = v;
+			
+			s[l] = kmer_get_base(v->KMer, Graph->KMerSize - 1);
+			++l;
+			v = old->CurrentPass->Outgoing->Dest;
+			old->CurrentPass++;
+		}
+
+		s[l] = '\0';
+		*Seq = s;
+		*SeqLen = l;
+	}
+
+	return ret;
+}
+
+
+ERR_VALUE kmer_vertex_add_pass(PKMER_VERTEX Vertex, const struct _KMER_EDGE *Incomming, const struct _KMER_EDGE *Outgoing)
+{
+	PKMER_VERTEX_PASS newPasses = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_calloc(Vertex->PassCount + 1, sizeof(KMER_VERTEX_PASS), &newPasses);
+	if (ret == ERR_SUCCESS) {
+		memcpy(newPasses, Vertex->Passes, Vertex->PassCount*sizeof(KMER_VERTEX_PASS));
+		if (Vertex->PassCount > 0)
+			utils_free(Vertex->Passes);
+		
+		Vertex->CurrentPass = newPasses;
+		Vertex->Passes = newPasses;
+		newPasses[Vertex->PassCount].Incomming = Incomming;
+		newPasses[Vertex->PassCount].Outgoing = Outgoing;
+		++Vertex->PassCount;
+	}
+
+	return ret;
 }
