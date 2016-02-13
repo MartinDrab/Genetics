@@ -248,7 +248,7 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 		fprintf(Stream, "color=green");
 	else fprintf(Stream, "color=red");
 
-	fprintf(Stream, ",label=\"L: %u; W: %li;\\nP: %f; M: %u\"", e->Length, e->Weight, (double)(e->Probability), e->MaxPassCount);
+	fprintf(Stream, ",label=\"M: %u\"", e->MaxPassCount);
 	fprintf(Stream, "];\n");
 
 	return;
@@ -736,7 +736,7 @@ ERR_VALUE kmer_graph_get_seq(const KMER_GRAPH *Graph, char **Seq, size_t *SeqLen
 	char *s = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_calloc(Graph->NumberOfEdges + Graph->KMerSize + 10, sizeof(char), (void **)&s);
+	ret = utils_calloc(16384, sizeof(char), (void **)&s);
 	if (ret == ERR_SUCCESS) {
 		PKMER_VERTEX v = Graph->StartingVertex;
 
