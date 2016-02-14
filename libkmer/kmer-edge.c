@@ -112,6 +112,30 @@ static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot(const PKMER_EDGE_TABLE T
 }
 
 
+void _on_insert_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData, const uint32_t Order)
+{
+	return;
+}
+
+void _on_delete_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData)
+{
+	return;
+}
+
+ERR_VALUE _on_copy_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData, void **Copy)
+{
+	*Copy = ItemData;
+
+	return ERR_SUCCESS;
+}
+
+void _on_print_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData, FILE *Stream)
+{
+	return;
+}
+
+
+
 /************************************************************************/
 /*                        PUBLIC FUNCTIONS                              */
 /************************************************************************/
@@ -128,7 +152,13 @@ ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t X, const si
 			tmpTable->X = X;
 			tmpTable->KMerSize = KMerSize;
 			tmpTable->PowX = utils_pow_mod(tmpTable->X, KMerSize - 1, tmpTable->Size);
-			tmpTable->Callbacks = *Callbacks;
+			if (Callbacks == NULL) {
+				tmpTable->Callbacks.OnInsert = _on_insert_dummy_callback;
+				tmpTable->Callbacks.OnDelete = _on_delete_dummy_callback;
+				tmpTable->Callbacks.OnCopy = _on_copy_dummy_callback;
+				tmpTable->Callbacks.OnPrint = _on_print_dummy_callback;
+			} else tmpTable->Callbacks = *Callbacks;
+			
 			tmpTable->LastOrder = 0;
 			ret = utils_mul_inverse(X, Size, &tmpTable->Inverse);
 			if (ret == ERR_SUCCESS) {

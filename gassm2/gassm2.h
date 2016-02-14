@@ -5,6 +5,7 @@
 
 #include "err.h"
 #include "utils.h"
+#include "reads.h"
 
 /************************************************************************/
 /*                   PROGRAM OTPIONS                                    */
@@ -17,6 +18,9 @@
 #define PROGRAM_OPTION_SEQLEN							"len"
 #define PROGRAM_OPTION_TEST								"test"
 #define PROGRAM_OPTION_TEST_COUNT						"test-count"
+#define PROGRAM_OPTION_TEST_READ_CYCLES					"read-cycles"
+#define PROGRAM_OPTION_READ_COUNT						"read-count"
+#define PROGRAM_OPTION_READ_LENGTH						"read-length"
 #define PROGRAM_OPTION_HELP								"help"
 #define PROGRAM_OPTION_PRINT_RESULTS					"print-results"
 
@@ -33,6 +37,9 @@
 #define PROGRAM_OPTION_TEST_COUNT_DESC					"Number of tests"
 #define PROGRAM_OPTION_HELP_DESC						"This help"
 #define PROGRAM_OPTION_PRINT_RESULTS_DESC				"Print results even if no error occurs"
+#define PROGRAM_OPTION_TEST_READ_CYCLES_DESC			"Number of times the test reads will be generated and assembled to the graph with a given reference sequence"
+#define PROGRAM_OPTION_READ_COUNT_DESC					"Number of reads to generate for a given active region"
+#define PROGRAM_OPTION_READ_LENGTH_DESC					"Length of the generated reads"
 
 /************************************************************************/
 /*                                                                      */
@@ -47,9 +54,10 @@ typedef struct _PROGRAM_OPTIONS {
 	uint64_t RegionStart;
 	uint32_t RegionLength;
 	uint32_t TestCount;
+	uint32_t TestReadCycles;
 	uint32_t ReadLength;
 	uint32_t ReadCount;
-	char **Reads;
+	PONE_READ Reads;
 } PROGRAM_OPTIONS, *PPROGRAM_OPTIONS;
 
 

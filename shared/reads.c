@@ -86,6 +86,24 @@ static const char *_sam_read_int_field(const char *Start, int32_t *Value)
 	return end;
 }
 
+
+static void _read_destroy_structure(PONE_READ Read)
+{
+	if (Read->Quality != NULL)
+		utils_free(Read->Quality);
+
+	if (Read->ReadSequence != NULL)
+		utils_free(Read->ReadSequence);
+
+	if (Read->CIGAR != NULL)
+		utils_free(Read->CIGAR);
+
+	if (Read->TemplateName != NULL)
+		utils_free(Read->TemplateName);
+
+	return;
+}
+
 /************************************************************************/
 /*                          PUBLIC FUNCTIONS                            */
 /************************************************************************/
@@ -110,6 +128,16 @@ ERR_VALUE read_create_from_test_line(const char *Line, const size_t Length, PONE
 		if (ret != ERR_SUCCESS)
 			utils_free(tmpRead);
 	}
+
+	return ret;
+}
+
+
+ERR_VALUE read_generate_from_sequence(const char *Seq, const size_t SeqLen, const uint32_t ReadLength, PONE_READ *Read)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = read_set_generate_from_sequence(Seq, SeqLen, ReadLength, 1, Read);
 
 	return ret;
 }
@@ -242,19 +270,71 @@ ERR_VALUE read_create_from_fasta_seq(const char *Seq, const size_t SeqLen, const
 
 void read_destroy(PONE_READ Read)
 {
-	if (Read->Quality != NULL)
-		utils_free(Read->Quality);
-
-	if (Read->ReadSequence != NULL)
-		utils_free(Read->ReadSequence);
-
-	if (Read->CIGAR != NULL)
-		utils_free(Read->CIGAR);
-
-	if (Read->TemplateName != NULL)
-		utils_free(Read->TemplateName);
-
+	_read_destroy_structure(Read);
 	utils_free(Read);
+
+	return;
+}
+
+
+ERR_VALUE read_set_generate_from_sequence(const char *Seq, const size_t SeqLen, const uint32_t ReadLength, const uint32_t ReadCount, PONE_READ *ReadSet)
+{
+	PONE_READ r = NULL;
+	PONE_READ tmpReadSet = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_calloc(ReadCount, sizeof(ONE_READ), &tmpReadSet);
+	if (ret == ERR_SUCCESS) {
+		r = tmpReadSet;
+		for (size_t i = 0; i < ReadCount; ++i) {
+			memset(r, 0, sizeof(ONE_READ));
+			r->Pos = utils_ranged_rand(0, SeqLen - ReadLength);
+			r->PosQuality = 254;
+			r->ReadSequenceLen = ReadLength;
+			ret = utils_calloc(r->ReadSequenceLen + 1, sizeof(char), &r->ReadSequence);
+			if (ret == ERR_SUCCESS) {
+				memcpy(r->ReadSequence, Seq + r->Pos, r->ReadSequenceLen*sizeof(char));
+				r->ReadSequence[r->ReadSequenceLen] = '\0';
+				r->QualityLen = r->ReadSequenceLen;
+				ret = utils_calloc(r->QualityLen, sizeof(uint8_t), &r->Quality);
+				if (ret == ERR_SUCCESS)
+					memset(r->Quality, 254, r->QualityLen);
+
+				if (ret != ERR_SUCCESS)
+					utils_free(r->ReadSequence);
+			}
+
+			if (ret != ERR_SUCCESS) {
+				--r;
+				for (size_t j = 0; j < i; ++j) {
+					_read_destroy_structure(r);
+					--r;
+				}
+
+				break;
+			}
+
+			++r;
+		}
+
+		if (ret == ERR_SUCCESS)
+			*ReadSet = tmpReadSet;
+
+		if (ret != ERR_SUCCESS)
+			utils_free(tmpReadSet);
+	}
+
+	return ret;
+}
+
+void read_set_destroy(PONE_READ ReadSet, const uint32_t Count)
+{
+	PONE_READ tmp = ReadSet;
+
+	for (size_t i = 0; i < Count; ++i) {
+		_read_destroy_structure(tmp);
+		++tmp;
+	}
 
 	return;
 }

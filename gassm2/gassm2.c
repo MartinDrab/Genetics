@@ -8,6 +8,7 @@
 #include "options.h"
 #include "libkmer.h"
 #include "input-file.h"
+#include "reads.h"
 #include "gassm2.h"
 
 
@@ -41,6 +42,15 @@ static ERR_VALUE _init_default_values()
 	if (ret == ERR_SUCCESS)
 		ret = option_add_Boolean(PROGRAM_OPTION_PRINT_RESULTS, FALSE);
 
+	if (ret == ERR_SUCCESS)
+		ret = option_add_UInt32(PROGRAM_OPTION_READ_COUNT, 0);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_UInt32(PROGRAM_OPTION_READ_LENGTH, 0);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_UInt32(PROGRAM_OPTION_TEST_READ_CYCLES, 20);
+
 	option_set_description_const(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQUENCE, PROGRAM_OPTION_SEQUENCE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQFILE, PROGRAM_OPTION_SEQFILE_DESC);
@@ -50,6 +60,9 @@ static ERR_VALUE _init_default_values()
 	option_set_description_const(PROGRAM_OPTION_TEST_COUNT, PROGRAM_OPTION_TEST_COUNT_DESC);
 	option_set_description_const(PROGRAM_OPTION_HELP, PROGRAM_OPTION_HELP_DESC);
 	option_set_description_const(PROGRAM_OPTION_PRINT_RESULTS, PROGRAM_OPTION_PRINT_RESULTS_DESC);
+	option_set_description_const(PROGRAM_OPTION_READ_COUNT, PROGRAM_OPTION_READ_COUNT_DESC);
+	option_set_description_const(PROGRAM_OPTION_READ_LENGTH, PROGRAM_OPTION_READ_LENGTH_DESC);
+	option_set_description_const(PROGRAM_OPTION_TEST_READ_CYCLES, PROGRAM_OPTION_TEST_READ_CYCLES_DESC);
 
 	option_set_shortcut(PROGRAM_OPTION_KMERSIZE, 'k');
 	option_set_shortcut(PROGRAM_OPTION_SEQUENCE, 's');
@@ -58,6 +71,9 @@ static ERR_VALUE _init_default_values()
 	option_set_shortcut(PROGRAM_OPTION_SEQLEN, 'l');
 	option_set_shortcut(PROGRAM_OPTION_TEST, 't');
 	option_set_shortcut(PROGRAM_OPTION_TEST_COUNT, 'c');
+	option_set_shortcut(PROGRAM_OPTION_READ_LENGTH, 'L');
+	option_set_shortcut(PROGRAM_OPTION_READ_COUNT, 'C');
+	option_set_shortcut(PROGRAM_OPTION_TEST_READ_CYCLES, 'T');
 	option_set_shortcut(PROGRAM_OPTION_HELP, 'h');
 	option_set_shortcut(PROGRAM_OPTION_PRINT_RESULTS, 'p');
 
@@ -69,6 +85,7 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
+	memset(Options, 0, sizeof(PROGRAM_OPTIONS));
 	ret = option_get_UInt32(PROGRAM_OPTION_KMERSIZE, &Options->KMerSize);
 	if (ret == ERR_SUCCESS) {
 		ret = option_get_String(PROGRAM_OPTION_SEQUENCE, &Options->ReferenceSequence);
@@ -100,11 +117,20 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 	if (ret == ERR_SUCCESS)
 		ret = option_get_UInt32(PROGRAM_OPTION_TEST_COUNT, &Options->TestCount);
 
+	if (ret == ERR_SUCCESS)
+		ret = option_get_UInt32(PROGRAM_OPTION_READ_COUNT, &Options->ReadCount);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_UInt32(PROGRAM_OPTION_READ_LENGTH, &Options->ReadLength);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_UInt32(PROGRAM_OPTION_TEST_READ_CYCLES, &Options->TestReadCycles);
+
 	return ret;
 }
 
 
-static void _compute_graph(const struct _PROGRAM_OPTIONS *Options)
+static void _compute_graph(const struct _PROGRAM_OPTIONS *Options, const char *Alternate, const size_t AlternateLen)
 {
 	PKMER_GRAPH g = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -114,28 +140,28 @@ static void _compute_graph(const struct _PROGRAM_OPTIONS *Options)
 		if (ret == ERR_SUCCESS) {
 			ret = kmer_graph_parse_ref_sequence(g, Options->ReferenceSequence, Options->RegionLength, FALSE);
 			if (ret == ERR_SUCCESS) {
-				size_t l = 0;
-				char *s = NULL;
-
-				ret = kmer_graph_get_seq(g, &s, &l);
+				ret = kmer_graph_parse_reads(g, Options->Reads, Options->ReadCount, FALSE);
 				if (ret == ERR_SUCCESS) {
-					char tmp = Options->ReferenceSequence[Options->RegionLength];
-					Options->ReferenceSequence[Options->RegionLength] = '\0';
-					if (strcmp(Options->ReferenceSequence, s)) {
-						fprintf(stderr, "REFSEQ   = %s\n", Options->ReferenceSequence);
-						fprintf(stderr, "GRAPHSEQ = %s\n", s);
-						kmer_graph_print(stderr, g);
-					} else {
-						if (Options->PrintResults) {
-							printf("REFSEQ   = %s\n", Options->ReferenceSequence);
-							printf("GRAPHSEQ = %s\n", s);
-							kmer_graph_print(stdout, g);
-						}
-					}
+					size_t l = 0;
+					char *s = NULL;
 
-					Options->ReferenceSequence[Options->RegionLength] = tmp;
-					utils_free(s);
-				} else printf("kmer_graph_get_seq(): %u\n", ret);
+					ret = kmer_graph_get_seq(g, &s, &l);
+					if (ret == ERR_SUCCESS) {
+						if ((l == AlternateLen) && memcmp(s, Alternate, l)) {
+							fprintf(stderr, "REFSEQ   = %s\n", Alternate);
+							fprintf(stderr, "GRAPHSEQ = %s\n", s);
+							kmer_graph_print(stderr, g);
+						} else {
+							if (Options->PrintResults) {
+								printf("SEQ      = %s\n", Alternate);
+								printf("GRAPHSEQ = %s\n", s);
+								kmer_graph_print(stdout, g);
+							}
+						}
+						
+						utils_free(s);
+					} else printf("kmer_graph_get_seq(): %u\n", ret);
+				} else printf("kmer_graph_parse_reads(): %u\n", ret);
 			} else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
 
 			kmer_graph_destroy(g);
@@ -162,21 +188,48 @@ static char _rand_nucleotide(void)
 }
 
 
-static ERR_VALUE _create_alternatce_sequence(const char *RefSeq, char **Alternate)
+static ERR_VALUE _create_alternatce_sequence(const char *RefSeq, const size_t RefSeqLen, char **Alternate, size_t *AlternateLen)
 {
-	return utils_copy_string(RefSeq, Alternate);
-}
-
-static ERR_VALUE _generate_reads(const struct _PROGRAM_OPTIONS *Options, const char *Sequence, char ***Reads, size_t *ReadCount)
-{
+	size_t tmpAlternateLen = RefSeqLen;
+	char *rsCopy = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-
+	ret = utils_calloc(tmpAlternateLen + 1, sizeof(char), &rsCopy);
+	if (ret == ERR_SUCCESS) {
+		memcpy(rsCopy, RefSeq, tmpAlternateLen*sizeof(char));
+		rsCopy[tmpAlternateLen] = '\0';
+		*Alternate = rsCopy;
+		*AlternateLen = tmpAlternateLen;
+	}
 
 	return ret;
 }
 
 
+static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	
+	if (Options->ReadCount > 0) {
+		for (size_t j = 0; j < Options->TestReadCycles; ++j) {
+			char *alternate = NULL;
+			size_t alternateLen = 0;
+
+			ret = _create_alternatce_sequence(Options->ReferenceSequence, Options->RegionLength, &alternate, &alternateLen);
+			if (ret == ERR_SUCCESS) {
+				ret = read_set_generate_from_sequence(alternate, alternateLen, Options->ReadLength, Options->ReadCount, &Options->Reads);
+				if (ret == ERR_SUCCESS) {
+					_compute_graph(Options, alternate, alternateLen);
+					read_set_destroy(Options->Reads, Options->ReadCount);
+				}
+
+				utils_free(alternate);
+			}
+		}
+	} else _compute_graph(Options, Options->ReferenceSequence, Options->RegionLength);
+	
+	return ret;
+}
 
 
 int main(int argc, char *argv[])
@@ -201,14 +254,16 @@ int main(int argc, char *argv[])
 
 							ret = utils_calloc(po.RegionLength + 1, sizeof(char), (char **)&rs);
 							if (ret == ERR_SUCCESS) {
+								printf("kmer size: %u\n", po.KMerSize);
 								printf("Testing with %u random sequences of length %u...\n", po.TestCount, po.RegionLength);
-								for (uint32_t i = 0; i < po.TestCount; ++i) {
+								printf("%u test read cycles with %u reads of length %u...\n", po.TestReadCycles, po.ReadCount, po.ReadLength);
+								for (uint32_t i = 0; i < po.TestCount; ++i) {									
 									memset(rs, 0, po.RegionLength*sizeof(char));
 									for (uint32_t j = 0; j < po.RegionLength; ++j)
 										rs[j] = _rand_nucleotide();
 
 									po.ReferenceSequence = rs;
-									_compute_graph(&po);
+									ret = _test_with_reads(&po);
 								}
 
 								utils_free(rs);
@@ -223,7 +278,9 @@ int main(int argc, char *argv[])
 								PACTIVE_REGION pa = regions;
 								char *origRefSeq = po.ReferenceSequence;
 
+								printf("kmer size: %u\n", po.KMerSize);
 								printf("Going through a reference sequence with %u regions...\n", regionCount);
+								printf("%u test read cycles with %u reads of length %u...\n", po.TestReadCycles, po.ReadCount, po.ReadLength);
 								for (size_t i = 0; i < regionCount; ++i) {
 									uint64_t remainingLength = 0;
 
@@ -231,7 +288,7 @@ int main(int argc, char *argv[])
 										printf("Region #%u: Offset: %" PRIu64 ", Length %" PRIu64 "\n", i, pa->Offset, pa->Length);
 										po.ReferenceSequence = pa->Sequence;
 										for (uint64_t j = 0; j < pa->Length; j += po.RegionLength) {
-											_compute_graph(&po);
+											ret = _test_with_reads(&po);
 											if (j + po.RegionLength < pa->Length)
 												po.ReferenceSequence += po.RegionLength;
 											else remainingLength = pa->Length - j;
@@ -242,7 +299,7 @@ int main(int argc, char *argv[])
 
 											tmp = po.RegionLength;
 											po.RegionLength = remainingLength;
-											_compute_graph(&po);
+											ret = _test_with_reads(&po);
 											po.RegionLength = tmp;
 										}
 									}
@@ -253,7 +310,7 @@ int main(int argc, char *argv[])
 								input_free_regions(regions, regionCount);
 							}
 						}
-					} else {
+					} else if (*po.ReferenceSequence != '\0') {
 						size_t regionCount = 0;
 						PACTIVE_REGION regions = NULL;
 						size_t refSeqLen = strlen(po.ReferenceSequence);
@@ -272,8 +329,9 @@ int main(int argc, char *argv[])
 									if (r->Length - regionOffset < po.RegionLength)
 										po.RegionLength = r->Length - regionOffset;
 
+									printf("kmer size: %u\n", po.KMerSize);
 									printf("Active region (%" PRIu64 "; %u; %u)...\n", po.RegionStart, po.RegionLength, index);
-									_compute_graph(&po);
+									_compute_graph(&po, po.ReferenceSequence, po.RegionLength);
 								} else printf("ERROR: The active region (%" PRIu64 "; %u; %u) does not specify a readable part of the reference sequence\n", po.RegionStart, po.RegionLength, index);
 							}
 
