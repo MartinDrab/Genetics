@@ -134,7 +134,7 @@ ERR_VALUE _compute_backwards_edge_count(const char *Region, const size_t RegionL
 
 		ret = kmer_graph_create(i, &g);
 		if (ret == ERR_SUCCESS) {
-			ret = kmer_graph_parse_ref_sequence(g, Region, RegionLength, SkipVertices);
+			ret = kmer_graph_parse_ref_sequence(g, Region, RegionLength, SkipVertices, 0);
 			if (ret == ERR_SUCCESS)
 				ResultArray[index] = g->NumberOfBackwardEdges;
 

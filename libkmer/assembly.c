@@ -95,7 +95,6 @@ static ERR_VALUE _kmer_graph_parse_read(PKMER_GRAPH Graph, const ONE_READ *Read,
 					ret = ERR_SUCCESS;
 				}
 
-				edge->MaxPassCount++;
 				if (addEdgeLength > 0) {
 					i += addEdgeLength;
 					kmer_init_from_kmer(sourceKMer, destKMer);
@@ -118,7 +117,7 @@ static ERR_VALUE _kmer_graph_parse_read(PKMER_GRAPH Graph, const ONE_READ *Read,
 /*                      PUBLIC FUNCTIONS                                */
 /************************************************************************/
 
-ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, const size_t RefSeqLen, const boolean SkipVertices)
+ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, const size_t RefSeqLen, const boolean SkipVertices, const uint32_t Threshold)
 {
 	EKMerVertexType vertexType = kmvtRefSeqMiddle;
 	PKMER sourceKMer = NULL;
@@ -157,7 +156,7 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 				PKMER_EDGE edge = NULL;
 				PKMER_VERTEX sourceVertex = NULL;
 
-				ret = kmer_graph_add_edge_ex(Graph, sourceKMer, destKMer, 0, addEdgeLength + 1, kmetReference, &edge);
+				ret = kmer_graph_add_edge_ex(Graph, sourceKMer, destKMer, Threshold, addEdgeLength + 1, kmetReference, &edge);
 				if (ret == ERR_SUCCESS || ret == ERR_ALREADY_EXISTS) {
 					++edge->MaxPassCount;
 					ret = ERR_SUCCESS;

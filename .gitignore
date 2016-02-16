@@ -4,5 +4,6 @@ bin
 /test-data
 /tmp
 /lib
+/genome
 test-data.tgz
 Genetics.opensdf

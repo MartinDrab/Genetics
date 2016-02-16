@@ -190,6 +190,10 @@ size_t utils_pow_mod(const size_t Base, const size_t Power, const size_t Modulus
 	return ret;
 }
 
+
+#define _FILE_OFFSET_BITS 64
+
+
 ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength)
 {
 	FILE *f = NULL;
@@ -197,12 +201,12 @@ ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength)
 
 	f = fopen(FileName, "rb");
 	if (f != NULL) {
-		ret = fseek(f, 0, SEEK_END);
+		ret = _fseeki64(f, 0, SEEK_END);
 		if (ret == ERR_SUCCESS) {
-			long fileSize = ftell(f);
+			long long fileSize = _ftelli64(f);
 
 			if (fileSize != -1L) {
-				ret = fseek(f, 0, SEEK_SET);
+				ret = _fseeki64(f, 0, SEEK_SET);
 				if (ret == ERR_SUCCESS) {
 					char *tmpData = NULL;
 					size_t tmpSize = (size_t)fileSize;

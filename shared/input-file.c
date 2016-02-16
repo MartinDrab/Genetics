@@ -108,8 +108,8 @@ static ERR_VALUE _fasta_read_seq(char *Start, size_t Length, char **NewStart, ch
 				*Seq = tmpSeq;
 				*SeqLen = tmpSeqLen;
 			}
-		} else ret = ERR_SUCCESS;
-	}
+		} else ret = ERR_NO_MORE_ENTRIES;
+	} else ret = ERR_NO_MORE_ENTRIES;
 
 	return ret;
 }
@@ -118,19 +118,50 @@ static ERR_VALUE _fasta_read_seq(char *Start, size_t Length, char **NewStart, ch
 /*                        PUBLIC FUNCTIONS                              */
 /************************************************************************/
 
+ERR_VALUE fasta_load(const char *FileName, PFASTA_FILE FastaRecord)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_file_read(FileName, &FastaRecord->FileData, &FastaRecord->DataLength);
+	if (ret == ERR_SUCCESS)
+		FastaRecord->CurrentPointer = FastaRecord->FileData;
+
+	return ret;
+}
+
+
+
+ERR_VALUE fasta_read_seq(PFASTA_FILE FastaRecord, char **Seq, size_t *SeqLen)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = _fasta_read_seq(FastaRecord->CurrentPointer, FastaRecord->DataLength - (FastaRecord->CurrentPointer - FastaRecord->FileData), &FastaRecord->CurrentPointer, Seq, SeqLen);
+
+	return ret;
+}
+
+
+void fasta_free(PFASTA_FILE FastaRecord)
+{
+	if (FastaRecord->DataLength > 0)
+		utils_free(FastaRecord->FileData);
+
+	return;
+}
+
+
+
 ERR_VALUE input_get_refseq(const char *FileName, const char *InputType, char **RefSeq, size_t *RefSeqLen)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	if (strcasecmp(InputType, "fasta") == 0) {
-		char *data = NULL;
-		char *dummy = NULL;
-		size_t dataLength = 0;
+		FASTA_FILE f;
 
-		ret = utils_file_read(FileName, &data, &dataLength);
+		ret = fasta_load(FileName, &f);
 		if (ret == ERR_SUCCESS) {
-			ret = _fasta_read_seq(data, dataLength, &dummy, RefSeq, RefSeqLen);
-			utils_free(data);
+			ret = fasta_read_seq(&f, RefSeq, RefSeqLen);
+			fasta_free(&f);
 		}
 	} else if (strcasecmp(InputType, "test") == 0) {
 		char *data = NULL;
@@ -171,10 +202,10 @@ void input_free_refseq(char *RefSeq, const size_t RefSeqLen)
 }
 
 
-ERR_VALUE input_get_reads(const char *Filename, const char *InputType, const uint64_t RegionStart, const uint64_t RegionSize, PONE_READ **Reads, size_t *ReadCount)
+ERR_VALUE input_get_reads(const char *Filename, const char *InputType, const uint64_t RegionStart, const uint64_t RegionSize, PONE_READ *Reads, size_t *ReadCount)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
+	/*
 	if (strcasecmp(InputType, "fasta") == 0) {
 		char *data = NULL;
 		size_t dataLength = 0;
@@ -184,7 +215,8 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, const uin
 			ret = ERR_NOT_IMPLEMENTED;
 			utils_free(data);
 		}
-	} else if (strcasecmp(InputType, "sam") == 0) {
+	} else */
+	if (strcasecmp(InputType, "sam") == 0) {
 		char *data = NULL;
 		size_t dataLength = 0;
 
@@ -199,7 +231,7 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, const uin
 			while (ret == ERR_SUCCESS && line != lineEnd) {
 				ret = read_create_from_sam_line(line, &oneRead);
 				if (ret == ERR_SUCCESS) {
-					if (oneRead->Pos == (uint64_t)-1 ||
+					if (
 						(RegionStart <= oneRead->Pos && oneRead->Pos < RegionStart + RegionSize) ||
 						(RegionStart <= oneRead->Pos + oneRead->ReadSequenceLen && oneRead->Pos + oneRead->ReadSequenceLen < RegionStart + RegionSize)) {
 						if (oneRead->ReadSequenceLen != (uint64_t)-1) {
@@ -221,9 +253,22 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, const uin
 			}
 
 			if (ret == ERR_SUCCESS) {
-				ret = dym_array_to_array(&readArray, Reads);
-				if (ret == ERR_SUCCESS)
+				PONE_READ tmpReads = NULL;
+				size_t tmpReadCount = dym_array_size(&readArray);
+
+				ret = utils_calloc(tmpReadCount, sizeof(ONE_READ), &tmpReads);
+				if (ret == ERR_SUCCESS) {
+					PONE_READ tmp = tmpReads;
+					
+					for (size_t i = 0; i < tmpReadCount; ++i) {
+						memcpy(tmp, dym_array_get(&readArray, i), sizeof(ONE_READ));
+						utils_free(dym_array_get(&readArray, i));
+						++tmp;
+					}
+					
+					*Reads = tmpReads;
 					*ReadCount = dym_array_size(&readArray);
+				}
 			}
 
 			if (ret != ERR_SUCCESS) {
@@ -236,7 +281,9 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, const uin
 			dym_array_destroy(&readArray);
 			utils_free(data);
 		}
-	} else if (strcasecmp(InputType, "none") == 0) {
+	}
+	/*
+	else if (strcasecmp(InputType, "none") == 0) {
 		*Reads = NULL;
 		*ReadCount = 0;
 		ret = ERR_SUCCESS;
@@ -279,20 +326,16 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, const uin
 			dym_array_destroy(&ra);
 			utils_free(data);
 		}
-	} else ret = ERR_UNKNOWN_READS_INPUT_TYPE;
-
+	}*/ 
+	else ret = ERR_UNKNOWN_READS_INPUT_TYPE;
+	
 	return ret;
 }
 
 
-void input_free_reads(PONE_READ *Reads, const size_t Count)
+void input_free_reads(PONE_READ Reads, const size_t Count)
 {
-	if (Count > 0) {
-		for (size_t i = 0; i < Count; ++i)
-			read_destroy(Reads[i]);
-
-		utils_free(Reads);
-	}
+	read_set_destroy(Reads, Count);
 
 	return;
 }
@@ -342,6 +385,8 @@ ERR_VALUE input_refseq_to_regions(const char *RefSeq, const size_t RefSeqLen, PA
 				++regEnd;
 				break;
 			case 'N':
+			case 'M':
+			case 'R':
 				if (numberOfNBases == 0 && regEnd != regStart) {
 					PACTIVE_REGION old = tmpArray;
 

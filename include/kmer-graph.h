@@ -61,6 +61,8 @@ typedef struct _KMER_EDGE {
 	uint32_t PassCount;
 	uint32_t MaxPassCount;
 	void *Shortcut;
+	char *Seq;
+	size_t SeqLen;
 } KMER_EDGE, *PKMER_EDGE;
 
 typedef struct _KMER_GRAPH_SHORTCUT {
@@ -86,13 +88,19 @@ typedef struct _KMER_GRAPH {
 } KMER_GRAPH, *PKMER_GRAPH;
 
 #define kmer_graph_get_kmer_size(aGraph)					((aGraph)->KMerSize)
+#define kmer_graph_get_edge_count(aGraph)					((aGraph)->NumberOfEdges)
+#define kmer_graph_get_vertex_count(aGraph)					((aGraph)->NumberOfVertices)
+#define kmer_graph_get_cycle_count(aGraph)					((aGraph)->NumberOfBackwardEdges)
 
 #define kmer_vertex_get_succ_edge(aVertex, aIndex)			((PKMER_EDGE)(dym_array_data(&(aVertex)->Successors)[(aIndex)]))
 #define kmer_vertex_get_pred_edge(aVertex, aIndex)			((PKMER_EDGE)(dym_array_data(&(aVertex)->Predecessors)[(aIndex)]))
 #define kmer_vertex_get_successor(aVertex, aIndex)			(kmer_vertex_get_succ_edge((aVertex), (aIndex))->Dest)
 #define kmer_vertex_get_predecessor(aVertex, aIndex)		(kmer_vertex_get_pred_edge((aVertex), (aIndex))->Source)
+#define kmer_vertex_get_pass_count(aVertex)					((aVertex)->PassCount)
+#define kmer_vertex_get_pass(aVertex, aIndex)				((aVertex)->Passes + (aIndex))
 
 ERR_VALUE kmer_vertex_add_pass(PKMER_VERTEX Vertex, const struct _KMER_EDGE *Incomming, const struct _KMER_EDGE *Outgoing);
+void kmer_vertex_remove_pass(PKMER_VERTEX Vertex, const size_t Index);
 
 ERR_VALUE kmer_graph_create(const uint32_t KMerSize, PKMER_GRAPH *Graph);
 void kmer_graph_destroy(PKMER_GRAPH Graph);
@@ -109,6 +117,8 @@ ERR_VALUE kmer_graph_add_vertex(PKMER_GRAPH Graph, const PKMER KMer, const EKMer
 ERR_VALUE kmer_graph_add_edge(PKMER_GRAPH Graph, const PKMER Source, const PKMER Dest, const long weight);
 ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, const PKMER Source, const PKMER Dest, const long weight, const uint32_t Length, const EKMerEdgeType Type, PKMER_EDGE *Edge);
 ERR_VALUE kmer_graph_get_seq(const KMER_GRAPH *Graph, char **Seq, size_t *SeqLen);
+ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex);
+ERR_VALUE kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge);
 
 PKMER_EDGE kmer_graph_get_edge(const PKMER_GRAPH Graph, const PKMER Source, const PKMER Dest);
 

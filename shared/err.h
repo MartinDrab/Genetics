@@ -48,4 +48,9 @@ typedef int ERR_VALUE;
 
 #define ERR_NOT_IN_REGION						39
 
+#define ERR_TOO_MANY_EDGES						40
+#define ERR_PRED_IS_SUCC						41
+#define ERR_TRIANGLE							42
+
+
 #endif 

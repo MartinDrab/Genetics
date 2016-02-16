@@ -129,6 +129,8 @@ static ERR_VALUE _edge_create(const PKMER_VERTEX Source, const PKMER_VERTEX Dest
 		tmp->Probability = 0;
 		tmp->Order = 0;
 		tmp->Shortcut = NULL;
+		tmp->Seq = NULL;
+		tmp->SeqLen = 0;
 		*Edge = tmp;
 	}
 
@@ -136,9 +138,12 @@ static ERR_VALUE _edge_create(const PKMER_VERTEX Source, const PKMER_VERTEX Dest
 }
 
 
-static void _edge_destroy(PKMER_EDGE Edgte)
+static void _edge_destroy(PKMER_EDGE Edge)
 {
-	utils_free(Edgte);
+	if (Edge->SeqLen > 0)
+		utils_free(Edge->Seq);
+
+	utils_free(Edge);
 
 	return;
 }
@@ -151,11 +156,20 @@ static ERR_VALUE _edge_copy(const KMER_EDGE *Edge, PKMER_EDGE *Result)
 
 	ret = _edge_create(Edge->Source, Edge->Dest, Edge->Type, Edge->Weight, Edge->Length, &tmp);
 	if (ret == ERR_SUCCESS) {
-		tmp->PassCount = Edge->PassCount;
-		tmp->MaxPassCount = Edge->MaxPassCount;
-		tmp->Probability = Edge->Probability;
-		tmp->Order = Edge->Order;
-		*Result = tmp;
+		if (Edge->SeqLen > 0)
+			ret = utils_copy_string(Edge->Seq, &tmp->Seq);
+
+		if (ret == ERR_SUCCESS) {
+			tmp->SeqLen = Edge->SeqLen;
+			tmp->PassCount = Edge->PassCount;
+			tmp->MaxPassCount = Edge->MaxPassCount;
+			tmp->Probability = Edge->Probability;
+			tmp->Order = Edge->Order;
+			*Result = tmp;
+		}
+
+		if (ret != ERR_SUCCESS)
+			utils_free(tmp);
 	}
 
 	return ret;
@@ -244,11 +258,11 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 	fprintf(Stream, " -> ");
 	kmer_print(Stream, e->Dest->KMer);
 	fprintf(Stream, " [");
-	if (e->MaxPassCount > 0)
+	if (e->Type == kmetReference)
 		fprintf(Stream, "color=green");
 	else fprintf(Stream, "color=red");
 
-	fprintf(Stream, ",label=\"M: %u\"", e->MaxPassCount);
+	fprintf(Stream, ",label=\"W: %li; M: %u; L %u\"", e->Weight, e->MaxPassCount, e->Length);
 	fprintf(Stream, "];\n");
 
 	return;
@@ -348,53 +362,15 @@ ERR_VALUE kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph)
 		e = iter;
 		last = (kmer_table_next(Graph->VertexTable, e, &iter) == ERR_NO_MORE_ENTRIES);
 		v = (PKMER_VERTEX)e->Data;
-		if (v->DegreeIn == 1 && v->degreeOut == 1) {
-			x = kmer_vertex_get_predecessor(v, 0);
-			y = kmer_vertex_get_successor(v, 0);
-			assert(x != NULL);
-			assert(y != NULL);
-			if (!kmer_equal(x->KMer, y->KMer) && kmer_edge_table_get(Graph->EdgeTable, x->KMer, y->KMer) == NULL) {
-				double prob = 0;
-				uint32_t maxPassCount = 0;
-				EKMerEdgeType type = kmetReference;
-
-				sourceEdge = kmer_vertex_get_pred_edge(v, 0);
-				destEdge = kmer_vertex_get_succ_edge(v, 0);
-				type = sourceEdge->Type;
-				sourceWeight = sourceEdge->Weight;
-				destWeight = destEdge->Weight;
-				if (sourceWeight == 0)
-					sourceWeight = destWeight;
-
-				if (destWeight == 0)
-					destWeight = sourceWeight;
-
-				maxPassCount = min(sourceEdge->MaxPassCount, destEdge->MaxPassCount);
-				weight = (sourceWeight + destWeight) / 2;
-				prob = min(sourceEdge->Probability, destEdge->Probability);
-				length = sourceEdge->Length + destEdge->Length;
-				kmer_edge_table_delete(Graph->EdgeTable, sourceEdge->Source->KMer, sourceEdge->Dest->KMer);
-				kmer_edge_table_delete(Graph->EdgeTable, destEdge->Source->KMer, destEdge->Dest->KMer);
-				kmer_table_delete(Graph->VertexTable, v->KMer);
-				ret = _edge_create(x, y, type, weight, length, &dummy);
-				if (ret == ERR_SUCCESS) {
-					ret = kmer_edge_table_insert(Graph->EdgeTable, x->KMer, y->KMer, dummy);
-					if (ret == ERR_SUCCESS) {
-						dummy->Probability = prob;
-						dummy->MaxPassCount = maxPassCount;
-						dym_array_replace(&x->Successors, sourceEdge, dummy);
-						dym_array_replace(&y->Predecessors, destEdge, dummy);
-					}
-				}
-
-				--Graph->NumberOfVertices;
-				--Graph->NumberOfEdges;
-			}
-		}
+		if (v->DegreeIn == 1 && v->degreeOut == 1)
+			kmer_graph_delete_vertex(Graph, v);
 
 		if (last)
 			break;
 	}
+
+	if (ret == ERR_NO_MORE_ENTRIES)
+		ret = ERR_SUCCESS;
 
 	return ret;
 }
@@ -415,30 +391,8 @@ void kmer_graph_delete_edges_under_threshold(PKMER_GRAPH Graph, const long Thres
 
 		e = (PKMER_EDGE)(iter->Data);
 		last = (kmer_edge_table_next(Graph->EdgeTable, iter, &iter) == ERR_NO_MORE_ENTRIES);
-		if (e->Weight < Threshold) {
-			u = e->Source;
-			v = e->Dest;
-			if (u->Type != kmvtRefSeqStart && u->Type != kmvtRefSeqEnd &&
-				v->Type != kmvtRefSeqStart && v->Type != kmvtRefSeqEnd &&
-				(e->Type != kmetReference)
-				) {
-				dym_array_remove_by_item_fast(&u->Successors, e);
-				u->degreeOut--;
-				dym_array_remove_by_item_fast(&v->Predecessors, e);
-				v->DegreeIn--;
-				kmer_edge_table_delete(Graph->EdgeTable, u->KMer, v->KMer);
-				Graph->NumberOfEdges--;
-				if (u->DegreeIn == 0 && u->degreeOut == 0) {
-					kmer_table_delete(Graph->VertexTable, u->KMer);
-					Graph->NumberOfVertices--;
-				}
-
-				if (v->DegreeIn == 0 && v->degreeOut == 0) {
-					kmer_table_delete(Graph->VertexTable, v->KMer);
-					Graph->NumberOfVertices--;
-				}
-			}
-		}
+		if (e->Weight < Threshold)
+			kmer_graph_delete_edge(Graph, e);
 
 		if (last)
 			break;
@@ -526,36 +480,17 @@ void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph)
 
 		if (v->Type != kmvtRefSeqStart && v->Type != kmvtRefSeqEnd) {
 			if (v->DegreeIn == 0) {
-				// No predecessors, hence the vertex is unreachable
 				deleted = TRUE;
-				for (size_t i = 0; i < v->degreeOut; ++i) {
-					PKMER_EDGE e = kmer_vertex_get_succ_edge(v, i);
-					PKMER_VERTEX w = e->Dest;
-
-					dym_array_remove_by_item_fast(&w->Predecessors, e);
-					w->DegreeIn--;
-					kmer_edge_table_delete(Graph->EdgeTable, v->KMer, w->KMer);
-					Graph->NumberOfEdges--;
-				}
-
-				kmer_table_delete(Graph->VertexTable, v->KMer);
-				Graph->NumberOfVertices--;
+				while (v->degreeOut > 0)
+					kmer_graph_delete_edge(Graph, kmer_vertex_get_succ_edge(v, 0));
 			} else if (v->degreeOut == 0) {
-				// No successors; we cannot get from the vertex... and the vertex is not the end of the reference sequence
 				deleted = TRUE;
-				for (size_t i = 0; i < v->DegreeIn; ++i) {
-					PKMER_EDGE e = kmer_vertex_get_pred_edge(v, i);
-					PKMER_VERTEX w = e->Source;
-
-					dym_array_remove_by_item_fast(&w->Successors, e);
-					w->degreeOut--;
-					kmer_edge_table_delete(Graph->EdgeTable, w->KMer, v->KMer);
-					Graph->NumberOfEdges--;
-				}
-
-				kmer_table_delete(Graph->VertexTable, v->KMer);
-				Graph->NumberOfVertices--;
+				while (v->DegreeIn > 0)
+					kmer_graph_delete_edge(Graph, kmer_vertex_get_pred_edge(v, 0));
 			}
+
+			if (deleted)
+				kmer_graph_delete_vertex(Graph, v);
 		}
 
 		ret = (deleted) ?
@@ -686,6 +621,7 @@ ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, const PKMER Source, const PK
 							dym_array_push_back_no_alloc(&u->Successors, edge);
 							v->DegreeIn++;
 							dym_array_push_back_no_alloc(&v->Predecessors, edge);
+							Graph->NumberOfEdges++;
 							if (v->Order <= u->Order)
 								Graph->NumberOfBackwardEdges++;
 
@@ -705,9 +641,6 @@ ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, const PKMER Source, const PK
 				*Edge = (PKMER_EDGE)kmer_edge_table_get_data(Graph->EdgeTable, Source, Dest);
 		}
 	} else ret = ERR_NOT_FOUND;
-
-	if (ret == ERR_SUCCESS)
-		Graph->NumberOfEdges++;
 
 	return ret;
 }
@@ -740,24 +673,160 @@ ERR_VALUE kmer_graph_get_seq(const KMER_GRAPH *Graph, char **Seq, size_t *SeqLen
 	if (ret == ERR_SUCCESS) {
 		PKMER_VERTEX v = Graph->StartingVertex;
 
-		l = Graph->KMerSize - 1;
+		l = Graph->KMerSize - 2;
 		for (size_t i = 0; i < l; i++)
 			s[i] = kmer_get_base(v->KMer, i + 1);
 	
-		v = kmer_vertex_get_successor(v, 0);
 		while (v != Graph->EndingVertex) {
-			PKMER_VERTEX old = v;
-			
-			s[l] = kmer_get_base(v->KMer, Graph->KMerSize - 1);
-			++l;
-			v = old->CurrentPass->Outgoing->Dest;
-			old->CurrentPass++;
+			if (v->PassCount > 0) {
+				PKMER_VERTEX old = v;
+				PKMER_EDGE edge = v->CurrentPass->Outgoing;
+
+				s[l] = kmer_get_base(v->KMer, Graph->KMerSize - 1);
+				++l;
+				if (edge->Seq != NULL) {
+					memcpy(s + l, edge->Seq, edge->SeqLen*sizeof(char));
+					l += edge->SeqLen;
+				}
+
+				v = edge->Dest;
+				old->CurrentPass++;
+			} else break;
 		}
 
 		s[l] = '\0';
 		*Seq = s;
 		*SeqLen = l;
 	}
+
+	return ret;
+}
+
+
+ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex)
+{
+	PKMER_EDGE inEdge = NULL;
+	PKMER_EDGE outEdge = NULL;
+	PKMER_VERTEX predVertex = NULL;
+	PKMER_VERTEX succVertex = NULL;
+	PKMER_EDGE newEdge = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	if (Vertex->DegreeIn <= 1 && Vertex->degreeOut <= 1) {
+		if (Vertex->degreeOut == 1) {
+			outEdge = kmer_vertex_get_succ_edge(Vertex, 0);
+			succVertex = outEdge->Dest;
+		}
+
+		if (Vertex->DegreeIn == 1) {
+			inEdge = kmer_vertex_get_pred_edge(Vertex, 0);
+			predVertex = inEdge->Source;
+		}
+
+		if (predVertex == NULL || (predVertex != succVertex)) {
+			if (inEdge != NULL && outEdge != NULL) {
+				if (kmer_graph_get_edge(Graph, predVertex->KMer, succVertex->KMer) == NULL) {
+					uint32_t length = inEdge->Length + outEdge->Length;
+					long weight = min(inEdge->Weight, outEdge->Weight);
+					EKMerEdgeType edgeType;
+
+					if (inEdge->Type == kmetReference && outEdge->Type == kmetReference)
+						edgeType = kmetReference;
+					else edgeType = kmetRead;
+
+					ret = kmer_graph_add_edge_ex(Graph, predVertex->KMer, succVertex->KMer, weight, length, edgeType, &newEdge);
+					if (ret == ERR_SUCCESS) {
+						newEdge->SeqLen = inEdge->SeqLen + 1 + outEdge->SeqLen;
+						ret = utils_calloc(newEdge->SeqLen + 1, sizeof(char), &newEdge->Seq);
+						if (ret == ERR_SUCCESS) {
+							size_t passCount = 0;
+
+							newEdge->MaxPassCount = inEdge->MaxPassCount;
+							memcpy(newEdge->Seq, inEdge->Seq, inEdge->SeqLen*sizeof(char));
+							newEdge->Seq[inEdge->SeqLen] = kmer_get_base(Vertex->KMer, Graph->KMerSize - 1);
+							memcpy(newEdge->Seq + inEdge->SeqLen + 1, outEdge->Seq, outEdge->SeqLen*sizeof(char));
+							newEdge->Seq[newEdge->SeqLen] = '\0';
+
+							passCount = kmer_vertex_get_pass_count(predVertex);
+							for (size_t i = 0; i < passCount; ++i) {
+								PKMER_VERTEX_PASS pass = kmer_vertex_get_pass(predVertex, i);
+
+								if (pass->Outgoing == inEdge)
+									pass->Outgoing = newEdge;
+							}
+
+							passCount = kmer_vertex_get_pass_count(succVertex);
+							for (size_t i = 0; i < passCount; ++i) {
+								PKMER_VERTEX_PASS pass = kmer_vertex_get_pass(succVertex, i);
+
+								if (pass->Incomming == outEdge)
+									pass->Incomming = newEdge;
+							}
+
+							kmer_graph_delete_edge(Graph, inEdge);
+							kmer_graph_delete_edge(Graph, outEdge);
+						}
+
+						if (ret != ERR_SUCCESS)
+							kmer_graph_delete_edge(Graph, newEdge);
+					}
+				} else ret = ERR_TRIANGLE;
+			} else if (inEdge != NULL) {
+				kmer_graph_delete_edge(Graph, inEdge);
+				ret = ERR_SUCCESS;
+			} else if (outEdge != NULL) {
+				kmer_graph_delete_edge(Graph, outEdge);
+				ret = ERR_SUCCESS;
+			} else ret = ERR_SUCCESS;
+			
+			if (ret == ERR_SUCCESS) {
+				kmer_table_delete(Graph->VertexTable, Vertex->KMer);
+				--Graph->NumberOfVertices;
+			}
+		} else ret = ERR_PRED_IS_SUCC;
+	} else ret = ERR_TOO_MANY_EDGES;
+
+	return ret;
+}
+
+
+ERR_VALUE kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge)
+{
+	size_t index = 0;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	PKMER_VERTEX source = Edge->Source;
+	PKMER_VERTEX dest = Edge->Dest;
+	PKMER_VERTEX_PASS pass = NULL;
+
+	dym_array_remove_by_item_fast(&source->Successors, Edge);
+	dym_array_remove_by_item_fast(&dest->Predecessors, Edge);
+	--source->degreeOut;
+	--dest->DegreeIn;
+
+	index = 0;
+	while (index < kmer_vertex_get_pass_count(source)) {
+		pass = kmer_vertex_get_pass(source, index);
+		if (pass->Outgoing == Edge) {
+			kmer_vertex_remove_pass(source, index);
+			continue;
+		}
+
+		++index;
+	}
+
+	index = 0;
+	while (index < kmer_vertex_get_pass_count(dest)) {
+		pass = kmer_vertex_get_pass(dest, index);
+		if (pass->Incomming == Edge) {
+			kmer_vertex_remove_pass(dest, index);
+			continue;
+		}
+
+		++index;
+	}
+
+	kmer_edge_table_delete(Graph->EdgeTable, source->KMer, dest->KMer);
+	--Graph->NumberOfEdges;
 
 	return ret;
 }
@@ -782,4 +851,17 @@ ERR_VALUE kmer_vertex_add_pass(PKMER_VERTEX Vertex, const struct _KMER_EDGE *Inc
 	}
 
 	return ret;
+}
+
+
+void kmer_vertex_remove_pass(PKMER_VERTEX Vertex, const size_t Index)
+{
+	memmove(Vertex->Passes + Index, Vertex->Passes + Index + 1, (Vertex->PassCount - Index - 1)*sizeof(KMER_VERTEX_PASS));
+	--Vertex->PassCount;
+	if (Vertex->PassCount == 0) {
+		utils_free(Vertex->Passes);
+		Vertex->Passes = NULL;
+	}
+
+	return;
 }
