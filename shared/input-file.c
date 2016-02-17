@@ -387,6 +387,14 @@ ERR_VALUE input_refseq_to_regions(const char *RefSeq, const size_t RefSeqLen, PA
 			case 'N':
 			case 'M':
 			case 'R':
+			case 'Y':
+			case 'W':
+			case 'S':
+			case 'K':
+			case 'V':
+			case 'H':
+			case 'D':
+			case 'B':
 				if (numberOfNBases == 0 && regEnd != regStart) {
 					PACTIVE_REGION old = tmpArray;
 

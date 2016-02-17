@@ -155,15 +155,14 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 }
 
 
-static void _compute_graph(const struct _PROGRAM_OPTIONS *Options, const char *Alternate, const size_t AlternateLen, PPROGRAM_STATISTICS Statistics)
+static void _compute_graph(const struct _PROGRAM_OPTIONS *Options, const char *RefSeq, const char *Alternate, const size_t AlternateLen, PPROGRAM_STATISTICS Statistics)
 {
 	PKMER_GRAPH g = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	if (*Options->ReferenceSequence != '\0') {
 		ret = kmer_graph_create(Options->KMerSize, &g);
 		if (ret == ERR_SUCCESS) {
-			ret = kmer_graph_parse_ref_sequence(g, Options->ReferenceSequence, Options->RegionLength, FALSE, Options->Threshold);
+			ret = kmer_graph_parse_ref_sequence(g, RefSeq, Options->RegionLength, FALSE, Options->Threshold);
 			if (ret == ERR_SUCCESS) {
 				Statistics->VertexCount = kmer_graph_get_vertex_count(g);
 				Statistics->EdgeCount = kmer_graph_get_edge_count(g);
@@ -199,7 +198,6 @@ static void _compute_graph(const struct _PROGRAM_OPTIONS *Options, const char *A
 
 			kmer_graph_destroy(g);
 		} else printf("kmer_graph_create(): %u\n", ret);
-	} else printf("Reference sequence not set\n");
 
 	return;
 }
@@ -239,7 +237,7 @@ static ERR_VALUE _create_alternatce_sequence(const char *RefSeq, const size_t Re
 }
 
 
-static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, PPROGRAM_STATISTICS Statistics)
+static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, PPROGRAM_STATISTICS Statistics)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	
@@ -250,13 +248,13 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, PPROGRAM_STATISTICS 
 			char *alternate = NULL;
 			size_t alternateLen = 0;
 
-			ret = _create_alternatce_sequence(Options->ReferenceSequence, Options->RegionLength, &alternate, &alternateLen);
+			ret = _create_alternatce_sequence(RefSeq, Options->RegionLength, &alternate, &alternateLen);
 			if (ret == ERR_SUCCESS) {
 				ret = read_set_generate_from_sequence(alternate, alternateLen, Options->ReadLength, Options->ReadCount, &Options->Reads);
 				if (ret == ERR_SUCCESS) {
 					PROGRAM_STATISTICS stats;
 
-					_compute_graph(Options, alternate, alternateLen, &stats);
+					_compute_graph(Options, RefSeq, alternate, alternateLen, &stats);
 					Statistics->VertexCount += stats.VertexCount;
 					Statistics->EdgeCount += stats.EdgeCount;
 					Statistics->CycleCount += stats.CycleCount;
@@ -275,7 +273,7 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, PPROGRAM_STATISTICS 
 			Statistics->EdgeCount /= Options->TestReadCycles;
 			Statistics->CycleCount /= Options->TestReadCycles;
 		}
-	} else _compute_graph(Options, Options->ReferenceSequence, Options->RegionLength, Statistics);
+	} else _compute_graph(Options, RefSeq, RefSeq, Options->RegionLength, Statistics);
 	
 	return ret;
 }
@@ -320,7 +318,7 @@ int main(int argc, char *argv[])
 										rs[j] = _rand_nucleotide();
 
 									po.ReferenceSequence = rs;
-									ret = _test_with_reads(&po, &tmpStats);
+									ret = _test_with_reads(&po, rs, &tmpStats);
 									if (ret == ERR_SUCCESS) {
 										st.CycleCount += tmpStats.CycleCount;
 										st.EdgeCount += tmpStats.EdgeCount;
@@ -368,17 +366,21 @@ int main(int argc, char *argv[])
 									if (ret == ERR_SUCCESS) {
 										printf("Going through a reference sequence of length %" PRIu64 " with %u regions...\n", (uint64_t)refSeqLen, regionCount);
 										printf("%u test read cycles with %u reads of length %u...\n", po.TestReadCycles, po.ReadCount, po.ReadLength);
-// #pragma omp parallel for shared(po, st, numberOfAttempts, regionCount)										
 										for (size_t i = 0; i < regionCount; ++i) {
-											uint64_t remainingLength = 0;
-											PROGRAM_STATISTICS tmpstats;
 											PACTIVE_REGION pa = regions + i;
 
 											printf("Region #%u: Offset: %" PRIu64 ", Length %" PRIu64 "\n", i, pa->Offset, pa->Length);
 											if (pa->Type == artValid && pa->Length >= po.RegionLength) {
+												int j = 0;
+												
 												po.ReferenceSequence = pa->Sequence;
-												for (uint64_t j = 0; j < pa->Length - po.RegionLength; j += po.TestStep) {
-													ret = _test_with_reads(&po, &tmpstats);
+#pragma omp parallel for shared(po, st, numberOfAttempts)	
+//												for (uint64_t j = 0; j < pa->Length - po.RegionLength; j += po.TestStep) {
+												for (j = 0; j < (int)(pa->Length - po.RegionLength); j += (int)po.TestStep) {
+												const char *refSeq = pa->Sequence + j;
+													PROGRAM_STATISTICS tmpstats;
+
+													ret = _test_with_reads(&po, refSeq, &tmpstats);
 													if (ret == ERR_SUCCESS) {
 														++numberOfAttempts;
 														st.VertexCount += tmpstats.VertexCount;
@@ -388,32 +390,7 @@ int main(int argc, char *argv[])
 														st.EdgeVariance += (tmpstats.EdgeCount*tmpstats.EdgeCount);
 														st.CycleVariance += (tmpstats.CycleCount*tmpstats.CycleCount);
 													}
-
-													po.ReferenceSequence += po.TestStep;
-													if (j + po.TestStep > pa->Length - po.RegionLength)
-														remainingLength = pa->Length - (j + po.TestStep);
 												}
-
-												/*
-												if (remainingLength > po.KMerSize) {
-												uint32_t tmp = 0;
-
-												tmp = po.RegionLength;
-												po.RegionLength = remainingLength;
-												ret = _test_with_reads(&po, &tmpstats);
-												if (ret == ERR_SUCCESS) {
-												++numberOfAttempts;
-												st.VertexCount += tmpstats.VertexCount;
-												st.EdgeCount += tmpstats.EdgeCount;
-												st.CycleCount += tmpstats.CycleCount;
-												st.VertexVariance += (tmpstats.VertexCount*tmpstats.VertexCount);
-												st.EdgeVariance += (tmpstats.EdgeCount*tmpstats.EdgeCount);
-												st.CycleVariance += (tmpstats.CycleCount*tmpstats.CycleCount);
-												}
-
-												po.RegionLength = tmp;
-												}
-												*/
 											}
 
 											++pa;
@@ -474,7 +451,7 @@ int main(int argc, char *argv[])
 
 											printf("kmer size: %u\n", po.KMerSize);
 											printf("Active region (%" PRIu64 "; %u; %u)...\n", po.RegionStart, po.RegionLength, index);
-											_compute_graph(&po, po.ReferenceSequence, po.RegionLength, &st);
+											_compute_graph(&po, po.ReferenceSequence, po.ReferenceSequence, po.RegionLength, &st);
 										} else printf("ERROR: The active region (%" PRIu64 "; %u; %u) does not specify a readable part of the reference sequence\n", po.RegionStart, po.RegionLength, index);
 									}
 
