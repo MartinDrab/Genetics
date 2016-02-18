@@ -174,25 +174,24 @@ static void _compute_graph(const struct _PROGRAM_OPTIONS *Options, const char *R
 
 					kmer_graph_delete_edges_under_threshold(g, Options->Threshold);
 					kmer_graph_delete_trailing_things(g);
-						ret = kmer_graph_delete_1to1_vertices(g);
-						if (ret == ERR_SUCCESS) {
-							ret = kmer_graph_get_seq(g, &s, &l);
-							if (ret == ERR_SUCCESS) {
-								if ((l == AlternateLen) && memcmp(s, Alternate, l)) {
-									fprintf(stderr, "REFSEQ   = %s\n", Alternate);
-									fprintf(stderr, "GRAPHSEQ = %s\n", s);
-									kmer_graph_print(stderr, g);
-								} else {
-									if (Options->PrintResults) {
-//										printf("SEQ      = %s\n", Alternate);
-//										printf("GRAPHSEQ = %s\n", s);
-										kmer_graph_print(stderr, g);
-									}
-								}
+					kmer_graph_separate_distinct_passes(g);
+					kmer_graph_delete_1to1_vertices(g);
+					ret = kmer_graph_get_seq(g, &s, &l);
+					if (ret == ERR_SUCCESS) {
+						if ((l == AlternateLen) && memcmp(s, Alternate, l)) {
+							fprintf(stderr, "REFSEQ   = %s\n", Alternate);
+							fprintf(stderr, "GRAPHSEQ = %s\n", s);
+							kmer_graph_print(stderr, g);
+						} else {
+							if (Options->PrintResults) {
+//								printf("SEQ      = %s\n", Alternate);
+//								printf("GRAPHSEQ = %s\n", s);
+								kmer_graph_print(stderr, g);
+							}
+						}
 
-								utils_free(s);
-							} else printf("kmer_graph_get_seq(): %u\n", ret);
-						} else printf("kmer_graph_delete_1to1_vertices(): %u\n", ret);
+						utils_free(s);
+					} else printf("kmer_graph_get_seq(): %u\n", ret);
 				} else printf("kmer_graph_parse_reads(): %u\n", ret);
 			} else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
 
@@ -356,28 +355,29 @@ int main(int argc, char *argv[])
 							} else refSeqLen = strlen(po.ReferenceSequence);
 
 							if (ret == ERR_SUCCESS) {
+								uint64_t numberOfAttempts = 0;
+
 								do {
 									size_t regionCount = 0;
 									PACTIVE_REGION regions = NULL;
-									uint64_t numberOfAttempts = 0;
 									char *origRefSeq = po.ReferenceSequence;
 
 									ret = input_refseq_to_regions(po.ReferenceSequence, refSeqLen, &regions, &regionCount);
 									if (ret == ERR_SUCCESS) {
-										printf("Going through a reference sequence of length %" PRIu64 " with %u regions...\n", (uint64_t)refSeqLen, regionCount);
+										printf("Going through a reference sequence of length %" PRIu64 " MBases with %u regions...\n", (uint64_t)refSeqLen / 1000000, regionCount);
 										printf("%u test read cycles with %u reads of length %u...\n", po.TestReadCycles, po.ReadCount, po.ReadLength);
 										for (size_t i = 0; i < regionCount; ++i) {
 											PACTIVE_REGION pa = regions + i;
 
-											printf("Region #%u: Offset: %" PRIu64 ", Length %" PRIu64 "\n", i, pa->Offset, pa->Length);
+											printf("Region #%u: Offset: %" PRIu64 " MBases, Length %" PRIu64 " Mbases\n", i, pa->Offset / 1000000, pa->Length / 1000000);
 											if (pa->Type == artValid && pa->Length >= po.RegionLength) {
 												int j = 0;
 												
 												po.ReferenceSequence = pa->Sequence;
-#pragma omp parallel for shared(po, st, numberOfAttempts)	
 //												for (uint64_t j = 0; j < pa->Length - po.RegionLength; j += po.TestStep) {
+#pragma omp parallel for shared(po, st, numberOfAttempts)	
 												for (j = 0; j < (int)(pa->Length - po.RegionLength); j += (int)po.TestStep) {
-												const char *refSeq = pa->Sequence + j;
+													const char *refSeq = pa->Sequence + j;
 													PROGRAM_STATISTICS tmpstats;
 
 													ret = _test_with_reads(&po, refSeq, &tmpstats);
@@ -396,16 +396,6 @@ int main(int argc, char *argv[])
 											++pa;
 										}
 
-										if (ret == ERR_SUCCESS) {
-											st.CycleCount /= numberOfAttempts;
-											st.EdgeCount /= numberOfAttempts;
-											st.VertexCount /= numberOfAttempts;
-											st.VertexVariance = (st.VertexVariance / numberOfAttempts) - st.VertexCount*st.VertexCount;
-											st.EdgeVariance = (st.EdgeVariance / numberOfAttempts) - st.EdgeCount*st.EdgeCount;
-											st.CycleVariance = (st.CycleVariance / numberOfAttempts) - st.CycleCount*st.CycleCount;
-											printf("AVG: Vertices: (%" PRIu64 " %lf), Edges: (%" PRIu64 " %lf), Cycles: (%" PRIu64 " %lf)\n", st.VertexCount, sqrt(st.VertexVariance), st.EdgeCount, sqrt(st.EdgeVariance), st.CycleCount, sqrt(st.CycleVariance));
-										}
-
 										input_free_regions(regions, regionCount);
 									}
 
@@ -418,6 +408,16 @@ int main(int argc, char *argv[])
 
 								if (ret == ERR_NO_MORE_ENTRIES)
 									ret = ERR_SUCCESS;
+
+								if (ret == ERR_SUCCESS) {
+									st.CycleCount /= numberOfAttempts;
+									st.EdgeCount /= numberOfAttempts;
+									st.VertexCount /= numberOfAttempts;
+									st.VertexVariance = (st.VertexVariance / numberOfAttempts) - st.VertexCount*st.VertexCount;
+									st.EdgeVariance = (st.EdgeVariance / numberOfAttempts) - st.EdgeCount*st.EdgeCount;
+									st.CycleVariance = (st.CycleVariance / numberOfAttempts) - st.CycleCount*st.CycleCount;
+									printf("AVG: Vertices: (%" PRIu64 " %lf), Edges: (%" PRIu64 " %lf), Cycles: (%" PRIu64 " %lf)\n", st.VertexCount, sqrt(st.VertexVariance), st.EdgeCount, sqrt(st.EdgeVariance), st.CycleCount, sqrt(st.CycleVariance));
+								}
 
 								if (!explicitSequence)
 									fasta_free(&seqFile);

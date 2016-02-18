@@ -725,52 +725,7 @@ ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex)
 
 		if (predVertex == NULL || (predVertex != succVertex)) {
 			if (inEdge != NULL && outEdge != NULL) {
-				if (kmer_graph_get_edge(Graph, predVertex->KMer, succVertex->KMer) == NULL) {
-					uint32_t length = inEdge->Length + outEdge->Length;
-					long weight = min(inEdge->Weight, outEdge->Weight);
-					EKMerEdgeType edgeType;
-
-					if (inEdge->Type == kmetReference && outEdge->Type == kmetReference)
-						edgeType = kmetReference;
-					else edgeType = kmetRead;
-
-					ret = kmer_graph_add_edge_ex(Graph, predVertex->KMer, succVertex->KMer, weight, length, edgeType, &newEdge);
-					if (ret == ERR_SUCCESS) {
-						newEdge->SeqLen = inEdge->SeqLen + 1 + outEdge->SeqLen;
-						ret = utils_calloc(newEdge->SeqLen + 1, sizeof(char), &newEdge->Seq);
-						if (ret == ERR_SUCCESS) {
-							size_t passCount = 0;
-
-							newEdge->MaxPassCount = inEdge->MaxPassCount;
-							memcpy(newEdge->Seq, inEdge->Seq, inEdge->SeqLen*sizeof(char));
-							newEdge->Seq[inEdge->SeqLen] = kmer_get_base(Vertex->KMer, Graph->KMerSize - 1);
-							memcpy(newEdge->Seq + inEdge->SeqLen + 1, outEdge->Seq, outEdge->SeqLen*sizeof(char));
-							newEdge->Seq[newEdge->SeqLen] = '\0';
-
-							passCount = kmer_vertex_get_pass_count(predVertex);
-							for (size_t i = 0; i < passCount; ++i) {
-								PKMER_VERTEX_PASS pass = kmer_vertex_get_pass(predVertex, i);
-
-								if (pass->Outgoing == inEdge)
-									pass->Outgoing = newEdge;
-							}
-
-							passCount = kmer_vertex_get_pass_count(succVertex);
-							for (size_t i = 0; i < passCount; ++i) {
-								PKMER_VERTEX_PASS pass = kmer_vertex_get_pass(succVertex, i);
-
-								if (pass->Incomming == outEdge)
-									pass->Incomming = newEdge;
-							}
-
-							kmer_graph_delete_edge(Graph, inEdge);
-							kmer_graph_delete_edge(Graph, outEdge);
-						}
-
-						if (ret != ERR_SUCCESS)
-							kmer_graph_delete_edge(Graph, newEdge);
-					}
-				} else ret = ERR_TRIANGLE;
+				ret = kmer_graph_merge_edges(Graph, inEdge, outEdge);
 			} else if (inEdge != NULL) {
 				kmer_graph_delete_edge(Graph, inEdge);
 				ret = ERR_SUCCESS;
@@ -778,7 +733,7 @@ ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex)
 				kmer_graph_delete_edge(Graph, outEdge);
 				ret = ERR_SUCCESS;
 			} else ret = ERR_SUCCESS;
-			
+
 			if (ret == ERR_SUCCESS) {
 				kmer_table_delete(Graph->VertexTable, Vertex->KMer);
 				--Graph->NumberOfVertices;
@@ -832,6 +787,66 @@ ERR_VALUE kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge)
 }
 
 
+ERR_VALUE kmer_graph_merge_edges(PKMER_GRAPH Graph, PKMER_EDGE Source, PKMER_EDGE Dest)
+{
+	PKMER_VERTEX v = NULL;
+	PKMER_VERTEX u = NULL;
+	PKMER_VERTEX w = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	u = Source->Source;
+	v = Source->Dest;
+	w = Dest->Dest;
+	if (v == Dest->Source && u != w) {
+		if (kmer_graph_get_edge(Graph, u->KMer, w->KMer) == NULL) {
+			long weight = max(Source->Weight, Dest->Weight);
+			uint32_t Length = Source->Length + Dest->Length;
+			uint32_t mpc = Source->MaxPassCount;
+			EKMerEdgeType type = (Source->Type == kmetReference && Dest->Type == kmetReference) ? kmetReference : kmetRead;
+			PKMER_EDGE newEdge = NULL;
+
+			ret = kmer_graph_add_edge_ex(Graph, u->KMer, w->KMer, weight, Length, type, &newEdge);
+			if (ret == ERR_SUCCESS) {
+				newEdge->MaxPassCount = mpc;
+				newEdge->SeqLen = Source->SeqLen + 1 + Dest->SeqLen;
+				ret = utils_calloc(newEdge->SeqLen + 1, sizeof(char), &newEdge->Seq);
+				if (ret == ERR_SUCCESS) {
+					PKMER_VERTEX_PASS pass = NULL;
+					size_t passCount = 0;
+
+					memcpy(newEdge->Seq, Source->Seq, Source->SeqLen*sizeof(char));
+					newEdge->Seq[Source->SeqLen] = kmer_get_base(v->KMer, Graph->KMerSize - 1);
+					memcpy(newEdge->Seq + Source->SeqLen + 1, Dest->Seq, Dest->SeqLen*sizeof(char));
+					newEdge->Seq[Source->SeqLen + 1 + Dest->SeqLen] = '\0';
+
+					passCount = kmer_vertex_get_pass_count(u);
+					for (size_t i = 0; i < passCount; ++i) {
+						pass = kmer_vertex_get_pass(u, i);
+						if (pass->Outgoing == Source)
+							pass->Outgoing = newEdge;
+					}
+
+					passCount = kmer_vertex_get_pass_count(w);
+					for (size_t i = 0; i < passCount; ++i) {
+						pass = kmer_vertex_get_pass(w, i);
+						if (pass->Incomming == Dest)
+							pass->Incomming = newEdge;
+					}
+
+					kmer_graph_delete_edge(Graph, Source);
+					kmer_graph_delete_edge(Graph, Dest);					
+				}
+
+				if (ret != ERR_SUCCESS)
+					kmer_graph_delete_edge(Graph, newEdge);
+			}
+		} else ret = ERR_TRIANGLE;
+	} else ret = (u == w) ? ERR_PRED_IS_SUCC : ERR_NOT_ADJACENT;
+
+	return ret;
+}
+
+
 ERR_VALUE kmer_vertex_add_pass(PKMER_VERTEX Vertex, const struct _KMER_EDGE *Incomming, const struct _KMER_EDGE *Outgoing)
 {
 	PKMER_VERTEX_PASS newPasses = NULL;
@@ -861,6 +876,69 @@ void kmer_vertex_remove_pass(PKMER_VERTEX Vertex, const size_t Index)
 	if (Vertex->PassCount == 0) {
 		utils_free(Vertex->Passes);
 		Vertex->Passes = NULL;
+	}
+
+	return;
+}
+
+
+void kmer_vertex_remove_passes(PKMER_VERTEX Vertex, const struct _KMER_EDGE *Source, const struct _KMER_EDGE *Dest)
+{
+	size_t index = 0;
+	PKMER_VERTEX_PASS p = NULL;
+
+	while (index < kmer_vertex_get_pass_count(Vertex)) {
+		p = kmer_vertex_get_pass(Vertex, index);
+		if (p->Incomming == Source && p->Outgoing == Dest) {
+			kmer_vertex_remove_pass(Vertex, index);
+			continue;
+		}
+
+		++index;
+	}
+
+	return;
+}
+
+
+void kmer_graph_separate_distinct_passes(PKMER_GRAPH Graph)
+{
+	PKMER_VERTEX_PASS p = NULL;
+	PKMER_TABLE_ENTRY iter = NULL;
+	ERR_VALUE err = ERR_INTERNAL_ERROR;
+
+	err = kmer_table_first(Graph->VertexTable, &iter);
+	while (err == ERR_SUCCESS) {
+		PKMER_VERTEX v = (PKMER_VERTEX)iter->Data;
+		boolean found = FALSE;
+			
+		do {
+			size_t count = kmer_vertex_get_pass_count(v);
+				
+			found = FALSE;
+			if (v->degreeOut > 1 || v->DegreeIn > 1) {
+				for (size_t i = 0; i < count; ++i) {
+					p = kmer_vertex_get_pass(v, i);
+					for (size_t j = 0; j < count; ++j) {
+						PKMER_VERTEX_PASS p2 = kmer_vertex_get_pass(v, j);
+
+						if ((p->Incomming == p2->Incomming && p->Outgoing != p2->Outgoing) ||
+							(p->Incomming != p2->Incomming && p->Outgoing == p2->Outgoing))
+							break;
+
+						if (j == count - 1) {
+							kmer_graph_merge_edges(Graph, p->Incomming, p->Outgoing);
+							found = TRUE;
+						}
+					}
+
+					if (found)
+						break;
+				}
+			}
+		} while (found);
+
+		err = kmer_table_next(Graph->VertexTable, iter, &iter);
 	}
 
 	return;

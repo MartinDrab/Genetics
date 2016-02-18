@@ -1,0 +1,4 @@
+ * Najít vhodnou metriku pro sloitost grafu
+ * Distribuce sloitosti grafù napøíè genomem
+ * 1 referencni + 2 alterantivni sekvence (ready nerozlisitelne)
+ * biostars.org

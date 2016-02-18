@@ -101,6 +101,7 @@ typedef struct _KMER_GRAPH {
 
 ERR_VALUE kmer_vertex_add_pass(PKMER_VERTEX Vertex, const struct _KMER_EDGE *Incomming, const struct _KMER_EDGE *Outgoing);
 void kmer_vertex_remove_pass(PKMER_VERTEX Vertex, const size_t Index);
+void kmer_vertex_remove_passes(PKMER_VERTEX Vertex, const struct _KMER_EDGE *Source, const struct _KMER_EDGE *Dest);
 
 ERR_VALUE kmer_graph_create(const uint32_t KMerSize, PKMER_GRAPH *Graph);
 void kmer_graph_destroy(PKMER_GRAPH Graph);
@@ -112,6 +113,7 @@ void kmer_graph_set_ending_vertex(PKMER_GRAPH Graph, const KMER *KMer);
 void kmer_graph_compute_edge_probablities(PKMER_GRAPH Graph);
 void kmer_graph_compute_shurtcuts(PKMER_GRAPH Graph, const size_t MaxLength);
 void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph);
+void kmer_graph_separate_distinct_passes(PKMER_GRAPH Graph);
 
 ERR_VALUE kmer_graph_add_vertex(PKMER_GRAPH Graph, const PKMER KMer, const EKMerVertexType Type);
 ERR_VALUE kmer_graph_add_edge(PKMER_GRAPH Graph, const PKMER Source, const PKMER Dest, const long weight);
@@ -119,6 +121,7 @@ ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, const PKMER Source, const PK
 ERR_VALUE kmer_graph_get_seq(const KMER_GRAPH *Graph, char **Seq, size_t *SeqLen);
 ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex);
 ERR_VALUE kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge);
+ERR_VALUE kmer_graph_merge_edges(PKMER_GRAPH Graph, PKMER_EDGE Source, PKMER_EDGE Dest);
 
 PKMER_EDGE kmer_graph_get_edge(const PKMER_GRAPH Graph, const PKMER Source, const PKMER Dest);
 

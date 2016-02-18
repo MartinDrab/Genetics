@@ -1,0 +1,5 @@
+Genome:
+AVG: Vertices: (1959 113.274004), Edges: (1960 120.809768), Cycles: (2 7.000000)
+
+Random:
+AVG: Vertices: (1988 0.000000), Edges: (1987 0.000000), Cycles: (0 0.000000)
