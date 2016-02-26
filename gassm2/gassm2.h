@@ -26,6 +26,7 @@
 #define PROGRAM_OPTION_PRINT_RESULTS					"print-results"
 #define PROGRAM_OPTION_THRESHOLD						"threshold"
 #define PROGRAM_OPTION_READFILE							"read-file"
+#define PROGRAM_OPTION_SNP_RATIO						"snp-ratio"
 
 /************************************************************************/
 /*                  OPTION DESCRIPTION                                  */
@@ -46,6 +47,7 @@
 #define PROGRAM_OPTION_READ_LENGTH_DESC					"Length of the generated reads"
 #define PROGRAM_OPTION_THRESHOLD_DESC					"Weight threshold"
 #define PROGRAM_OPTION_READFILE_DESC					"Name of a file (SAM) that contains reads. Valid only for non-test mode."
+#define PROGRAM_OPTION_SNP_RATIO_DESC					"A probability that a base in an alternative sequence is chosen randomly rather that copied from the reference sequence."						"snp-ratio"
 
 /************************************************************************/
 /*                                                                      */
@@ -67,6 +69,7 @@ typedef struct _PROGRAM_OPTIONS {
 	uint32_t ReadLength;
 	uint32_t ReadCount;
 	PONE_READ Reads;
+	double SNPRatio;
 } PROGRAM_OPTIONS, *PPROGRAM_OPTIONS;
 
 typedef struct _PROGRAM_STATISTICS {

@@ -22,7 +22,7 @@ void dym_array_destroy(PDYM_ARRAY Array);
 ERR_VALUE dym_array_reserve(PDYM_ARRAY Array, const size_t Items);
 ERR_VALUE dym_array_push_back(PDYM_ARRAY Array, const void *Value);
 void dym_array_push_back_no_alloc(PDYM_ARRAY Array, const void *Value);
-void *dym_array_get(const PDYM_ARRAY Array, const size_t Index);
+void *dym_array_get(const struct _DYM_ARRAY *Array, const size_t Index);
 void dym_array_set(PDYM_ARRAY Array, const size_t Index, const void *Value);
 void *dym_array_remove(PDYM_ARRAY Array, const size_t Index);
 void *dym_array_remove_back(PDYM_ARRAY Array);

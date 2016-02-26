@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "err.h"
 #include "utils.h"
+#include "kmer.h"
 #include "reads.h"
 
 
@@ -277,7 +278,30 @@ void read_destroy(PONE_READ Read)
 }
 
 
-ERR_VALUE read_set_generate_from_sequence(const char *Seq, const size_t SeqLen, const uint32_t ReadLength, const uint32_t ReadCount, PONE_READ *ReadSet)
+const char *read_get_kmer_pos(const ONE_READ *Read, const KMER *KMer)
+{
+	const char *ret = NULL;
+	PKMER readKMer = NULL;
+	KMER_STACK_ALLOC(readKMer, kmer_get_size(KMer), Read->ReadSequence);
+	size_t remainingLength = Read->ReadSequenceLen - kmer_get_size(KMer) + 1;
+	size_t pos = 0;
+
+	while (remainingLength > 0) {
+		if (kmer_equal(readKMer, KMer)) {
+			ret = Read->ReadSequence + pos;
+			break;
+		}
+
+		++pos;
+		--remainingLength;
+		kmer_advance(readKMer, pos + kmer_get_size(KMer));
+	}
+
+	return ret;
+}
+
+
+ERR_VALUE read_set_generate_from_sequence(const char *Seq, const size_t SeqLen, const uint32_t ReadLength, const size_t ReadCount, PONE_READ *ReadSet)
 {
 	PONE_READ r = NULL;
 	PONE_READ tmpReadSet = NULL;
@@ -327,7 +351,8 @@ ERR_VALUE read_set_generate_from_sequence(const char *Seq, const size_t SeqLen, 
 	return ret;
 }
 
-void read_set_destroy(PONE_READ ReadSet, const uint32_t Count)
+
+void read_set_destroy(PONE_READ ReadSet, const size_t Count)
 {
 	PONE_READ tmp = ReadSet;
 
@@ -337,4 +362,22 @@ void read_set_destroy(PONE_READ ReadSet, const uint32_t Count)
 	}
 
 	return;
+}
+
+
+ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ONE_READ *Source, const size_t SourceCount)
+{
+	PONE_READ tmp = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_calloc(TargetCount + SourceCount, sizeof(ONE_READ), &tmp);
+	if (ret == ERR_SUCCESS) {
+		memcpy(tmp, *Target, TargetCount*sizeof(ONE_READ));
+		memcpy(tmp + TargetCount, Source, SourceCount*sizeof(ONE_READ));
+		utils_free(Source);
+		utils_free(*Target);
+		*Target = tmp;
+	}
+
+	return ret;
 }

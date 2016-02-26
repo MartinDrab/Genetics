@@ -57,13 +57,13 @@ void kmer_table_print(FILE *Stream, const PKMER_TABLE Table);
 ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const PKMER KMer);
 ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const PKMER KMer, void *Data);
 ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const PKMER KMer, const size_t Hash, void *Data);
-void *kmer_table_get(const PKMER_TABLE Table, const PKMER KMer);
+void *kmer_table_get(const struct _KMER_TABLE *Table, const struct _KMER *KMer);
 
 ERR_VALUE kmer_table_first(const PKMER_TABLE Table, PKMER_TABLE_ENTRY *Slot);
 ERR_VALUE kmer_table_next(const PKMER_TABLE Table, const PKMER_TABLE_ENTRY Current, PKMER_TABLE_ENTRY *Next);
 
-size_t kmer_hash(const PKMER_TABLE Table, const PKMER KMer);
-size_t kmer_hash_advance(const PKMER_TABLE Table, const PKMER KMer, const size_t Hash, const char NewBase);
+size_t kmer_hash(const struct _KMER_TABLE *Table, const struct _KMER *KMer);
+size_t kmer_hash_advance(const struct _KMER_TABLE *Table, const struct _KMER *KMer, const size_t Hash, const char NewBase);
 
 
 

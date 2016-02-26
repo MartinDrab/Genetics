@@ -38,7 +38,7 @@ void kmer_free(PKMER KMer);
 PKMER kmer_copy(const PKMER KMer);
 void kmer_advance(PKMER KMer, const char Base);
 void kmer_back(PKMER KMer, const char Base);
-boolean kmer_equal(const PKMER K1, const PKMER K2);
+boolean kmer_equal(const struct _KMER *K1, const struct _KMER *K2);
 void kmer_print(FILE *Stream, const PKMER KMer);
 
 

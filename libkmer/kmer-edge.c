@@ -35,7 +35,7 @@ static UTILS_TYPED_MALLOC_FUNCTION(KMER_EDGE_TABLE)
 static UTILS_TYPED_CALLOC_FUNCTION(KMER_EDGE_TABLE_ENTRY)
 
 
-static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_insert_hint(const PKMER_EDGE_TABLE Table, size_t Hash, const PKMER Source, const PKMER Dest)
+static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_insert_hint(const struct _KMER_EDGE_TABLE *Table, size_t Hash, const struct _KMER *Source, const struct _KMER *Dest)
 {
 	PKMER_EDGE_TABLE_ENTRY ret = NULL;
 
@@ -63,7 +63,7 @@ static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_insert_hint(const PKMER_
 }
 
 
-static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_delsearch_hint(const PKMER_EDGE_TABLE Table, size_t Hash, const PKMER Source, const PKMER Dest)
+static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_delsearch_hint(const struct _KMER_EDGE_TABLE *Table, size_t Hash, const struct _KMER *Source, const struct _KMER *Dest)
 {
 	PKMER_EDGE_TABLE_ENTRY ret = NULL;
 
@@ -91,7 +91,7 @@ static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_delsearch_hint(const PKM
 }
 
 
-static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot(const PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest, const ETableOpType OpType)
+static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot(const struct _KMER_EDGE_TABLE *Table, const struct _KMER *Source, const struct _KMER *Dest, const ETableOpType OpType)
 {
 	size_t hash = 0;
 	PKMER_EDGE_TABLE_ENTRY ret = NULL;
@@ -326,7 +326,7 @@ ERR_VALUE kmer_edge_table_copy(const PKMER_EDGE_TABLE Source, PKMER_EDGE_TABLE *
 }
 
 
-PKMER_EDGE_TABLE_ENTRY kmer_edge_table_get(const PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest)
+PKMER_EDGE_TABLE_ENTRY kmer_edge_table_get(const struct _KMER_EDGE_TABLE *Table, const struct _KMER *Source, const struct _KMER *Dest)
 {
 	PKMER_EDGE_TABLE_ENTRY ret = NULL;
 
@@ -337,7 +337,8 @@ PKMER_EDGE_TABLE_ENTRY kmer_edge_table_get(const PKMER_EDGE_TABLE Table, const P
 	return ret;
 }
 
-void *kmer_edge_table_get_data(const PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest)
+
+void *kmer_edge_table_get_data(const struct _KMER_EDGE_TABLE *Table, const struct _KMER *Source, const struct _KMER *Dest)
 {
 	void *ret = NULL;
 	PKMER_EDGE_TABLE_ENTRY entry = kmer_edge_table_get(Table, Source, Dest);
@@ -412,7 +413,7 @@ ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const PKMER Source, con
 }
 
 
-size_t kmer_edge_hash(const PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest)
+size_t kmer_edge_hash(const struct _KMER_EDGE_TABLE *Table, const struct _KMER *Source, const struct _KMER *Dest)
 {
 	size_t hash = 0;
 

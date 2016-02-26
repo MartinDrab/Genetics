@@ -466,7 +466,7 @@ ERR_VALUE input_refseq_to_regions(const char *RefSeq, const size_t RefSeqLen, PA
 }
 
 
-ERR_VALUE input_get_region_by_offset(const PACTIVE_REGION Regions, const uint32_t Count, const uint64_t Offset, uint32_t *Index, uint64_t *RegionOffset)
+ERR_VALUE input_get_region_by_offset(const PACTIVE_REGION Regions, const size_t Count, const uint64_t Offset, size_t *Index, uint64_t *RegionOffset)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	PACTIVE_REGION cur = Regions;
@@ -474,7 +474,7 @@ ERR_VALUE input_get_region_by_offset(const PACTIVE_REGION Regions, const uint32_
 
 	if (Offset >= cur->Offset) {
 		ret = ERR_OFFSET_TOO_HIGH;
-		for (uint32_t i = 0; i < Count; ++i) {
+		for (size_t i = 0; i < Count; ++i) {
 			if (cur->Length > o) {
 				*RegionOffset = o;
 				*Index = i;

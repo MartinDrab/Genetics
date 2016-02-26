@@ -85,7 +85,7 @@ void dym_array_push_back_no_alloc(PDYM_ARRAY Array, const void *Value)
 }
 
 
-void *dym_array_get(const PDYM_ARRAY Array, const size_t Index)
+void *dym_array_get(const struct _DYM_ARRAY *Array, const size_t Index)
 {
 	assert(Index < Array->ValidLength);
 	return Array->Data[Index];

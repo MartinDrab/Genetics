@@ -86,7 +86,7 @@ static PKMER_TABLE_ENTRY _kmer_table_get_slot_delsearch_hint(const PKMER_TABLE T
 }
 
 
-static PKMER_TABLE_ENTRY _kmer_table_get_slot(const PKMER_TABLE Table, const PKMER KMer, const ETableOpType OpType)
+static PKMER_TABLE_ENTRY _kmer_table_get_slot(const struct _KMER_TABLE *Table, const struct _KMER *KMer, const ETableOpType OpType)
 {
 	size_t hash = 0;
 	PKMER_TABLE_ENTRY ret = NULL;
@@ -351,7 +351,7 @@ ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const PKMER KMer, const size
 }
 
 
-void *kmer_table_get(const PKMER_TABLE Table, const PKMER KMer)
+void *kmer_table_get(const struct _KMER_TABLE *Table, const struct _KMER *KMer)
 {
 	void *ret = NULL;
 	PKMER_TABLE_ENTRY entry = NULL;
@@ -407,7 +407,7 @@ ERR_VALUE kmer_table_next(const PKMER_TABLE Table, const PKMER_TABLE_ENTRY Curre
 }
 
 
-size_t kmer_hash(const PKMER_TABLE Table, const PKMER KMer)
+size_t kmer_hash(const struct _KMER_TABLE *Table, const struct _KMER *KMer)
 {
 	size_t hash = 0;
 
@@ -420,7 +420,7 @@ size_t kmer_hash(const PKMER_TABLE Table, const PKMER KMer)
 }
 
 
-size_t kmer_hash_advance(const PKMER_TABLE Table, const PKMER KMer, const size_t Hash, const char NewBase)
+size_t kmer_hash_advance(const struct _KMER_TABLE *Table, const struct _KMER *KMer, const size_t Hash, const char NewBase)
 {
 	return ((Hash + Table->Size - kmer_get_base(KMer, 0))*Table->Inverse + NewBase*Table->PowX);
 }

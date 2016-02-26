@@ -73,7 +73,7 @@ void kmer_back(PKMER KMer, const char Base)
 }
 
 
-boolean kmer_equal(const PKMER K1, const PKMER K2)
+boolean kmer_equal(const struct _KMER *K1, const struct _KMER *K2)
 {
 	assert(K1->Size == K2->Size);
 
