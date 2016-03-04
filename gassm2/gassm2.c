@@ -1,4 +1,5 @@
 
+#include <omp.h>
 #include <stdio.h>
 #include <inttypes.h>
 #include <assert.h>
@@ -64,6 +65,25 @@ static ERR_VALUE _init_default_values()
 	if (ret == ERR_SUCCESS)
 		ret = option_add_Double(PROGRAM_OPTION_SNP_RATIO, 0);
 
+	if (ret == ERR_SUCCESS)
+		ret = option_add_String(PROGRAM_OPTION_ALT1_SEQ, "\0");
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_String(PROGRAM_OPTION_ALT2_SEQ, "\0");
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(PROGRAM_OPTION_CONNECT_READS, FALSE);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(PROGRAM_OPTION_DISTINCT_PASSES, FALSE);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(PROGRAM_OPTION_MERGE_UNBRANCHED, FALSE);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(PROGRAM_OPTION_RESOLVE_BUBBLES, FALSE);
+
+
 	option_set_description_const(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQUENCE, PROGRAM_OPTION_SEQUENCE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQFILE, PROGRAM_OPTION_SEQFILE_DESC);
@@ -80,6 +100,12 @@ static ERR_VALUE _init_default_values()
 	option_set_description_const(PROGRAM_OPTION_THRESHOLD, PROGRAM_OPTION_THRESHOLD_DESC);
 	option_set_description_const(PROGRAM_OPTION_READFILE, PROGRAM_OPTION_READFILE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SNP_RATIO, PROGRAM_OPTION_SNP_RATIO_DESC);
+	option_set_description_const(PROGRAM_OPTION_ALT1_SEQ, PROGRAM_OPTION_ALT1_SEQ_DESC);
+	option_set_description_const(PROGRAM_OPTION_ALT2_SEQ, PROGRAM_OPTION_ALT2_SEQ_DESC);
+	option_set_description_const(PROGRAM_OPTION_DISTINCT_PASSES, PROGRAM_OPTION_DISTINCT_PASSES_DESC);
+	option_set_description_const(PROGRAM_OPTION_CONNECT_READS, PROGRAM_OPTION_CONNECT_READS_DESC);
+	option_set_description_const(PROGRAM_OPTION_RESOLVE_BUBBLES, PROGRAM_OPTION_RESOLVE_BUBBLES_DESC);
+	option_set_description_const(PROGRAM_OPTION_MERGE_UNBRANCHED, PROGRAM_OPTION_MERGE_UNBRANCHED_DESC);
 
 	option_set_shortcut(PROGRAM_OPTION_KMERSIZE, 'k');
 	option_set_shortcut(PROGRAM_OPTION_SEQUENCE, 's');
@@ -96,7 +122,14 @@ static ERR_VALUE _init_default_values()
 	option_set_shortcut(PROGRAM_OPTION_TEST_STEP, 'e');
 	option_set_shortcut(PROGRAM_OPTION_THRESHOLD, 'w');
 	option_set_shortcut(PROGRAM_OPTION_READFILE, 'F');
-	option_set_shortcut(PROGRAM_OPTION_SNP_RATIO, '1');
+	option_set_shortcut(PROGRAM_OPTION_ALT1_SEQ, 'a');
+	option_set_shortcut(PROGRAM_OPTION_ALT2_SEQ, 'A');
+	option_set_shortcut(PROGRAM_OPTION_SNP_RATIO, 'r');
+	option_set_shortcut(PROGRAM_OPTION_DISTINCT_PASSES, '1');
+	option_set_shortcut(PROGRAM_OPTION_CONNECT_READS, '2');
+	option_set_shortcut(PROGRAM_OPTION_RESOLVE_BUBBLES, '3');
+	option_set_shortcut(PROGRAM_OPTION_MERGE_UNBRANCHED, '4');
+
 
 	return ret;
 }
@@ -162,6 +195,24 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 		}
 	}
 
+	if (ret == ERR_SUCCESS)
+		ret = option_get_String(PROGRAM_OPTION_ALT1_SEQ, &Options->AltenrateSequence1);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_String(PROGRAM_OPTION_ALT2_SEQ, &Options->AlternateSequence2);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_Boolean(PROGRAM_OPTION_DISTINCT_PASSES, &Options->MakeDistinctPasses);;
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_Boolean(PROGRAM_OPTION_CONNECT_READS, &Options->ConnectReads);;
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_Boolean(PROGRAM_OPTION_RESOLVE_BUBBLES, &Options->ResolveBubbles);;
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_Boolean(PROGRAM_OPTION_MERGE_UNBRANCHED, &Options->MergeUnbranched);;
+
 	return ret;
 }
 
@@ -187,10 +238,11 @@ static void _compare_alternate_sequences(const struct _PROGRAM_OPTIONS *Options,
 			}
 
 			if (!found) {
-				printf("REFSEQ: %s\n", Options->ReferenceSequence);
-				printf("ALT%u:   %s\n", i, Alternates[i]);
-				for (size_t j = 0; j < dym_array_size(&seqArray); ++j)
-					printf("FOUND:  %s\n", dym_array_get(&seqArray, j));
+//				printf("REFSEQ: %s\n", Options->ReferenceSequence);
+//				printf("ALT0:   %s\n", Alternates[0]);
+//				printf("ALT1:   %s\n", Alternates[1]);
+//				for (size_t j = 0; j < dym_array_size(&seqArray); ++j)
+//					printf("FOUND:  %s\n", dym_array_get(&seqArray, j));
 
 				kmer_graph_print(stderr, Graph);
 				exit(0);
@@ -224,16 +276,27 @@ static void _compute_graph(const struct _PROGRAM_OPTIONS *Options, const char *R
 					size_t l = 0;
 					char *s = NULL;
 
-//					kmer_graph_delete_edges_under_threshold(g, Options->Threshold);
-//					kmer_graph_delete_trailing_things(g);
-//					ret =  kmer_graph_connect_reads(g, Options->Threshold, Options->Reads);
+					kmer_graph_delete_edges_under_threshold(g, Options->Threshold);
+					kmer_graph_delete_trailing_things(g);
+					if (Options->ConnectReads)
+						ret =  kmer_graph_connect_reads(g, Options->Threshold, Options->Reads);
+					
 					if (ret == ERR_SUCCESS) {
-//					kmer_graph_merge_unbranched_refseq(g);
-//						kmer_graph_delete_1to1_vertices(g);
-//						kmer_graph_separate_distinct_passes(g);
-						// kmer_graph_resolve_repetitions(g);
-//						kmer_graph_print(stderr, g);
-						_compare_alternate_sequences(Options, g, AlternateCount, Alternates, AlternateLens);
+						if (Options->MergeUnbranched)
+							ret = kmer_graph_merge_unbranched_refseq(g);
+
+						if (ret == ERR_SUCCESS) {
+							kmer_graph_delete_1to1_vertices(g);
+							if (Options->MakeDistinctPasses)
+								kmer_graph_separate_distinct_passes(g);
+							
+							if (Options->ResolveBubbles)
+								ret = kmer_graph_resolve_bubbles(g, Options->Threshold);
+
+							if (ret == ERR_SUCCESS) {
+								_compare_alternate_sequences(Options, g, AlternateCount, Alternates, AlternateLens);
+							}
+						} else printf("kmer_graph_merge_unbranched_refseq(): %u", ret);
 					} else printf("kmer_graph_connect_reads(): %u\n", ret);
 				} else printf("kmer_graph_parse_reads(): %u\n", ret);
 			} else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
@@ -301,14 +364,23 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 			char *alternate = NULL;
 			size_t alternateLen = 0;
 
-			ret = _create_alternatce_sequence(Options, RefSeq, Options->RegionLength, &alternate, &alternateLen);
+			ret = ERR_SUCCESS;
+			if (*Options->AltenrateSequence1 != '\0') {
+				alternate = Options->AltenrateSequence1;
+				alternateLen = strlen(Options->AltenrateSequence1);
+			} else ret = _create_alternatce_sequence(Options, RefSeq, Options->RegionLength, &alternate, &alternateLen);
+			
 			if (ret == ERR_SUCCESS) {
 				ret = read_set_generate_from_sequence(alternate, alternateLen, Options->ReadLength, Options->ReadCount / 2, &Options->Reads);
 				if (ret == ERR_SUCCESS) {
 					char *alternate2 = NULL;
 					size_t alternateLen2 = 0;
 
-					ret = _create_alternatce_sequence(Options, RefSeq, Options->RegionLength, &alternate2, &alternateLen2);
+					if (*Options->AlternateSequence2 != '\0') {
+						alternate2 = Options->AlternateSequence2;
+						alternateLen2 = strlen(alternate2);
+					} else ret = _create_alternatce_sequence(Options, RefSeq, Options->RegionLength, &alternate2, &alternateLen2);
+					
 					if (ret == ERR_SUCCESS) {
 						PONE_READ reads2 = NULL;
 
@@ -327,13 +399,15 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 							}
 						}
 
-						utils_free(alternate2);
+						if (*Options->AlternateSequence2 == '\0')
+							utils_free(alternate2);
 					}
 
 					read_set_destroy(Options->Reads, Options->ReadCount);
 				}
 
-				utils_free(alternate);
+				if (*Options->AltenrateSequence1 == '\0')
+					utils_free(alternate);
 			}
 
 			if (ret != ERR_SUCCESS)
@@ -356,6 +430,7 @@ int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
+	omp_set_num_threads(1);
 	ret = options_module_init(37);
 	if (ret == ERR_SUCCESS) {
 		ret = _init_default_values();
@@ -445,9 +520,8 @@ int main(int argc, char *argv[])
 												int j = 0;
 												
 												po.ReferenceSequence = pa->Sequence;
-//												for (uint64_t j = 0; j < pa->Length - po.RegionLength; j += po.TestStep) {
 #pragma omp parallel for shared(po, st, numberOfAttempts)	
-												for (j = 0; j < (int)(pa->Length - po.RegionLength); j += (int)po.TestStep) {
+												for (j = 0; j < (int)(pa->Length - po.RegionLength); j += (int)po.RegionLength) {
 													const char *refSeq = pa->Sequence + j;
 													PROGRAM_STATISTICS tmpstats;
 

@@ -312,7 +312,7 @@ ERR_VALUE read_set_generate_from_sequence(const char *Seq, const size_t SeqLen, 
 		r = tmpReadSet;
 		for (size_t i = 0; i < ReadCount; ++i) {
 			memset(r, 0, sizeof(ONE_READ));
-			r->Pos = utils_ranged_rand(0, SeqLen - ReadLength);
+			r->Pos = utils_ranged_rand(0, SeqLen - ReadLength + 1);
 			r->PosQuality = 254;
 			r->ReadSequenceLen = ReadLength;
 			ret = utils_calloc(r->ReadSequenceLen + 1, sizeof(char), &r->ReadSequence);

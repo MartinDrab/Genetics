@@ -28,6 +28,15 @@
 #define PROGRAM_OPTION_READFILE							"read-file"
 #define PROGRAM_OPTION_SNP_RATIO						"snp-ratio"
 
+#define PROGRAM_OPTION_ALT1_SEQ							"alternate1-seq"
+#define PROGRAM_OPTION_ALT2_SEQ							"alternate2-seq"
+
+#define PROGRAM_OPTION_DISTINCT_PASSES					"distinct-passes"
+#define PROGRAM_OPTION_CONNECT_READS					"connect-reads"
+#define PROGRAM_OPTION_RESOLVE_BUBBLES					"resolve-bubbles"
+#define PROGRAM_OPTION_MERGE_UNBRANCHED					"merge-unbranched"
+
+
 /************************************************************************/
 /*                  OPTION DESCRIPTION                                  */
 /************************************************************************/
@@ -48,6 +57,14 @@
 #define PROGRAM_OPTION_THRESHOLD_DESC					"Weight threshold"
 #define PROGRAM_OPTION_READFILE_DESC					"Name of a file (SAM) that contains reads. Valid only for non-test mode."
 #define PROGRAM_OPTION_SNP_RATIO_DESC					"A probability that a base in an alternative sequence is chosen randomly rather that copied from the reference sequence."						"snp-ratio"
+
+#define PROGRAM_OPTION_ALT1_SEQ_DESC					"alternate1-seq"
+#define PROGRAM_OPTION_ALT2_SEQ_DESC					"alternate2-seq"
+
+#define PROGRAM_OPTION_DISTINCT_PASSES_DESC				"distinct-passes"
+#define PROGRAM_OPTION_CONNECT_READS_DESC				"connect-reads"
+#define PROGRAM_OPTION_RESOLVE_BUBBLES_DESC				"resolve-bubbles"
+#define PROGRAM_OPTION_MERGE_UNBRANCHED_DESC			"merge-unbranched"
 
 /************************************************************************/
 /*                                                                      */
@@ -70,6 +87,12 @@ typedef struct _PROGRAM_OPTIONS {
 	uint32_t ReadCount;
 	PONE_READ Reads;
 	double SNPRatio;
+	char *AltenrateSequence1;
+	char *AlternateSequence2;
+	boolean MakeDistinctPasses;
+	boolean ConnectReads;
+	boolean ResolveBubbles;
+	boolean MergeUnbranched;
 } PROGRAM_OPTIONS, *PPROGRAM_OPTIONS;
 
 typedef struct _PROGRAM_STATISTICS {

@@ -73,7 +73,7 @@ static ERR_VALUE _kmer_graph_parse_read(PKMER_GRAPH Graph, const ONE_READ *Read,
 							assert(v != NULL);
 							for (size_t k = 0; k < v->PassCount; ++k) {
 								if (v->Passes[k].Incomming == lastEdge &&
-									v->Passes[k].Outgoing == edge) {
+									v->Passes[k].Outgoing == edge && v->Passes[k].Data.ReadPass.ReadIndex != ReadIndex) {
 									found = TRUE;
 									break;
 								}
@@ -81,7 +81,7 @@ static ERR_VALUE _kmer_graph_parse_read(PKMER_GRAPH Graph, const ONE_READ *Read,
 							}
 
 							if (!found)
-								ret = kmer_vertex_add_pass(v, lastEdge, edge, vptRead);
+								ret = kmer_vertex_add_pass(v, lastEdge, edge, vptRead, ReadIndex);
 						}
 
 						if (ret == ERR_SUCCESS) {
@@ -110,6 +110,7 @@ static ERR_VALUE _kmer_graph_parse_read(PKMER_GRAPH Graph, const ONE_READ *Read,
 
 ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, const size_t RefSeqLen, const uint32_t Threshold)
 {
+	PKMER_EDGE lastEdge = NULL;
 	EKMerVertexType vertexType = kmvtRefSeqMiddle;
 	PKMER sourceKMer = NULL;
 	PKMER destKMer = NULL;
@@ -120,8 +121,6 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 	kmer_back(sourceKMer, 'B');
 	ret = kmer_graph_add_vertex(Graph, sourceKMer, kmvtRefSeqStart);
 	if (ret == ERR_SUCCESS) {
-		PKMER_EDGE lastEdge = NULL;
-		
 		kmer_graph_set_starting_vertex(Graph, sourceKMer);
 		KMER_STACK_ALLOC(destKMer, kmerSize, RefSeq);
 		kmer_back(destKMer, 'B');
@@ -144,16 +143,16 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 				PKMER_VERTEX sourceVertex = NULL;
 
 				ret = kmer_graph_add_edge_ex(Graph, sourceKMer, destKMer, Threshold, 1, kmetReference, &edge);
-				if (ret == ERR_SUCCESS && destVertexExists)
+				if ((ret == ERR_SUCCESS && destVertexExists) || ret == ERR_ALREADY_EXISTS)
 					++Graph->NumberOfBackwardEdges;
-				
+
 				if (ret == ERR_SUCCESS || ret == ERR_ALREADY_EXISTS) {
 					++edge->MaxPassCount;
 					ret = ERR_SUCCESS;
 				}
 
 				sourceVertex = kmer_table_get(Graph->VertexTable, sourceKMer);
-				ret = kmer_vertex_add_pass(sourceVertex, lastEdge, edge, vptRefSeq);
+				ret = kmer_vertex_add_pass(sourceVertex, lastEdge, edge, vptRefSeq, 0);
 				if (ret == ERR_SUCCESS) {
 					lastEdge = edge;
 					kmer_advance(sourceKMer, RefSeq[i]);
@@ -167,8 +166,10 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 		}
 	}
 
-	if (ret == ERR_SUCCESS)
+	if (ret == ERR_SUCCESS) {
 		kmer_graph_set_ending_vertex(Graph, destKMer);
+		ret = kmer_vertex_add_pass(Graph->EndingVertex, lastEdge, NULL, vptRefSeq, 0);
+	}
 
 	return ret;
 }

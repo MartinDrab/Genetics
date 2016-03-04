@@ -29,6 +29,11 @@ typedef struct _KMER_VERTEX_PASS {
 	const struct _KMER_EDGE *Incomming;
 	const struct _KMER_EDGE *Outgoing;
 	EVertexPassType PassType;
+	union {
+		struct {
+			size_t ReadIndex;
+		} ReadPass;
+	} Data;
 } KMER_VERTEX_PASS, *PKMER_VERTEX_PASS;
 
 typedef struct _KMER_VERTEX {
@@ -108,7 +113,7 @@ typedef struct _KMER_GRAPH {
 #define kmer_vertex_get_pass_count(aVertex)					((aVertex)->PassCount)
 #define kmer_vertex_get_pass(aVertex, aIndex)				((aVertex)->Passes + (aIndex))
 
-ERR_VALUE kmer_vertex_add_pass(PKMER_VERTEX Vertex, const struct _KMER_EDGE *Incomming, const struct _KMER_EDGE *Outgoing, const EVertexPassType PassType);
+ERR_VALUE kmer_vertex_add_pass(PKMER_VERTEX Vertex, const struct _KMER_EDGE *Incomming, const struct _KMER_EDGE *Outgoing, const EVertexPassType PassType, const size_t Data);
 void kmer_vertex_remove_pass(PKMER_VERTEX Vertex, const size_t Index);
 void kmer_vertex_remove_passes(PKMER_VERTEX Vertex, const struct _KMER_EDGE *Source, const struct _KMER_EDGE *Dest);
 
@@ -143,6 +148,7 @@ ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex);
 ERR_VALUE kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge);
 ERR_VALUE kmer_graph_merge_edges(PKMER_GRAPH Graph, PKMER_EDGE Source, PKMER_EDGE Dest);
 ERR_VALUE kmer_graph_get_seqs(PKMER_GRAPH Graph, PDYM_ARRAY SeqArray);
+ERR_VALUE kmer_graph_find_bubble(PKMER_GRAPH Graph, PKMER_EDGE RefSeqEdge, PKMER_EDGE ReadEdge, PKMER_VERTEX *EndVertex, boolean *RefSeqSupported, const uint32_t Threshold);
 
 PKMER_EDGE kmer_graph_get_edge(const struct _KMER_GRAPH *Graph, const struct _KMER *Source, const struct _KMER *Dest);
 PKMER_VERTEX kmer_graph_get_vertex(const struct _KMER_GRAPH *Graph, const struct _KMER *KMer);
