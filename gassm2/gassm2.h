@@ -96,12 +96,8 @@ typedef struct _PROGRAM_OPTIONS {
 } PROGRAM_OPTIONS, *PPROGRAM_OPTIONS;
 
 typedef struct _PROGRAM_STATISTICS {
-	uint64_t VertexCount;
-	uint64_t EdgeCount;
-	uint64_t CycleCount;
-	uint64_t VertexVariance;
-	uint64_t EdgeVariance;
-	uint64_t CycleVariance;
+	uint64_t SuccessCount;
+	uint64_t FailureCount;
 } PROGRAM_STATISTICS, *PPROGRAM_STATISTICS;
 
 

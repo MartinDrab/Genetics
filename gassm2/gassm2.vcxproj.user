@@ -1,22 +1,22 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>-t -l 2000 -f input.fa -C 300 -L 150 -r 0.001 -k 15</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-r 0.005 -t -l 2000 -k 15 -L 150 -C 400 -f input.fa -T 1</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LocalDebuggerCommandArguments>-t -l 2000 -f input.fa -C 300 -L 150 -r 0.001 -k 15</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-r 0.005 -t -l 2000 -k 15 -L 150 -C 400 -f input.fa -T 1</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-t -l 2000 -f input.fa -C 300 -L 150 -r 0.001 -k 15</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-r 0.005 -t -l 2000 -k 15 -L 150 -C 400 -f input.fa -T 1</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-t -l 2000 -f input.fa -C 300 -L 150 -r 0.001 -k 15</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-r 0.005 -t -l 2000 -k 15 -L 150 -C 400 -f input.fa -T 1</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>

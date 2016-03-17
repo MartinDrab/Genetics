@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
 
 							ret = input_refseq_to_regions(seq, len, &regions, &regionCount);
 							if (ret == ERR_SUCCESS) {
-								uint32_t regionIndex = 0;
+								size_t regionIndex = 0;
 								uint64_t regionOffset = 0;
 
 								if (or.regionLength == 0)

@@ -13,13 +13,14 @@
 /*                     PUBLIC FUNCTIONS                                 */
 /************************************************************************/
 
-PKMER kmer_alloc(const uint32_t Size, const char *Sequence)
+PKMER kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Sequence)
 {
 	PKMER ret = NULL;
 
 	ret = (PKMER)malloc(sizeof(KMER) + Size*sizeof(char));
 	if (ret != NULL) {
 		ret->Size = Size;
+		ret->Number = Number;
 		kmer_init(ret, Sequence);
 	}
 
@@ -34,9 +35,10 @@ void kmer_init(PKMER KMer, const char *Sequence)
 	return;
 }
 
-void kmer_init_from_kmer(PKMER Dest, const PKMER Source)
+void kmer_init_from_kmer(PKMER Dest, const KMER *Source)
 {
 	assert(Dest->Size == Source->Size);
+	Dest->Number = Source->Number;
 	memcpy(Dest->Bases, Source->Bases, Dest->Size * sizeof(char));
 
 	return;
@@ -50,9 +52,9 @@ void kmer_free(PKMER KMer)
 	return;
 }
 
-PKMER kmer_copy(const PKMER KMer)
+PKMER kmer_copy(const KMER *KMer)
 {
-	return kmer_alloc(KMer->Size, KMer->Bases);
+	return kmer_alloc(KMer->Number, KMer->Size, KMer->Bases);
 }
 
 
@@ -72,18 +74,27 @@ void kmer_back(PKMER KMer, const char Base)
 	return;
 }
 
-
-boolean kmer_equal(const struct _KMER *K1, const struct _KMER *K2)
+boolean kmer_seq_equal(const KMER *K1, const KMER *K2)
 {
 	assert(K1->Size == K2->Size);
 
 	return (memcmp(K1->Bases, K2->Bases, K1->Size*sizeof(char)) == 0);
 }
 
-void kmer_print(FILE *Stream, const PKMER KMer)
+
+boolean kmer_equal(const KMER *K1, const KMER *K2)
+{
+	assert(K1->Size == K2->Size);
+
+	return (K1->Number == K2->Number && kmer_seq_equal(K1, K2));
+}
+
+void kmer_print(FILE *Stream, const KMER *KMer)
 {
 	for (size_t i = 0; i < KMer->Size; ++i)
 		fputc(kmer_get_base(KMer, i), Stream);
+
+	fprintf(Stream, "_%u", KMer->Number);
 
 	return;
 }

@@ -20,21 +20,6 @@ typedef enum _EKMerVertexType {
 	kmvtRead,
 } EKMerVertexType, PEKMerVertexType;
 
-typedef enum _EVertexPassType {
-	vptRefSeq,
-	vptRead,
-} EVertexPassType, *PEVertexPassType;
-
-typedef struct _KMER_VERTEX_PASS {
-	const struct _KMER_EDGE *Incomming;
-	const struct _KMER_EDGE *Outgoing;
-	EVertexPassType PassType;
-	union {
-		struct {
-			size_t ReadIndex;
-		} ReadPass;
-	} Data;
-} KMER_VERTEX_PASS, *PKMER_VERTEX_PASS;
 
 typedef struct _KMER_VERTEX {
 	PKMER KMer;
@@ -44,11 +29,7 @@ typedef struct _KMER_VERTEX {
 	EKMerVertexType Type;
 	DYM_ARRAY Successors;
 	DYM_ARRAY Predecessors;
-	
-	PKMER_VERTEX_PASS Passes;
-	size_t PassCount;
-	PKMER_VERTEX_PASS CurrentPass;
-	size_t StartIndex;
+	boolean Finished;
 } KMER_VERTEX, *PKMER_VERTEX;
 
 typedef enum _EKMerEdgeType {
@@ -75,8 +56,6 @@ typedef struct _KMER_EDGE {
 	void *Shortcut;
 	char *Seq;
 	size_t SeqLen;
-	DYM_ARRAY ReadIndices;
-	DYM_ARRAY ReadPositions;
 } KMER_EDGE, *PKMER_EDGE;
 
 typedef struct _KMER_GRAPH_SHORTCUT {
@@ -110,19 +89,7 @@ typedef struct _KMER_GRAPH {
 #define kmer_vertex_get_pred_edge(aVertex, aIndex)			((PKMER_EDGE)(dym_array_data(&(aVertex)->Predecessors)[(aIndex)]))
 #define kmer_vertex_get_successor(aVertex, aIndex)			(kmer_vertex_get_succ_edge((aVertex), (aIndex))->Dest)
 #define kmer_vertex_get_predecessor(aVertex, aIndex)		(kmer_vertex_get_pred_edge((aVertex), (aIndex))->Source)
-#define kmer_vertex_get_pass_count(aVertex)					((aVertex)->PassCount)
-#define kmer_vertex_get_pass(aVertex, aIndex)				((aVertex)->Passes + (aIndex))
 
-ERR_VALUE kmer_vertex_add_pass(PKMER_VERTEX Vertex, const struct _KMER_EDGE *Incomming, const struct _KMER_EDGE *Outgoing, const EVertexPassType PassType, const size_t Data);
-void kmer_vertex_remove_pass(PKMER_VERTEX Vertex, const size_t Index);
-void kmer_vertex_remove_passes(PKMER_VERTEX Vertex, const struct _KMER_EDGE *Source, const struct _KMER_EDGE *Dest);
-
-ERR_VALUE kmer_edge_add_read(PKMER_EDGE Edge, const size_t ReadIndex, const size_t ReadPosition);
-ERR_VALUE kmer_edge_connecting_reads(const struct _KMER_EDGE **EdgeSet, const size_t EdgeSetSize, PDYM_ARRAY ReadIndices);
-#define kmer_edge_get_read_count(aEdge)				dym_array_size(&(aEdge)->ReadIndices)
-void kmer_edge_get_read(const KMER_EDGE *Edge, const size_t Index, size_t *ReadIndex, size_t *ReadPosition);
-ERR_VALUE kmer_edge_find_read(const KMER_EDGE *Edge, const size_t StartIndex, size_t *EndIndex, const size_t ReadIndex, size_t *ReadPosition);
-void kmer_edge_remove_read(PKMER_EDGE Edge, const size_t StartIndex, const size_t ReadIndex);
 
 ERR_VALUE kmer_graph_create(const uint32_t KMerSize, PKMER_GRAPH *Graph);
 void kmer_graph_destroy(PKMER_GRAPH Graph);
@@ -134,24 +101,21 @@ ERR_VALUE kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph);
 void kmer_graph_delete_edges_under_threshold(PKMER_GRAPH Graph, const long Threshold);
 void kmer_graph_compute_edge_probablities(PKMER_GRAPH Graph);
 void kmer_graph_compute_shurtcuts(PKMER_GRAPH Graph, const size_t MaxLength);
-void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph);
-void kmer_graph_separate_distinct_passes(PKMER_GRAPH Graph);
-void kmer_graph_resolve_repetitions(PKMER_GRAPH Graph);
-ERR_VALUE kmer_graph_connect_reads(PKMER_GRAPH Graph, const size_t Threshold, const ONE_READ *Reads);
-ERR_VALUE kmer_graph_merge_unbranched_refseq(PKMER_GRAPH Graph);
+void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings);
+ERR_VALUE kmer_graph_resolve_bubbles(PKMER_GRAPH Graph, const uint32_t Threshold);
 
-ERR_VALUE kmer_graph_add_vertex(PKMER_GRAPH Graph, const PKMER KMer, const EKMerVertexType Type);
+ERR_VALUE kmer_graph_add_vertex(PKMER_GRAPH Graph, const KMER *KMer, const EKMerVertexType Type);
+ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EKMerVertexType Type, PKMER_VERTEX *Vertex);
 ERR_VALUE kmer_graph_add_edge(PKMER_GRAPH Graph, const PKMER Source, const PKMER Dest, const long weight);
 ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, const PKMER Source, const PKMER Dest, const long weight, const uint32_t Length, const EKMerEdgeType Type, PKMER_EDGE *Edge);
-ERR_VALUE kmer_graph_get_seq(const KMER_GRAPH *Graph, char **Seq, size_t *SeqLen);
 ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex);
-ERR_VALUE kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge);
+void kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge);
 ERR_VALUE kmer_graph_merge_edges(PKMER_GRAPH Graph, PKMER_EDGE Source, PKMER_EDGE Dest);
 ERR_VALUE kmer_graph_get_seqs(PKMER_GRAPH Graph, PDYM_ARRAY SeqArray);
-ERR_VALUE kmer_graph_find_bubble(PKMER_GRAPH Graph, PKMER_EDGE RefSeqEdge, PKMER_EDGE ReadEdge, PKMER_VERTEX *EndVertex, boolean *RefSeqSupported, const uint32_t Threshold);
 
 PKMER_EDGE kmer_graph_get_edge(const struct _KMER_GRAPH *Graph, const struct _KMER *Source, const struct _KMER *Dest);
 PKMER_VERTEX kmer_graph_get_vertex(const struct _KMER_GRAPH *Graph, const struct _KMER *KMer);
+ERR_VALUE kmer_graph_get_vertices(const KMER_GRAPH *Graph, const KMER *KMer, PDYM_ARRAY VertexArray);
 
 
 

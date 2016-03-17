@@ -278,29 +278,6 @@ void read_destroy(PONE_READ Read)
 }
 
 
-const char *read_get_kmer_pos(const ONE_READ *Read, const KMER *KMer)
-{
-	const char *ret = NULL;
-	PKMER readKMer = NULL;
-	KMER_STACK_ALLOC(readKMer, kmer_get_size(KMer), Read->ReadSequence);
-	size_t remainingLength = Read->ReadSequenceLen - kmer_get_size(KMer) + 1;
-	size_t pos = 0;
-
-	while (remainingLength > 0) {
-		if (kmer_equal(readKMer, KMer)) {
-			ret = Read->ReadSequence + pos;
-			break;
-		}
-
-		++pos;
-		--remainingLength;
-		kmer_advance(readKMer, pos + kmer_get_size(KMer));
-	}
-
-	return ret;
-}
-
-
 ERR_VALUE read_set_generate_from_sequence(const char *Seq, const size_t SeqLen, const uint32_t ReadLength, const size_t ReadCount, PONE_READ *ReadSet)
 {
 	PONE_READ r = NULL;
@@ -360,6 +337,8 @@ void read_set_destroy(PONE_READ ReadSet, const size_t Count)
 		_read_destroy_structure(tmp);
 		++tmp;
 	}
+
+	utils_free(ReadSet);
 
 	return;
 }

@@ -220,3 +220,30 @@ void dym_array_remove_by_item_fast(PDYM_ARRAY Array, const void *Item)
 	return;
 }
 
+
+boolean dym_array_find(const DYM_ARRAY *Array, const void *Item, size_t *Index)
+{
+	boolean ret = FALSE;
+
+	for (size_t i = 0; i < dym_array_size(Array); ++i) {
+		ret = (dym_array_get(Array, i) == Item);
+		if (ret) {
+			*Index = i;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+
+void dym_array_exchange(PDYM_ARRAY Dest, PDYM_ARRAY Source)
+{
+	DYM_ARRAY tmp;
+
+	memcpy(&tmp, Dest, sizeof(tmp));
+	memcpy(Dest, Source, sizeof(tmp));
+	memcpy(Source, &tmp, sizeof(tmp));
+
+	return;
+}

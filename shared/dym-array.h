@@ -15,6 +15,7 @@ typedef struct _DYM_ARRAY {
 #define dym_array_size(aArray)				((aArray)->ValidLength)
 #define dym_array_alloc_size(aArray)		((aArray)->AllocatedLength)
 #define dym_array_data(aArray)				((aArray)->Data)
+#define dym_array_clear(aArray)				((aArray)->ValidLength = 0)
 
 
 void dym_array_create(PDYM_ARRAY Array, const uint8_t PreallocRatio);
@@ -32,6 +33,8 @@ ERR_VALUE dym_array_copy(PDYM_ARRAY Dest, const DYM_ARRAY *Source);
 ERR_VALUE dym_array_prepare_for_insert(PDYM_ARRAY Array, const size_t NumberOfItems);
 void dym_array_replace(PDYM_ARRAY Array, const void *Item, const void *New);
 void dym_array_remove_by_item_fast(PDYM_ARRAY Array, const void *Item);
+void dym_array_exchange(PDYM_ARRAY Dest, PDYM_ARRAY Source);
+boolean dym_array_find(const DYM_ARRAY *Array, const void *Item, size_t *Index);
 
 
 

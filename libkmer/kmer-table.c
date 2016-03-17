@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "err.h"
 #include "utils.h"
+#include "dym-array.h"
 #include "kmer.h"
 #include "kmer-table.h"
 
@@ -30,7 +31,7 @@ static UTILS_TYPED_MALLOC_FUNCTION(KMER_TABLE)
 static UTILS_TYPED_CALLOC_FUNCTION(KMER_TABLE_ENTRY)
 
 
-static PKMER_TABLE_ENTRY _kmer_table_get_slot_insert_hint(const PKMER_TABLE Table, size_t Hash, const PKMER KMer)
+static PKMER_TABLE_ENTRY _kmer_table_get_slot_insert_hint(const KMER_TABLE *Table, size_t Hash, const KMER *KMer)
 {
 	PKMER_TABLE_ENTRY ret = NULL;
 
@@ -58,7 +59,7 @@ static PKMER_TABLE_ENTRY _kmer_table_get_slot_insert_hint(const PKMER_TABLE Tabl
 }
 
 
-static PKMER_TABLE_ENTRY _kmer_table_get_slot_delsearch_hint(const PKMER_TABLE Table, size_t Hash, const PKMER KMer)
+static PKMER_TABLE_ENTRY _kmer_table_get_slot_delsearch_hint(const KMER_TABLE *Table, size_t Hash, const KMER *KMer)
 {
 	PKMER_TABLE_ENTRY ret = NULL;
 
@@ -86,7 +87,7 @@ static PKMER_TABLE_ENTRY _kmer_table_get_slot_delsearch_hint(const PKMER_TABLE T
 }
 
 
-static PKMER_TABLE_ENTRY _kmer_table_get_slot(const struct _KMER_TABLE *Table, const struct _KMER *KMer, const ETableOpType OpType)
+static PKMER_TABLE_ENTRY _kmer_table_get_slot(const KMER_TABLE *Table, const KMER *KMer, const ETableOpType OpType)
 {
 	size_t hash = 0;
 	PKMER_TABLE_ENTRY ret = NULL;
@@ -285,7 +286,7 @@ void kmer_table_print(FILE *Stream, const PKMER_TABLE Table)
 }
 
 
-ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const PKMER KMer, void *Data)
+ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const KMER *KMer, void *Data)
 {
 	PKMER_TABLE_ENTRY entry = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -420,7 +421,43 @@ size_t kmer_hash(const struct _KMER_TABLE *Table, const struct _KMER *KMer)
 }
 
 
-size_t kmer_hash_advance(const struct _KMER_TABLE *Table, const struct _KMER *KMer, const size_t Hash, const char NewBase)
+ERR_VALUE kmer_table_get_multiple(const KMER_TABLE *Table, const KMER *KMer, PDYM_ARRAY DataArray)
 {
-	return ((Hash + Table->Size - kmer_get_base(KMer, 0))*Table->Inverse + NewBase*Table->PowX);
+	size_t hash = 0;
+	PKMER_TABLE_ENTRY entry = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = ERR_SUCCESS;
+	hash = kmer_hash(Table, KMer);
+	entry = Table->Entries + hash;
+	if (!_kmer_table_entry_empty(entry) && !entry->Deleted && kmer_seq_equal(KMer, entry->KMer))
+		ret = dym_array_push_back(DataArray, entry->Data);
+
+	if (ret == ERR_SUCCESS) {
+		if (!_kmer_table_entry_empty(entry) || entry->Deleted) {
+			size_t attempt = 1;
+			PKMER_TABLE_ENTRY first = entry;
+
+			do {
+				hash = _next_hash_attempt(hash, attempt, Table->Size);
+				entry = Table->Entries + hash;
+				if (!entry->Deleted && (_kmer_table_entry_empty(entry)))
+					break;
+
+				if (first == entry) {
+					entry = NULL;
+					break;
+				}
+
+				if (!_kmer_table_entry_empty(entry) && !entry->Deleted && kmer_seq_equal(KMer, entry->KMer))
+					ret = dym_array_push_back(DataArray, entry->Data);
+
+				++attempt;
+			} while (ret == ERR_SUCCESS);
+		}
+	}
+
+	return ret;
 }
+
+
