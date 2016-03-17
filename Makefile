@@ -1,7 +1,5 @@
 default:
-	cd gengen; make
-	cd gassm; make
+	cd gassm2; make
 
 clean:
-	cd gengen; make clean
-	cd gassm; make clean
+	cd gassm2; make clean
