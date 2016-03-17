@@ -1,14 +1,14 @@
 TARGET=gassm2
 BINDIR=../bin
 CC=gcc
-CFLAGS= -Wall -std=c99
+CFLAGS= -Wall --std=gnu99 -D_FILE_OFFSET_BITS=64 -m64 -fopenmp
 SHAREDDIR=../shared
 LIBKMERDIR=../libkmer
 TMPDIR=../tmp
 OBJDIR=$(TMPDIR)/$(TARGET)
 SHAREDOBJDIR=$(TMPDIR)/shared
 LIBKMEROBJDIR=$(TMPDIR)/libkmer
-LIBS= -lm
+LIBS= -lm -fopenmp
 
 OBJ=\
 	$(SHAREDOBJDIR)/utils.o \
@@ -16,9 +16,7 @@ OBJ=\
 	$(SHAREDOBJDIR)/dym-array.o \
 	$(SHAREDOBJDIR)/general-queue.o \
 	$(SHAREDOBJDIR)/input-file.o \
-	$(SHAREDOBJDIR)/paths.o \
 	$(SHAREDOBJDIR)/reads.o \
-	$(SHAREDOBJDIR)/ssw.o \
 	$(OBJDIR)/gassm2.o \
 	$(LIBKMEROBJDIR)/assembly.o \
 	$(LIBKMEROBJDIR)/kmer-edge.o \
@@ -41,13 +39,13 @@ $(SHAREDOBJDIR)/%.o : $(SHAREDDIR)/%.c
 	@mkdir -p $(TMPDIR)
 	@mkdir -p $(SHAREDOBJDIR)
 	@echo "Compiling $<"
-	@$(CC) $(CFLAGS) $(SHAREDINCLUDE) -c $< -o $@
+	@$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
 
 $(LIBKMEROBJDIR)/%.o : $(LIBKMERDIR)/%.c
 	@mkdir -p $(TMPDIR)
-	@mkdir -p $(SHAREDOBJDIR)
+	@mkdir -p $(LIBKMEROBJDIR)
 	@echo "Compiling $<"
-	@$(CC) $(CFLAGS) $(SHAREDINCLUDE) -c $< -o $@
+	@$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
 $(TARGET): $(OBJ)
 	@mkdir -p $(BINDIR)

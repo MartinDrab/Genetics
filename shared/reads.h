@@ -4,8 +4,6 @@
 
 #include "err.h"
 #include "utils.h"
-#include "kmer.h"
-
 
 typedef struct _ONE_READ {
 	uint16_t Flags;

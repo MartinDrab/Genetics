@@ -3,8 +3,6 @@
 #define __GASSM_INPUT_FILE_H__
 
 
-#include "reads.h"
-
 
 typedef enum _EActiveRegionType {
 	artUnknown,

@@ -191,8 +191,6 @@ size_t utils_pow_mod(const size_t Base, const size_t Power, const size_t Modulus
 }
 
 
-#define _FILE_OFFSET_BITS 64
-
 
 ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength)
 {
@@ -201,12 +199,24 @@ ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength)
 
 	f = fopen(FileName, "rb");
 	if (f != NULL) {
+#ifdef _MSC_VER
 		ret = _fseeki64(f, 0, SEEK_END);
+#else
+		ret = fseeko(f, 0, SEEK_END);
+#endif
 		if (ret == ERR_SUCCESS) {
-			long long fileSize = _ftelli64(f);
-
+			off_t fileSize = 0;
+#ifdef _MSC_VER
+			fileSize = _ftelli64(f);
+#else
+			fileSize = ftello(f);
+#endif
 			if (fileSize != -1L) {
+#ifdef _MSC_VER
 				ret = _fseeki64(f, 0, SEEK_SET);
+#else
+				ret = fseeko(f, 0, SEEK_SET);
+#endif
 				if (ret == ERR_SUCCESS) {
 					char *tmpData = NULL;
 					size_t tmpSize = (size_t)fileSize;

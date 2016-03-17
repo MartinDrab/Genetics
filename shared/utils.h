@@ -12,9 +12,16 @@
 
 
 #ifdef _MSC_VER
+
 #define strcasecmp				_stricmp
+
 #else 
+
 #include <strings.h>
+#undef min
+#define min(a, b)				((a) < (b) ? (a) : (b))
+#undef max
+#define max(a, b)				((a) > (b) ? (a) : (b))
 #endif
 
 
