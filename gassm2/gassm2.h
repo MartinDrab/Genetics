@@ -27,6 +27,8 @@
 #define PROGRAM_OPTION_THRESHOLD						"threshold"
 #define PROGRAM_OPTION_READFILE							"read-file"
 #define PROGRAM_OPTION_SNP_RATIO						"snp-ratio"
+#define PROGRAM_OPTION_INSERT_RATIO						"insert-ratio"
+#define PROGRAM_OPTION_DELETE_RATIO						"delete-ratio"
 
 #define PROGRAM_OPTION_ALT1_SEQ							"alternate1-seq"
 #define PROGRAM_OPTION_ALT2_SEQ							"alternate2-seq"
@@ -57,6 +59,8 @@
 #define PROGRAM_OPTION_THRESHOLD_DESC					"Weight threshold"
 #define PROGRAM_OPTION_READFILE_DESC					"Name of a file (SAM) that contains reads. Valid only for non-test mode."
 #define PROGRAM_OPTION_SNP_RATIO_DESC					"A probability that a base in an alternative sequence is chosen randomly rather that copied from the reference sequence."						"snp-ratio"
+#define PROGRAM_OPTION_INSERT_RATIO_DESC				"A probability that a base in an alternate sequence starts an insertion"
+#define PROGRAM_OPTION_DELETE_RATIO_DESC				"A probability that a base in an alternate sequence is deleted"
 
 #define PROGRAM_OPTION_ALT1_SEQ_DESC					"alternate1-seq"
 #define PROGRAM_OPTION_ALT2_SEQ_DESC					"alternate2-seq"
@@ -87,6 +91,8 @@ typedef struct _PROGRAM_OPTIONS {
 	uint32_t ReadCount;
 	PONE_READ Reads;
 	double SNPRatio;
+	double InsertRatio;
+	double DeleteRatio;
 	char *AltenrateSequence1;
 	char *AlternateSequence2;
 	boolean MakeDistinctPasses;

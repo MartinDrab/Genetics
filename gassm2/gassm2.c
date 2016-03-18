@@ -66,6 +66,12 @@ static ERR_VALUE _init_default_values()
 		ret = option_add_Double(PROGRAM_OPTION_SNP_RATIO, 0);
 
 	if (ret == ERR_SUCCESS)
+		ret = option_add_Double(PROGRAM_OPTION_INSERT_RATIO, 0);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Double(PROGRAM_OPTION_DELETE_RATIO, 0);
+
+	if (ret == ERR_SUCCESS)
 		ret = option_add_String(PROGRAM_OPTION_ALT1_SEQ, "\0");
 
 	if (ret == ERR_SUCCESS)
@@ -100,6 +106,8 @@ static ERR_VALUE _init_default_values()
 	option_set_description_const(PROGRAM_OPTION_THRESHOLD, PROGRAM_OPTION_THRESHOLD_DESC);
 	option_set_description_const(PROGRAM_OPTION_READFILE, PROGRAM_OPTION_READFILE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SNP_RATIO, PROGRAM_OPTION_SNP_RATIO_DESC);
+	option_set_description_const(PROGRAM_OPTION_INSERT_RATIO, PROGRAM_OPTION_INSERT_RATIO_DESC);
+	option_set_description_const(PROGRAM_OPTION_DELETE_RATIO, PROGRAM_OPTION_DELETE_RATIO_DESC);
 	option_set_description_const(PROGRAM_OPTION_ALT1_SEQ, PROGRAM_OPTION_ALT1_SEQ_DESC);
 	option_set_description_const(PROGRAM_OPTION_ALT2_SEQ, PROGRAM_OPTION_ALT2_SEQ_DESC);
 	option_set_description_const(PROGRAM_OPTION_DISTINCT_PASSES, PROGRAM_OPTION_DISTINCT_PASSES_DESC);
@@ -125,6 +133,8 @@ static ERR_VALUE _init_default_values()
 	option_set_shortcut(PROGRAM_OPTION_ALT1_SEQ, 'a');
 	option_set_shortcut(PROGRAM_OPTION_ALT2_SEQ, 'A');
 	option_set_shortcut(PROGRAM_OPTION_SNP_RATIO, 'r');
+	option_set_shortcut(PROGRAM_OPTION_INSERT_RATIO, 'i');
+	option_set_shortcut(PROGRAM_OPTION_DELETE_RATIO, 'd');
 	option_set_shortcut(PROGRAM_OPTION_DISTINCT_PASSES, '1');
 	option_set_shortcut(PROGRAM_OPTION_CONNECT_READS, '2');
 	option_set_shortcut(PROGRAM_OPTION_RESOLVE_BUBBLES, '3');
@@ -176,6 +186,12 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 
 	if (ret == ERR_SUCCESS)
 		ret = option_get_Double(PROGRAM_OPTION_SNP_RATIO, &Options->SNPRatio);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_Double(PROGRAM_OPTION_INSERT_RATIO, &Options->InsertRatio);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_Double(PROGRAM_OPTION_DELETE_RATIO, &Options->DeleteRatio);
 
 	if (ret == ERR_SUCCESS) {
 		ret = option_get_String(PROGRAM_OPTION_SEQUENCE, &Options->ReferenceSequence);
@@ -292,7 +308,10 @@ static void _compute_graph(const struct _PROGRAM_OPTIONS *Options, const ONE_REA
 							_compare_alternate_sequences(Options, g, AlternateCount, Alternates, AlternateLens, Statistics);
 							
 						} else printf("ERROR: kmer_graph_resolve_bubbles(): %u\n", ret);
-					} else printf("Some trailing vertices were deleted, so we cannot get both alternate sequences\n");
+					} else {
+						Statistics->FailureCount++;
+						printf("Some trailing vertices were deleted, so we cannot get both alternate sequences\n");
+					}
 				} else printf("kmer_graph_parse_reads(): %u\n", ret);
 			} else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
 
