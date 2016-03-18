@@ -14,6 +14,7 @@
 #ifdef _MSC_VER
 
 #define strcasecmp				_stricmp
+#define off_t					long long
 
 #else 
 
