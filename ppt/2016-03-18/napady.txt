@@ -1,0 +1,2 @@
+ + pouzit pro potencialni alt. sekvence schemata (z evolucnich algoritmu)
+  - reprezentace nejednoznacnosti napr. pomoci znaku "?"

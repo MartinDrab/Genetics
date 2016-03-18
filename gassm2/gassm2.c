@@ -343,31 +343,84 @@ static char _rand_nucleotide(void)
 
 static ERR_VALUE _create_alternatce_sequence(const PROGRAM_OPTIONS *Options, const char *RefSeq, const size_t RefSeqLen, char **Alternate, size_t *AlternateLen)
 {
-	size_t tmpAlternateLen = RefSeqLen;
+	size_t tmpAlternateLen = RefSeqLen*2;
 	char *rsCopy = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	ret = utils_calloc(tmpAlternateLen + 1, sizeof(char), &rsCopy);
 	if (ret == ERR_SUCCESS) {
-		size_t border = ceil(Options->SNPRatio*tmpAlternateLen);
+		memcpy(rsCopy, RefSeq, RefSeqLen*sizeof(char));
+		if (Options->SNPRatio > 0 || Options->InsertRatio > 0 || Options->DeleteRatio > 0) {
+			size_t spmBorder = ceil(Options->SNPRatio*RefSeqLen);
+			size_t insertBorder = ceil(Options->InsertRatio*RefSeqLen);
+			size_t deleteBorder = ceil(Options->DeleteRatio*RefSeqLen);
+			DYM_ARRAY insertPositions;
+			DYM_ARRAY deletePositions;
+			
+			dym_array_create(&insertPositions, 140);
+			dym_array_create(&deletePositions, 140);
+			for (size_t i = Options->KMerSize; i < RefSeqLen - Options->KMerSize; ++i) {
+				if (utils_ranged_rand(0, RefSeqLen) < spmBorder) {
+					char old = rsCopy[i];
 
-		memcpy(rsCopy, RefSeq, tmpAlternateLen*sizeof(char));
-		for (size_t i = Options->KMerSize; i < tmpAlternateLen - Options->KMerSize; ++i) {
-			if (utils_ranged_rand(0, tmpAlternateLen) < border) {
-				char old = rsCopy[i];
-				
-				rsCopy[i] = _rand_nucleotide();
-				if (rsCopy[i] != old)
-					printf("M");
+					rsCopy[i] = _rand_nucleotide();
+					if (rsCopy[i] != old)
+						putchar('M');
+				}
+
+				if (utils_ranged_rand(0, RefSeqLen) < insertBorder) {
+					ret = dym_array_push_back(&insertPositions, (void *)i);
+					putchar('I');
+				}
+
+				if (ret == ERR_SUCCESS) {
+					if (utils_ranged_rand(0, RefSeqLen) < deleteBorder) {
+						ret = dym_array_push_back(&deletePositions, (void *)i);
+						putchar('D');
+					}
+				}
+
+				if (ret != ERR_SUCCESS)
+					break;
 			}
-		}
 
+			if (ret == ERR_SUCCESS) {
+				tmpAlternateLen = RefSeqLen + dym_array_size(&insertPositions) - dym_array_size(&deletePositions);
+				for (size_t i = 0; i < dym_array_size(&insertPositions); ++i) {
+					size_t pos = (size_t)dym_array_get(&insertPositions, i) - i;
+
+					memmove(rsCopy + pos + 1, rsCopy + pos, RefSeqLen - pos + 1);
+					rsCopy[pos] = _rand_nucleotide();
+					for (size_t j = 0; j < dym_array_size(&deletePositions); ++j) {
+						size_t *ppos = (size_t)(dym_array_data(&deletePositions) + j);
+
+						if (*ppos >= pos)
+							*ppos++;
+					}
+				}
+
+				for (size_t i = 0; i < dym_array_size(&deletePositions); ++i) {
+					size_t pos = (size_t)dym_array_get(&deletePositions, i) + i;
+
+					memmove(rsCopy + pos, rsCopy + pos + 1, RefSeqLen - pos);
+				}
+			}
+
+			dym_array_destroy(&deletePositions);
+			dym_array_destroy(&insertPositions);
+		}
+		
 		if (Options->SNPRatio > 0)
 			printf("\n");
 
-		rsCopy[tmpAlternateLen] = '\0';
-		*Alternate = rsCopy;
-		*AlternateLen = tmpAlternateLen;
+		if (ret == ERR_SUCCESS) {
+			rsCopy[tmpAlternateLen] = '\0';
+			*Alternate = rsCopy;
+			*AlternateLen = tmpAlternateLen;
+		}
+
+		if (ret != ERR_SUCCESS)
+			utils_free(rsCopy);
 	}
 
 	return ret;
@@ -455,7 +508,7 @@ int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	omp_set_num_threads(2);
+	omp_set_num_threads(1);
 	ret = options_module_init(37);
 	if (ret == ERR_SUCCESS) {
 		ret = _init_default_values();
