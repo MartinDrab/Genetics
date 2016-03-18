@@ -104,6 +104,7 @@ typedef struct _PROGRAM_OPTIONS {
 typedef struct _PROGRAM_STATISTICS {
 	uint64_t SuccessCount;
 	uint64_t FailureCount;
+	uint64_t CannotSucceed;
 } PROGRAM_STATISTICS, *PPROGRAM_STATISTICS;
 
 

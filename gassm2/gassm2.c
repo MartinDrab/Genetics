@@ -275,10 +275,13 @@ static void _compare_alternate_sequences(const struct _PROGRAM_OPTIONS *Options,
 		utils_free(dym_array_get(&seqArray, j));
 
 	dym_array_destroy(&seqArray);
-	if (notFound)
+	if (notFound) {
 		++Statistics->FailureCount;
-	else ++Statistics->SuccessCount;
-
+		printf("OK\n");
+	} else {
+		++Statistics->SuccessCount;
+		printf("FAILD\n");
+	}
 
 	return;
 }
@@ -291,6 +294,7 @@ static void _compute_graph(const struct _PROGRAM_OPTIONS *Options, const ONE_REA
 
 	Statistics->SuccessCount = 0;
 	Statistics->FailureCount = 0;
+	Statistics->CannotSucceed = 0;
 		ret = kmer_graph_create(Options->KMerSize, &g);
 		if (ret == ERR_SUCCESS) {
 			ret = kmer_graph_parse_ref_sequence(g, RefSeq, Options->RegionLength, Options->Threshold);
@@ -318,8 +322,10 @@ static void _compute_graph(const struct _PROGRAM_OPTIONS *Options, const ONE_REA
 			kmer_graph_destroy(g);
 		} else printf("kmer_graph_create(): %u\n", ret);
 
-		if (ret != ERR_SUCCESS)
+		if (ret != ERR_SUCCESS) {
 			++Statistics->FailureCount;
+			printf("FAILD\n");
+		}
 
 	return;
 }
@@ -475,6 +481,7 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 								_compute_graph(Options, finalReadSet, RefSeq, sizeof(alternates) / sizeof(char *), alternates, alternateLens, &stats);
 								Statistics->FailureCount += stats.FailureCount;
 								Statistics->SuccessCount += stats.SuccessCount;
+								Statistics->CannotSucceed += stats.CannotSucceed;
 								read_set_destroy(finalReadSet, Options->ReadCount);
 							}
 
@@ -545,11 +552,12 @@ int main(int argc, char *argv[])
 									if (ret == ERR_SUCCESS) {
 										st.FailureCount += tmpStats.FailureCount;
 										st.SuccessCount += tmpStats.SuccessCount;
+										st.CannotSucceed += tmpStats.CannotSucceed;
 									} else printf("_test_with_reads(): %u", ret);
 								}
 
 								if (ret == ERR_SUCCESS)
-									printf("Success: (%" PRIu64 "), Failures: (%" PRIu64 "), Percentage: (%" PRIu64 ")\n", st.SuccessCount, st.FailureCount, (uint64_t)(st.SuccessCount / (st.SuccessCount + st.FailureCount)));
+									printf("Success: (%" PRIu64 "), Failures: (%" PRIu64 "), Not tried: (%" PRIu64 "), Percentage: (%" PRIu64 ")\n", st.SuccessCount, st.FailureCount, st.CannotSucceed, (uint64_t)(st.SuccessCount * 100 / (st.SuccessCount + st.FailureCount + st.CannotSucceed)));
 
 								utils_free(rs);
 							}
@@ -597,6 +605,7 @@ int main(int argc, char *argv[])
 														++numberOfAttempts;
 														st.FailureCount += tmpstats.FailureCount;
 														st.SuccessCount += tmpstats.SuccessCount;
+														st.CannotSucceed += tmpstats.CannotSucceed;
 													}
 												}
 											}
@@ -618,7 +627,7 @@ int main(int argc, char *argv[])
 									ret = ERR_SUCCESS;
 
 								if (ret == ERR_SUCCESS)
-									printf("Success: (%" PRIu64 "), Failures: (%" PRIu64 "), Percentage: (%" PRIu64 ")\n", st.SuccessCount, st.FailureCount, (uint64_t)(st.SuccessCount / (st.SuccessCount + st.FailureCount)));
+									printf("Success: (%" PRIu64 "), Failures: (%" PRIu64 "), Not tried: (%" PRIu64 "), Percentage: (%" PRIu64 ")\n", st.SuccessCount, st.FailureCount, st.CannotSucceed, (uint64_t)(st.SuccessCount * 100 / (st.SuccessCount + st.FailureCount + st.CannotSucceed)));
 
 								if (!explicitSequence)
 									fasta_free(&seqFile);

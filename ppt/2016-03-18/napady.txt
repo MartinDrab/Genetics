@@ -1,2 +1,4 @@
  + pouzit pro potencialni alt. sekvence schemata (z evolucnich algoritmu)
-  - reprezentace nejednoznacnosti napr. pomoci znaku "?"
+  - reprezentace nejednoznacnosti napr. pomoci znaku "?" (pripojit info o nejednoznacnosti)
+
+ + pocitat vice statistik, ukladat je stranou a stredni hodnoty atd. pocitat pripadne dodatecne)
