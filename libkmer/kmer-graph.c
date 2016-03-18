@@ -993,6 +993,8 @@ ERR_VALUE kmer_graph_get_seqs(PKMER_GRAPH Graph, PDYM_ARRAY SeqArray)
 						l -= edge->SeqLen;
 						memset(s + l, 0, edge->SeqLen*sizeof(char));
 						++edgeIndex;
+						if (dym_array_size(SeqArray) >= 300000)
+							break;
 					}
 
 					if (ret != ERR_SUCCESS)
@@ -1031,9 +1033,6 @@ ERR_VALUE kmer_graph_get_seqs(PKMER_GRAPH Graph, PDYM_ARRAY SeqArray)
 
 		dym_array_clear(SeqArray);
 	}
-
-	if (ret == ERR_SUCCESS)
-		printf("%u\n", (uint32_t)dym_array_size(SeqArray));
 
 	return ret;
 }
