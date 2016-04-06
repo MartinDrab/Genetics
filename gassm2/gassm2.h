@@ -79,7 +79,7 @@ typedef struct _PROGRAM_OPTIONS {
 	boolean Test;
 	boolean PrintResults;
 	uint32_t KMerSize;
-	char *ReferenceSequence;
+	const char *ReferenceSequence;
 	char *RefSeqFile;
 	uint64_t RegionStart;
 	uint32_t RegionLength;

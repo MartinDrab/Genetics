@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 #include "err.h"
 
 
@@ -15,6 +16,7 @@
 
 #define strcasecmp				_stricmp
 #define off_t					long long
+#define INLINE_FUNCTION			__inline
 
 #else 
 
@@ -23,6 +25,8 @@
 #define min(a, b)				((a) < (b) ? (a) : (b))
 #undef max
 #define max(a, b)				((a) > (b) ? (a) : (b))
+#define INLINE_FUNCTION			inline
+
 #endif
 
 
@@ -57,9 +61,16 @@ size_t utils_next_prime(const size_t Number);
 ERR_VALUE utils_mul_inverse(const size_t Number, const size_t Modulus, size_t *Result);
 size_t utils_pow_mod(const size_t Base, const size_t Power, const size_t Modulus);
 
+#define FOPEN_MODE_READ				1
+#define FOPEN_MODE_WRITE			2
+#define FOPEN_MODE_APPEND			4
+
 ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength);
 
-
+ERR_VALUE utils_Fopen(const char *FileName, const uint32_t Mode, FILE **Stream);
+ERR_VALUE utils_fread(void *Buffer, const size_t Size, const size_t Count, FILE *Stream);
+ERR_VALUE utils_fwrite(const void *Buffer, const size_t Size, const size_t Count, FILE *Stream);
+ERR_VALUE utils_Fclose(FILE *Stream);
 
 ERR_VALUE utils_malloc(const size_t Size, void **Address);
 ERR_VALUE utils_calloc(const size_t Count, const size_t Size, void **Address);

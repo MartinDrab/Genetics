@@ -112,24 +112,28 @@ static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot(const struct _KMER_EDGE_
 }
 
 
-void _on_insert_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData, const uint32_t Order)
+
+static void _on_insert_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData, const uint32_t Order)
 {
 	return;
 }
 
-void _on_delete_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData)
+
+static void _on_delete_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData)
 {
 	return;
 }
 
-ERR_VALUE _on_copy_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData, void **Copy)
+
+static ERR_VALUE _on_copy_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData, void **Copy)
 {
 	*Copy = ItemData;
 
 	return ERR_SUCCESS;
 }
 
-void _on_print_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData, FILE *Stream)
+
+static void _on_print_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData, FILE *Stream)
 {
 	return;
 }
@@ -268,10 +272,10 @@ ERR_VALUE kmer_edge_table_copy(const PKMER_EDGE_TABLE Source, PKMER_EDGE_TABLE *
 					destEntry->Dest = NULL;
 					destEntry->Data = NULL;
 					if (!sourceEntry->Deleted) {
-						destEntry->Source = kmer_copy(sourceEntry->Source);
-						if (destEntry->Source != NULL) {
-							destEntry->Dest = kmer_copy(sourceEntry->Dest);
-							if (destEntry->Dest != NULL) {
+						ret = kmer_copy(&destEntry->Source, sourceEntry->Source);
+						if (ret == ERR_SUCCESS) {
+							ret = kmer_copy(&destEntry->Dest, sourceEntry->Dest);
+							if (ret == ERR_SUCCESS) {
 								ret = Source->Callbacks.OnCopy(Source, sourceEntry->Data, &destEntry->Data);
 								if (ret == ERR_SUCCESS) {
 									tmpTable->Callbacks.OnInsert(tmpTable, destEntry->Data, tmpTable->LastOrder);
@@ -282,13 +286,13 @@ ERR_VALUE kmer_edge_table_copy(const PKMER_EDGE_TABLE Source, PKMER_EDGE_TABLE *
 									kmer_free(destEntry->Dest);
 									destEntry->Dest = NULL;
 								}
-							} else ret = ERR_OUT_OF_MEMORY;
+							}
 
 							if (ret != ERR_SUCCESS) {
 								kmer_free(destEntry->Source);
 								destEntry->Source = NULL;
 							}
-						} else ret = ERR_OUT_OF_MEMORY;
+						}
 					}
 				}
 
@@ -388,21 +392,21 @@ ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const PKMER Source, con
 		if (_kmer_edge_table_entry_empty(entry)) {
 			oldDeleted = entry->Deleted;
 			entry->Deleted = FALSE;
-			entry->Source = kmer_copy(Source);
-			if (entry->Source != NULL) {
-				entry->Dest = kmer_copy(Dest);
-				if (entry->Dest != NULL) {
+			ret = kmer_copy(&entry->Source, Source);
+			if (ret == ERR_SUCCESS) {
+				ret = kmer_copy(&entry->Dest, Dest);
+				if (ret == ERR_SUCCESS) {
 					entry->Data = Data;
 					Table->Callbacks.OnInsert(Table, Data, Table->LastOrder);
 					Table->LastOrder++;
 					ret = ERR_SUCCESS;
-				} else ret = ERR_OUT_OF_MEMORY;
+				}
 
 				if (ret != ERR_SUCCESS) {
 					kmer_free(entry->Source);
 					entry->Source = NULL;
 				}
-			} else ret = ERR_OUT_OF_MEMORY;
+			}
 
 			if (ret != ERR_SUCCESS)
 				entry->Deleted = oldDeleted;

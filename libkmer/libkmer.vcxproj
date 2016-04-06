@@ -24,13 +24,16 @@
     <ClCompile Include="..\shared\paths.c" />
     <ClCompile Include="..\shared\utils.c" />
     <ClCompile Include="assembly.c" />
+    <ClCompile Include="found-sequence.c" />
     <ClCompile Include="kmer-edge.c" />
     <ClCompile Include="kmer-graph.c" />
     <ClCompile Include="kmer-table.c" />
     <ClCompile Include="kmer.c" />
+    <ClCompile Include="read-info.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\assembly.h" />
+    <ClInclude Include="..\include\found-sequence.h" />
     <ClInclude Include="..\include\kmer-edge.h" />
     <ClInclude Include="..\include\kmer-graph.h" />
     <ClInclude Include="..\include\kmer-table.h" />
@@ -39,8 +42,11 @@
     <ClInclude Include="..\shared\dym-array.h" />
     <ClInclude Include="..\shared\err.h" />
     <ClInclude Include="..\shared\general-queue.h" />
+    <ClInclude Include="..\shared\gen_dym_array.h" />
     <ClInclude Include="..\shared\paths.h" />
     <ClInclude Include="..\shared\utils.h" />
+    <ClInclude Include="graph-reads.h" />
+    <ClInclude Include="read-info.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}</ProjectGuid>
@@ -114,6 +120,8 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PreprocessToFile>false</PreprocessToFile>
+      <AdditionalIncludeDirectories>..\libkmer;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -128,6 +136,8 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PreprocessToFile>false</PreprocessToFile>
+      <AdditionalIncludeDirectories>..\libkmer;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -144,6 +154,8 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PreprocessToFile>false</PreprocessToFile>
+      <AdditionalIncludeDirectories>..\libkmer;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -162,6 +174,8 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PreprocessToFile>false</PreprocessToFile>
+      <AdditionalIncludeDirectories>..\libkmer;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

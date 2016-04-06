@@ -108,6 +108,32 @@ static PKMER_TABLE_ENTRY _kmer_table_get_slot(const KMER_TABLE *Table, const KME
 }
 
 
+static void _on_insert_dummy_callback(struct _KMER_TABLE *Table, void *ItemData, const uint32_t Order)
+{
+	return;
+}
+
+
+static void _on_delete_dummy_callback(struct _KMER_TABLE *Table, void *ItemData)
+{
+	return;
+}
+
+
+static ERR_VALUE _on_copy_dummy_callback(struct _KMER_TABLE *Table, void *ItemData, void **Copy)
+{
+	*Copy = ItemData;
+
+	return ERR_SUCCESS;
+}
+
+
+static void _on_print_dummy_callback(struct _KMER_TABLE *Table, void *ItemData, FILE *Stream)
+{
+	return;
+}
+
+
 /************************************************************************/
 /*                  PUBLIC FUNCTIONS                                    */
 /************************************************************************/
@@ -125,7 +151,13 @@ ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t X, const size_t 
 			tmpTable->X = X;
 			tmpTable->KMerSize = KMerSize;
 			tmpTable->PowX = utils_pow_mod(tmpTable->X, KMerSize - 1, tmpTable->Size);
-			tmpTable->Callbacks = *Callbacks;
+			if (Callbacks == NULL) {
+				tmpTable->Callbacks.OnInsert = _on_insert_dummy_callback;
+				tmpTable->Callbacks.OnDelete = _on_delete_dummy_callback;
+				tmpTable->Callbacks.OnCopy = _on_copy_dummy_callback;
+				tmpTable->Callbacks.OnPrint = _on_print_dummy_callback;
+			} else tmpTable->Callbacks = *Callbacks;
+
 			ret = utils_mul_inverse(X, Size, &tmpTable->Inverse);
 			if (ret == ERR_SUCCESS) {
 				assert((X*tmpTable->Inverse % Size) == 1);
@@ -228,14 +260,14 @@ ERR_VALUE kmer_table_copy(const PKMER_TABLE Source, PKMER_TABLE * Copied)
 				if (!_kmer_table_entry_empty(sourceEntry) || sourceEntry->Deleted) {
 					memcpy(destEntry, sourceEntry, sizeof(KMER_TABLE_ENTRY));
 					if (sourceEntry->KMer != NULL) {
-						destEntry->KMer = kmer_copy(sourceEntry->KMer);
-						if (destEntry->KMer != NULL) {
+						ret = kmer_copy(&destEntry->KMer, sourceEntry->KMer);
+						if (ret == ERR_SUCCESS) {
 							ret = Source->Callbacks.OnCopy(Source, sourceEntry->Data, &destEntry->Data);
 							if (ret == ERR_SUCCESS) {
 								tmpTable->Callbacks.OnInsert(tmpTable, destEntry->Data, tmpTable->LastOrder);
 								tmpTable->LastOrder++;
 							}
-						} else ret = ERR_OUT_OF_MEMORY;
+						}
 					}
 				}
 
@@ -295,9 +327,8 @@ ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const KMER *KMer, void *Data)
 	if (entry != NULL) {
 		if (_kmer_table_entry_empty(entry)) {
 			entry->Deleted = FALSE;
-			entry->KMer = kmer_copy(KMer);
+			ret = kmer_copy(&entry->KMer, KMer);
 			entry->Data = Data;
-			ret = (!_kmer_table_entry_empty(entry)) ? ERR_SUCCESS : ERR_OUT_OF_MEMORY;
 			if (ret == ERR_SUCCESS) {
 				Table->Callbacks.OnInsert(Table, entry->Data, Table->LastOrder);
 				++Table->LastOrder;
@@ -339,8 +370,7 @@ ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const PKMER KMer, const size
 		if (_kmer_table_entry_empty(entry)) {
 			entry->Deleted = FALSE;
 			entry->Data = Data;
-			entry->KMer = kmer_copy(KMer);
-			ret = (_kmer_table_entry_empty(entry)) ? ERR_SUCCESS : ERR_OUT_OF_MEMORY;
+			ret = kmer_copy(&entry->KMer, KMer);
 			if (ret == ERR_SUCCESS) {
 				Table->Callbacks.OnInsert(Table, entry->Data, Table->LastOrder);
 				++Table->LastOrder;

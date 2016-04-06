@@ -53,5 +53,7 @@ typedef int ERR_VALUE;
 #define ERR_TRIANGLE							42
 #define ERR_NOT_ADJACENT						43
 
+#define ERR_IO_ERROR							50
+
 
 #endif 

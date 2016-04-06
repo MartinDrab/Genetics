@@ -27,7 +27,7 @@ typedef struct _KMER {
 #define kmer_get_number(aKMer)					((aKMer)->Number)
 #define kmer_set_number(aKMer, aNumber)			((aKMer)->Number = (aNumber))
 
-PKMER kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Sequence);
+ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Sequence, PKMER *KMer);
 #define KMER_STACK_ALLOC(aVariable, aNumber, aSize, aSequence)				\
 	{																		\
 		aVariable = (PKMER)alloca(sizeof(KMER) + aSize*sizeof(char));		\
@@ -39,7 +39,7 @@ PKMER kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Sequenc
 void kmer_init(PKMER KMer, const char *Sequence);
 void kmer_init_from_kmer(PKMER Dest, const KMER *Source);
 void kmer_free(PKMER KMer);
-PKMER kmer_copy(const KMER *KMer);
+ERR_VALUE kmer_copy(PKMER *Dest, const KMER *KMer);
 void kmer_advance(PKMER KMer, const char Base);
 void kmer_back(PKMER KMer, const char Base);
 boolean kmer_equal(const KMER *K1, const KMER *K2);

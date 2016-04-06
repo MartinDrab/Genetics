@@ -194,7 +194,9 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 		ret = option_get_Double(PROGRAM_OPTION_DELETE_RATIO, &Options->DeleteRatio);
 
 	if (ret == ERR_SUCCESS) {
-		ret = option_get_String(PROGRAM_OPTION_SEQUENCE, &Options->ReferenceSequence);
+		char *rs = NULL;
+		ret = option_get_String(PROGRAM_OPTION_SEQUENCE, &rs);
+		Options->ReferenceSequence = rs;
 		if (ret == ERR_SUCCESS && *Options->ReferenceSequence == '\0')
 			ret = option_get_String(PROGRAM_OPTION_SEQFILE, &Options->RefSeqFile);
 	}
@@ -233,61 +235,62 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 }
 
 
-static void _compare_alternate_sequences(const struct _PROGRAM_OPTIONS *Options, const struct _KMER_GRAPH *Graph, const size_t AlternateCount, const char *Alternates[], const size_t AlternatesLen[], PPROGRAM_STATISTICS Statistics)
+static void _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, const KMER_GRAPH *Graph, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
 {
 	boolean notFound = FALSE;
-	DYM_ARRAY seqArray;
+	GEN_ARRAY_PFOUND_SEQUENCE seqArray;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	const char *alternates[2];
+	size_t alternateLens[2];
 
-	dym_array_create(&seqArray, 140);
+	alternates[0] = Task->Alternate1;
+	alternates[1] = Task->Alternate2;
+	alternateLens[0] = Task->Alternate1Length;
+	alternateLens[1] = Task->Alternate2Length;
+	dym_array_init_PFOUND_SEQUENCE(&seqArray, 140);
 	ret = kmer_graph_get_seqs(Graph, &seqArray);
-	if (ret == ERR_SUCCESS) {		
-		for (size_t i = 0; i < AlternateCount; ++i) {
+	if (ret == ERR_SUCCESS) {
+		printf("%u\n", (uint32_t)gen_array_size(&seqArray));
+		for (size_t i = 0; i < sizeof(alternateLens) / sizeof(size_t); ++i) {
 			boolean found = FALSE;
 
-			for (size_t j = 0; j < dym_array_size(&seqArray); ++j) {
-				char *seq = (char *)dym_array_get(&seqArray, j);
-				size_t l = strlen(seq);
-				
-				if (l == AlternatesLen[i] && memcmp(seq, Alternates[i], l*sizeof(char)) == 0) {
-					found = TRUE;
+			for (size_t j = 0; j < gen_array_size(&seqArray); ++j) {
+				const FOUND_SEQUENCE *fs = *dym_array_item_PFOUND_SEQUENCE(&seqArray, j);
+
+				found = found_sequence_match(fs, alternates[i], alternateLens[i]);
+				if (found)
 					break;
-				}
 			}
 
 			if (!found) {
 				notFound = TRUE;
-				/*
-				printf("REFSEQ: %s\n", Options->ReferenceSequence);
-				printf("ALT0:   %s\n", Alternates[0]);
-				printf("ALT1:   %s\n", Alternates[1]);
-				for (size_t j = 0; j < dym_array_size(&seqArray); ++j)
-					printf("FOUND:  %s\n", dym_array_get(&seqArray, j));
-				kmer_graph_print(stderr, Graph);
-				exit(0);
-				*/
+//				fprintf(stderr, "RS:   %s\n", Task->Reference);
+//				fprintf(stderr, "ALT1: %s\n", Task->Alternate1);
+//				fprintf(stderr, "ALT2: %s\n", Task->Alternate2);
+//				kmer_graph_print(stderr, Graph);
+//				exit(0);
 				break;
 			}
 		}
 	} else printf("ERROR: kmer_graph_get_seqs(): %u\n", ret);
+	
+	for (size_t j = 0; j < gen_array_size(&seqArray); ++j)
+		found_sequence_free(*dym_array_item_PFOUND_SEQUENCE(&seqArray, j));
 
-	for (size_t j = 0; j < dym_array_size(&seqArray); ++j)
-		utils_free(dym_array_get(&seqArray, j));
-
-	dym_array_destroy(&seqArray);
+	dym_array_finit_PFOUND_SEQUENCE(&seqArray);
 	if (notFound) {
 		++Statistics->FailureCount;
-		printf("OK\n");
+		printf("FAILD\n");
 	} else {
 		++Statistics->SuccessCount;
-		printf("FAILD\n");
+		printf("OK\n");
 	}
 
 	return;
 }
 
 
-static void _compute_graph(const struct _PROGRAM_OPTIONS *Options, const ONE_READ *ReadSet, const char *RefSeq, const size_t AlternateCount, const char *Alternates[], const size_t AlternateLens[], PPROGRAM_STATISTICS Statistics)
+static void _compute_graph(const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
 {
 	PKMER_GRAPH g = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -297,24 +300,29 @@ static void _compute_graph(const struct _PROGRAM_OPTIONS *Options, const ONE_REA
 	Statistics->CannotSucceed = 0;
 		ret = kmer_graph_create(Options->KMerSize, &g);
 		if (ret == ERR_SUCCESS) {
-			ret = kmer_graph_parse_ref_sequence(g, RefSeq, Options->RegionLength, Options->Threshold);
+			ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength, Options->Threshold);
 			if (ret == ERR_SUCCESS) {
-				ret = kmer_graph_parse_reads(g, ReadSet, Options->ReadCount);
+				ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount);
 				if (ret == ERR_SUCCESS) {
 					size_t deletedThings = 0;
 
 					kmer_graph_delete_edges_under_threshold(g, Options->Threshold);
 					kmer_graph_delete_trailing_things(g, &deletedThings);
 					if (deletedThings == 0) {
-						kmer_graph_delete_1to1_vertices(g);
-//						ret = kmer_graph_resolve_bubbles(g, Options->Threshold);
+						ret = kmer_graph_connect_reads(g, Options->Threshold);
 						if (ret == ERR_SUCCESS) {
-							_compare_alternate_sequences(Options, g, AlternateCount, Alternates, AlternateLens, Statistics);
-							
-						} else printf("ERROR: kmer_graph_resolve_bubbles(): %u\n", ret);
+							kmer_graph_delete_1to1_vertices(g);
+//							ret = kmer_graph_resolve_bubbles(g, Options->Threshold);
+							if (ret == ERR_SUCCESS) {
+								ret = kmer_graph_detect_uncertainities(g);
+								if (ret == ERR_SUCCESS)
+									_compare_alternate_sequences(Options, g, Task, Statistics);
+								else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
+							} else printf("ERROR: kmer_graph_resolve_bubbles(): %u\n", ret);
+						} else printf("kmer_graph_connect_reads(): %u", ret);
 					} else {
-						Statistics->FailureCount++;
-						printf("Some trailing vertices were deleted, so we cannot get both alternate sequences\n");
+						printf("kmer_graph_delete_trailing_things(): deleted something, cannot proceed successfully\n");
+						Statistics->CannotSucceed++;
 					}
 				} else printf("kmer_graph_parse_reads(): %u\n", ret);
 			} else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
@@ -355,6 +363,7 @@ static ERR_VALUE _create_alternatce_sequence(const PROGRAM_OPTIONS *Options, con
 
 	ret = utils_calloc(tmpAlternateLen + 1, sizeof(char), &rsCopy);
 	if (ret == ERR_SUCCESS) {
+		tmpAlternateLen /= 2;
 		memcpy(rsCopy, RefSeq, RefSeqLen*sizeof(char));
 		if (Options->SNPRatio > 0 || Options->InsertRatio > 0 || Options->DeleteRatio > 0) {
 			size_t spmBorder = ceil(Options->SNPRatio*RefSeqLen);
@@ -398,7 +407,7 @@ static ERR_VALUE _create_alternatce_sequence(const PROGRAM_OPTIONS *Options, con
 					memmove(rsCopy + pos + 1, rsCopy + pos, RefSeqLen - pos + 1);
 					rsCopy[pos] = _rand_nucleotide();
 					for (size_t j = 0; j < dym_array_size(&deletePositions); ++j) {
-						size_t *ppos = (size_t)(dym_array_data(&deletePositions) + j);
+						size_t *ppos = (size_t *)(dym_array_data(&deletePositions) + j);
 
 						if (*ppos >= pos)
 							*ppos++;
@@ -435,8 +444,9 @@ static ERR_VALUE _create_alternatce_sequence(const PROGRAM_OPTIONS *Options, con
 
 static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, PPROGRAM_STATISTICS Statistics)
 {
+	ASSEMBLY_TASK task;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	
+
 	ret = ERR_SUCCESS;
 	memset(Statistics, 0, sizeof(PROGRAM_STATISTICS));
 	if (Options->ReadCount > 0 && Options->TestReadCycles > 0) {
@@ -472,16 +482,24 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 
 							ret = read_set_merge(&finalReadSet, Options->ReadCount / 2, reads2, Options->ReadCount / 2);
 							if (ret == ERR_SUCCESS) {
+								char *rs = NULL;
 								PROGRAM_STATISTICS stats;
-								char *alternates[] = {alternate, alternate2};
-								size_t alternateLens[] = {alternateLen, alternateLen2};
 
 								reads1 = NULL;
 								reads2 = NULL;
-								_compute_graph(Options, finalReadSet, RefSeq, sizeof(alternates) / sizeof(char *), alternates, alternateLens, &stats);
-								Statistics->FailureCount += stats.FailureCount;
-								Statistics->SuccessCount += stats.SuccessCount;
-								Statistics->CannotSucceed += stats.CannotSucceed;
+								ret = utils_calloc(Options->RegionLength + 1, sizeof(char), &rs);
+								if (ret == ERR_SUCCESS) {
+									memcpy(rs, RefSeq, Options->RegionLength*sizeof(char));
+									rs[Options->RegionLength] = '\0';
+									assembly_task_init(&task, rs, Options->RegionLength, alternate, alternateLen, alternate2, alternateLen2, finalReadSet, Options->ReadCount);
+									_compute_graph(Options, &task, &stats);
+									assembly_task_finit(&task);
+									Statistics->FailureCount += stats.FailureCount;
+									Statistics->SuccessCount += stats.SuccessCount;
+									Statistics->CannotSucceed += stats.CannotSucceed;
+									utils_free(rs);
+								}
+
 								read_set_destroy(finalReadSet, Options->ReadCount);
 							}
 
@@ -504,8 +522,11 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 			if (ret != ERR_SUCCESS)
 				break;
 		}
-	} else _compute_graph(Options, NULL, RefSeq, 1, &RefSeq, &Options->RegionLength, Statistics);
-	
+	} else {
+		assembly_task_init(&task, RefSeq, Options->RegionLength, RefSeq, Options->RegionLength, RefSeq, Options->RegionLength, NULL, 0);
+		_compute_graph(Options, &task, Statistics);
+		assembly_task_finit(&task);
+	}
 
 	return ret;
 }
@@ -569,7 +590,9 @@ int main(int argc, char *argv[])
 							if (!explicitSequence) {
 								ret = fasta_load(po.RefSeqFile, &seqFile);
 								if (ret == ERR_SUCCESS) {
-									ret = fasta_read_seq(&seqFile, &po.ReferenceSequence, &refSeqLen);
+									char *rs = NULL;
+									ret = fasta_read_seq(&seqFile, &rs, &refSeqLen);
+									po.ReferenceSequence = rs;
 									if (ret != ERR_SUCCESS)
 										fasta_free(&seqFile);
 								}
@@ -581,8 +604,7 @@ int main(int argc, char *argv[])
 								do {
 									size_t regionCount = 0;
 									PACTIVE_REGION regions = NULL;
-									char *origRefSeq = po.ReferenceSequence;
-
+									
 									ret = input_refseq_to_regions(po.ReferenceSequence, refSeqLen, &regions, &regionCount);
 									if (ret == ERR_SUCCESS) {
 										printf("Going through a reference sequence of length %" PRIu64 " MBases with %u regions...\n", (uint64_t)refSeqLen / 1000000, regionCount);
@@ -608,6 +630,19 @@ int main(int argc, char *argv[])
 														st.CannotSucceed += tmpstats.CannotSucceed;
 													}
 												}
+
+												if (pa->Length == po.RegionLength) {
+													const char *refSeq = pa->Sequence;
+													PROGRAM_STATISTICS tmpstats;
+
+													ret = _test_with_reads(&po, refSeq, &tmpstats);
+													if (ret == ERR_SUCCESS) {
+														++numberOfAttempts;
+														st.FailureCount += tmpstats.FailureCount;
+														st.SuccessCount += tmpstats.SuccessCount;
+														st.CannotSucceed += tmpstats.CannotSucceed;
+													}
+												}
 											}
 
 											++pa;
@@ -616,10 +651,12 @@ int main(int argc, char *argv[])
 										input_free_regions(regions, regionCount);
 									}
 
-									po.ReferenceSequence = origRefSeq;
 									if (!explicitSequence) {
+										char *rs = NULL;
+
 										utils_free(po.ReferenceSequence);
-										ret = fasta_read_seq(&seqFile, &po.ReferenceSequence, &refSeqLen);
+										ret = fasta_read_seq(&seqFile, &rs, &refSeqLen);
+										po.ReferenceSequence = rs;
 									}
 								} while (ret == ERR_SUCCESS && !explicitSequence);
 
@@ -639,8 +676,10 @@ int main(int argc, char *argv[])
 						ret = fasta_load(po.RefSeqFile, &seqFile);
 						if (ret == ERR_SUCCESS) {
 							size_t refSeqLen = 0;
+							char *rs = NULL;
 
-							ret = fasta_read_seq(&seqFile, &po.ReferenceSequence, &refSeqLen);
+							ret = fasta_read_seq(&seqFile, &rs, &refSeqLen);
+							po.ReferenceSequence = rs;
 							if (ret == ERR_SUCCESS) {
 								size_t regionCount = 0;
 								PACTIVE_REGION regions = NULL;
@@ -655,13 +694,17 @@ int main(int argc, char *argv[])
 										PACTIVE_REGION r = regions + index;
 
 										if (r->Type == artValid) {
+											ASSEMBLY_TASK task;
+											
 											po.ReferenceSequence = r->Sequence + regionOffset;
 											if (r->Length - regionOffset < po.RegionLength)
 												po.RegionLength = r->Length - regionOffset;
 
 											printf("kmer size: %u\n", po.KMerSize);
 											printf("Active region (%" PRIu64 "; %u; %u)...\n", po.RegionStart, po.RegionLength, index);
-											_compute_graph(&po, po.Reads, po.ReferenceSequence, 1, &po.ReferenceSequence, &po.RegionLength, &st);
+											assembly_task_init(&task, po.ReferenceSequence, po.RegionLength, po.ReferenceSequence, po.RegionLength, po.ReferenceSequence, po.RegionLength, po.Reads, po.ReadCount);
+											_compute_graph(&po, &task, &st);
+											assembly_task_finit(&task);
 										} else printf("ERROR: The active region (%" PRIu64 "; %u; %u) does not specify a readable part of the reference sequence\n", po.RegionStart, po.RegionLength, index);
 									}
 

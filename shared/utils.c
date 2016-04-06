@@ -191,13 +191,68 @@ size_t utils_pow_mod(const size_t Base, const size_t Power, const size_t Modulus
 }
 
 
+ERR_VALUE utils_fopen(const char *FileName, const uint32_t Mode, FILE **Stream)
+{
+	FILE *tmpStream = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	char *strModes[] = {
+		"",
+		"rb",
+		"wb",
+		"wb+"
+		"ab",
+		"rb",
+		"wb",
+		"wb+"
+	};
+
+#pragma warning(disable : 4996)
+	tmpStream = fopen(FileName, strModes[Mode]);
+	if (tmpStream != NULL) {
+		*Stream = tmpStream;
+		ret = ERR_SUCCESS;
+	} else ret = ERR_IO_ERROR;
+
+	return ret;
+}
+
+
+ERR_VALUE utils_fread(void *Buffer, const size_t Size, const size_t Count, FILE *Stream)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = ERR_SUCCESS;
+	if (fread(Buffer, Size, Count, Stream) != Count)
+		ret = ERR_IO_ERROR;
+
+	return ret;
+}
+
+
+ERR_VALUE utils_fwrite(const void *Buffer, const size_t Size, const size_t Count, FILE *Stream)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = ERR_SUCCESS;
+	if (fwrite(Buffer, Size, Count, Stream) != Count)
+		ret = ERR_IO_ERROR;
+
+	return ret;
+}
+
+
+ERR_VALUE utils_fclose(FILE *Stream)
+{
+	return (fclose(Stream) == 0) ? ERR_SUCCESS : ERR_IO_ERROR;
+}
+
 
 ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength)
 {
 	FILE *f = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	f = fopen(FileName, "rb");
+	ret = utils_fopen(FileName, FOPEN_MODE_READ, &f);
 	if (f != NULL) {
 #ifdef _MSC_VER
 		ret = _fseeki64(f, 0, SEEK_END);
@@ -223,21 +278,21 @@ ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength)
 
 					ret = utils_malloc(tmpSize + sizeof(char), &tmpData);
 					if (ret == ERR_SUCCESS) {
-						if (fread(tmpData, 1, tmpSize, f) == tmpSize) {
+						ret = utils_fread(tmpData, 1, tmpSize, f);
+						if (ret == ERR_SUCCESS) {
 							tmpData[tmpSize] = 0;
 							*Data = tmpData;
 							*DataLength = tmpSize;
-							ret = ERR_SUCCESS;
-						} else ret = ERR_FERROR;
+						}
 
 						if (ret != ERR_SUCCESS)
 							utils_free(tmpData);
 					}
-				} else ret = ERR_INTERNAL_ERROR;
-			} else ret = ERR_ERRNO_VALUE;
-		} else ret = ERR_INTERNAL_ERROR;
+				} else ret = ERR_IO_ERROR;
+			} else ret = ERR_IO_ERROR;
+		} else ret = ERR_IO_ERROR;
 
-		fclose(f);
+		utils_fclose(f);
 	}
 
 	return ret;

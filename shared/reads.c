@@ -380,3 +380,237 @@ ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ON
 
 	return ret;
 }
+
+
+ERR_VALUE read_save(FILE *Stream, const ONE_READ *Read)
+{
+	const uint32_t rsLen32 = (uint32_t)Read->ReadSequenceLen;
+	const uint32_t qLen32 = (uint32_t)Read->QualityLen;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_fwrite(&rsLen32, sizeof(rsLen32), 1, Stream);
+	if (ret == ERR_SUCCESS) 
+		ret = utils_fwrite(Read->ReadSequence, sizeof(char), Read->ReadSequenceLen, Stream);
+		
+	if (ret == ERR_SUCCESS) 
+		ret = utils_fwrite(&qLen32, sizeof(qLen32), 1, Stream);
+			
+	if (ret == ERR_SUCCESS) 
+		ret = utils_fwrite(Read->Quality, sizeof(uint8_t), Read->QualityLen, Stream);
+				
+	if (ret == ERR_SUCCESS) 
+		ret = utils_fwrite(&Read->Pos, sizeof(Read->Pos), 1, Stream);
+					
+	if (ret == ERR_SUCCESS) 
+		ret = utils_fwrite(&Read->PosQuality, sizeof(Read->PosQuality), 1, Stream);
+						
+	if (ret == ERR_SUCCESS)
+		ret = utils_fwrite(&Read->Flags, sizeof(Read->Flags), 1, Stream);
+
+	return ret;
+}
+
+
+ERR_VALUE read_load(FILE *Stream, PONE_READ Read)
+{
+	uint32_t rsLen32 = 0;
+	uint32_t qLen32 = 0;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	memset(Read, 0, sizeof(ONE_READ));
+	ret = utils_fread(&rsLen32, sizeof(rsLen32), 1, Stream);
+	if (ret == ERR_SUCCESS) {
+		Read->ReadSequenceLen = rsLen32;
+		ret = utils_calloc(Read->ReadSequenceLen + 1, sizeof(char), &Read->ReadSequence);
+		if (ret == ERR_SUCCESS) {
+			Read->ReadSequence[Read->ReadSequenceLen] = '\0';
+			ret = utils_fread(Read->ReadSequence, sizeof(char), Read->ReadSequenceLen, Stream);
+			if (ret == ERR_SUCCESS) {
+				ret = utils_fread(&qLen32, sizeof(qLen32), 1, Stream);
+				if (ret == ERR_SUCCESS) {
+					Read->QualityLen = qLen32;
+					ret = utils_calloc(Read->QualityLen, sizeof(uint8_t), &Read->Quality);
+					if (ret == ERR_SUCCESS) {
+						ret = utils_fread(Read->Quality, sizeof(uint8_t), Read->QualityLen, Stream);
+						if (ret == ERR_SUCCESS) {
+							ret = utils_fread(&Read->Pos, sizeof(Read->Pos), 1, Stream);
+							if (ret == ERR_SUCCESS) {
+								ret = utils_fread(&Read->PosQuality, sizeof(Read->PosQuality), 1, Stream);
+								if (ret == ERR_SUCCESS)
+									ret = utils_fread(&Read->Flags, sizeof(Read->Flags), 1, Stream);
+							}
+						}
+					
+						if (ret != ERR_SUCCESS)
+							utils_free(Read->Quality);
+					}
+				}
+			}
+
+			if (ret != ERR_SUCCESS)
+				utils_free(Read->ReadSequence);
+		}
+	}
+
+	return ret;
+}
+
+
+ERR_VALUE read_set_save(FILE *Stream, const ONE_READ *ReadSet, const size_t Count)
+{
+	const uint32_t count32 = (uint32_t)Count;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_fwrite(&count32, sizeof(count32), 1, Stream);
+	if (ret == ERR_SUCCESS) {
+		for (uint32_t i = 0; i < count32; ++i) {
+			ret = read_save(Stream, ReadSet + i);
+			if (ret != ERR_SUCCESS)
+				break;
+		}
+	}
+
+	return ret;
+}
+
+
+ERR_VALUE read_set_load(FILE *Stream, PONE_READ *ReadSet, size_t *Count)
+{
+	uint32_t count32 = 0;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	PONE_READ tmpReadSet = NULL;
+
+	ret = utils_fread(&count32, sizeof(count32), 1, Stream);
+	if (ret == ERR_SUCCESS) {
+		ret = utils_calloc(count32, sizeof(ONE_READ), &tmpReadSet);
+		if (ret == ERR_SUCCESS) {
+			for (uint32_t i = 0; i < count32; ++i) {
+				ret = read_load(Stream, tmpReadSet + i);
+				if (ret != ERR_SUCCESS) {
+					for (uint32_t j = 0; j < i; ++j)
+						_read_destroy_structure(tmpReadSet + j);
+					
+					break;
+				}
+			}
+
+			if (ret == ERR_SUCCESS) {
+				*ReadSet = tmpReadSet;
+				*Count = count32;
+			}
+
+			if (ret != ERR_SUCCESS)
+				utils_free(tmpReadSet);
+		}
+	}
+
+	return ret;
+}
+
+
+ERR_VALUE seq_save(FILE *Stream, const char *RefSeq, const size_t Length)
+{
+	const uint32_t length32 = (uint32_t)Length;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_fwrite(&length32, sizeof(length32), 1, Stream);
+	if (ret == ERR_SUCCESS)
+		ret = utils_fwrite(RefSeq, sizeof(char), length32, Stream);
+
+	return ret;
+}
+
+
+ERR_VALUE seq_load(FILE *Stream, char **RefSeq, size_t *Length)
+{
+	char *tmpSeq = NULL;
+	uint32_t length32 = 0;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_fread(&length32, sizeof(length32), 1, Stream);
+	if (ret == ERR_SUCCESS) {
+		ret = utils_calloc(length32 + 1, sizeof(char), &tmpSeq);
+		if (ret == ERR_SUCCESS) {
+			tmpSeq[length32] = '\0';
+			ret = utils_fread(tmpSeq, sizeof(char), length32, Stream);
+			if (ret == ERR_SUCCESS) {
+				*RefSeq = tmpSeq;
+				*Length = length32;
+			}
+
+			if (ret != ERR_SUCCESS)
+				utils_free(tmpSeq);
+		}
+	}
+
+	return ret;
+}
+
+
+void assembly_task_init(PASSEMBLY_TASK Task, const char *RefSeq, const size_t RefSeqLen, const char *Alternate1, const size_t Alternate1Length, const char *Alternate2, const size_t Alternate2Length, const ONE_READ *ReadSet, const size_t ReadCount)
+{
+	Task->Allocated = FALSE;
+	Task->Reference = RefSeq;
+	Task->ReferenceLength = RefSeqLen;
+	Task->Alternate1 = Alternate1;
+	Task->Alternate2 = Alternate2;
+	Task->Alternate1Length = Alternate1Length;
+	Task->Alternate2Length = Alternate2Length;
+	Task->Reads = ReadSet;
+	Task->ReadCount = ReadCount;
+	
+	return;
+}
+
+
+void assembly_task_finit(PASSEMBLY_TASK Task)
+{
+	if (Task->Allocated) {
+		read_set_destroy(Task->Reads, Task->ReadCount);
+		utils_free(Task->Alternate2);
+		utils_free(Task->Alternate1);
+		utils_free(Task->Reference);
+	}
+
+	return;
+}
+
+
+ERR_VALUE assembly_task_save(FILE *Stream, const ASSEMBLY_TASK *Task)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = seq_save(Stream, Task->Reference, Task->ReferenceLength);
+	if (ret == ERR_SUCCESS)
+		ret = seq_save(Stream, Task->Alternate1, Task->Alternate1Length);
+	
+	if (ret == ERR_SUCCESS)
+		ret = seq_save(Stream, Task->Alternate2, Task->Alternate2Length);
+	
+	if (ret == ERR_SUCCESS)
+		ret = read_set_save(Stream, Task->Reads, Task->ReadCount);
+
+	return ret;
+}
+
+
+ERR_VALUE assembly_task_load(FILE *Stream, PASSEMBLY_TASK Task)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	memset(Task, 0, sizeof(ASSEMBLY_TASK));
+	ret = seq_load(Stream, &Task->Reference, &Task->ReferenceLength);
+	if (ret == ERR_SUCCESS)
+		ret = seq_load(Stream, &Task->Alternate1, &Task->Alternate1Length);
+
+	if (ret == ERR_SUCCESS)
+		ret = seq_load(Stream, &Task->Alternate2, &Task->Alternate2Length);
+
+	if (ret == ERR_SUCCESS)
+		ret = read_set_load(Stream, &Task->Reads, &Task->ReadCount);
+
+	if (ret == ERR_SUCCESS)
+		Task->Allocated = TRUE;
+
+	return ret;
+}

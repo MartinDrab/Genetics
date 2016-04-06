@@ -13,15 +13,17 @@
 /*                     PUBLIC FUNCTIONS                                 */
 /************************************************************************/
 
-PKMER kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Sequence)
+ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Sequence, PKMER *KMer)
 {
-	PKMER ret = NULL;
+	PKMER tmpKMer = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = (PKMER)malloc(sizeof(KMER) + Size*sizeof(char));
-	if (ret != NULL) {
-		ret->Size = Size;
-		ret->Number = Number;
-		kmer_init(ret, Sequence);
+	ret = utils_malloc(sizeof(KMER) + Size*sizeof(char), &tmpKMer);
+	if (ret == ERR_SUCCESS) {
+		tmpKMer->Number = Number;
+		tmpKMer->Size = Size;
+		kmer_init(tmpKMer, Sequence);
+		*KMer = tmpKMer;
 	}
 
 	return ret;
@@ -52,9 +54,9 @@ void kmer_free(PKMER KMer)
 	return;
 }
 
-PKMER kmer_copy(const KMER *KMer)
+ERR_VALUE kmer_copy(PKMER *Dest, const KMER *KMer)
 {
-	return kmer_alloc(KMer->Number, KMer->Size, KMer->Bases);
+	return kmer_alloc(KMer->Number, KMer->Size, KMer->Bases, Dest);
 }
 
 
