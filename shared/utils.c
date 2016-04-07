@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <math.h>
 #include "err.h"
+#include "librandom.h"
 #include "utils.h"
 
 
@@ -90,7 +91,7 @@ void utils_free_string(char *String)
 size_t utils_ranged_rand(const size_t Begin, const size_t End)
 {
 	assert(End > Begin);
-	return ((rand() % (End - Begin)) + Begin);
+	return ((rand_C() % (End - Begin)) + Begin);
 }
 
 

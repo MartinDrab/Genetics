@@ -3,19 +3,18 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.40302.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gengen", "gengen\gengen.vcxproj", "{97077DA9-D3EF-4953-ACD2-B07FB4C5D14F}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libkmer", "libkmer\libkmer.vcxproj", "{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kgraph", "kgraph\kgraph.vcxproj", "{DD15D856-4EBD-4F7F-865A-468937E94E88}"
 	ProjectSection(ProjectDependencies) = postProject
-		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C} = {59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}
+		{F7A7B154-524D-4708-AFEB-EDE03D1C3983} = {F7A7B154-524D-4708-AFEB-EDE03D1C3983}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gassm2", "gassm2\gassm2.vcxproj", "{4CF6E8CD-03CF-4F1C-A3F0-69E2D818CC8D}"
 	ProjectSection(ProjectDependencies) = postProject
+		{F7A7B154-524D-4708-AFEB-EDE03D1C3983} = {F7A7B154-524D-4708-AFEB-EDE03D1C3983}
 		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C} = {59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "librandom", "librandom\librandom.vcxproj", "{F7A7B154-524D-4708-AFEB-EDE03D1C3983}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,14 +24,6 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{97077DA9-D3EF-4953-ACD2-B07FB4C5D14F}.Debug|Win32.ActiveCfg = Debug|Win32
-		{97077DA9-D3EF-4953-ACD2-B07FB4C5D14F}.Debug|Win32.Build.0 = Debug|Win32
-		{97077DA9-D3EF-4953-ACD2-B07FB4C5D14F}.Debug|x64.ActiveCfg = Debug|x64
-		{97077DA9-D3EF-4953-ACD2-B07FB4C5D14F}.Debug|x64.Build.0 = Debug|x64
-		{97077DA9-D3EF-4953-ACD2-B07FB4C5D14F}.Release|Win32.ActiveCfg = Release|Win32
-		{97077DA9-D3EF-4953-ACD2-B07FB4C5D14F}.Release|Win32.Build.0 = Release|Win32
-		{97077DA9-D3EF-4953-ACD2-B07FB4C5D14F}.Release|x64.ActiveCfg = Release|x64
-		{97077DA9-D3EF-4953-ACD2-B07FB4C5D14F}.Release|x64.Build.0 = Release|x64
 		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Debug|Win32.ActiveCfg = Debug|Win32
 		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Debug|Win32.Build.0 = Debug|Win32
 		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Debug|x64.ActiveCfg = Debug|x64
@@ -41,14 +32,6 @@ Global
 		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Release|Win32.Build.0 = Release|Win32
 		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Release|x64.ActiveCfg = Release|x64
 		{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}.Release|x64.Build.0 = Release|x64
-		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Debug|Win32.ActiveCfg = Debug|Win32
-		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Debug|Win32.Build.0 = Debug|Win32
-		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Debug|x64.ActiveCfg = Debug|x64
-		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Debug|x64.Build.0 = Debug|x64
-		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Release|Win32.ActiveCfg = Release|Win32
-		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Release|Win32.Build.0 = Release|Win32
-		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Release|x64.ActiveCfg = Release|x64
-		{DD15D856-4EBD-4F7F-865A-468937E94E88}.Release|x64.Build.0 = Release|x64
 		{4CF6E8CD-03CF-4F1C-A3F0-69E2D818CC8D}.Debug|Win32.ActiveCfg = Debug|Win32
 		{4CF6E8CD-03CF-4F1C-A3F0-69E2D818CC8D}.Debug|Win32.Build.0 = Debug|Win32
 		{4CF6E8CD-03CF-4F1C-A3F0-69E2D818CC8D}.Debug|x64.ActiveCfg = Debug|x64
@@ -57,6 +40,14 @@ Global
 		{4CF6E8CD-03CF-4F1C-A3F0-69E2D818CC8D}.Release|Win32.Build.0 = Release|Win32
 		{4CF6E8CD-03CF-4F1C-A3F0-69E2D818CC8D}.Release|x64.ActiveCfg = Release|x64
 		{4CF6E8CD-03CF-4F1C-A3F0-69E2D818CC8D}.Release|x64.Build.0 = Release|x64
+		{F7A7B154-524D-4708-AFEB-EDE03D1C3983}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F7A7B154-524D-4708-AFEB-EDE03D1C3983}.Debug|Win32.Build.0 = Debug|Win32
+		{F7A7B154-524D-4708-AFEB-EDE03D1C3983}.Debug|x64.ActiveCfg = Debug|x64
+		{F7A7B154-524D-4708-AFEB-EDE03D1C3983}.Debug|x64.Build.0 = Debug|x64
+		{F7A7B154-524D-4708-AFEB-EDE03D1C3983}.Release|Win32.ActiveCfg = Release|Win32
+		{F7A7B154-524D-4708-AFEB-EDE03D1C3983}.Release|Win32.Build.0 = Release|Win32
+		{F7A7B154-524D-4708-AFEB-EDE03D1C3983}.Release|x64.ActiveCfg = Release|x64
+		{F7A7B154-524D-4708-AFEB-EDE03D1C3983}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

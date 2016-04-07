@@ -15,33 +15,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="gengen.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\shared\options.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\shared\utils.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generator.c">
+    <ClCompile Include="librandom.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\shared\options.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\shared\utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\shared\err.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="gengen.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generator.h">
+    <ClInclude Include="..\include\librandom.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

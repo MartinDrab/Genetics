@@ -309,17 +309,20 @@ static void _compute_graph(const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *
 					kmer_graph_delete_edges_under_threshold(g, Options->Threshold);
 					kmer_graph_delete_trailing_things(g, &deletedThings);
 					if (deletedThings == 0) {
-						ret = kmer_graph_connect_reads(g, Options->Threshold);
+//						ret = kmer_graph_connect_reads_by_reads(g, Options->Threshold);
 						if (ret == ERR_SUCCESS) {
-							kmer_graph_delete_1to1_vertices(g);
-//							ret = kmer_graph_resolve_bubbles(g, Options->Threshold);
+//							ret = kmer_graph_connect_reads_by_refseq(g, Options->Threshold);
 							if (ret == ERR_SUCCESS) {
-								ret = kmer_graph_detect_uncertainities(g);
-								if (ret == ERR_SUCCESS)
-									_compare_alternate_sequences(Options, g, Task, Statistics);
-								else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
-							} else printf("ERROR: kmer_graph_resolve_bubbles(): %u\n", ret);
-						} else printf("kmer_graph_connect_reads(): %u", ret);
+								kmer_graph_delete_1to1_vertices(g);
+//								ret = kmer_graph_resolve_bubbles(g, Options->Threshold);
+								if (ret == ERR_SUCCESS) {
+									ret = kmer_graph_detect_uncertainities(g);
+									if (ret == ERR_SUCCESS)
+										_compare_alternate_sequences(Options, g, Task, Statistics);
+									else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
+								} else printf("ERROR: kmer_graph_resolve_bubbles(): %u\n", ret);
+							} else printf("kmer_graph_connect_reads(): %u\n", ret);
+						} else printf("kmer_graph_connect_reads_by_reads(): %u\n", ret);
 					} else {
 						printf("kmer_graph_delete_trailing_things(): deleted something, cannot proceed successfully\n");
 						Statistics->CannotSucceed++;
