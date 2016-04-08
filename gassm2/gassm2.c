@@ -539,6 +539,7 @@ int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
+	rand_stats();
 	omp_set_num_threads(1);
 	ret = options_module_init(37);
 	if (ret == ERR_SUCCESS) {
@@ -589,13 +590,13 @@ int main(int argc, char *argv[])
 							size_t refSeqLen = 0;
 							boolean explicitSequence = (*po.ReferenceSequence != '\0');
 							FASTA_FILE seqFile;
+							char *rsFasta = NULL;
 
 							if (!explicitSequence) {
 								ret = fasta_load(po.RefSeqFile, &seqFile);
 								if (ret == ERR_SUCCESS) {
-									char *rs = NULL;
-									ret = fasta_read_seq(&seqFile, &rs, &refSeqLen);
-									po.ReferenceSequence = rs;
+									ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
+									po.ReferenceSequence = rsFasta;
 									if (ret != ERR_SUCCESS)
 										fasta_free(&seqFile);
 								}
@@ -655,11 +656,9 @@ int main(int argc, char *argv[])
 									}
 
 									if (!explicitSequence) {
-										char *rs = NULL;
-
-										utils_free(po.ReferenceSequence);
-										ret = fasta_read_seq(&seqFile, &rs, &refSeqLen);
-										po.ReferenceSequence = rs;
+										utils_free(rsFasta);
+										ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
+										po.ReferenceSequence = rsFasta;
 									}
 								} while (ret == ERR_SUCCESS && !explicitSequence);
 

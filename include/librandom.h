@@ -13,6 +13,11 @@ extern "C" {
 	unsigned int rand_knuthb(void);
 	unsigned int rand_minstd(void);
 	unsigned int rand_minstd0(void);
+	unsigned int rand_ranlux48base(void);
+	unsigned int rand_ranlux24base(void);
+	unsigned int rand_ranlux48(void);
+	unsigned int rand_ranlux24(void);
+	void rand_stats(void);
 #ifdef __cplusplus
 }
 #endif 

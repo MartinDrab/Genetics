@@ -266,15 +266,15 @@ static ERR_VALUE _option_set(const char *OptionName, const EOptionType OptionTyp
 static void _option_destroy(PPROGRAM_OPTION Record)
 {
 	assert(flag_on(Record->Flags, PROGRAM_OPTION_FLAG_IN_USE));
-	free(Record->Name);
+	utils_free(Record->Name);
 	Record->Name = NULL;
 	if (flag_on(Record->Flags, PROGRAM_OPTION_FLAG_ALLOCATED)) {
 		assert(Record->Type == otString);
-		free(Record->Value.String);
+		utils_free(Record->Value.String);
 	}
 
 	if (flag_on(Record->Flags, PROGRAM_OPTION_FLAG_DESCRIPTION_ALLOCATED))
-		free(Record->Description);
+		utils_free(Record->Description);
 
 	Record->Flags = 0;
 

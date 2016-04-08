@@ -183,7 +183,7 @@ void utils_free_string(char *String)
 size_t utils_ranged_rand(const size_t Begin, const size_t End)
 {
 	assert(End > Begin);
-	return ((rand_C() % (End - Begin)) + Begin);
+	return ((rand_minstd0() % (End - Begin)) + Begin);
 }
 
 

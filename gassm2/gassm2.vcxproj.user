@@ -1,22 +1,22 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>-t -C 600 -L 150 -l 2000 -c 1000 -k 15 -r 0.005 -f input.fa -T 1</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-t -C 600 -L 150 -l 2000 -c 1000 -k 15 -r 0.005 -f test.fa -T 1</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LocalDebuggerCommandArguments>-t -C 600 -L 150 -l 2000 -c 1000 -k 15 -r 0.005 -f input.fa -T 1</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-t -C 600 -L 150 -l 2000 -c 1000 -k 15 -r 0.005 -f test.fa -T 1</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-t -C 600 -L 150 -l 2000 -c 1000 -k 15 -r 0.005 -f input.fa -T 1</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-t -C 600 -L 150 -l 2000 -c 1000 -k 15 -r 0.005 -f test.fa -T 1</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-t -C 600 -L 150 -l 2000 -c 1000 -k 15 -r 0.005 -f input.fa -T 1</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-t -C 600 -L 150 -l 2000 -c 1000 -k 15 -r 0.005 -f test.fa -T 1</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
