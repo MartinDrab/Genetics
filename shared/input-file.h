@@ -3,6 +3,8 @@
 #define __GASSM_INPUT_FILE_H__
 
 
+#include "gen_dym_array.h"
+
 
 typedef enum _EActiveRegionType {
 	artUnknown,
@@ -15,6 +17,11 @@ typedef struct _ACTIVE_REGION {
 	uint64_t Length;
 	const char *Sequence;
 } ACTIVE_REGION, *PACTIVE_REGION;
+
+GEN_ARRAY_TYPEDEF(ACTIVE_REGION);
+GEN_ARRAY_IMPLEMENTATION(ACTIVE_REGION)
+GEN_ARRAY_TYPEDEF(PACTIVE_REGION);
+GEN_ARRAY_IMPLEMENTATION(PACTIVE_REGION)
 
 typedef struct _FASTA_FILE {
 	char *FileData;

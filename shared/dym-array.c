@@ -42,13 +42,17 @@ ERR_VALUE dym_array_reserve(PDYM_ARRAY Array, const size_t Items)
 
 	ret = utils_calloc(Items, sizeof(void *), &tmp);
 	if (ret == ERR_SUCCESS) {
+		void *oldData = Array->Data;
+		
 		Array->AllocatedLength = Items;
 		if (Array->ValidLength > 0) {
 			Array->ValidLength = min(Array->ValidLength, Items);;
 			memcpy(tmp, Array->Data, Array->ValidLength*sizeof(void *));
 		}
 
-		utils_free(Array->Data);
+		if (oldData != NULL)
+			utils_free(Array->Data);
+		
 		Array->Data = (void **)tmp;
 	}
 

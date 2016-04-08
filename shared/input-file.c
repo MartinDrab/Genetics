@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "options.h"
 #include "dym-array.h"
+#include "gen_dym_array.h"
 #include "reads.h"
 #include "input-file.h"
 
@@ -13,9 +14,6 @@
 /************************************************************************/
 /*                        HELPER FUNCTIONS                              */
 /************************************************************************/
-
-
-static UTILS_TYPED_CALLOC_FUNCTION(ACTIVE_REGION)
 
 
 static const char *_read_line(const char *LineStart)
@@ -364,7 +362,7 @@ ERR_VALUE input_refseq_to_regions(const char *RefSeq, const size_t RefSeqLen, PA
 				if (numberOfNBases > 0) {
 					PACTIVE_REGION old = tmpArray;
 
-					ret = utils_calloc_ACTIVE_REGION(tmpArrayLen + 1, &tmpArray);
+					ret = utils_calloc(tmpArrayLen + 1, sizeof(ACTIVE_REGION), &tmpArray);
 					if (ret == ERR_SUCCESS) {
 						PACTIVE_REGION newReg = tmpArray + tmpArrayLen;
 
@@ -398,7 +396,7 @@ ERR_VALUE input_refseq_to_regions(const char *RefSeq, const size_t RefSeqLen, PA
 				if (numberOfNBases == 0 && regEnd != regStart) {
 					PACTIVE_REGION old = tmpArray;
 
-					ret = utils_calloc_ACTIVE_REGION(tmpArrayLen + 1, &tmpArray);
+					ret = utils_calloc(tmpArrayLen + 1, sizeof(ACTIVE_REGION), &tmpArray);
 					if (ret == ERR_SUCCESS) {
 						PACTIVE_REGION newReg = tmpArray + tmpArrayLen;
 
@@ -436,7 +434,7 @@ ERR_VALUE input_refseq_to_regions(const char *RefSeq, const size_t RefSeqLen, PA
 		if (regEnd != regStart) {
 			PACTIVE_REGION old = tmpArray;
 
-			ret = utils_calloc_ACTIVE_REGION(tmpArrayLen + 1, &tmpArray);
+			ret = utils_calloc(tmpArrayLen + 1, sizeof(ACTIVE_REGION), &tmpArray);
 			if (ret == ERR_SUCCESS) {
 				PACTIVE_REGION newReg = tmpArray + tmpArrayLen;
 				

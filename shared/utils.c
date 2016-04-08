@@ -15,7 +15,7 @@
 /*                      PUBLIC FUNCTIONS                                */
 /************************************************************************/
 
-ERR_VALUE utils_malloc(const size_t Size, void **Address)
+ERR_VALUE _utils_malloc(const size_t Size, void **Address)
 {
 	void *addr = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -29,7 +29,7 @@ ERR_VALUE utils_malloc(const size_t Size, void **Address)
 	return ret;
 }
 
-ERR_VALUE utils_calloc(const size_t Count, const size_t Size, void **Address)
+ERR_VALUE _utils_calloc(const size_t Count, const size_t Size, void **Address)
 {
 	void *addr = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -43,12 +43,105 @@ ERR_VALUE utils_calloc(const size_t Count, const size_t Size, void **Address)
 	return ret;
 }
 
-void utils_free(void *Address)
+void _utils_free(void *Address)
 {
 	free(Address);
 
 	return;
 }
+
+static ALLOCATOR_HEADER _allocHead = {&_allocHead, &_allocHead};
+
+
+ERR_VALUE _utils_malloc_debug(const size_t Size, void **Address, const char *Function, const uint32_t Line)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	void *addr = NULL;
+
+//	utils_allocator_check();
+	ret = _utils_malloc(Size + sizeof(ALLOCATOR_FOOTER) + sizeof(ALLOCATOR_HEADER), &addr);
+	if (ret == ERR_SUCCESS) {
+		PALLOCATOR_HEADER h = NULL;
+		PALLOCATOR_FOOTER f = NULL;
+
+		h = (PALLOCATOR_HEADER)addr;
+		addr = (unsigned char *)addr + sizeof(ALLOCATOR_HEADER);
+		f = (PALLOCATOR_FOOTER)((unsigned char *)addr + Size);
+		h->BodySize = Size;
+		h->Function = Function;
+		h->Line = Line;
+		h->Signature = ALLOCATOR_HEADER_SIGNATURE;
+		h->Signature2 = ALLOCATOR_HEADER_SIGNATURE;
+		f->Signature = ALLOCATOR_FOOTER_SIGNATURE;
+		h->Next = &_allocHead;
+		h->Prev = _allocHead.Prev;
+		_allocHead.Prev->Next = h;
+		_allocHead.Prev = h;
+		*Address = addr;
+//		utils_allocator_check();
+	}
+
+	return ret;
+}
+
+ERR_VALUE _utils_calloc_debug(const size_t Count, const size_t Size, void **Address, const char *Function, const uint32_t Line)
+{
+	return _utils_malloc_debug(Size*Count, Address, Function, Line);
+}
+
+
+void _utils_free_debug(void *Address)
+{
+	PALLOCATOR_HEADER h = (PALLOCATOR_HEADER)Address - 1;
+	PALLOCATOR_FOOTER f = (PALLOCATOR_FOOTER)((unsigned char *)Address + h->BodySize);
+
+//	utils_allocator_check();
+	if (h->Signature != ALLOCATOR_HEADER_SIGNATURE)
+		__debugbreak();
+
+	if (h->Signature2 != ALLOCATOR_HEADER_SIGNATURE)
+		__debugbreak();
+
+	if (f->Signature != ALLOCATOR_FOOTER_SIGNATURE)
+		__debugbreak();
+
+	h->Signature = 0;
+	h->Signature2 = 0;
+	f->Signature = 0;
+	h->Prev->Next = h->Next;
+	h->Next->Prev = h->Prev;
+	_utils_free(h);
+//	utils_allocator_check();
+
+	return;
+}
+
+
+void utils_allocator_check(void)
+{
+	PALLOCATOR_HEADER h = NULL;
+
+	h = _allocHead.Next;
+	while (h != &_allocHead) {
+		PALLOCATOR_FOOTER f = (PALLOCATOR_FOOTER)((unsigned char *)h + sizeof(ALLOCATOR_HEADER) + h->BodySize);
+
+		if (h->Signature != ALLOCATOR_HEADER_SIGNATURE)
+			__debugbreak();
+
+		if (h->Signature2 != ALLOCATOR_HEADER_SIGNATURE)
+			__debugbreak();
+
+		if (f->Signature != ALLOCATOR_FOOTER_SIGNATURE)
+			__debugbreak();
+
+		h = h->Next;
+	}
+
+	return;
+}
+
+
+
 
 ERR_VALUE utils_copy_string(const char *String, char **Result)
 {
@@ -56,12 +149,11 @@ ERR_VALUE utils_copy_string(const char *String, char **Result)
 	char *tmp = NULL;
 	size_t len = ((String != NULL) ? strlen(String) : 0)*sizeof(char);
 	
-	tmp = malloc(len + sizeof(char));
-	if (tmp != NULL) {
-		memcpy(tmp, String, len + sizeof(char));
+	ret = utils_calloc(len + 1, sizeof(char), &tmp);
+	if (ret == ERR_SUCCESS) {
+		memcpy(tmp, String, (len + 1)*sizeof(char));
 		*Result = tmp;
-		ret = ERR_SUCCESS;
-	} else ret = ERR_OUT_OF_MEMORY;
+	}
 
 	return ret;
 }
@@ -83,7 +175,7 @@ ERR_VALUE utils_preallocate_string(const size_t Length, char **Result)
 
 void utils_free_string(char *String)
 {
-	free(String);
+	utils_free(String);
 
 	return;
 }

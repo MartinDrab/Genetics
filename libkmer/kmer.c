@@ -20,7 +20,7 @@ ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Seq
 
 	ret = utils_malloc(sizeof(KMER) + Size*sizeof(char), &tmpKMer);
 	if (ret == ERR_SUCCESS) {
-		tmpKMer->Number = Number;
+		kmer_set_number(tmpKMer, Number);
 		tmpKMer->Size = Size;
 		kmer_init(tmpKMer, Sequence);
 		*KMer = tmpKMer;

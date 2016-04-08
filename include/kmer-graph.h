@@ -15,7 +15,7 @@
 #include "found-sequence.h"
 
 
-typedef struct _KMER_EDGE;
+typedef struct _KMER_VERTEX;
 
 typedef enum _EKMerVertexType {
 	kmvtRefSeqStart,
@@ -24,6 +24,37 @@ typedef enum _EKMerVertexType {
 	kmvtRead,
 } EKMerVertexType, PEKMerVertexType;
 
+
+typedef enum _EKMerEdgeType {
+	kmetReference,
+	kmetRead,
+	kmetVariant,
+} EKMerEdgeType, *PEKMerEdgeType;
+
+
+/** Represents one edge in a kmer graph. */
+typedef struct _KMER_EDGE {
+	struct _KMER_VERTEX *Source;
+	struct _KMER_VERTEX *Dest;
+	/** Number of reads going through the edge. */
+	long Weight;
+	/** Number of kmers the edge skips in order to avoid cycles. Maximum value is
+	the kmer size minus one. */
+	uint32_t Length;
+	/** Edge creation order. */
+	unsigned int Order;
+	EKMerEdgeType Type;
+	uint32_t PassCount;
+	uint32_t MaxPassCount;
+	char *Seq;
+	size_t SeqLen;
+	char *Seq2;
+	size_t Seq2Len;
+	READ_INFO ReadInfo;
+} KMER_EDGE, *PKMER_EDGE;
+
+GEN_ARRAY_TYPEDEF(PKMER_EDGE);
+GEN_ARRAY_IMPLEMENTATION(PKMER_EDGE)
 
 typedef struct _KMER_VERTEX {
 	PKMER KMer;
@@ -39,40 +70,6 @@ typedef struct _KMER_VERTEX {
 
 GEN_ARRAY_TYPEDEF(PKMER_VERTEX);
 GEN_ARRAY_IMPLEMENTATION(PKMER_VERTEX)
-
-
-typedef enum _EKMerEdgeType {
-	kmetReference,
-	kmetRead,
-	kmetVariant,
-} EKMerEdgeType, *PEKMerEdgeType;
-
-
-/** Represents one edge in a kmer graph. */
-typedef struct _KMER_EDGE {
-	PKMER_VERTEX Source;
-	PKMER_VERTEX Dest;
-	/** Number of reads going through the edge. */
-	long Weight;
-	/** Number of kmers the edge skips in order to avoid cycles. Maximum value is
-	the kmer size minus one. */
-	uint32_t Length;
-	/** Edge creation order. */
-	unsigned int Order;
-	EKMerEdgeType Type;
-	double Probability;
-	uint32_t PassCount;
-	uint32_t MaxPassCount;
-	void *Shortcut;
-	char *Seq;
-	size_t SeqLen;
-	char *Seq2;
-	size_t Seq2Len;
-	READ_INFO ReadInfo;
-} KMER_EDGE, *PKMER_EDGE;
-
-GEN_ARRAY_TYPEDEF(PKMER_EDGE);
-GEN_ARRAY_IMPLEMENTATION(PKMER_EDGE)
 
 typedef struct _KMER_GRAPH_SHORTCUT {
 	PKMER_VERTEX StartVertex;
@@ -116,8 +113,6 @@ void kmer_graph_set_ending_vertex(PKMER_GRAPH Graph, const KMER *KMer);
 
 ERR_VALUE kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph);
 void kmer_graph_delete_edges_under_threshold(PKMER_GRAPH Graph, const long Threshold);
-void kmer_graph_compute_edge_probablities(PKMER_GRAPH Graph);
-void kmer_graph_compute_shurtcuts(PKMER_GRAPH Graph, const size_t MaxLength);
 void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings);
 ERR_VALUE kmer_graph_resolve_bubbles(PKMER_GRAPH Graph, const uint32_t Threshold);
 ERR_VALUE kmer_graph_connect_reads_by_refseq(PKMER_GRAPH Graph, const size_t Threshold);

@@ -309,9 +309,9 @@ static void _compute_graph(const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *
 					kmer_graph_delete_edges_under_threshold(g, Options->Threshold);
 					kmer_graph_delete_trailing_things(g, &deletedThings);
 					if (deletedThings == 0) {
-//						ret = kmer_graph_connect_reads_by_reads(g, Options->Threshold);
+						ret = kmer_graph_connect_reads_by_reads(g, Options->Threshold);
 						if (ret == ERR_SUCCESS) {
-//							ret = kmer_graph_connect_reads_by_refseq(g, Options->Threshold);
+							ret = kmer_graph_connect_reads_by_refseq(g, Options->Threshold);
 							if (ret == ERR_SUCCESS) {
 								kmer_graph_delete_1to1_vertices(g);
 //								ret = kmer_graph_resolve_bubbles(g, Options->Threshold);

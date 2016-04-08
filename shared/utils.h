@@ -72,9 +72,36 @@ ERR_VALUE utils_fread(void *Buffer, const size_t Size, const size_t Count, FILE 
 ERR_VALUE utils_fwrite(const void *Buffer, const size_t Size, const size_t Count, FILE *Stream);
 ERR_VALUE utils_Fclose(FILE *Stream);
 
-ERR_VALUE utils_malloc(const size_t Size, void **Address);
-ERR_VALUE utils_calloc(const size_t Count, const size_t Size, void **Address);
-void utils_free(void *Address);
+
+ERR_VALUE _utils_malloc(const size_t Size, void **Address);
+ERR_VALUE _utils_calloc(const size_t Count, const size_t Size, void **Address);
+void _utils_free(void *Address);
+
+#define ALLOCATOR_HEADER_SIGNATURE					0xbadf00d
+#define ALLOCATOR_FOOTER_SIGNATURE					0xf00df00d
+
+typedef struct _ALLOCATOR_HEADER {
+	struct _ALLOCATOR_HEADER *Prev;
+	struct _ALLOCATOR_HEADER *Next;
+	uint32_t Signature;
+	const char *Function;
+	uint32_t Line;
+	size_t BodySize;
+	uint32_t Signature2;
+} ALLOCATOR_HEADER, *PALLOCATOR_HEADER;
+
+typedef struct _ALLOCATOR_FOOTER {
+	uint32_t Signature;
+} ALLOCATOR_FOOTER, *PALLOCATOR_FOOTER;
+
+ERR_VALUE _utils_malloc_debug(const size_t Size, void **Address, const char *Function, const uint32_t Line);
+ERR_VALUE _utils_calloc_debug(const size_t Count, const size_t Size, void **Address, const char *Function, const uint32_t Line);
+void _utils_free_debug(void *Address);
+void utils_allocator_check(void);
+
+#define utils_malloc(aSize, aAddress)					_utils_malloc_debug((aSize), (aAddress), __FUNCTION__, __LINE__)
+#define utils_calloc(aCount, aSize, aAddress)			_utils_calloc_debug((aCount), (aSize), (aAddress), __FUNCTION__, __LINE__)
+#define utils_free(aAddress)							_utils_free_debug((aAddress));
 
 
 #define UTILS_TYPED_MALLOC_FUNCTION(aType)	\

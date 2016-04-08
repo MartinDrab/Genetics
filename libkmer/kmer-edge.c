@@ -63,7 +63,7 @@ static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_insert_hint(const struct
 }
 
 
-static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_delsearch_hint(const struct _KMER_EDGE_TABLE *Table, size_t Hash, const struct _KMER *Source, const struct _KMER *Dest)
+static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_delsearch_hint(const KMER_EDGE_TABLE *Table, size_t Hash, const KMER *Source, const KMER *Dest)
 {
 	PKMER_EDGE_TABLE_ENTRY ret = NULL;
 

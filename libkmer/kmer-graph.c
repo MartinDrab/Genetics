@@ -109,9 +109,7 @@ static ERR_VALUE _edge_create(PKMER_VERTEX Source, PKMER_VERTEX Dest, const EKMe
 		tmp->Weight = Weight;
 		tmp->PassCount = 0;
 		tmp->MaxPassCount = 0;
-		tmp->Probability = 0;
 		tmp->Order = 0;
-		tmp->Shortcut = NULL;
 		tmp->Seq = NULL;
 		tmp->SeqLen = 0;
 		tmp->Seq2 = NULL;
@@ -160,7 +158,6 @@ static ERR_VALUE _edge_copy(const KMER_EDGE *Edge, PKMER_EDGE *Result)
 				if (ret == ERR_SUCCESS) {
 					tmp->PassCount = Edge->PassCount;
 					tmp->MaxPassCount = Edge->MaxPassCount;
-					tmp->Probability = Edge->Probability;
 					tmp->Order = Edge->Order;
 					*Result = tmp;
 				}
@@ -461,52 +458,6 @@ void kmer_graph_set_ending_vertex(PKMER_GRAPH Graph, const KMER *KMer)
 }
 
 
-static int _edge_prob_compare(const void *e1, const void *e2)
-{
-	const KMER_EDGE *edge1 = (PKMER_EDGE)e1;
-	const KMER_EDGE *edge2 = (PKMER_EDGE)e2;
-
-	if (edge1->Probability < edge2->Probability)
-		return 1;
-	else if (edge1->Probability > edge2->Probability)
-		return -1;
-
-	return 0;
-}
-
-void kmer_graph_compute_edge_probablities(PKMER_GRAPH Graph)
-{
-	long total = 0;
-	PKMER_VERTEX v = NULL;
-	PKMER_TABLE_ENTRY iter = NULL;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = kmer_table_first(Graph->VertexTable, &iter);
-	while (ret != ERR_NO_MORE_ENTRIES) {
-		total = 0;
-		v = (PKMER_VERTEX)iter->Data;
-		for (size_t i = 0; i < v->degreeOut; ++i) {
-			PKMER_EDGE e = kmer_vertex_get_succ_edge(v , i);
-
-			total += (e->Weight + 1);
-		}
-
-		for (size_t i = 0; i < v->degreeOut; ++i) {
-			PKMER_EDGE e = kmer_vertex_get_succ_edge(v, i);
-
-			e->Probability = (total != 0) ? ((double)(e->Weight + 1) / (double)total) : (1/(double)v->degreeOut);
-			if (e->Probability != 0)
-				e->Probability = log(e->Probability);
-		}
-
-		qsort(dym_array_data(&v->Successors), v->degreeOut, sizeof(PKMER_EDGE), _edge_prob_compare);
-		ret = kmer_table_next(Graph->VertexTable, iter, &iter);
-	}
-
-	return;
-}
-
-
 void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings)
 {
 	PKMER_TABLE_ENTRY iter = NULL;
@@ -700,78 +651,6 @@ ERR_VALUE kmer_graph_resolve_bubbles(PKMER_GRAPH Graph, const uint32_t Threshold
 }
 
 
-void kmer_graph_compute_shurtcuts(PKMER_GRAPH Graph, const size_t MaxLength)
-{
-	PKMER_GRAPH_SHORTCUT tmpShortcut = NULL;
-	PKMER_TABLE_ENTRY iter = NULL;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	
-	char *seqBuffer = NULL;
-
-	ret = utils_calloc(MaxLength + 1, sizeof(char), &seqBuffer);
-	if (ret == ERR_SUCCESS) {
-		memset(seqBuffer, 0, (MaxLength + 1)*sizeof(char));
-		ret = kmer_table_first(Graph->VertexTable, &iter);
-		while (ret != ERR_NO_MORE_ENTRIES) {
-			PKMER_VERTEX shortcutStart = NULL;
-			PKMER_EDGE shortcutEdge = NULL;
-
-			shortcutStart = (PKMER_VERTEX)iter->Data;
-			if ((shortcutStart->DegreeIn == 0 && shortcutStart->degreeOut == 1) || (shortcutStart->degreeOut > 1 || shortcutStart->DegreeIn > 1)) {
-				for (size_t i = 0; i < shortcutStart->degreeOut; ++i) {
-					PKMER_VERTEX u = NULL;
-
-					shortcutEdge = kmer_vertex_get_succ_edge(shortcutStart, i);
-					u = shortcutEdge->Dest;
-					if (u->DegreeIn == 1 && u->degreeOut == 1) {
-						PKMER_EDGE e = shortcutEdge;
-						uint32_t sLength = 0;
-						uint32_t maxPassCount = (uint32_t)-1;
-						size_t seqIndex = 0;
-
-						do {
-							sLength += e->Length;
-							maxPassCount = min(maxPassCount, e->MaxPassCount);
-							seqBuffer[seqIndex] = kmer_get_base(u->KMer, kmer_graph_get_kmer_size(Graph) - 1);
-							++seqIndex;
-							e = kmer_vertex_get_succ_edge(u, 0);
-							u = e->Dest;
-						} while (u->DegreeIn == 1 && u->degreeOut == 1);
-
-						sLength += e->Length;
-						maxPassCount = min(maxPassCount, e->MaxPassCount);
-						seqBuffer[seqIndex] = kmer_get_base(u->KMer, kmer_graph_get_kmer_size(Graph) - 1);
-						++seqIndex;
-						seqBuffer[seqIndex] = '\0';
-						ret = utils_malloc(sizeof(KMER_GRAPH_SHORTCUT), (void **)&tmpShortcut);
-						if (ret == ERR_SUCCESS) {
-							tmpShortcut->StartVertex = shortcutStart;
-							tmpShortcut->EndVertex = u;
-							tmpShortcut->Length = sLength;
-							tmpShortcut->PassCount = 0;
-							tmpShortcut->MaxPassCount = maxPassCount;
-							tmpShortcut->Probability = shortcutEdge->Probability;
-							ret = utils_copy_string(seqBuffer, &tmpShortcut->Sequence);
-							if (ret == ERR_SUCCESS)
-								shortcutEdge->Shortcut = tmpShortcut;
-
-							if (ret != ERR_SUCCESS)
-								utils_free(tmpShortcut);
-						}
-					}
-				}
-			}
-
-			ret = kmer_table_next(Graph->VertexTable, iter, &iter);
-		}
-
-		utils_free(seqBuffer);
-	}
-
-	return;
-}
-
-
 ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EKMerVertexType Type, PKMER_VERTEX *Vertex)
 {
 	PKMER_VERTEX v = NULL;
@@ -944,16 +823,18 @@ ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex)
 
 void kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge)
 {
+	ERR_VALUE err = ERR_INTERNAL_ERROR;
 	PKMER_VERTEX source = Edge->Source;
 	PKMER_VERTEX dest = Edge->Dest;
 
-	dym_array_remove_by_item_fast(&source->Successors, Edge);
-	dym_array_remove_by_item_fast(&dest->Predecessors, Edge);
-	--source->degreeOut;
-	--dest->DegreeIn;
-
-	kmer_edge_table_delete(Graph->EdgeTable, source->KMer, dest->KMer);
-	--Graph->NumberOfEdges;
+	err = kmer_edge_table_delete(Graph->EdgeTable, source->KMer, dest->KMer);
+	if (err == ERR_SUCCESS) {
+		dym_array_remove_by_item_fast(&source->Successors, Edge);
+		dym_array_remove_by_item_fast(&dest->Predecessors, Edge);
+		--source->degreeOut;
+		--dest->DegreeIn;
+		--Graph->NumberOfEdges;
+	} else __debugbreak();
 
 	return;
 }
@@ -1261,7 +1142,7 @@ ERR_VALUE kmer_graph_connect_reads_by_refseq(PKMER_GRAPH Graph, const size_t Thr
 	dym_array_init_PKMER_EDGE(&rsPathEdges, 140);
 	dym_array_init_READ_INFO_ENTRY(&intersection, 140);
 	passStart = Graph->StartingVertex;
-	while (ret == ERR_SUCCESS && passEnd != Graph->EndingVertex && passStart != Graph->EndingVertex) {
+	while (ret == ERR_SUCCESS && passEnd != Graph->EndingVertex && passStart != Graph->EndingVertex) {		
 		while (ret == ERR_SUCCESS && passStart != Graph->EndingVertex) {
 			ret = kmer_vertex_get_certain_edges(passStart, kmetRead, TRUE, &incommingReads);
 			if (ret == ERR_SUCCESS && gen_array_size(&incommingReads) > 0)
@@ -1277,6 +1158,7 @@ ERR_VALUE kmer_graph_connect_reads_by_refseq(PKMER_GRAPH Graph, const size_t Thr
 		nextRsLastEdge = rsLastEdge;
 		if (ret == ERR_SUCCESS && gen_array_size(&incommingReads) > 0) {
 			GEN_ARRAY_PKMER_EDGE tmp;
+			size_t readDistance = 0;
 
 			passEnd = passStart;
 			dym_array_init_PKMER_EDGE(&tmp, 140);
@@ -1287,6 +1169,7 @@ ERR_VALUE kmer_graph_connect_reads_by_refseq(PKMER_GRAPH Graph, const size_t Thr
 
 				e = _get_refseq_edge(passEnd);
 				nextRsLastEdge = e;
+				readDistance += e->Length;
 				passEnd = e->Dest;
 				ret = kmer_vertex_get_certain_edges(passEnd, kmetRead, TRUE, &tmp);
 				if (ret == ERR_SUCCESS && gen_array_size(&tmp) > 0)
@@ -1299,79 +1182,90 @@ ERR_VALUE kmer_graph_connect_reads_by_refseq(PKMER_GRAPH Graph, const size_t Thr
 			if (ret == ERR_SUCCESS && gen_array_size(&outgoingReads) > 0) {
 				const size_t inCount = gen_array_size(&incommingReads);
 				const size_t outCount = gen_array_size(&outgoingReads);
-				PKMER_EDGE eIn = NULL;
-				PKMER_EDGE eOut = NULL;
+				GEN_ARRAY_PKMER_EDGE edgesToDelete;
 
-				rsNextEdge = _get_refseq_edge(passEnd);
-				for (size_t i = 0; i < inCount; ++i) {
-					boolean edgeCreated = FALSE;
+				dym_array_init_PKMER_EDGE(&edgesToDelete, 140);
+				ret = dym_array_reserve_PKMER_EDGE(&edgesToDelete, inCount*outCount);
+				if (ret == ERR_SUCCESS) {
+					PKMER_EDGE eIn = NULL;
+					PKMER_EDGE eOut = NULL;
 
-					eIn = *dym_array_item_PKMER_EDGE(&incommingReads, i);
-					for (size_t j = 0; j < outCount; ++j) {
-						edgeCreated = FALSE;
-						eOut = *dym_array_item_PKMER_EDGE(&outgoingReads, j);
-						if (eOut != NULL) {
-							if (eIn == eOut)
-								continue; 
+					rsNextEdge = _get_refseq_edge(passEnd);
+					for (size_t i = 0; i < inCount; ++i) {
+						boolean edgeCreated = FALSE;
 
-							ret = read_info_intersection(&eIn->ReadInfo, &eOut->ReadInfo, &intersection, TRUE);
-							if (ret == ERR_SUCCESS && gen_array_size(&intersection) > 0) {
-								char *seq = NULL;
-								size_t seqLen = 0;
+						eIn = *dym_array_item_PKMER_EDGE(&incommingReads, i);
+						for (size_t j = 0; j < outCount; ++j) {
+							edgeCreated = FALSE;
+							eOut = *dym_array_item_PKMER_EDGE(&outgoingReads, j);
+							if (eOut != NULL) {
+								if (eIn == eOut)
+									continue;
 
-								ret = _capture_refseq(eIn, eOut, &seq, &seqLen);
-								if (ret == ERR_SUCCESS) {
-									PKMER_EDGE newEdge = NULL;
+								ret = read_info_intersection(&eIn->ReadInfo, &eOut->ReadInfo, &intersection, TRUE,  eIn->Length + readDistance);
+								if (ret == ERR_SUCCESS && gen_array_size(&intersection) > 0) {
+									char *seq = NULL;
+									size_t seqLen = 0;
 
-									ret = kmer_graph_add_edge_ex(Graph, eIn->Source->KMer, eOut->Dest->KMer, gen_array_size(&intersection), seqLen + 1, kmetRead, &newEdge);
+									ret = _capture_refseq(eIn, eOut, &seq, &seqLen);
 									if (ret == ERR_SUCCESS) {
-										putchar('E');
-										edgeCreated = TRUE;
-										newEdge->Seq = seq;
-										newEdge->SeqLen = seqLen;
-										ret = read_info_assign(&newEdge->ReadInfo, &intersection);
-										if (ret == ERR_SUCCESS)
-											ret = _remove_read_info_from_edges(Graph, eIn, eOut, &rsPathEdges, &intersection);
+										PKMER_EDGE newEdge = NULL;
+
+										ret = kmer_graph_add_edge_ex(Graph, eIn->Source->KMer, eOut->Dest->KMer, gen_array_size(&intersection), seqLen + 1, kmetRead, &newEdge);
+										if (ret == ERR_SUCCESS) {
+											putchar('E');
+											edgeCreated = TRUE;
+											newEdge->Seq = seq;
+											newEdge->SeqLen = seqLen;
+											ret = read_info_assign(&newEdge->ReadInfo, &intersection);
+											if (ret == ERR_SUCCESS)
+												ret = _remove_read_info_from_edges(Graph, eIn, eOut, &rsPathEdges, &intersection);
+										}
+
+										if (ret != ERR_SUCCESS)
+											utils_free(seq);
+
+										if (ret == ERR_ALREADY_EXISTS)
+											ret = ERR_SUCCESS;
 									}
 
-									if (ret != ERR_SUCCESS)
-										utils_free(seq);
-
-									if (ret == ERR_ALREADY_EXISTS)
-										ret = ERR_SUCCESS;
+									dym_array_clear_READ_INFO_ENTRY(&intersection);
 								}
 
-								dym_array_clear_READ_INFO_ENTRY(&intersection);
-							}
-
-							if (edgeCreated) {
-								if (read_info_get_count(&rsNextEdge->ReadInfo) != 0 ||
-									read_info_get_count(&rsLastEdge->ReadInfo) == 0) {
-									putchar('D');
-									*dym_array_item_PKMER_EDGE(&outgoingReads, j) = NULL;
-									kmer_graph_delete_edge(Graph, eOut);
-									break;
+								if (edgeCreated) {
+									if (read_info_get_count(&rsNextEdge->ReadInfo) != 0 ||
+										read_info_get_count(&rsLastEdge->ReadInfo) == 0) {
+										putchar('D');
+										*dym_array_item_PKMER_EDGE(&outgoingReads, j) = NULL;
+										dym_array_push_back_no_alloc_PKMER_EDGE(&edgesToDelete, eOut);
+										break;
+									}
 								}
 							}
+
+							if (ret != ERR_SUCCESS)
+								break;
+						}
+
+						if (edgeCreated) {
+							if (read_info_get_count(&rsNextEdge->ReadInfo) == 0 ||
+								read_info_get_count(&rsLastEdge->ReadInfo) != 0) {
+								putchar('D');
+								dym_array_push_back_no_alloc_PKMER_EDGE(&edgesToDelete, eIn);
+							}
+
+							continue;
 						}
 
 						if (ret != ERR_SUCCESS)
 							break;
 					}
 
-					if (edgeCreated) {
-						if (read_info_get_count(&rsNextEdge->ReadInfo) == 0 ||
-							read_info_get_count(&rsLastEdge->ReadInfo) != 0) {
-							putchar('D');
-							kmer_graph_delete_edge(Graph, eIn);
-						}
-						
-						continue;
-					}
-
-					if (ret != ERR_SUCCESS)
-						break;
+					for (size_t i = 0; i < gen_array_size(&edgesToDelete); ++i)
+						kmer_graph_delete_edge(Graph, *dym_array_item_PKMER_EDGE(&edgesToDelete, i));
 				}
+
+				dym_array_finit_PKMER_EDGE(&edgesToDelete);
 			}
 		}
 
@@ -1404,6 +1298,8 @@ ERR_VALUE kmer_graph_connect_reads_by_reads(PKMER_GRAPH Graph, const size_t Thre
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	const kmerSize = kmer_graph_get_kmer_size(Graph);
 
+//	kmer_graph_print(stderr, Graph);
+//	fflush(stderr);
 	ret = kmer_table_first(Graph->VertexTable, &iter);
 	while (ret == ERR_SUCCESS) {
 		PKMER_VERTEX v = (PKMER_VERTEX)iter->Data;
@@ -1413,6 +1309,7 @@ ERR_VALUE kmer_graph_connect_reads_by_reads(PKMER_GRAPH Graph, const size_t Thre
 			char midSeq[8192];
 			size_t midSeqLen = 0;
 			boolean cycle = FALSE;
+			size_t readDistance = 0;
 
 			midSeq[midSeqLen] = kmer_get_base(w->KMer, kmerSize - 1);
 			++midSeqLen;
@@ -1420,6 +1317,7 @@ ERR_VALUE kmer_graph_connect_reads_by_reads(PKMER_GRAPH Graph, const size_t Thre
 				PKMER_EDGE e = kmer_vertex_get_succ_edge(w, 0);
 				memcpy(midSeq + midSeqLen, e->Seq, e->SeqLen*sizeof(char));
 				midSeqLen += e->SeqLen;
+				readDistance += e->Length;
 				w = e->Dest;
 				midSeq[midSeqLen] = kmer_get_base(w->KMer, kmerSize - 1);
 				++midSeqLen;
@@ -1447,7 +1345,7 @@ ERR_VALUE kmer_graph_connect_reads_by_reads(PKMER_GRAPH Graph, const size_t Thre
 							for (size_t j = 0; j < w->degreeOut; ++j) {
 								PKMER_EDGE eOut = kmer_vertex_get_succ_edge(w, j);
 
-								ret = read_info_intersection(&eIn->ReadInfo, &eOut->ReadInfo, &intersection, TRUE);
+								ret = read_info_intersection(&eIn->ReadInfo, &eOut->ReadInfo, &intersection, TRUE, eIn->Length + readDistance);
 								if (ret == ERR_SUCCESS) {
 									if (gen_array_size(&intersection) > 0) {
 										PKMER_EDGE newEdge = NULL;

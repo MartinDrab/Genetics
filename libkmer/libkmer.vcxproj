@@ -21,7 +21,6 @@
   <ItemGroup>
     <ClCompile Include="..\shared\dym-array.c" />
     <ClCompile Include="..\shared\general-queue.c" />
-    <ClCompile Include="..\shared\paths.c" />
     <ClCompile Include="..\shared\utils.c" />
     <ClCompile Include="assembly.c" />
     <ClCompile Include="found-sequence.c" />
@@ -43,7 +42,6 @@
     <ClInclude Include="..\shared\err.h" />
     <ClInclude Include="..\shared\general-queue.h" />
     <ClInclude Include="..\shared\gen_dym_array.h" />
-    <ClInclude Include="..\shared\paths.h" />
     <ClInclude Include="..\shared\utils.h" />
     <ClInclude Include="graph-reads.h" />
     <ClInclude Include="read-info.h" />

@@ -119,7 +119,7 @@ static ERR_VALUE _kmer_graph_parse_read(PKMER_GRAPH Graph, const ONE_READ *Read,
 								PKMER_VERTEX destVertex = NULL;
 
 								destVertex = *dym_array_item_PKMER_VERTEX(&destVertices, 0);
-								if (destVertex->Type == kmvtRefSeqMiddle || !readVertexRepeat) {
+								if (i == readLen - 1 || destVertex->Type == kmvtRefSeqMiddle || !readVertexRepeat) {
 									seq[seqLen] = '\0';
 									for (size_t j = 0; j < gen_array_size(&sourceVertices); ++j) {
 										sourceVertex = *dym_array_item_PKMER_VERTEX(&sourceVertices, j);
@@ -156,29 +156,55 @@ static ERR_VALUE _kmer_graph_parse_read(PKMER_GRAPH Graph, const ONE_READ *Read,
 									++seqLen;
 								}
 						} else {
+							boolean edgeFound = FALSE;
+
 							for (size_t j = 0; j < gen_array_size(&sourceVertices); ++j) {
 								PKMER_VERTEX v = *dym_array_item_PKMER_VERTEX(&sourceVertices, j);
 
 								for (size_t k = 0; k < gen_array_size(&destVertices); ++k) {
 									PKMER_VERTEX w = *dym_array_item_PKMER_VERTEX(&destVertices, k);
+									PKMER_EDGE e = kmer_graph_get_edge(Graph, v->KMer, w->KMer);
 
-									ret = kmer_graph_add_edge_ex(Graph, v->KMer, w->KMer, 1, 1, kmetRead, &edge);
-									if (ret == ERR_ALREADY_EXISTS) {
-										if (!readEdgeRepeat)
-											++edge->Weight;
-										
-										ret = ERR_SUCCESS;
+									if (e != NULL) {
+										edgeFound = (e->Type == kmetReference);
+										if (edgeFound) {
+											if (!readEdgeRepeat)
+												e->Weight++;
+
+											ret = read_info_add(&e->ReadInfo, ReadIndex, i);
+											dym_array_clear_PKMER_VERTEX(&destVertices);
+											dym_array_push_back_no_alloc_PKMER_VERTEX(&destVertices, w);
+											break;
+										}
+									}
+								}
+							}
+
+							if (!edgeFound) {
+								for (size_t j = 0; j < gen_array_size(&sourceVertices); ++j) {
+									PKMER_VERTEX v = *dym_array_item_PKMER_VERTEX(&sourceVertices, j);
+
+									for (size_t k = 0; k < gen_array_size(&destVertices); ++k) {
+										PKMER_VERTEX w = *dym_array_item_PKMER_VERTEX(&destVertices, k);
+
+										ret = kmer_graph_add_edge_ex(Graph, v->KMer, w->KMer, 1, 1, kmetRead, &edge);
+										if (ret == ERR_ALREADY_EXISTS) {
+											if (!readEdgeRepeat)
+												++edge->Weight;
+
+											ret = ERR_SUCCESS;
+										}
+
+										if (ret == ERR_SUCCESS)
+											ret = read_info_add(&edge->ReadInfo, ReadIndex, i);
+
+										if (ret != ERR_SUCCESS)
+											break;
 									}
 
-									if (ret == ERR_SUCCESS)
-										ret = read_info_add(&edge->ReadInfo, ReadIndex, i);
-									
 									if (ret != ERR_SUCCESS)
 										break;
 								}
-
-								if (ret != ERR_SUCCESS)
-									break;
 							}
 						}
 

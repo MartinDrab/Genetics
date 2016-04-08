@@ -58,7 +58,7 @@ ERR_VALUE read_info_add(PREAD_INFO Info, const size_t ReadIndex, const size_t Re
 }
 
 
-ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_PTYPE(READ_INFO_ENTRY) Intersection, const boolean AscendingPosition)
+ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_PTYPE(READ_INFO_ENTRY) Intersection, const boolean AscendingPosition, const size_t ReadDistance)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	const READ_INFO_ENTRY *entry1 = dym_array_const_item_READ_INFO_ENTRY(&Info1->Array, 0);
@@ -71,7 +71,7 @@ ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_P
 	ret = ERR_SUCCESS;
 	while (ret == ERR_SUCCESS && index1 < count1 && index2 < count2) {
 		if (entry1->ReadIndex == entry2->ReadIndex) {
-			if (!AscendingPosition || entry1->ReadPosition <= entry2->ReadPosition)
+			if (!AscendingPosition || (entry1->ReadPosition <= entry2->ReadPosition && (ReadDistance == 0 || entry1->ReadPosition + ReadDistance == entry2->ReadPosition)))
 				ret = dym_array_push_back_READ_INFO_ENTRY(Intersection, *entry1);
 			
 			++entry1;
