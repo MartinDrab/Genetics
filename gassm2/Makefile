@@ -19,6 +19,8 @@ OBJ=\
 	$(SHAREDOBJDIR)/reads.o \
 	$(OBJDIR)/gassm2.o \
 	$(LIBKMEROBJDIR)/assembly.o \
+	$(LIBKMEROBJDIR)/found-sequence.o \
+	$(LIBKMEROBJDIR)/read-info.o \
 	$(LIBKMEROBJDIR)/kmer-edge.o \
 	$(LIBKMEROBJDIR)/kmer-graph.o \
 	$(LIBKMEROBJDIR)/kmer-table.o \
