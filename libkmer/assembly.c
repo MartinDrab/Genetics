@@ -46,10 +46,12 @@ static ERR_VALUE _kmer_graph_parse_read(PKMER_GRAPH Graph, const ONE_READ *Read,
 		if (ret == ERR_SUCCESS) {
 			GEN_ARRAY_PKMER_VERTEX sourceVertices;
 			PKMER sourceKMer = NULL;
+			PKMER lastRefSeqKmer = NULL;
 			char seq[8192];
 			size_t seqLen = 0;
 
 			dym_array_init_PKMER_VERTEX(&sourceVertices, 140);
+			KMER_STACK_ALLOC(lastRefSeqKmer, 0, kmerSize, NULL);
 			KMER_STACK_ALLOC(sourceKMer, 0, kmerSize, readSeq);
 			ret = kmer_graph_get_vertices(Graph, sourceKMer, &sourceVertices);
 			if (ret == ERR_SUCCESS && gen_array_size(&sourceVertices) == 0) {
@@ -68,6 +70,9 @@ static ERR_VALUE _kmer_graph_parse_read(PKMER_GRAPH Graph, const ONE_READ *Read,
 				KMER_STACK_ALLOC(destKMer, 0, kmerSize, readSeq);
 				size_t i = kmerSize;
 				while (i < readLen) {
+					if ((*dym_array_item_PKMER_VERTEX(&sourceVertices, 0))->Type == kmvtRefSeqMiddle)
+						kmer_init_from_kmer(lastRefSeqKmer, sourceKMer);
+
 					kmer_advance(destKMer, readSeq[i]);
 					dym_array_clear_PKMER_VERTEX(&destVertices);
 					kmer_set_number(destKMer, 0);
@@ -119,7 +124,7 @@ static ERR_VALUE _kmer_graph_parse_read(PKMER_GRAPH Graph, const ONE_READ *Read,
 								PKMER_VERTEX destVertex = NULL;
 
 								destVertex = *dym_array_item_PKMER_VERTEX(&destVertices, 0);
-								if (i == readLen - 1 || destVertex->Type == kmvtRefSeqMiddle || !readVertexRepeat) {
+								if (!kmer_seq_equal(lastRefSeqKmer, destKMer) && (i == readLen - 1 || destVertex->Type == kmvtRefSeqMiddle || !readVertexRepeat)) {
 									seq[seqLen] = '\0';
 									for (size_t j = 0; j < gen_array_size(&sourceVertices); ++j) {
 										sourceVertex = *dym_array_item_PKMER_VERTEX(&sourceVertices, j);
@@ -186,6 +191,9 @@ static ERR_VALUE _kmer_graph_parse_read(PKMER_GRAPH Graph, const ONE_READ *Read,
 
 									for (size_t k = 0; k < gen_array_size(&destVertices); ++k) {
 										PKMER_VERTEX w = *dym_array_item_PKMER_VERTEX(&destVertices, k);
+
+										if (v == w)
+											continue;
 
 										ret = kmer_graph_add_edge_ex(Graph, v->KMer, w->KMer, 1, 1, kmetRead, &edge);
 										if (ret == ERR_ALREADY_EXISTS) {

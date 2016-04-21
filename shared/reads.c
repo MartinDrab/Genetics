@@ -282,67 +282,48 @@ ERR_VALUE read_set_generate_from_sequence(const char *Seq, const size_t SeqLen, 
 {
 	PONE_READ r = NULL;
 	PONE_READ tmpReadSet = NULL;
-	uint32_t *coverage = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_calloc(SeqLen + 1, sizeof(uint32_t), &coverage);
+	ret = utils_calloc(ReadCount, sizeof(ONE_READ), &tmpReadSet);
 	if (ret == ERR_SUCCESS) {
-		memset(coverage, 0, sizeof(uint32_t)*(SeqLen + 1));
-		ret = utils_calloc(ReadCount, sizeof(ONE_READ), &tmpReadSet);
-		if (ret == ERR_SUCCESS) {
-			r = tmpReadSet;
-			for (size_t i = 0; i < ReadCount; ++i) {
-				memset(r, 0, sizeof(ONE_READ));
-				r->Pos = utils_ranged_rand(0, SeqLen - ReadLength + 1);
-				for (size_t j = 0; j < ReadLength; ++j)
-					coverage[ r->Pos+ j]++;
+		r = tmpReadSet;
+		for (size_t i = 0; i < ReadCount; ++i) {
+			memset(r, 0, sizeof(ONE_READ));
+			r->Pos = utils_ranged_rand(0, SeqLen - ReadLength + 1);
 
-				r->PosQuality = 254;
-				r->ReadSequenceLen = ReadLength;
-				ret = utils_calloc(r->ReadSequenceLen + 1, sizeof(char), &r->ReadSequence);
-				if (ret == ERR_SUCCESS) {
-					memcpy(r->ReadSequence, Seq + r->Pos, r->ReadSequenceLen*sizeof(char));
-					r->ReadSequence[r->ReadSequenceLen] = '\0';
-					r->QualityLen = r->ReadSequenceLen;
-					ret = utils_calloc(r->QualityLen, sizeof(uint8_t), &r->Quality);
-					if (ret == ERR_SUCCESS)
-						memset(r->Quality, 254, r->QualityLen);
+			r->PosQuality = 254;
+			r->ReadSequenceLen = ReadLength;
+			ret = utils_calloc(r->ReadSequenceLen + 1, sizeof(char), &r->ReadSequence);
+			if (ret == ERR_SUCCESS) {
+				memcpy(r->ReadSequence, Seq + r->Pos, r->ReadSequenceLen*sizeof(char));
+				r->ReadSequence[r->ReadSequenceLen] = '\0';
+				r->QualityLen = r->ReadSequenceLen;
+				ret = utils_calloc(r->QualityLen, sizeof(uint8_t), &r->Quality);
+				if (ret == ERR_SUCCESS)
+					memset(r->Quality, 254, r->QualityLen);
 
-					if (ret != ERR_SUCCESS)
-						utils_free(r->ReadSequence);
-				}
+				if (ret != ERR_SUCCESS)
+					utils_free(r->ReadSequence);
+			}
 
-				if (ret != ERR_SUCCESS) {
+			if (ret != ERR_SUCCESS) {
+				--r;
+				for (size_t j = 0; j < i; ++j) {
+					_read_destroy_structure(r);
 					--r;
-					for (size_t j = 0; j < i; ++j) {
-						_read_destroy_structure(r);
-						--r;
-					}
-
-					break;
 				}
 
-				++r;
+				break;
 			}
 
-			if (ret == ERR_SUCCESS)
-				*ReadSet = tmpReadSet;
-
-			if (ret != ERR_SUCCESS)
-				utils_free(tmpReadSet);
-		}
-	
-		if (ret == ERR_SUCCESS) {
-			uint32_t perc = 0;
-			for (size_t j = 0; j < SeqLen; ++j) {
-				if (coverage[j] == 0)
-					perc++;
-			}
-
-			printf("%u %% not covered (%u)\n", (uint32_t)(perc*100 / SeqLen), perc);
+			++r;
 		}
 
-		utils_free(coverage);
+		if (ret == ERR_SUCCESS)
+			*ReadSet = tmpReadSet;
+
+		if (ret != ERR_SUCCESS)
+			utils_free(tmpReadSet);
 	}
 
 	return ret;
@@ -594,6 +575,20 @@ ERR_VALUE assembly_task_save(FILE *Stream, const ASSEMBLY_TASK *Task)
 }
 
 
+ERR_VALUE assembly_task_save_file(const char *FileName, const ASSEMBLY_TASK *Task)
+{
+	FILE *f = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_fopen(FileName, FOPEN_MODE_WRITE, &f);
+	if (ret == ERR_SUCCESS) {
+		ret = assembly_task_save(f, Task);
+		utils_fclose(f);
+	}
+
+	return ret;
+}
+
 ERR_VALUE assembly_task_load(FILE *Stream, PASSEMBLY_TASK Task)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -611,6 +606,21 @@ ERR_VALUE assembly_task_load(FILE *Stream, PASSEMBLY_TASK Task)
 
 	if (ret == ERR_SUCCESS)
 		Task->Allocated = TRUE;
+
+	return ret;
+}
+
+
+ERR_VALUE assembly_task_load_file(const char *FileName, PASSEMBLY_TASK Task)
+{
+	FILE *f = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_fopen(FileName, FOPEN_MODE_READ, &f);
+	if (ret == ERR_SUCCESS) {
+		ret = assembly_task_load(f, Task);
+		utils_fclose(f);
+	}
 
 	return ret;
 }

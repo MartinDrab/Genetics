@@ -128,6 +128,7 @@ void kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge);
 ERR_VALUE kmer_graph_merge_edges(PKMER_GRAPH Graph, PKMER_EDGE Source, PKMER_EDGE Dest);
 ERR_VALUE kmer_graph_get_seqs(PKMER_GRAPH Graph, PGEN_ARRAY_PFOUND_SEQUENCE SeqArray);
 ERR_VALUE kmer_vertex_get_certain_edges(const KMER_VERTEX *Vertex, const EKMerEdgeType EdgeType, const boolean Incomming, PGEN_ARRAY_PKMER_EDGE Array);
+void kmer_graph_resolve_db_triangles(PKMER_GRAPH Graph, const size_t Threshold);
 
 PKMER_EDGE kmer_graph_get_edge(const struct _KMER_GRAPH *Graph, const struct _KMER *Source, const struct _KMER *Dest);
 PKMER_VERTEX kmer_graph_get_vertex(const struct _KMER_GRAPH *Graph, const struct _KMER *KMer);

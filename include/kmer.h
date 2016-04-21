@@ -33,7 +33,8 @@ ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Seq
 		aVariable = (PKMER)alloca(sizeof(KMER) + aSize*sizeof(char));		\
 		aVariable->Size = aSize;											\
 		aVariable->Number = aNumber;										\
-		memcpy(aVariable->Bases, aSequence, aSize*sizeof(char));			\
+		if (aSequence != NULL)												\
+			memcpy(aVariable->Bases, aSequence, aSize*sizeof(char));		\
 	}														\
 
 void kmer_init(PKMER KMer, const char *Sequence);

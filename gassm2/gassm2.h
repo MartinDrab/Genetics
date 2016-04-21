@@ -29,6 +29,7 @@
 #define PROGRAM_OPTION_SNP_RATIO						"snp-ratio"
 #define PROGRAM_OPTION_INSERT_RATIO						"insert-ratio"
 #define PROGRAM_OPTION_DELETE_RATIO						"delete-ratio"
+#define PROGRAM_OPTION_TESTFILE							"test-file"
 
 #define PROGRAM_OPTION_ALT1_SEQ							"alternate1-seq"
 #define PROGRAM_OPTION_ALT2_SEQ							"alternate2-seq"
@@ -61,6 +62,7 @@
 #define PROGRAM_OPTION_SNP_RATIO_DESC					"A probability that a base in an alternative sequence is chosen randomly rather that copied from the reference sequence."						"snp-ratio"
 #define PROGRAM_OPTION_INSERT_RATIO_DESC				"A probability that a base in an alternate sequence starts an insertion"
 #define PROGRAM_OPTION_DELETE_RATIO_DESC				"A probability that a base in an alternate sequence is deleted"
+#define PROGRAM_OPTION_TESTFILE_DESC					"Load a reference sequence, alternate sequences and reads from a given file"
 
 #define PROGRAM_OPTION_ALT1_SEQ_DESC					"alternate1-seq"
 #define PROGRAM_OPTION_ALT2_SEQ_DESC					"alternate2-seq"
@@ -77,6 +79,7 @@
 typedef struct _PROGRAM_OPTIONS {
 	boolean Help;
 	boolean Test;
+	char *TestFile;
 	boolean PrintResults;
 	uint32_t KMerSize;
 	const char *ReferenceSequence;

@@ -67,10 +67,10 @@ size_t utils_pow_mod(const size_t Base, const size_t Power, const size_t Modulus
 
 ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength);
 
-ERR_VALUE utils_Fopen(const char *FileName, const uint32_t Mode, FILE **Stream);
+ERR_VALUE utils_fopen(const char *FileName, const uint32_t Mode, FILE **Stream);
 ERR_VALUE utils_fread(void *Buffer, const size_t Size, const size_t Count, FILE *Stream);
 ERR_VALUE utils_fwrite(const void *Buffer, const size_t Size, const size_t Count, FILE *Stream);
-ERR_VALUE utils_Fclose(FILE *Stream);
+ERR_VALUE utils_fclose(FILE *Stream);
 
 
 ERR_VALUE _utils_malloc(const size_t Size, void **Address);

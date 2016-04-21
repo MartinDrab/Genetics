@@ -36,6 +36,7 @@
 	GEN_ARRAY_REMOVE_FAST_FUNCTION(aDataType)								\
 	GEN_ARRAY_EXCHANGE_FUNCTION(aDataType)									\
 	GEN_ARRAY_PUSH_BACK_ARRAY_FUNCTION(aDataType)							\
+	GEN_ARRAY_CONTAINS_FUNCTION(aDataType)									\
 
 
 
@@ -186,6 +187,20 @@
 														\
 		return ret;										\
 	}													\
+
+#define GEN_ARRAY_CONTAINS_FUNCTION(aDataType)	\
+	INLINE_FUNCTION boolean dym_array_contains_##aDataType(const GEN_ARRAY_TYPE(aDataType) *Array, aDataType Item)	\
+	{																	\
+		boolean ret = FALSE;											\
+																		\
+		for (size_t i = 0; i < Array->ValidLength; ++i) {				\
+			ret = (memcmp(Array->Data + i, &Item, sizeof(Item)) == 0);	\
+			if (ret)													\
+				break;													\
+		}																\
+																		\
+		return ret;														\
+	}																	\
 
 
 GEN_ARRAY_TYPEDEF(int8_t);

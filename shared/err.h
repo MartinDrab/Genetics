@@ -55,5 +55,7 @@ typedef int ERR_VALUE;
 
 #define ERR_IO_ERROR							50
 
+#define ERR_BAD_READ_COVERAGE					51
+
 
 #endif 

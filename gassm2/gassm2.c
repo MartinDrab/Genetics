@@ -89,6 +89,8 @@ static ERR_VALUE _init_default_values()
 	if (ret == ERR_SUCCESS)
 		ret = option_add_Boolean(PROGRAM_OPTION_RESOLVE_BUBBLES, FALSE);
 
+	if (ret == ERR_SUCCESS)
+		ret = option_add_String(PROGRAM_OPTION_TESTFILE, "\0");
 
 	option_set_description_const(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQUENCE, PROGRAM_OPTION_SEQUENCE_DESC);
@@ -114,6 +116,7 @@ static ERR_VALUE _init_default_values()
 	option_set_description_const(PROGRAM_OPTION_CONNECT_READS, PROGRAM_OPTION_CONNECT_READS_DESC);
 	option_set_description_const(PROGRAM_OPTION_RESOLVE_BUBBLES, PROGRAM_OPTION_RESOLVE_BUBBLES_DESC);
 	option_set_description_const(PROGRAM_OPTION_MERGE_UNBRANCHED, PROGRAM_OPTION_MERGE_UNBRANCHED_DESC);
+	option_set_description_const(PROGRAM_OPTION_TESTFILE, PROGRAM_OPTION_TESTFILE_DESC);
 
 	option_set_shortcut(PROGRAM_OPTION_KMERSIZE, 'k');
 	option_set_shortcut(PROGRAM_OPTION_SEQUENCE, 's');
@@ -139,7 +142,7 @@ static ERR_VALUE _init_default_values()
 	option_set_shortcut(PROGRAM_OPTION_CONNECT_READS, '2');
 	option_set_shortcut(PROGRAM_OPTION_RESOLVE_BUBBLES, '3');
 	option_set_shortcut(PROGRAM_OPTION_MERGE_UNBRANCHED, '4');
-
+	option_set_shortcut(PROGRAM_OPTION_TESTFILE, 'g');
 
 	return ret;
 }
@@ -231,16 +234,43 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 	if (ret == ERR_SUCCESS)
 		ret = option_get_Boolean(PROGRAM_OPTION_MERGE_UNBRANCHED, &Options->MergeUnbranched);;
 
+	if (ret == ERR_SUCCESS)
+		ret = option_get_String(PROGRAM_OPTION_TESTFILE, &Options->TestFile);
+
 	return ret;
 }
 
 
-static void _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, const KMER_GRAPH *Graph, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
+static void _write_differences(const char *RefSeq, const char *Alt1, const char *Alt2, const size_t Length)
+{
+	for (size_t i = 0; i < Length; ++i) {
+
+		if (*RefSeq != *Alt1 || *RefSeq != *Alt2)
+			printf("%Iu:\t%c\t%c\t%c\n", i, *RefSeq, *Alt1, *Alt2);
+
+		++RefSeq;
+		++Alt1;
+		++Alt2;
+	}
+
+	return;
+}
+
+
+typedef enum _EExperimentResult {
+	erSuccess,
+	erFailure,
+	erNotTried,
+} EExperimentResult, *PEExperimentResult;
+
+
+static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, const KMER_GRAPH *Graph, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
 {
 	boolean notFound = FALSE;
 	GEN_ARRAY_PFOUND_SEQUENCE seqArray;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	const char *alternates[2];
+	EExperimentResult res = erNotTried;
 	size_t alternateLens[2];
 
 	alternates[0] = Task->Alternate1;
@@ -268,6 +298,7 @@ static void _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, const K
 //				fprintf(stderr, "ALT1: %s\n", Task->Alternate1);
 //				fprintf(stderr, "ALT2: %s\n", Task->Alternate2);
 //				kmer_graph_print(stderr, Graph);
+//				_write_differences(Task->Reference, Task->Alternate1, Task->Alternate2, Task->ReferenceLength);
 //				exit(0);
 				break;
 			}
@@ -281,17 +312,20 @@ static void _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, const K
 	if (notFound) {
 		++Statistics->FailureCount;
 		printf("FAILD\n");
+		res = erFailure;
 	} else {
 		++Statistics->SuccessCount;
 		printf("OK\n");
+		res = erSuccess;
 	}
 
-	return;
+	return res;
 }
 
 
-static void _compute_graph(const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
+static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
 {
+	EExperimentResult res = erNotTried;
 	PKMER_GRAPH g = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
@@ -316,9 +350,12 @@ static void _compute_graph(const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *
 								kmer_graph_delete_1to1_vertices(g);
 //								ret = kmer_graph_resolve_bubbles(g, Options->Threshold);
 								if (ret == ERR_SUCCESS) {
+									kmer_graph_resolve_db_triangles(g, Options->Threshold);
 									ret = kmer_graph_detect_uncertainities(g);
+									kmer_graph_print(stderr, g);
+//									kmer_graph_delete_1to1_vertices(g);
 									if (ret == ERR_SUCCESS)
-										_compare_alternate_sequences(Options, g, Task, Statistics);
+										res = _compare_alternate_sequences(Options, g, Task, Statistics);
 									else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
 								} else printf("ERROR: kmer_graph_resolve_bubbles(): %u\n", ret);
 							} else printf("kmer_graph_connect_reads(): %u\n", ret);
@@ -338,7 +375,7 @@ static void _compute_graph(const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *
 			printf("FAILD\n");
 		}
 
-	return;
+	return res;
 }
 
 
@@ -445,6 +482,40 @@ static ERR_VALUE _create_alternatce_sequence(const PROGRAM_OPTIONS *Options, con
 }
 
 
+static ERR_VALUE _examine_read_coverage(const ONE_READ *Reads, const size_t ReadCount, const char *RefSeq, const size_t RefSeqLen, const char *Alternate)
+{
+	uint32_t *c = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_calloc(RefSeqLen, sizeof(uint32_t), &c);
+	if (ret == ERR_SUCCESS) {
+		memset(c, 0, RefSeqLen*sizeof(uint32_t));
+		for (size_t i = 0; i < ReadCount; ++i) {
+			for (size_t j = 0; j < Reads[i].ReadSequenceLen; ++j)
+				c[Reads[i].Pos + j]++;
+		}
+
+		printf("Not covered: ");
+		for (size_t i = 0; i < RefSeqLen; ++i) {
+			if (c[i] == 0) {
+				printf("%u ", i);
+				if (RefSeq[i] != Alternate[i]) {
+					printf("%u: The position has SNPs but is not covered in any read (%c %c)\n", i, RefSeq[i], Alternate[i]);
+					ret = ERR_BAD_READ_COVERAGE;
+				}
+			}
+		}
+
+		printf("\n");
+		utils_free(c);
+	}
+
+	return ret;
+}
+
+
+static unsigned int _taskNumber = 0;
+
 static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, PPROGRAM_STATISTICS Statistics)
 {
 	ASSEMBLY_TASK task;
@@ -468,51 +539,88 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 
 				ret = read_set_generate_from_sequence(alternate, alternateLen, Options->ReadLength, Options->ReadCount / 2, &reads1);
 				if (ret == ERR_SUCCESS) {
-					char *alternate2 = NULL;
-					size_t alternateLen2 = 0;
-
-					if (*Options->AlternateSequence2 != '\0') {
-						alternate2 = Options->AlternateSequence2;
-						alternateLen2 = strlen(alternate2);
-					} else ret = _create_alternatce_sequence(Options, RefSeq, Options->RegionLength, &alternate2, &alternateLen2);
-					
+					ret = _examine_read_coverage(reads1, Options->ReadCount / 2, RefSeq, Options->RegionLength, alternate);
 					if (ret == ERR_SUCCESS) {
-						PONE_READ reads2 = NULL;
+						char *alternate2 = NULL;
+						size_t alternateLen2 = 0;
+						
+						if (*Options->AlternateSequence2 != '\0') {
+							alternate2 = Options->AlternateSequence2;
+							alternateLen2 = strlen(alternate2);
+						} else ret = _create_alternatce_sequence(Options, RefSeq, Options->RegionLength, &alternate2, &alternateLen2);
 
-						ret = read_set_generate_from_sequence(alternate2, alternateLen2, Options->ReadLength, Options->ReadCount / 2, &reads2);
 						if (ret == ERR_SUCCESS) {
-							PONE_READ finalReadSet = reads1;
+							PONE_READ reads2 = NULL;
 
-							ret = read_set_merge(&finalReadSet, Options->ReadCount / 2, reads2, Options->ReadCount / 2);
+							ret = read_set_generate_from_sequence(alternate2, alternateLen2, Options->ReadLength, Options->ReadCount / 2, &reads2);
 							if (ret == ERR_SUCCESS) {
-								char *rs = NULL;
-								PROGRAM_STATISTICS stats;
-
-								reads1 = NULL;
-								reads2 = NULL;
-								ret = utils_calloc(Options->RegionLength + 1, sizeof(char), &rs);
+								ret = _examine_read_coverage(reads2, Options->ReadCount / 2, RefSeq, Options->RegionLength, alternate2);
 								if (ret == ERR_SUCCESS) {
-									memcpy(rs, RefSeq, Options->RegionLength*sizeof(char));
-									rs[Options->RegionLength] = '\0';
-									assembly_task_init(&task, rs, Options->RegionLength, alternate, alternateLen, alternate2, alternateLen2, finalReadSet, Options->ReadCount);
-									_compute_graph(Options, &task, &stats);
-									assembly_task_finit(&task);
-									Statistics->FailureCount += stats.FailureCount;
-									Statistics->SuccessCount += stats.SuccessCount;
-									Statistics->CannotSucceed += stats.CannotSucceed;
-									utils_free(rs);
-								}
+									PONE_READ finalReadSet = reads1;
 
-								read_set_destroy(finalReadSet, Options->ReadCount);
+									ret = read_set_merge(&finalReadSet, Options->ReadCount / 2, reads2, Options->ReadCount / 2);
+									if (ret == ERR_SUCCESS) {
+										char *rs = NULL;
+										PROGRAM_STATISTICS stats;
+
+										reads1 = NULL;
+										reads2 = NULL;
+										ret = utils_calloc(Options->RegionLength + 1, sizeof(char), &rs);
+										if (ret == ERR_SUCCESS) {
+											char taskFileName[128];
+											char succTaskFileName[128];
+											char failedTaskFileName[128];
+											char notTriedTaskFileName[128];
+
+											memcpy(rs, RefSeq, Options->RegionLength*sizeof(char));
+											rs[Options->RegionLength] = '\0';
+											assembly_task_init(&task, rs, Options->RegionLength, alternate, alternateLen, alternate2, alternateLen2, finalReadSet, Options->ReadCount);
+#pragma warning (disable : 4996)											
+											sprintf(taskFileName, "tmp\\%09u.task", _taskNumber);
+#pragma warning (disable : 4996)											
+											sprintf(succTaskFileName, "succ\\%09u.task", _taskNumber);
+#pragma warning (disable : 4996)											
+											sprintf(notTriedTaskFileName, "nottried\\%09u.task", _taskNumber);
+#pragma warning (disable : 4996)											
+											sprintf(failedTaskFileName, "fail\\%09u.task", _taskNumber);
+											++_taskNumber;
+											assembly_task_save_file(taskFileName, &task);
+											switch (_compute_graph(Options, &task, &stats)) {
+												case erSuccess:
+													rename(taskFileName, succTaskFileName);
+													break;
+												case erFailure:
+													rename(taskFileName, failedTaskFileName);
+													break;
+												case erNotTried:
+													rename(taskFileName, notTriedTaskFileName);
+													break;
+												default:
+													assert(FALSE);
+													break;
+											}
+
+											assembly_task_finit(&task);
+											Statistics->FailureCount += stats.FailureCount;
+											Statistics->SuccessCount += stats.SuccessCount;
+											Statistics->CannotSucceed += stats.CannotSucceed;
+											utils_free(rs);
+										}
+
+										read_set_destroy(finalReadSet, Options->ReadCount);
+									}
+								}
+								else Statistics->CannotSucceed++;
+
+
+								if (reads2 != NULL)
+									read_set_destroy(reads2, Options->ReadCount / 2);
 							}
 
-							if (reads2 != NULL)
-								read_set_destroy(reads2, Options->ReadCount / 2);
+							if (*Options->AlternateSequence2 == '\0')
+								utils_free(alternate2);
 						}
-
-						if (*Options->AlternateSequence2 == '\0')
-							utils_free(alternate2);
-					}
+					} else Statistics->CannotSucceed++;
 
 					if (reads1 != NULL)
 						read_set_destroy(reads1, Options->ReadCount / 2);
@@ -539,7 +647,6 @@ int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	rand_stats();
 	omp_set_num_threads(1);
 	ret = options_module_init(37);
 	if (ret == ERR_SUCCESS) {
@@ -671,6 +778,23 @@ int main(int argc, char *argv[])
 								if (!explicitSequence)
 									fasta_free(&seqFile);
 							}
+						}
+					} else if (*po.TestFile != '\0') {
+						ASSEMBLY_TASK task;
+
+						ret = assembly_task_load_file(po.TestFile, &task);
+						if (ret == ERR_SUCCESS) {
+							PROGRAM_STATISTICS stats;
+							
+							memset(&stats, 0, sizeof(stats));
+							po.ReferenceSequence = task.Reference;
+							po.RegionLength = task.ReferenceLength;
+							po.Reads = task.Reads;
+							po.ReadCount = task.ReadCount;
+							po.AltenrateSequence1 = task.Alternate1;
+							po.AlternateSequence2 = task.Alternate2;
+							_compute_graph(&po, &task, &stats);
+							assembly_task_finit(&task);
 						}
 					} else if (*po.RefSeqFile != '\0') {
 						FASTA_FILE seqFile;
