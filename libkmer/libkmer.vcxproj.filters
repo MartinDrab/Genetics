@@ -92,5 +92,8 @@
     <ClInclude Include="..\include\found-sequence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\refseq-storage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -19,8 +19,10 @@ ERR_VALUE found_sequence_init(const char *Sequence, const size_t Length, const s
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_copy_string(Sequence, &FS->Sequence);
+	ret = utils_calloc(Length + 1, sizeof(char), &FS->Sequence);
 	if (ret == ERR_SUCCESS) {
+		memcpy(FS->Sequence, Sequence, Length*sizeof(char));
+		FS->Sequence[Length] = '\0';
 		FS->Len = Length;
 		dym_array_init_FOUND_SEQUENCE_VARIANT(&FS->Variants, 140);
 		ret = dym_array_reserve_FOUND_SEQUENCE_VARIANT(&FS->Variants, VariantCount);

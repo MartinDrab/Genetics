@@ -352,7 +352,6 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 								if (ret == ERR_SUCCESS) {
 									kmer_graph_resolve_db_triangles(g, Options->Threshold);
 									ret = kmer_graph_detect_uncertainities(g);
-									kmer_graph_print(stderr, g);
 //									kmer_graph_delete_1to1_vertices(g);
 									if (ret == ERR_SUCCESS)
 										res = _compare_alternate_sequences(Options, g, Task, Statistics);

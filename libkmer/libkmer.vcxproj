@@ -38,6 +38,7 @@
     <ClInclude Include="..\include\kmer-table.h" />
     <ClInclude Include="..\include\kmer.h" />
     <ClInclude Include="..\include\libkmer.h" />
+    <ClInclude Include="..\include\refseq-storage.h" />
     <ClInclude Include="..\shared\dym-array.h" />
     <ClInclude Include="..\shared\err.h" />
     <ClInclude Include="..\shared\general-queue.h" />
