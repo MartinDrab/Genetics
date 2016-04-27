@@ -58,7 +58,6 @@ ERR_VALUE _utils_malloc_debug(const size_t Size, void **Address, const char *Fun
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	void *addr = NULL;
 
-//	utils_allocator_check();
 	ret = _utils_malloc(Size + sizeof(ALLOCATOR_FOOTER) + sizeof(ALLOCATOR_HEADER), &addr);
 	if (ret == ERR_SUCCESS) {
 		PALLOCATOR_HEADER h = NULL;
@@ -78,7 +77,6 @@ ERR_VALUE _utils_malloc_debug(const size_t Size, void **Address, const char *Fun
 		_allocHead.Prev->Next = h;
 		_allocHead.Prev = h;
 		*Address = addr;
-//		utils_allocator_check();
 	}
 
 	return ret;
@@ -95,7 +93,6 @@ void _utils_free_debug(void *Address)
 	PALLOCATOR_HEADER h = (PALLOCATOR_HEADER)Address - 1;
 	PALLOCATOR_FOOTER f = (PALLOCATOR_FOOTER)((unsigned char *)Address + h->BodySize);
 
-//	utils_allocator_check();
 	if (h->Signature != ALLOCATOR_HEADER_SIGNATURE)
 		__debugbreak();
 
@@ -110,8 +107,8 @@ void _utils_free_debug(void *Address)
 	f->Signature = 0;
 	h->Prev->Next = h->Next;
 	h->Next->Prev = h->Prev;
+	memset(h, 0xbadf00d, h->BodySize + sizeof(ALLOCATOR_HEADER) + sizeof(ALLOCATOR_FOOTER));
 	_utils_free(h);
-//	utils_allocator_check();
 
 	return;
 }

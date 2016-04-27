@@ -29,7 +29,7 @@ typedef struct _ASSEMBLY_TASK {
 	size_t Alternate1Length;
 	const char *Alternate2;
 	size_t Alternate2Length;
-	PONE_READ Reads;
+	const ONE_READ *Reads;
 	size_t ReadCount;
 } ASSEMBLY_TASK, *PASSEMBLY_TASK;
 

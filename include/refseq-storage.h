@@ -3,7 +3,7 @@
 #define __REFSEQ_STORAGE_H__
 
 
-
+#include <stdlib.h>
 #include "err.h"
 #include "utils.h"
 
@@ -103,7 +103,7 @@ INLINE_FUNCTION void rs_storage_remove(PREFSEQ_STORAGE Storage, size_t Length)
 }
 
 
-INLINE_FUNCTION rs_storage_reset(PREFSEQ_STORAGE Storage)
+INLINE_FUNCTION void rs_storage_reset(PREFSEQ_STORAGE Storage)
 {
 	Storage->ValidLength = 0;
 

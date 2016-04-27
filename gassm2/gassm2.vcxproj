@@ -164,7 +164,9 @@
     <ClCompile Include="gassm2.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\Header.h" />
     <ClInclude Include="..\include\libkmer.h" />
+    <ClInclude Include="..\include\pointer_array.h" />
     <ClInclude Include="..\shared\dym-array.h" />
     <ClInclude Include="..\shared\err.h" />
     <ClInclude Include="..\shared\general-queue.h" />

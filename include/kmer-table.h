@@ -9,7 +9,7 @@
 
 
 typedef struct _KMER_TABLE_ENTRY {
-	unsigned char Deleted;
+	boolean Deleted;
 	PKMER KMer;
 	void *Data;
 } KMER_TABLE_ENTRY, *PKMER_TABLE_ENTRY;

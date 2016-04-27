@@ -34,16 +34,23 @@ static UTILS_TYPED_CALLOC_FUNCTION(KMER_TABLE_ENTRY)
 static PKMER_TABLE_ENTRY _kmer_table_get_slot_insert_hint(const KMER_TABLE *Table, size_t Hash, const KMER *KMer)
 {
 	PKMER_TABLE_ENTRY ret = NULL;
+	PKMER_TABLE_ENTRY firstDeleted = NULL;
 
 	ret = Table->Entries + Hash;
-	if (!_kmer_table_entry_empty(ret) && !kmer_equal(ret->KMer, KMer)) {
+	if ((!_kmer_table_entry_empty(ret) || ret->Deleted) && (_kmer_table_entry_empty(ret) || !kmer_equal(ret->KMer, KMer))) {
 		size_t attempt = 1;
 		PKMER_TABLE_ENTRY first = ret;
+
+		if (ret->Deleted)
+			firstDeleted = ret;
 
 		do {
 			Hash = _next_hash_attempt(Hash, attempt, Table->Size);
 			ret = Table->Entries + Hash;
-			if (_kmer_table_entry_empty(ret) || kmer_equal(ret->KMer, KMer))
+			if (firstDeleted != NULL && ret->Deleted)
+				firstDeleted = ret;
+			
+			if (!ret->Deleted && (_kmer_table_entry_empty(ret) || kmer_equal(ret->KMer, KMer)))
 				break;
 
 			if (first == ret) {
@@ -53,6 +60,9 @@ static PKMER_TABLE_ENTRY _kmer_table_get_slot_insert_hint(const KMER_TABLE *Tabl
 
 			++attempt;
 		} while (TRUE);
+
+		if (firstDeleted != NULL && ret != NULL && _kmer_table_entry_empty(ret))
+			ret = firstDeleted;
 	}
 
 	return ret;

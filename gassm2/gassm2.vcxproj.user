@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>-t -T 6 -k 15 -f input.fa -l 2000 -L 150 -C 300 -r 0.005  2&gt; graph.dot</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-g problem.task -k 15</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(TargetPath)</LocalDebuggerCommand>
@@ -12,7 +12,7 @@
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-t -T 6 -k 15 -f input.fa -l 2000 -L 150 -C 300 -r 0.005  2&gt; graph.dot</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-g problem.task -k 15</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(TargetPath)</LocalDebuggerCommand>

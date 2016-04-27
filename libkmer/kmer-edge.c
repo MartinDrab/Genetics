@@ -35,19 +35,26 @@ static UTILS_TYPED_MALLOC_FUNCTION(KMER_EDGE_TABLE)
 static UTILS_TYPED_CALLOC_FUNCTION(KMER_EDGE_TABLE_ENTRY)
 
 
-static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_insert_hint(const struct _KMER_EDGE_TABLE *Table, size_t Hash, const struct _KMER *Source, const struct _KMER *Dest)
+static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_insert_hint(const KMER_EDGE_TABLE *Table, size_t Hash, const KMER *Source, const KMER *Dest)
 {
+	PKMER_EDGE_TABLE_ENTRY firstDeleted = NULL;
 	PKMER_EDGE_TABLE_ENTRY ret = NULL;
 
 	ret = Table->Entries + Hash;
-	if (!_kmer_edge_table_entry_empty(ret) && (Source == NULL || !kmer_equal(ret->Source, Source) || !kmer_equal(ret->Dest, Dest))) {
+	if ((!_kmer_edge_table_entry_empty(ret) || ret->Deleted) && (ret->Deleted || !kmer_equal(ret->Source, Source) || !kmer_equal(ret->Dest, Dest))) {
 		size_t attempt = 1;
 		PKMER_EDGE_TABLE_ENTRY first = ret;
+
+		if (ret->Deleted)
+			firstDeleted = ret;
 
 		do {
 			Hash = _next_hash_attempt(Hash, attempt, Table->Size);
 			ret = Table->Entries + Hash;
-			if (_kmer_edge_table_entry_empty(ret) || (Source != NULL && kmer_equal(ret->Source, Source) && kmer_equal(ret->Dest, Dest)))
+			if (firstDeleted == NULL && ret->Deleted)
+				firstDeleted = ret;
+			
+			if (!ret->Deleted && (_kmer_edge_table_entry_empty(ret) || (kmer_equal(ret->Source, Source) && kmer_equal(ret->Dest, Dest))))
 				break;
 
 			if (first == ret) {
@@ -57,6 +64,9 @@ static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_insert_hint(const struct
 
 			++attempt;
 		} while (TRUE);
+
+		if (firstDeleted != NULL && ret != NULL && _kmer_edge_table_entry_empty(ret))
+			ret = firstDeleted;
 	}
 
 	return ret;
@@ -215,7 +225,7 @@ ERR_VALUE kmer_edge_table_extend(PKMER_EDGE_TABLE Table)
 	newSize = utils_next_prime(newSize);
 	ret = kmer_edge_table_create(Table->KMerSize, Table->X, newSize, &Table->Callbacks, &newTable);
 	if (ret == ERR_SUCCESS) {
-		PKMER_EDGE_TABLE_ENTRY entry = Table->Entries;
+		const KMER_EDGE_TABLE_ENTRY *entry = Table->Entries;
 		PKMER_EDGE_TABLE_ENTRY newSlot = NULL;
 
 		for (size_t i = 0; i < Table->Size; ++i) {
@@ -381,7 +391,7 @@ ERR_VALUE kmer_edge_table_delete(PKMER_EDGE_TABLE Table, const PKMER Source, con
 }
 
 
-ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest, void *Data)
+ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const KMER *Source, const KMER *Dest, void *Data)
 {
 	boolean oldDeleted = FALSE;
 	PKMER_EDGE_TABLE_ENTRY entry = NULL;
@@ -389,7 +399,7 @@ ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const PKMER Source, con
 
 	entry = _kmer_edge_table_get_slot(Table, Source, Dest, totInsert);
 	if (entry != NULL) {
-		if (_kmer_edge_table_entry_empty(entry)) {
+		if (_kmer_edge_table_entry_empty(entry) || entry->Deleted) {
 			oldDeleted = entry->Deleted;
 			entry->Deleted = FALSE;
 			ret = kmer_copy(&entry->Source, Source);
@@ -399,7 +409,6 @@ ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const PKMER Source, con
 					entry->Data = Data;
 					Table->Callbacks.OnInsert(Table, Data, Table->LastOrder);
 					Table->LastOrder++;
-					ret = ERR_SUCCESS;
 				}
 
 				if (ret != ERR_SUCCESS) {

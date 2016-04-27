@@ -11,6 +11,7 @@
 #include "kmer-edge.h"
 #include "reads.h"
 #include "gen_dym_array.h"
+#include "pointer_array.h"
 #include "read-info.h"
 #include "found-sequence.h"
 
@@ -53,23 +54,21 @@ typedef struct _KMER_EDGE {
 	READ_INFO ReadInfo;
 } KMER_EDGE, *PKMER_EDGE;
 
-GEN_ARRAY_TYPEDEF(PKMER_EDGE);
-GEN_ARRAY_IMPLEMENTATION(PKMER_EDGE)
+POINTER_ARRAY_TYPEDEF(KMER_EDGE);
+POINTER_ARRAY_IMPLEMENTATION(KMER_EDGE)
 
 typedef struct _KMER_VERTEX {
 	PKMER KMer;
-	uint32_t DegreeIn;
-	uint32_t degreeOut;
 	uint32_t Order;
 	EKMerVertexType Type;
-	DYM_ARRAY Successors;
-	DYM_ARRAY Predecessors;
+	POINTER_ARRAY_KMER_EDGE Successors;
+	POINTER_ARRAY_KMER_EDGE Predecessors;
 	boolean Finished;
 	uint32_t LastRSOrder;
 } KMER_VERTEX, *PKMER_VERTEX;
 
-GEN_ARRAY_TYPEDEF(PKMER_VERTEX);
-GEN_ARRAY_IMPLEMENTATION(PKMER_VERTEX)
+POINTER_ARRAY_TYPEDEF(KMER_VERTEX);
+POINTER_ARRAY_IMPLEMENTATION(KMER_VERTEX)
 
 typedef struct _KMER_GRAPH_SHORTCUT {
 	PKMER_VERTEX StartVertex;
@@ -99,10 +98,12 @@ typedef struct _KMER_GRAPH {
 #define kmer_graph_get_vertex_count(aGraph)					((aGraph)->NumberOfVertices)
 #define kmer_graph_get_cycle_count(aGraph)					((aGraph)->NumberOfBackwardEdges)
 
-#define kmer_vertex_get_succ_edge(aVertex, aIndex)			((PKMER_EDGE)(dym_array_data(&(aVertex)->Successors)[(aIndex)]))
-#define kmer_vertex_get_pred_edge(aVertex, aIndex)			((PKMER_EDGE)(dym_array_data(&(aVertex)->Predecessors)[(aIndex)]))
+#define kmer_vertex_get_succ_edge(aVertex, aIndex)			(*pointer_array_item_KMER_EDGE(&(aVertex)->Successors, (aIndex)))
+#define kmer_vertex_get_pred_edge(aVertex, aIndex)			(*pointer_array_item_KMER_EDGE(&(aVertex)->Predecessors, (aIndex)))
 #define kmer_vertex_get_successor(aVertex, aIndex)			(kmer_vertex_get_succ_edge((aVertex), (aIndex))->Dest)
 #define kmer_vertex_get_predecessor(aVertex, aIndex)		(kmer_vertex_get_pred_edge((aVertex), (aIndex))->Source)
+#define kmer_vertex_in_degree(aVertex)						(pointer_array_size(&(aVertex)->Predecessors))
+#define kmer_vertex_out_degree(aVertex)						(pointer_array_size(&(aVertex)->Successors))
 
 
 ERR_VALUE kmer_graph_create(const uint32_t KMerSize, PKMER_GRAPH *Graph);
@@ -121,18 +122,17 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph);
 
 ERR_VALUE kmer_graph_add_vertex(PKMER_GRAPH Graph, const KMER *KMer, const EKMerVertexType Type);
 ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EKMerVertexType Type, PKMER_VERTEX *Vertex);
-ERR_VALUE kmer_graph_add_edge(PKMER_GRAPH Graph, const PKMER Source, const PKMER Dest, const long weight);
-ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, const PKMER Source, const PKMER Dest, const long weight, const uint32_t Length, const EKMerEdgeType Type, PKMER_EDGE *Edge);
+ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_VERTEX Dest, const long weight, const uint32_t Length, const EKMerEdgeType Type, PKMER_EDGE *Edge);
 ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex);
 void kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge);
 ERR_VALUE kmer_graph_merge_edges(PKMER_GRAPH Graph, PKMER_EDGE Source, PKMER_EDGE Dest);
-ERR_VALUE kmer_graph_get_seqs(PKMER_GRAPH Graph, PGEN_ARRAY_PFOUND_SEQUENCE SeqArray);
-ERR_VALUE kmer_vertex_get_certain_edges(const KMER_VERTEX *Vertex, const EKMerEdgeType EdgeType, const boolean Incomming, PGEN_ARRAY_PKMER_EDGE Array);
+ERR_VALUE kmer_graph_get_seqs(PKMER_GRAPH Graph, PPOINTER_ARRAY_FOUND_SEQUENCE SeqArray);
+ERR_VALUE kmer_vertex_get_certain_edges(const KMER_VERTEX *Vertex, const EKMerEdgeType EdgeType, const boolean Incomming, PPOINTER_ARRAY_KMER_EDGE Array);
 void kmer_graph_resolve_db_triangles(PKMER_GRAPH Graph, const size_t Threshold);
 
 PKMER_EDGE kmer_graph_get_edge(const struct _KMER_GRAPH *Graph, const struct _KMER *Source, const struct _KMER *Dest);
 PKMER_VERTEX kmer_graph_get_vertex(const struct _KMER_GRAPH *Graph, const struct _KMER *KMer);
-ERR_VALUE kmer_graph_get_vertices(const KMER_GRAPH *Graph, const KMER *KMer, PGEN_ARRAY_PKMER_VERTEX VertexArray);
+ERR_VALUE kmer_graph_get_vertices(const KMER_GRAPH *Graph, const KMER *KMer, PPOINTER_ARRAY_KMER_VERTEX VertexArray);
 
 
 

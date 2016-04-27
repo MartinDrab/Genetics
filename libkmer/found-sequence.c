@@ -102,11 +102,13 @@ boolean found_sequence_match(const FOUND_SEQUENCE *FS, const char *Seq, const si
 	const char *sPos = Seq;
 	boolean ret = TRUE;
 	size_t remaining = Length;
-	PFOUND_SEQUENCE_VARIANT currentVariant = dym_array_item_FOUND_SEQUENCE_VARIANT(&FS->Variants, 0);
 	size_t cvIndex = 0;
+	PFOUND_SEQUENCE_VARIANT currentVariant = NULL;
 
-	if (gen_array_size(&FS->Variants) > 0)
+	if (gen_array_size(&FS->Variants) > 0) {
+		currentVariant = dym_array_item_FOUND_SEQUENCE_VARIANT(&FS->Variants, 0);
 		currentVariant->Reserved = 0;
+	}
 
 	while (ret && remaining > 0) {
 		if (*fPos == '?') {

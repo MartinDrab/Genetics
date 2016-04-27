@@ -50,7 +50,7 @@ void kmer_edge_table_destroy(PKMER_EDGE_TABLE Table);
 ERR_VALUE kmer_edge_table_extend(PKMER_EDGE_TABLE Table);
 ERR_VALUE kmer_edge_table_copy(const PKMER_EDGE_TABLE Source, PKMER_EDGE_TABLE * Copied);
 
-ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest, void *Data);
+ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const KMER *Source, const KMER *Dest, void *Data);
 ERR_VALUE kmer_edge_table_delete(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest);
 void kmer_edge_table_delete_by_entry(PKMER_EDGE_TABLE Table, PKMER_EDGE_TABLE_ENTRY Entry);
 PKMER_EDGE_TABLE_ENTRY kmer_edge_table_get(const struct _KMER_EDGE_TABLE *Table, const struct _KMER *Source, const struct _KMER *Dest);

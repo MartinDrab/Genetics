@@ -10,7 +10,7 @@
 #include "kmer-graph.h"
 #include "assembly.h"
 #include "found-sequence.h"
-
+#include "refseq-storage.h"
 
 
 #endif 

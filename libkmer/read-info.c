@@ -33,12 +33,14 @@ ERR_VALUE read_info_copy(PREAD_INFO Dest, const READ_INFO *Source)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	const size_t count = read_info_get_count(Source);
-	const READ_INFO_ENTRY *entry = read_info_get_entry(Source, 0);
+	const READ_INFO_ENTRY *entry = Source->Array.Data;
 
 	for (size_t i = 0; i < count; ++i) {
 		ret = read_info_add(Dest, entry->ReadIndex, entry->ReadPosition);
 		if (ret != ERR_SUCCESS)
 			break;
+
+		++entry;
 	}
 
 	return ret;
@@ -61,8 +63,8 @@ ERR_VALUE read_info_add(PREAD_INFO Info, const size_t ReadIndex, const size_t Re
 ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_PTYPE(READ_INFO_ENTRY) Intersection, const boolean AscendingPosition, const size_t ReadDistance)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	const READ_INFO_ENTRY *entry1 = dym_array_const_item_READ_INFO_ENTRY(&Info1->Array, 0);
-	const READ_INFO_ENTRY *entry2 = dym_array_const_item_READ_INFO_ENTRY(&Info2->Array, 0);
+	const READ_INFO_ENTRY *entry1 = Info1->Array.Data;
+	const READ_INFO_ENTRY *entry2 = Info2->Array.Data;
 	size_t index1 = 0;
 	size_t index2 = 0;
 	const size_t count1 = read_info_get_count(Info1);
@@ -94,8 +96,8 @@ ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_P
 ERR_VALUE read_info_diff(const READ_INFO *Info, const GEN_ARRAY_TYPE(READ_INFO_ENTRY) *Subtrahend, GEN_ARRAY_PTYPE(READ_INFO_ENTRY) Difference)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	const READ_INFO_ENTRY *entry1 = dym_array_const_item_READ_INFO_ENTRY(&Info->Array, 0);
-	const READ_INFO_ENTRY *entry2 = dym_array_const_item_READ_INFO_ENTRY(Subtrahend, 0);
+	const READ_INFO_ENTRY *entry1 = Info->Array.Data;
+	const READ_INFO_ENTRY *entry2 = Subtrahend->Data;
 	size_t index1 = 0;
 	size_t index2 = 0;
 	const size_t count1 = read_info_get_count(Info);

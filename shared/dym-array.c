@@ -81,7 +81,9 @@ ERR_VALUE dym_array_push_back(PDYM_ARRAY Array, const void *Value)
 
 void dym_array_push_back_no_alloc(PDYM_ARRAY Array, const void *Value)
 {
-	assert(Array->AllocatedLength > Array->ValidLength);
+	if (Array->AllocatedLength <= Array->ValidLength)
+		__debugbreak();
+
 	Array->Data[Array->ValidLength] = (void *)Value;
 	++Array->ValidLength;
 

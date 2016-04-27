@@ -547,10 +547,10 @@ void assembly_task_init(PASSEMBLY_TASK Task, const char *RefSeq, const size_t Re
 void assembly_task_finit(PASSEMBLY_TASK Task)
 {
 	if (Task->Allocated) {
-		read_set_destroy(Task->Reads, Task->ReadCount);
-		utils_free(Task->Alternate2);
-		utils_free(Task->Alternate1);
-		utils_free(Task->Reference);
+		read_set_destroy((PONE_READ)Task->Reads, Task->ReadCount);
+		utils_free((char *)Task->Alternate2);
+		utils_free((char *)Task->Alternate1);
+		utils_free((char *)Task->Reference);
 	}
 
 	return;
@@ -591,21 +591,30 @@ ERR_VALUE assembly_task_save_file(const char *FileName, const ASSEMBLY_TASK *Tas
 
 ERR_VALUE assembly_task_load(FILE *Stream, PASSEMBLY_TASK Task)
 {
+	char *rs = NULL;
+	char *alt1 = NULL;
+	char *alt2 = NULL;
+	PONE_READ readSet = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	memset(Task, 0, sizeof(ASSEMBLY_TASK));
-	ret = seq_load(Stream, &Task->Reference, &Task->ReferenceLength);
+	ret = seq_load(Stream, &rs, &Task->ReferenceLength);
 	if (ret == ERR_SUCCESS)
-		ret = seq_load(Stream, &Task->Alternate1, &Task->Alternate1Length);
+		ret = seq_load(Stream, &alt1, &Task->Alternate1Length);
 
 	if (ret == ERR_SUCCESS)
-		ret = seq_load(Stream, &Task->Alternate2, &Task->Alternate2Length);
+		ret = seq_load(Stream, &alt2, &Task->Alternate2Length);
 
 	if (ret == ERR_SUCCESS)
-		ret = read_set_load(Stream, &Task->Reads, &Task->ReadCount);
+		ret = read_set_load(Stream, &readSet, &Task->ReadCount);
 
-	if (ret == ERR_SUCCESS)
+	if (ret == ERR_SUCCESS) {
+		Task->Reference = rs;
+		Task->Alternate1 = alt1;
+		Task->Alternate2 = alt2;
+		Task->Reads = readSet;
 		Task->Allocated = TRUE;
+	}
 
 	return ret;
 }

@@ -267,7 +267,7 @@ typedef enum _EExperimentResult {
 static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, const KMER_GRAPH *Graph, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
 {
 	boolean notFound = FALSE;
-	GEN_ARRAY_PFOUND_SEQUENCE seqArray;
+	POINTER_ARRAY_FOUND_SEQUENCE seqArray;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	const char *alternates[2];
 	EExperimentResult res = erNotTried;
@@ -277,7 +277,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 	alternates[1] = Task->Alternate2;
 	alternateLens[0] = Task->Alternate1Length;
 	alternateLens[1] = Task->Alternate2Length;
-	dym_array_init_PFOUND_SEQUENCE(&seqArray, 140);
+	pointer_array_init_FOUND_SEQUENCE(&seqArray, 140);
 	ret = kmer_graph_get_seqs(Graph, &seqArray);
 	if (ret == ERR_SUCCESS) {
 		printf("%u\n", (uint32_t)gen_array_size(&seqArray));
@@ -285,7 +285,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 			boolean found = FALSE;
 
 			for (size_t j = 0; j < gen_array_size(&seqArray); ++j) {
-				const FOUND_SEQUENCE *fs = *dym_array_item_PFOUND_SEQUENCE(&seqArray, j);
+				const FOUND_SEQUENCE *fs = *pointer_array_item_FOUND_SEQUENCE(&seqArray, j);
 
 				found = found_sequence_match(fs, alternates[i], alternateLens[i]);
 				if (found)
@@ -306,10 +306,10 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 	} else printf("ERROR: kmer_graph_get_seqs(): %u\n", ret);
 	
 	for (size_t j = 0; j < gen_array_size(&seqArray); ++j)
-		found_sequence_free(*dym_array_item_PFOUND_SEQUENCE(&seqArray, j));
+		found_sequence_free(*pointer_array_item_FOUND_SEQUENCE(&seqArray, j));
 
-	dym_array_finit_PFOUND_SEQUENCE(&seqArray);
-	if (notFound) {
+	pointer_array_finit_FOUND_SEQUENCE(&seqArray);
+	if (ret != ERR_SUCCESS || notFound) {
 		++Statistics->FailureCount;
 		printf("FAILD\n");
 		res = erFailure;
@@ -348,15 +348,11 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 							ret = kmer_graph_connect_reads_by_refseq(g, Options->Threshold);
 							if (ret == ERR_SUCCESS) {
 								kmer_graph_delete_1to1_vertices(g);
-//								ret = kmer_graph_resolve_bubbles(g, Options->Threshold);
+								kmer_graph_resolve_db_triangles(g, Options->Threshold);
+								ret = kmer_graph_detect_uncertainities(g);
 								if (ret == ERR_SUCCESS) {
-									kmer_graph_resolve_db_triangles(g, Options->Threshold);
-									ret = kmer_graph_detect_uncertainities(g);
-//									kmer_graph_delete_1to1_vertices(g);
-									if (ret == ERR_SUCCESS)
-										res = _compare_alternate_sequences(Options, g, Task, Statistics);
-									else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
-								} else printf("ERROR: kmer_graph_resolve_bubbles(): %u\n", ret);
+									res = _compare_alternate_sequences(Options, g, Task, Statistics);
+								} else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
 							} else printf("kmer_graph_connect_reads(): %u\n", ret);
 						} else printf("kmer_graph_connect_reads_by_reads(): %u\n", ret);
 					} else {
@@ -583,15 +579,19 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 #pragma warning (disable : 4996)											
 											sprintf(failedTaskFileName, "fail\\%09u.task", _taskNumber);
 											++_taskNumber;
+											unlink(taskFileName);
 											assembly_task_save_file(taskFileName, &task);
 											switch (_compute_graph(Options, &task, &stats)) {
 												case erSuccess:
+													unlink(succTaskFileName);
 													rename(taskFileName, succTaskFileName);
 													break;
 												case erFailure:
+													unlink(failedTaskFileName);
 													rename(taskFileName, failedTaskFileName);
 													break;
 												case erNotTried:
+													unlink(notTriedTaskFileName);
 													rename(taskFileName, notTriedTaskFileName);
 													break;
 												default:

@@ -53,11 +53,12 @@
 	}																					\
 
 #define GEN_ARRAY_FINIT_FUNCTION(aDataType)												\
-	INLINE_FUNCTION void dym_array_finit_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array)			\
+	INLINE_FUNCTION void dym_array_finit_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array)	\
 	{																					\
 		if (Array->AllocLength > 0 && Array->Data != Array->Storage)					\
 			utils_free(Array->Data);													\
 																						\
+		Array->Data = NULL;																\
 		return;																			\
 	}																					\
 
@@ -86,8 +87,8 @@
 #define GEN_ARRAY_PUSH_BACK_NO_ALLOC_FUNCTION(aDataType)										\
 	INLINE_FUNCTION void dym_array_push_back_no_alloc_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array, const aDataType Value)	\
 	{																						\
-		assert(Array->ValidLength < Array->AllocLength);									\
-		memcpy(Array->Data + Array->ValidLength, &Value, sizeof(aDataType));					\
+		if (Array->ValidLength >= Array->AllocLength) __debugbreak();						\
+		memcpy(Array->Data + Array->ValidLength, &Value, sizeof(aDataType));				\
 		++Array->ValidLength;																\
 																							\
 		return;																				\
@@ -113,7 +114,7 @@
 #define GEN_ARRAY_ITEM_FUNCTION(aDataType)													\
 	INLINE_FUNCTION aDataType *dym_array_item_##aDataType(const GEN_ARRAY_TYPE(aDataType) *Array, const size_t Index)				\
 	{																						\
-		assert(Index == 0 || Array->ValidLength > Index);													\
+		if (Array->ValidLength <= Index) __debugbreak();													\
 																							\
 		return (Array->Data + Index);														\
 	}																						\
@@ -121,7 +122,7 @@
 #define GEN_ARRAY_CONST_ITEM_FUNCTION(aDataType)											\
 	INLINE_FUNCTION const aDataType *dym_array_const_item_##aDataType(const GEN_ARRAY_TYPE(aDataType) *Array, const size_t Index)				\
 	{																						\
-		assert(Index == 0 || Array->ValidLength > Index);													\
+		if (Array->ValidLength <= Index) __debugbreak();													\
 																							\
 		return (Array->Data + Index);														\
 	}																						\
@@ -131,7 +132,7 @@
 	{																						\
 		aDataType *ret = dym_array_item_##aDataType(Array, Array->ValidLength - 1);			\
 																							\
-		assert(Array->ValidLength > 0);														\
+		if (Array->ValidLength == 0) __debugbreak();														\
 		--Array->ValidLength;																\
 																							\
 		return ret;																			\
@@ -148,8 +149,8 @@
 #define GEN_ARRAY_REMOVE_FAST_FUNCTION(aDataType)											\
 	INLINE_FUNCTION void dym_array_remove_fast##aDataType(GEN_ARRAY_PTYPE(aDataType) Array, const size_t Index) \
 	{																							\
-		assert(Array->ValidLength > Index);														\
-		memcpy(Array->Data + Index, Array->Data + Array->ValidLength - 1, sizeof(aDataType));	\
+		if (Array->ValidLength <= Index) __debugbreak();														\
+		memmove(Array->Data + Index, Array->Data + Array->ValidLength - 1, sizeof(aDataType));	\
 		--Array->ValidLength;																	\
 																								\
 		return;																					\
@@ -178,7 +179,7 @@
 		ERR_VALUE ret = ERR_SUCCESS;																\
 																									\
 		if (Target->AllocLength < Target->ValidLength + Source->ValidLength)						\
-			ret =dym_array_reserve_##aDataType(Target, Target->ValidLength + Source->ValidLength);	\
+			ret =dym_array_reserve_##aDataType(Target, 1 + Target->ValidLength + Source->ValidLength);	\
 																									\
 		if (ret == ERR_SUCCESS) {																	\
 			memcpy(Target->Data + Target->ValidLength, Source->Data, Source->ValidLength*sizeof(aDataType));	\
