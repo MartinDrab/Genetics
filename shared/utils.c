@@ -72,10 +72,10 @@ ERR_VALUE _utils_malloc_debug(const size_t Size, void **Address, const char *Fun
 		h->Signature = ALLOCATOR_HEADER_SIGNATURE;
 		h->Signature2 = ALLOCATOR_HEADER_SIGNATURE;
 		f->Signature = ALLOCATOR_FOOTER_SIGNATURE;
-		h->Next = &_allocHead;
-		h->Prev = _allocHead.Prev;
-		_allocHead.Prev->Next = h;
-		_allocHead.Prev = h;
+//		h->Next = &_allocHead;
+//		h->Prev = _allocHead.Prev;
+//		_allocHead.Prev->Next = h;
+//		_allocHead.Prev = h;
 		*Address = addr;
 	}
 
@@ -105,8 +105,8 @@ void _utils_free_debug(void *Address)
 	h->Signature = 0;
 	h->Signature2 = 0;
 	f->Signature = 0;
-	h->Prev->Next = h->Next;
-	h->Next->Prev = h->Prev;
+//	h->Prev->Next = h->Next;
+//	h->Next->Prev = h->Prev;
 	memset(h, 0xbadf00d, h->BodySize + sizeof(ALLOCATOR_HEADER) + sizeof(ALLOCATOR_FOOTER));
 	_utils_free(h);
 

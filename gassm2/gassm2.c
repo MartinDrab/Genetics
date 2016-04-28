@@ -5,12 +5,14 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <math.h>
+#include "tinydir.h"
 #include "err.h"
 #include "utils.h"
 #include "options.h"
 #include "libkmer.h"
 #include "input-file.h"
 #include "reads.h"
+#include "pointer_array.h"
 #include "gassm2.h"
 
 
@@ -329,9 +331,6 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 	PKMER_GRAPH g = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	Statistics->SuccessCount = 0;
-	Statistics->FailureCount = 0;
-	Statistics->CannotSucceed = 0;
 		ret = kmer_graph_create(Options->KMerSize, &g);
 		if (ret == ERR_SUCCESS) {
 			ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength, Options->Threshold);
@@ -339,7 +338,7 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 				ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount);
 				if (ret == ERR_SUCCESS) {
 					size_t deletedThings = 0;
-
+					
 					kmer_graph_delete_edges_under_threshold(g, Options->Threshold);
 					kmer_graph_delete_trailing_things(g, &deletedThings);
 					if (deletedThings == 0) {
@@ -642,11 +641,42 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 }
 
 
+
+
+
+static ERR_VALUE _obtain_files(PPOINTER_ARRAY_char Array, const size_t MaxCount, tinydir_dir *Dir)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = ERR_SUCCESS;
+	pointer_array_clear_char(Array);
+	if (Dir->has_next) {
+		
+		for (size_t i = 0; i < MaxCount; ++i) {
+			tinydir_file file;
+			char *str = NULL;
+
+			tinydir_readfile(Dir, &file);
+			ret = utils_copy_string(file.path, &str);
+			if (ret == ERR_SUCCESS)
+				pointer_array_push_back_no_alloc_char(Array, str);
+			
+			if (ret != ERR_SUCCESS || !Dir->has_next)
+				break;
+
+			tinydir_next(Dir);
+		}
+	}
+
+	return ret;
+}
+
+
 int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	omp_set_num_threads(1);
+	omp_set_num_threads(4);
 	ret = options_module_init(37);
 	if (ret == ERR_SUCCESS) {
 		ret = _init_default_values();
@@ -780,20 +810,59 @@ int main(int argc, char *argv[])
 						}
 					} else if (*po.TestFile != '\0') {
 						ASSEMBLY_TASK task;
-
 						ret = assembly_task_load_file(po.TestFile, &task);
-						if (ret == ERR_SUCCESS) {
+						if (ret == ERR_SUCCESS) {							
 							PROGRAM_STATISTICS stats;
-							
+
 							memset(&stats, 0, sizeof(stats));
-							po.ReferenceSequence = task.Reference;
-							po.RegionLength = task.ReferenceLength;
-							po.Reads = task.Reads;
-							po.ReadCount = task.ReadCount;
-							po.AltenrateSequence1 = task.Alternate1;
-							po.AlternateSequence2 = task.Alternate2;
 							_compute_graph(&po, &task, &stats);
 							assembly_task_finit(&task);
+						} else {
+							tinydir_dir dir;
+							PROGRAM_STATISTICS stats[128];
+
+							memset(&stats, 0, sizeof(stats));
+							if (tinydir_open(&dir, po.TestFile) == ERR_SUCCESS) {
+								printf("The given \"file\" is a directory\n");
+								POINTER_ARRAY_char fileNameArray;
+								
+								pointer_array_init_char(&fileNameArray, 140);
+								ret = pointer_array_reserve_char(&fileNameArray, 4096);
+								if (ret == ERR_SUCCESS) {
+									do {
+										_obtain_files(&fileNameArray, 4096, &dir);
+										int i = 0;
+#pragma omp parallel for shared(po, stats, fileNameArray)	
+										for (i = 0; i < (int)pointer_array_size(&fileNameArray); ++i) {
+											char *fileName = *pointer_array_item_char(&fileNameArray, i);
+											ASSEMBLY_TASK task;
+
+											printf("SAMPLE: %s\n", fileName);
+											ret = assembly_task_load_file(fileName, &task);
+											if (ret == ERR_SUCCESS) {
+												_compute_graph(&po, &task, stats + omp_get_thread_num());
+												assembly_task_finit(&task);
+											}
+
+											utils_free(fileName);
+										}
+									} while (dir.has_next);
+								}
+
+								pointer_array_finit_char(&fileNameArray);
+								tinydir_close(&dir);
+							}
+
+							PROGRAM_STATISTICS st;
+
+							memset(&st, 0, sizeof(st));
+							for (size_t i = 0; i < omp_get_num_threads(); ++i) {
+								st.CannotSucceed += stats[i].CannotSucceed;
+								st.FailureCount += stats[i].FailureCount;
+								st.SuccessCount += stats[i].SuccessCount;
+							}
+
+							printf("Success: (%" PRIu64 "), Failures: (%" PRIu64 "), Not tried: (%" PRIu64 "), Percentage: (%" PRIu64 ")\n", st.SuccessCount, st.FailureCount, st.CannotSucceed, (uint64_t)(st.SuccessCount * 100 / (st.SuccessCount + st.FailureCount + st.CannotSucceed + 1)));
 						}
 					} else if (*po.RefSeqFile != '\0') {
 						FASTA_FILE seqFile;
