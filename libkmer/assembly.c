@@ -133,26 +133,101 @@ static ERR_VALUE _kmer_graph_parse_read_v2(PKMER_GRAPH Graph, const ONE_READ *Re
 
 
 				if (ret == ERR_SUCCESS) {
-					boolean found[500];
-					
-					memset(found, FALSE, sizeof(found));
-					for (size_t i = 0; i < maxNumberOfEdges; ++i) {
-						PPOINTER_ARRAY_KMER_VERTEX sources = vertices + i;
-						PPOINTER_ARRAY_KMER_VERTEX dests = vertices + i + 1;
+					/*
+					{
+						size_t firstReadPoint = (size_t)-1;
+						size_t nextReadPoint = (size_t)-1;
+						for (size_t i = 0; i < maxNumberOfVertices; ++i) {
+							PPOINTER_ARRAY_KMER_VERTEX vs = vertices + i;
+							const EKMerVertexType vertexType = (*pointer_array_const_item_KMER_VERTEX(vs, 0))->Type;
 
-						if ((*pointer_array_item_KMER_VERTEX(sources, 0))->Type == kmvtRefSeqMiddle &&
-							(*pointer_array_item_KMER_VERTEX(dests, 0))->Type == kmvtRefSeqMiddle) {
-							ret = _delete_all_but_ref_edges(Graph, sources, dests, found + i);
+							if (vertexType == kmvtRead || (pointer_array_size(vs) == 1 && firstReadPoint != (size_t)-1)) {
+								nextReadPoint = i;
+								if (firstReadPoint != (size_t)-1) {
+									if (nextReadPoint - firstReadPoint > 1) {
+										PKMER_EDGE e = NULL;
+										size_t length = nextReadPoint - firstReadPoint;
+										PKMER_VERTEX s = *pointer_array_item_KMER_VERTEX(vertices + firstReadPoint, 0);
+										PKMER_VERTEX d = *pointer_array_item_KMER_VERTEX(vertices + nextReadPoint, 0);
+
+										ret = kmer_graph_add_edge_ex(Graph, s, d, 1, length, kmetRead, &e);
+										if (ret == ERR_SUCCESS) {
+											e->SeqLen = length - 1;
+											ret = utils_calloc(e->SeqLen + 1, sizeof(char), &e->Seq);
+											if (ret == ERR_SUCCESS) {
+												memcpy(e->Seq, readSeq + kmerSize + i, length - 1);
+												e->Seq[e->SeqLen] = '\0';
+											}
+										}
+
+										if (ret == ERR_ALREADY_EXISTS && e->SeqLen == length - 1 && memcmp(e->Seq, readSeq + kmerSize + i, e->SeqLen) == 0) {
+											e->Weight++;
+											ret = ERR_SUCCESS;
+										}
+
+										if (ret == ERR_SUCCESS) {
+											for (size_t j = firstReadPoint + 1; j < nextReadPoint; ++j)
+												pointer_array_clear_KMER_VERTEX(vertices + j);
+										}
+
+										if (ret == ERR_ALREADY_EXISTS)
+											ret = ERR_SUCCESS;
+									}
+								}
+
+								firstReadPoint = (size_t)-1;
+								if (vertexType == kmvtRead)
+									firstReadPoint = nextReadPoint;
+							}
+
+							if (ret != ERR_SUCCESS)
+								break;
 						}
 					}
+					*/
+					/*
+					{
+						if (pointer_array_size(vertices) > 1 && pointer_array_size(vertices + 1) == 1)
+							pointer_array_clear_KMER_VERTEX(vertices);
+
+						if (pointer_array_size(vertices + maxNumberOfVertices - 1) > 1 && pointer_array_size(vertices + maxNumberOfVertices - 2) == 1)
+							pointer_array_clear_KMER_VERTEX(vertices + maxNumberOfVertices - 1);
+					}
+					*/
+					boolean found[500];
+					boolean changed = FALSE;
+
+					memset(found, FALSE, sizeof(found));
+					do {
+						changed = FALSE;
+						for (size_t i = 0; i < maxNumberOfEdges; ++i) {
+							PPOINTER_ARRAY_KMER_VERTEX sources = vertices + i;
+							PPOINTER_ARRAY_KMER_VERTEX dests = vertices + i + 1;
+
+							if (pointer_array_size(sources) == 0 || pointer_array_size(dests) == 0)
+								continue;
+
+							if ((*pointer_array_item_KMER_VERTEX(sources, 0))->Type == kmvtRefSeqMiddle &&
+								(*pointer_array_item_KMER_VERTEX(dests, 0))->Type == kmvtRefSeqMiddle) {
+								if (!found[i]) {
+									ret = _delete_all_but_ref_edges(Graph, sources, dests, found + i);
+									changed |= found[i];
+								}
+							}
+
+							if (ret != ERR_SUCCESS)
+								break;
+						}
+					} while (ret == ERR_SUCCESS && changed);
 
 					for (size_t i = 0; i < maxNumberOfEdges; ++i) {
 						PPOINTER_ARRAY_KMER_VERTEX sources = vertices + i;
 						PPOINTER_ARRAY_KMER_VERTEX dests = vertices + i + 1;
+						const size_t sourceCount = pointer_array_size(sources);
+						const size_t destCount = pointer_array_size(dests);
 
-						if (ret == ERR_SUCCESS) {
-							const size_t sourceCount = pointer_array_size(sources);
-							const size_t destCount = pointer_array_size(dests);
+						if (sourceCount == 0 || destCount == 0)
+							continue;
 
 							if (!found[i]) {
 								for (size_t j = 0; j < sourceCount; ++j) {
@@ -200,7 +275,6 @@ static ERR_VALUE _kmer_graph_parse_read_v2(PKMER_GRAPH Graph, const ONE_READ *Re
 										break;
 								}
 							}
-						}
 
 						if (ret != ERR_SUCCESS)
 							break;

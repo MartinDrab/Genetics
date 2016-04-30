@@ -27,9 +27,9 @@ OBJ=\
 	$(LIBKMEROBJDIR)/kmer.o \
 
 
-INCLUDE= -I./ -I./../include -I./$(SHAREDDIR)
+INCLUDE= -I./ -I./../include -I./$(SHAREDDIR) -I-
 
-SHAREDINCLUDE= -I./../icnlude -I./$(SHAREDDIR)
+SHAREDINCLUDE= -I./../icnlude -I./$(SHAREDDIR) -I-
 
 $(OBJDIR)/%.o : %.c
 	@mkdir -p $(TMPDIR)

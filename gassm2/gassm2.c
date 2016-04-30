@@ -344,7 +344,9 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 					if (deletedThings == 0) {
 						ret = kmer_graph_connect_reads_by_reads(g, Options->Threshold);
 						if (ret == ERR_SUCCESS) {
-							ret = kmer_graph_connect_reads_by_refseq(g, Options->Threshold);
+							size_t changeCount = 0;
+
+							ret = kmer_graph_connect_reads_by_refseq(g, Options->Threshold, &changeCount);
 							if (ret == ERR_SUCCESS) {
 								kmer_graph_delete_1to1_vertices(g);
 								kmer_graph_resolve_db_triangles(g, Options->Threshold);
@@ -656,7 +658,15 @@ static ERR_VALUE _obtain_files(PPOINTER_ARRAY_char Array, const size_t MaxCount,
 			tinydir_file file;
 			char *str = NULL;
 
+			if (ret != ERR_SUCCESS || !Dir->has_next)
+				break;
+
 			tinydir_readfile(Dir, &file);
+			if (strcmp(file.name, ".") == 0 || strcmp(file.name, "..") == 0) {
+				tinydir_next(Dir);
+				continue;
+			}
+
 			ret = utils_copy_string(file.path, &str);
 			if (ret == ERR_SUCCESS)
 				pointer_array_push_back_no_alloc_char(Array, str);
@@ -837,7 +847,7 @@ int main(int argc, char *argv[])
 											char *fileName = *pointer_array_item_char(&fileNameArray, i);
 											ASSEMBLY_TASK task;
 
-											printf("SAMPLE: %s\n", fileName);
+											printf("%2i: SAMPLE: %s\n", omp_get_thread_num(), fileName);
 											ret = assembly_task_load_file(fileName, &task);
 											if (ret == ERR_SUCCESS) {
 												_compute_graph(&po, &task, stats + omp_get_thread_num());
@@ -856,7 +866,7 @@ int main(int argc, char *argv[])
 							PROGRAM_STATISTICS st;
 
 							memset(&st, 0, sizeof(st));
-							for (size_t i = 0; i < omp_get_num_threads(); ++i) {
+							for (size_t i = 0; i < sizeof(stats) / sizeof(stats[0]); ++i) {
 								st.CannotSucceed += stats[i].CannotSucceed;
 								st.FailureCount += stats[i].FailureCount;
 								st.SuccessCount += stats[i].SuccessCount;

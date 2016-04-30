@@ -1062,7 +1062,7 @@ static ERR_VALUE _remove_read_info_from_edges(PKMER_GRAPH Graph, PKMER_EDGE Edge
 }
 
 
-ERR_VALUE kmer_graph_connect_reads_by_refseq(PKMER_GRAPH Graph, const size_t Threshold)
+ERR_VALUE kmer_graph_connect_reads_by_refseq(PKMER_GRAPH Graph, const size_t Threshold, size_t *ChangeCount)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	PKMER_VERTEX passStart = Graph->StartingVertex;
@@ -1076,6 +1076,7 @@ ERR_VALUE kmer_graph_connect_reads_by_refseq(PKMER_GRAPH Graph, const size_t Thr
 	const KMER_EDGE *rsNextEdge = NULL;
 	const KMER_EDGE *nextRsLastEdge = NULL;
 
+	*ChangeCount = 0;
 	ret = ERR_SUCCESS;
 	pointer_array_init_KMER_EDGE(&incommingReads, 140);
 	pointer_array_init_KMER_EDGE(&outgoingReads, 140);
@@ -1158,6 +1159,7 @@ ERR_VALUE kmer_graph_connect_reads_by_refseq(PKMER_GRAPH Graph, const size_t Thr
 											ret = kmer_graph_add_edge_ex(Graph, eIn->Source, eOut->Dest, gen_array_size(&intersection), seqLen + 1, kmetRead, &newEdge);
 											if (ret == ERR_SUCCESS) {
 												putchar('E');
+												*ChangeCount++;
 												edgeCreated = TRUE;
 												newEdge->Seq = seq;
 												newEdge->SeqLen = seqLen;
@@ -1207,8 +1209,10 @@ ERR_VALUE kmer_graph_connect_reads_by_refseq(PKMER_GRAPH Graph, const size_t Thr
 							break;
 					}
 
-					for (size_t i = 0; i < pointer_array_size(&edgesToDelete); ++i)
+					for (size_t i = 0; i < pointer_array_size(&edgesToDelete); ++i) {
 						kmer_graph_delete_edge(Graph, *pointer_array_item_KMER_EDGE(&edgesToDelete, i));
+						*ChangeCount++;
+					}
 				}
 
 				pointer_array_finit_KMER_EDGE(&edgesToDelete);
@@ -1310,6 +1314,24 @@ ERR_VALUE kmer_graph_connect_reads_by_reads(PKMER_GRAPH Graph, const size_t Thre
 												newEdge->Seq[newEdge->SeqLen] = '\0';
 												ret = read_info_assign(&newEdge->ReadInfo, &intersection);
 												// TODO: Remove the reads from the edges that are now avoided
+											}
+										} else if (ret == ERR_ALREADY_EXISTS) {
+											char *tmpSeq = NULL;
+											size_t tmpSeqLen = 0;
+											tmpSeqLen = eIn->SeqLen + midSeqLen + eOut->SeqLen;
+											ret = utils_calloc(tmpSeqLen + 1, sizeof(char), &tmpSeq);
+											if (ret == ERR_SUCCESS) {
+												memcpy(tmpSeq, eIn->Seq, eIn->SeqLen*sizeof(char));
+												memcpy(tmpSeq + eIn->SeqLen, midSeq, midSeqLen*sizeof(char));
+												memcpy(tmpSeq + eIn->SeqLen + midSeqLen, eOut->Seq, eOut->SeqLen*sizeof(char));
+												tmpSeq[tmpSeqLen] = '\0';
+												if (newEdge->SeqLen == tmpSeqLen && memcmp(newEdge->Seq, tmpSeq, tmpSeqLen) == 0) {
+													putchar('E');
+													++numberOfCreatedEdges;
+													edgesCreatedPerOutEdge[j]++;
+												}
+												
+												utils_free(tmpSeq);
 											}
 										}
 
