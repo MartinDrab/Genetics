@@ -179,6 +179,8 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ *Read)
 			if (Line != NULL && *Line == '\t') {
 				++Line;
 				tmpRead->Pos = tmp32;
+				if (tmpRead->Pos == 0)
+					tmpRead->Pos = (uint64_t)-1;
 			} else ret = ERR_SAM_INVALID_POS;
 		}
 
@@ -530,6 +532,7 @@ ERR_VALUE seq_load(FILE *Stream, char **RefSeq, size_t *Length)
 
 void assembly_task_init(PASSEMBLY_TASK Task, const char *RefSeq, const size_t RefSeqLen, const char *Alternate1, const size_t Alternate1Length, const char *Alternate2, const size_t Alternate2Length, const ONE_READ *ReadSet, const size_t ReadCount)
 {
+	memset(Task, 0, sizeof(ASSEMBLY_TASK));
 	Task->Allocated = FALSE;
 	Task->Reference = RefSeq;
 	Task->ReferenceLength = RefSeqLen;
@@ -632,4 +635,12 @@ ERR_VALUE assembly_task_load_file(const char *FileName, PASSEMBLY_TASK Task)
 	}
 
 	return ret;
+}
+
+
+void assembly_task_set_name(PASSEMBLY_TASK Task, const char *Name)
+{
+	Task->Name = Name;
+
+	return;
 }

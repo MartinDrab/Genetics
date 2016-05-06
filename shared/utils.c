@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <math.h>
 #include "err.h"
-#include "librandom.h"
 #include "utils.h"
 
 
@@ -93,14 +92,9 @@ void _utils_free_debug(void *Address)
 	PALLOCATOR_HEADER h = (PALLOCATOR_HEADER)Address - 1;
 	PALLOCATOR_FOOTER f = (PALLOCATOR_FOOTER)((unsigned char *)Address + h->BodySize);
 
-	if (h->Signature != ALLOCATOR_HEADER_SIGNATURE)
-		__debugbreak();
-
-	if (h->Signature2 != ALLOCATOR_HEADER_SIGNATURE)
-		__debugbreak();
-
-	if (f->Signature != ALLOCATOR_FOOTER_SIGNATURE)
-		__debugbreak();
+	assert(h->Signature == ALLOCATOR_HEADER_SIGNATURE);
+	assert(h->Signature2 == ALLOCATOR_HEADER_SIGNATURE);
+	assert(f->Signature == ALLOCATOR_FOOTER_SIGNATURE);
 
 	h->Signature = 0;
 	h->Signature2 = 0;
@@ -122,15 +116,9 @@ void utils_allocator_check(void)
 	while (h != &_allocHead) {
 		PALLOCATOR_FOOTER f = (PALLOCATOR_FOOTER)((unsigned char *)h + sizeof(ALLOCATOR_HEADER) + h->BodySize);
 
-		if (h->Signature != ALLOCATOR_HEADER_SIGNATURE)
-			__debugbreak();
-
-		if (h->Signature2 != ALLOCATOR_HEADER_SIGNATURE)
-			__debugbreak();
-
-		if (f->Signature != ALLOCATOR_FOOTER_SIGNATURE)
-			__debugbreak();
-
+		assert(h->Signature == ALLOCATOR_HEADER_SIGNATURE);
+		assert(h->Signature2 == ALLOCATOR_HEADER_SIGNATURE);
+		assert(f->Signature == ALLOCATOR_FOOTER_SIGNATURE);
 		h = h->Next;
 	}
 
@@ -180,7 +168,7 @@ void utils_free_string(char *String)
 size_t utils_ranged_rand(const size_t Begin, const size_t End)
 {
 	assert(End > Begin);
-	return ((rand_minstd0() % (End - Begin)) + Begin);
+	return ((rand() % (End - Begin)) + Begin);
 }
 
 

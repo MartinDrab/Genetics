@@ -94,6 +94,9 @@ static ERR_VALUE _init_default_values()
 	if (ret == ERR_SUCCESS)
 		ret = option_add_String(PROGRAM_OPTION_TESTFILE, "\0");
 
+	if (ret == ERR_SUCCESS)
+		ret = option_add_String(PROGRAM_OPTION_OUTPUT_DIRECTORY, ".");
+
 	option_set_description_const(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQUENCE, PROGRAM_OPTION_SEQUENCE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQFILE, PROGRAM_OPTION_SEQFILE_DESC);
@@ -119,6 +122,7 @@ static ERR_VALUE _init_default_values()
 	option_set_description_const(PROGRAM_OPTION_RESOLVE_BUBBLES, PROGRAM_OPTION_RESOLVE_BUBBLES_DESC);
 	option_set_description_const(PROGRAM_OPTION_MERGE_UNBRANCHED, PROGRAM_OPTION_MERGE_UNBRANCHED_DESC);
 	option_set_description_const(PROGRAM_OPTION_TESTFILE, PROGRAM_OPTION_TESTFILE_DESC);
+	option_set_description_const(PROGRAM_OPTION_OUTPUT_DIRECTORY, PROGRAM_OPTION_OUTPUT_DIRECTORY_DESC);
 
 	option_set_shortcut(PROGRAM_OPTION_KMERSIZE, 'k');
 	option_set_shortcut(PROGRAM_OPTION_SEQUENCE, 's');
@@ -145,6 +149,7 @@ static ERR_VALUE _init_default_values()
 	option_set_shortcut(PROGRAM_OPTION_RESOLVE_BUBBLES, '3');
 	option_set_shortcut(PROGRAM_OPTION_MERGE_UNBRANCHED, '4');
 	option_set_shortcut(PROGRAM_OPTION_TESTFILE, 'g');
+	option_set_shortcut(PROGRAM_OPTION_OUTPUT_DIRECTORY, 'o');
 
 	return ret;
 }
@@ -158,6 +163,20 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 	ret = option_get_UInt32(PROGRAM_OPTION_KMERSIZE, &Options->KMerSize);
 	if (ret == ERR_SUCCESS)
 		ret = option_get_UInt64(PROGRAM_OPTION_SEQSTART, &Options->RegionStart);
+
+	if (ret == ERR_SUCCESS) {
+		char *outputDirectory = NULL;
+
+		ret = option_get_String(PROGRAM_OPTION_OUTPUT_DIRECTORY, &outputDirectory);
+		if (ret == ERR_SUCCESS) {
+			size_t len = strlen(outputDirectory);
+
+			if (outputDirectory[len] == '\\')
+				outputDirectory[len] = '\0';
+
+			Options->OutputDirectoryBase = outputDirectory;
+		}
+	}
 
 	if (ret == ERR_SUCCESS)
 		ret = option_get_UInt32(PROGRAM_OPTION_SEQLEN, &Options->RegionLength);
@@ -212,7 +231,7 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 
 		ret = option_get_String(PROGRAM_OPTION_READFILE, &readFile);
 		if (ret == ERR_SUCCESS && *readFile != '\0') {
-			ret = input_get_reads(readFile, "sam", Options->RegionStart, Options->RegionLength, &Options->Reads, &readCount);
+			ret = input_get_reads(readFile, "sam", &Options->Reads, &readCount);
 			if (ret == ERR_SUCCESS)
 				Options->ReadCount = (uint32_t)readCount;
 		}
@@ -243,12 +262,12 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 }
 
 
-static void _write_differences(const char *RefSeq, const char *Alt1, const char *Alt2, const size_t Length)
+static void _write_differences(FILE *Stream, const char *RefSeq, const char *Alt1, const char *Alt2, const size_t Length)
 {
 	for (size_t i = 0; i < Length; ++i) {
 
 		if (*RefSeq != *Alt1 || *RefSeq != *Alt2)
-			printf("%Iu:\t%c\t%c\t%c\n", i, *RefSeq, *Alt1, *Alt2);
+			fprintf(Stream, "%Iu:\t%c\t%c\t%c\n", i, *RefSeq, *Alt1, *Alt2);
 
 		++RefSeq;
 		++Alt1;
@@ -283,43 +302,87 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 	ret = kmer_graph_get_seqs(Graph, &seqArray);
 	if (ret == ERR_SUCCESS) {
 		printf("%u\n", (uint32_t)gen_array_size(&seqArray));
-		for (size_t i = 0; i < sizeof(alternateLens) / sizeof(size_t); ++i) {
-			boolean found = FALSE;
+		if (Task->Alternate1Length > 0 && Task->Alternate2Length > 0) {
+			for (size_t i = 0; i < sizeof(alternateLens) / sizeof(size_t); ++i) {
+				boolean found = FALSE;
 
-			for (size_t j = 0; j < gen_array_size(&seqArray); ++j) {
-				const FOUND_SEQUENCE *fs = *pointer_array_item_FOUND_SEQUENCE(&seqArray, j);
+				for (size_t j = 0; j < gen_array_size(&seqArray); ++j) {
+					const FOUND_SEQUENCE *fs = *pointer_array_item_FOUND_SEQUENCE(&seqArray, j);
 
-				found = found_sequence_match(fs, alternates[i], alternateLens[i]);
-				if (found)
+					found = found_sequence_match(fs, alternates[i], alternateLens[i]);
+					if (found)
+						break;
+				}
+
+				if (!found) {
+					notFound = TRUE;
+					//				fprintf(stderr, "RS:   %s\n", Task->Reference);
+					//				fprintf(stderr, "ALT1: %s\n", Task->Alternate1);
+					//				fprintf(stderr, "ALT2: %s\n", Task->Alternate2);
+					//				kmer_graph_print(stderr, Graph);
+					//				_write_differences(Task->Reference, Task->Alternate1, Task->Alternate2, Task->ReferenceLength);
+					//				exit(0);
 					break;
+				}
 			}
+		}
 
-			if (!found) {
-				notFound = TRUE;
-//				fprintf(stderr, "RS:   %s\n", Task->Reference);
-//				fprintf(stderr, "ALT1: %s\n", Task->Alternate1);
-//				fprintf(stderr, "ALT2: %s\n", Task->Alternate2);
-//				kmer_graph_print(stderr, Graph);
-//				_write_differences(Task->Reference, Task->Alternate1, Task->Alternate2, Task->ReferenceLength);
-//				exit(0);
-				break;
-			}
+		if (ret != ERR_SUCCESS || notFound) {
+			++Statistics->FailureCount;
+			printf("FAILD\n");
+			res = erFailure;
+		} else {
+			++Statistics->SuccessCount;
+			printf("OK\n");
+			res = erSuccess;
 		}
 	} else printf("ERROR: kmer_graph_get_seqs(): %u\n", ret);
 	
+	if (Task->Name != NULL && (Graph->TypedEdgeCount[kmetRead] > 0 ||
+		Graph->TypedEdgeCount[kmetVariant] > 0)) {
+		FILE *f = NULL;
+		char *directory = NULL;
+		char graphName[128];
+		char diffName[128];
+
+		switch (res) {
+			case erSuccess:
+				directory = "succ";
+				break;
+			case erFailure:
+				directory = "fail";
+				break;
+			case erNotTried:
+				directory = "nottried";
+				break;
+			default:
+				assert(FALSE);
+				break;
+		}
+
+		sprintf(graphName, "%s\\%s\\%s-%Iu.graph", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
+		sprintf(diffName, "%s\\%s\\%s-%Iu.diff", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
+		unlink(graphName);
+		ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
+		if (ret == ERR_SUCCESS) {
+			kmer_graph_print(f, Graph);
+			utils_fclose(f);
+		}
+
+		unlink(diffName);
+		if (Task->Alternate1Length > 0 && Task->Alternate2Length > 0) {
+			ret = utils_fopen(diffName, FOPEN_MODE_WRITE, &f);
+			if (ret == ERR_SUCCESS) {
+				_write_differences(f, Task->Reference, Task->Alternate1, Task->Alternate2, Task->ReferenceLength);
+				utils_fclose(f);
+			}
+		}
+	}
+
 	for (size_t j = 0; j < gen_array_size(&seqArray); ++j)
 		found_sequence_free(*pointer_array_item_FOUND_SEQUENCE(&seqArray, j));
 
 	pointer_array_finit_FOUND_SEQUENCE(&seqArray);
-	if (ret != ERR_SUCCESS || notFound) {
-		++Statistics->FailureCount;
-		printf("FAILD\n");
-		res = erFailure;
-	} else {
-		++Statistics->SuccessCount;
-		printf("OK\n");
-		res = erSuccess;
-	}
 
 	return res;
 }
@@ -335,32 +398,33 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 		if (ret == ERR_SUCCESS) {
 			ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength, Options->Threshold);
 			if (ret == ERR_SUCCESS) {
-				ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount);
+				GEN_ARRAY_KMER_EDGE_PAIR ep;
+				
+				dym_array_init_KMER_EDGE_PAIR(&ep, 140);
+				ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount, &ep);
 				if (ret == ERR_SUCCESS) {
 					size_t deletedThings = 0;
 					
 					kmer_graph_delete_edges_under_threshold(g, Options->Threshold);
 					kmer_graph_delete_trailing_things(g, &deletedThings);
-					if (deletedThings == 0) {
-						ret = kmer_graph_connect_reads_by_reads(g, Options->Threshold);
-						if (ret == ERR_SUCCESS) {
-							size_t changeCount = 0;
+					ret = kmer_graph_connect_reads_by_reads(g, Options->Threshold);
+					if (ret == ERR_SUCCESS) {
+						size_t changeCount = 0;
 
-							ret = kmer_graph_connect_reads_by_refseq(g, Options->Threshold, &changeCount);
+						ret = kmer_graph_connect_reads_by_refseq(g, Options->Threshold, &changeCount);
+//						ret = kmer_graph_connect_reads_by_pairs(g, Options->Threshold, &ep, &changeCount);
+						if (ret == ERR_SUCCESS) {
+							kmer_graph_delete_1to1_vertices(g);
+							kmer_graph_resolve_db_triangles(g, Options->Threshold);
+							ret = kmer_graph_detect_uncertainities(g);
 							if (ret == ERR_SUCCESS) {
-								kmer_graph_delete_1to1_vertices(g);
-								kmer_graph_resolve_db_triangles(g, Options->Threshold);
-								ret = kmer_graph_detect_uncertainities(g);
-								if (ret == ERR_SUCCESS) {
-									res = _compare_alternate_sequences(Options, g, Task, Statistics);
-								} else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
-							} else printf("kmer_graph_connect_reads(): %u\n", ret);
-						} else printf("kmer_graph_connect_reads_by_reads(): %u\n", ret);
-					} else {
-						printf("kmer_graph_delete_trailing_things(): deleted something, cannot proceed successfully\n");
-						Statistics->CannotSucceed++;
-					}
+								res = _compare_alternate_sequences(Options, g, Task, Statistics);
+							} else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
+						} else printf("kmer_graph_connect_reads(): %u\n", ret);
+					} else printf("kmer_graph_connect_reads_by_reads(): %u\n", ret);
 				} else printf("kmer_graph_parse_reads(): %u\n", ret);
+			
+				dym_array_finit_KMER_EDGE_PAIR(&ep);
 			} else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
 
 			kmer_graph_destroy(g);
@@ -572,13 +636,13 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 											rs[Options->RegionLength] = '\0';
 											assembly_task_init(&task, rs, Options->RegionLength, alternate, alternateLen, alternate2, alternateLen2, finalReadSet, Options->ReadCount);
 #pragma warning (disable : 4996)											
-											sprintf(taskFileName, "tmp\\%09u.task", _taskNumber);
+											sprintf(taskFileName, "%s\\tmp\\%09u.task", Options->OutputDirectoryBase, _taskNumber);
 #pragma warning (disable : 4996)											
-											sprintf(succTaskFileName, "succ\\%09u.task", _taskNumber);
+											sprintf(succTaskFileName, "%s\\succ\\%09u.task", Options->OutputDirectoryBase, _taskNumber);
 #pragma warning (disable : 4996)											
-											sprintf(notTriedTaskFileName, "nottried\\%09u.task", _taskNumber);
-#pragma warning (disable : 4996)											
-											sprintf(failedTaskFileName, "fail\\%09u.task", _taskNumber);
+											sprintf(notTriedTaskFileName, "%s\\nottried\\%09u.task", Options->OutputDirectoryBase, _taskNumber);
+#pragma warning (disable : 4996)						
+											sprintf(failedTaskFileName, "%s\\fail\\%09u.task", Options->OutputDirectoryBase, _taskNumber);
 											++_taskNumber;
 											unlink(taskFileName);
 											assembly_task_save_file(taskFileName, &task);
@@ -686,7 +750,7 @@ int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	omp_set_num_threads(4);
+//	omp_set_num_threads(3);
 	ret = options_module_init(37);
 	if (ret == ERR_SUCCESS) {
 		ret = _init_default_values();
@@ -823,7 +887,13 @@ int main(int argc, char *argv[])
 						ret = assembly_task_load_file(po.TestFile, &task);
 						if (ret == ERR_SUCCESS) {							
 							PROGRAM_STATISTICS stats;
+							char *taskName = strchr(po.TestFile, '/');
 
+							if (taskName == NULL)
+								taskName = po.TestFile;
+							else taskName++;
+
+							assembly_task_set_name(&task, taskName);
 							memset(&stats, 0, sizeof(stats));
 							_compute_graph(&po, &task, &stats);
 							assembly_task_finit(&task);
@@ -850,6 +920,13 @@ int main(int argc, char *argv[])
 											printf("%2i: SAMPLE: %s\n", omp_get_thread_num(), fileName);
 											ret = assembly_task_load_file(fileName, &task);
 											if (ret == ERR_SUCCESS) {
+												char *taskName = strchr(fileName, '/');
+
+												if (taskName == NULL)
+													taskName = fileName;
+												else taskName++;
+
+												assembly_task_set_name(&task, taskName);
 												_compute_graph(&po, &task, stats + omp_get_thread_num());
 												assembly_task_finit(&task);
 											}
@@ -875,46 +952,92 @@ int main(int argc, char *argv[])
 							printf("Success: (%" PRIu64 "), Failures: (%" PRIu64 "), Not tried: (%" PRIu64 "), Percentage: (%" PRIu64 ")\n", st.SuccessCount, st.FailureCount, st.CannotSucceed, (uint64_t)(st.SuccessCount * 100 / (st.SuccessCount + st.FailureCount + st.CannotSucceed + 1)));
 						}
 					} else if (*po.RefSeqFile != '\0') {
+						size_t refSeqLen = 0;
 						FASTA_FILE seqFile;
+						char *rsFasta = NULL;
 
 						ret = fasta_load(po.RefSeqFile, &seqFile);
 						if (ret == ERR_SUCCESS) {
-							size_t refSeqLen = 0;
-							char *rs = NULL;
+							ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
+							po.ReferenceSequence = rsFasta;
+							if (ret != ERR_SUCCESS)
+								fasta_free(&seqFile);
+						}
 
-							ret = fasta_read_seq(&seqFile, &rs, &refSeqLen);
-							po.ReferenceSequence = rs;
-							if (ret == ERR_SUCCESS) {
+						if (ret == ERR_SUCCESS) {
+							do {
 								size_t regionCount = 0;
 								PACTIVE_REGION regions = NULL;
 
 								ret = input_refseq_to_regions(po.ReferenceSequence, refSeqLen, &regions, &regionCount);
 								if (ret == ERR_SUCCESS) {
-									size_t index = 0;
-									uint64_t regionOffset = 0;
+									printf("Going through a reference sequence of length %" PRIu64 " MBases with %u regions...\n", (uint64_t)refSeqLen / 1000000, regionCount);
+									printf("%u test read cycles with %u reads of length %u...\n", po.TestReadCycles, po.ReadCount, po.ReadLength);
+									for (size_t i = 0; i < regionCount; ++i) {
+										PACTIVE_REGION pa = regions + i;
 
-									ret = input_get_region_by_offset(regions, regionCount, po.RegionStart, &index, &regionOffset);
-									if (ret == ERR_SUCCESS) {
-										PACTIVE_REGION r = regions + index;
+										printf("Region #%u: Offset: %" PRIu64 " MBases, Length %" PRIu64 " Mbases\n", i, pa->Offset / 1000000, pa->Length / 1000000);
+										if (pa->Type == artValid && pa->Length >= po.RegionLength) {
+											int j = 0;
 
-										if (r->Type == artValid) {
-											ASSEMBLY_TASK task;
-											
-											po.ReferenceSequence = r->Sequence + regionOffset;
-											if (r->Length - regionOffset < po.RegionLength)
-												po.RegionLength = r->Length - regionOffset;
+											po.ReferenceSequence = pa->Sequence;
+#pragma omp parallel for shared(po, st)	
+											for (j = 0; j < (int)(pa->Length - po.RegionLength); j += (int)po.TestStep) {
+												const char *refSeq = pa->Sequence + j;
+												PROGRAM_STATISTICS tmpstats;
+												ASSEMBLY_TASK task;
+												char taskName[128];
+												GEN_ARRAY_ONE_READ reads;
 
-											printf("kmer size: %u\n", po.KMerSize);
-											printf("Active region (%" PRIu64 "; %u; %u)...\n", po.RegionStart, po.RegionLength, index);
-											assembly_task_init(&task, po.ReferenceSequence, po.RegionLength, po.ReferenceSequence, po.RegionLength, po.ReferenceSequence, po.RegionLength, po.Reads, po.ReadCount);
-											_compute_graph(&po, &task, &st);
-											assembly_task_finit(&task);
-										} else printf("ERROR: The active region (%" PRIu64 "; %u; %u) does not specify a readable part of the reference sequence\n", po.RegionStart, po.RegionLength, index);
+												dym_array_init_ONE_READ(&reads, 140);
+												ret = input_filter_reads(po.Reads, po.ReadCount, pa->Offset + j, po.RegionLength, &reads);
+												if (ret == ERR_SUCCESS && gen_array_size(&reads) > 0) {
+													printf("%i: %Iu reads\n", omp_get_thread_num(), gen_array_size(&reads));
+													sprintf(taskName, "%08" PRIu64 " r%Iu", pa->Offset + j, gen_array_size(&reads));
+													assembly_task_init(&task, refSeq, po.RegionLength, NULL, 0, NULL, 0, reads.Data, gen_array_size(&reads));
+													assembly_task_set_name(&task, taskName);
+													ret = _compute_graph(&po, &task, &tmpstats);
+													assembly_task_finit(&task);
+												}
+
+												dym_array_finit_ONE_READ(&reads);
+											}
+
+											if (pa->Length == po.RegionLength) {
+												const char *refSeq = pa->Sequence;
+												PROGRAM_STATISTICS tmpstats;
+												ASSEMBLY_TASK task;
+												GEN_ARRAY_ONE_READ reads;
+												char taskName[128];
+
+												dym_array_init_ONE_READ(&reads, 140);
+												ret = input_filter_reads(po.Reads, po.ReadCount, pa->Offset + j, po.RegionLength, &reads);
+												if (ret == ERR_SUCCESS && gen_array_size(&reads) > 0) {
+													printf("%i: %Iu reads\n", omp_get_thread_num(), gen_array_size(&reads));
+													sprintf(taskName, "%08" PRIu64 " r%Iu", pa->Offset + j, gen_array_size(&reads));
+													assembly_task_init(&task, refSeq, po.RegionLength, NULL, 0, NULL, 0, reads.Data, gen_array_size(&reads));
+													assembly_task_set_name(&task, taskName);
+													ret = _compute_graph(&po, &task, &tmpstats);
+													assembly_task_finit(&task);
+												}
+
+												dym_array_finit_ONE_READ(&reads);
+											}
+										}
+
+										++pa;
 									}
 
 									input_free_regions(regions, regionCount);
 								}
-							}
+
+								utils_free(rsFasta);
+								ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
+								po.ReferenceSequence = rsFasta;
+							} while (ret == ERR_SUCCESS);
+
+							if (ret == ERR_NO_MORE_ENTRIES)
+								ret = ERR_SUCCESS;
 
 							fasta_free(&seqFile);
 						}

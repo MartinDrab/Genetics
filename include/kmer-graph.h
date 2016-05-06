@@ -30,6 +30,7 @@ typedef enum _EKMerEdgeType {
 	kmetReference,
 	kmetRead,
 	kmetVariant,
+	kmetMax,
 } EKMerEdgeType, *PEKMerEdgeType;
 
 
@@ -70,22 +71,28 @@ typedef struct _KMER_VERTEX {
 POINTER_ARRAY_TYPEDEF(KMER_VERTEX);
 POINTER_ARRAY_IMPLEMENTATION(KMER_VERTEX)
 
-typedef struct _KMER_GRAPH_SHORTCUT {
-	PKMER_VERTEX StartVertex;
-	PKMER_VERTEX EndVertex;
-	char *Sequence;
-	uint32_t Length;
-	double Probability;
-	uint32_t PassCount;
-	uint32_t MaxPassCount;
-} KMER_GRAPH_SHORTCUT, *PKMER_GRAPH_SHORTCUT;
+typedef struct _KMER_VERTEX_PAIR {
+	PKMER_VERTEX U;
+	PKMER_VERTEX V;
+} KMER_VERTEX_PAIR, *PKMER_VERTEX_PAIR;
 
+GEN_ARRAY_TYPEDEF(KMER_VERTEX_PAIR);
+GEN_ARRAY_IMPLEMENTATION(KMER_VERTEX_PAIR)
+
+typedef struct _KMER_EDGE_PAIR {
+	PKMER_EDGE U;
+	PKMER_EDGE V;
+	uint32_t ReadDistance;
+} KMER_EDGE_PAIR, *PKMER_EDGE_PAIR;
+
+GEN_ARRAY_TYPEDEF(KMER_EDGE_PAIR);
+GEN_ARRAY_IMPLEMENTATION(KMER_EDGE_PAIR)
 
 typedef struct _KMER_GRAPH {
 	uint32_t KMerSize;
 	uint32_t NumberOfVertices;
 	uint32_t NumberOfEdges;
-	uint32_t NumberOfBackwardEdges;
+	uint32_t TypedEdgeCount[kmetMax];
 	PKMER_TABLE VertexTable;
 	PKMER_EDGE_TABLE EdgeTable;
 	PKMER_VERTEX StartingVertex;
@@ -118,6 +125,7 @@ void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings)
 ERR_VALUE kmer_graph_resolve_bubbles(PKMER_GRAPH Graph, const uint32_t Threshold);
 ERR_VALUE kmer_graph_connect_reads_by_refseq(PKMER_GRAPH Graph, const size_t Threshold, size_t *ChangeCount);
 ERR_VALUE kmer_graph_connect_reads_by_reads(PKMER_GRAPH Graph, const size_t Threshold);
+ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Threshold, PGEN_ARRAY_KMER_EDGE_PAIR PairArray, size_t *ChangeCount);
 ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph);
 
 ERR_VALUE kmer_graph_add_vertex(PKMER_GRAPH Graph, const KMER *KMer, const EKMerVertexType Type);

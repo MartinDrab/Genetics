@@ -43,6 +43,7 @@
 
 
 #define POINTER_ARRAY_INIT_FUNCTION(aDataType)												\
+	void pointer_array_init_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const size_t Ratio);	\
 	INLINE_FUNCTION void pointer_array_init_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const size_t Ratio)	\
 	{																					\
 		memset(Array, 0, sizeof(POINTER_ARRAY_TYPE(aDataType)));								\
@@ -54,6 +55,7 @@
 	}																					\
 
 #define POINTER_ARRAY_FINIT_FUNCTION(aDataType)												\
+	void pointer_array_finit_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array); \
 	INLINE_FUNCTION void pointer_array_finit_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array)			\
 	{																					\
 		if (Array->AllocLength > 0 && Array->Data != Array->Storage)					\
@@ -64,6 +66,7 @@
 	}																					\
 
 #define POINTER_ARRAY_RESERVE_FUNCTION(aDataType)											\
+	ERR_VALUE pointer_array_reserve_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const size_t Count);	\
 	INLINE_FUNCTION ERR_VALUE pointer_array_reserve_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const size_t Count)	\
 	{																							\
 		ERR_VALUE ret = ERR_INTERNAL_ERROR;														\
@@ -86,18 +89,20 @@
 	}																							\
 
 #define POINTER_ARRAY_PUSH_BACK_NO_ALLOC_FUNCTION(aDataType)										\
+	void pointer_array_push_back_no_alloc_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const aDataType *Value);	\
 	INLINE_FUNCTION void pointer_array_push_back_no_alloc_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const aDataType *Value)	\
-				{																						\
-		if (Array->ValidLength >= Array->AllocLength) __debugbreak();						\
+	{																						\
+		assert(Array->ValidLength < Array->AllocLength);						\
 		memcpy(Array->Data + Array->ValidLength, &Value, sizeof(Value));				\
 		++Array->ValidLength;																\
 																							\
 		return;																				\
-				}																						\
+	}																						\
 
 #define POINTER_ARRAY_PUSH_BACK_FUNCTION(aDataType)												\
+	ERR_VALUE pointer_array_push_back_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const aDataType *Value);	\
 	INLINE_FUNCTION ERR_VALUE pointer_array_push_back_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const aDataType *Value)	\
-				{																						\
+	{																						\
 		ERR_VALUE ret = ERR_INTERNAL_ERROR;													\
 																							\
 		if (Array->ValidLength < Array->AllocLength) {										\
@@ -113,33 +118,37 @@
 	}
 
 #define POINTER_ARRAY_ITEM_FUNCTION(aDataType)													\
+	aDataType **pointer_array_item_##aDataType(const POINTER_ARRAY_TYPE(aDataType) *Array, const size_t Index); \
 	INLINE_FUNCTION aDataType **pointer_array_item_##aDataType(const POINTER_ARRAY_TYPE(aDataType) *Array, const size_t Index)				\
-				{																						\
-		if (Array->ValidLength <= Index) __debugbreak();													\
-																							\
-		return (Array->Data + Index);														\
-				}																						\
-
-#define POINTER_ARRAY_CONST_ITEM_FUNCTION(aDataType)											\
-	INLINE_FUNCTION const aDataType **pointer_array_const_item_##aDataType(const POINTER_ARRAY_TYPE(aDataType) *Array, const size_t Index)				\
 	{																						\
-		if (Array->ValidLength <= Index) __debugbreak();													\
+		assert(Array->ValidLength > Index);													\
 																							\
 		return (Array->Data + Index);														\
 	}																						\
 
+#define POINTER_ARRAY_CONST_ITEM_FUNCTION(aDataType)											\
+	const aDataType **pointer_array_const_item_##aDataType(const POINTER_ARRAY_TYPE(aDataType) *Array, const size_t Index); \
+	INLINE_FUNCTION const aDataType **pointer_array_const_item_##aDataType(const POINTER_ARRAY_TYPE(aDataType) *Array, const size_t Index)				\
+	{																						\
+		assert(Array->ValidLength > Index);													\
+																							\
+		return (const aDataType **)(Array->Data + Index);														\
+	}																						\
+
 #define POINTER_ARRAY_POP_BACK_FUNCTION(aDataType)												\
+	aDataType **pointer_array_pop_back_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array); \
 	INLINE_FUNCTION aDataType **pointer_array_pop_back_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array)	\
 	{																						\
 		aDataType **ret = pointer_array_item_##aDataType(Array, Array->ValidLength - 1);			\
 																							\
-		if (Array->ValidLength == 0) __debugbreak();														\
+		assert(Array->ValidLength > 0);														\
 		--Array->ValidLength;																\
 																							\
 		return ret;																			\
 	}																						\
 
 #define POINTER_ARRAY_CLEAR_FUNCTION(aDataType)													\
+	void pointer_array_clear_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array); \
 	INLINE_FUNCTION void pointer_array_clear_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array)				\
 	{																						\
 		Array->ValidLength = 0;																\
@@ -148,9 +157,10 @@
 	}																						\
 
 #define POINTER_ARRAY_REMOVE_FAST_FUNCTION(aDataType)											\
+	void pointer_array_remove_fast_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const size_t Index); \
 	INLINE_FUNCTION void pointer_array_remove_fast_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const size_t Index) \
 	{																							\
-		if (Array->ValidLength <= Index) __debugbreak();														\
+		assert(Array->ValidLength > Index);														\
 		memmove(Array->Data + Index, Array->Data + Array->ValidLength - 1, sizeof(aDataType*));	\
 		--Array->ValidLength;																	\
 																								\
@@ -158,6 +168,7 @@
 	}																							\
 
 #define POINTER_ARRAY_EXCHANGE_FUNCTION(aDataType)					\
+	void pointer_array_exchange_##aDataType(POINTER_ARRAY_PTYPE(aDataType) A1, POINTER_ARRAY_PTYPE(aDataType) A2); \
 	INLINE_FUNCTION void pointer_array_exchange_##aDataType(POINTER_ARRAY_PTYPE(aDataType) A1, POINTER_ARRAY_PTYPE(aDataType) A2)	\
 	{											\
 		POINTER_ARRAY_TYPE(aDataType) tmp;			\
@@ -175,6 +186,7 @@
 	}											\
 
 #define POINTER_ARRAY_PUSH_BACK_ARRAY_FUNCTION(aDataType)	\
+	ERR_VALUE pointer_array_push_back_array_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Target, const POINTER_ARRAY_TYPE(aDataType) *Source);	\
 	INLINE_FUNCTION ERR_VALUE pointer_array_push_back_array_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Target, const POINTER_ARRAY_TYPE(aDataType) *Source)	\
 	{																								\
 		ERR_VALUE ret = ERR_SUCCESS;																\
@@ -191,20 +203,22 @@
 	}													\
 
 #define POINTER_ARRAY_CONTAINS_FUNCTION(aDataType)	\
+	boolean pointer_array_contains_##aDataType(const POINTER_ARRAY_TYPE(aDataType) *Array, const aDataType *Item);	\
 	INLINE_FUNCTION boolean pointer_array_contains_##aDataType(const POINTER_ARRAY_TYPE(aDataType) *Array, const aDataType *Item)	\
 	{																	\
 		boolean ret = FALSE;											\
 																		\
 		for (size_t i = 0; i < Array->ValidLength; ++i) {				\
 			ret = (memcmp(Array->Data + i, &Item, sizeof(Item)) == 0);	\
-			if (ret) {													\
-				__debugbreak(); break;	}												\
+			if (ret)													\
+				break;												\
 		}																\
 																		\
 		return ret;														\
 	}																	\
 
 #define POINTER_ARRAY_CLEAN_COPY_FUNCTION(aDataType)	\
+	ERR_VALUE pointer_array_clean_copy_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Dest, const POINTER_ARRAY_TYPE(aDataType) *Source); \
 	INLINE_FUNCTION ERR_VALUE pointer_array_clean_copy_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Dest, const POINTER_ARRAY_TYPE(aDataType) *Source) \
 	{																	\
 		pointer_array_clear_##aDataType(Dest);							\
@@ -212,6 +226,7 @@
 	}																	\
 
 #define POINTER_ARRAY_REMOVE_BY_ITEM_FAST(aDataType)	\
+	void pointer_array_remove_by_item_fast_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const aDataType *Item);	\
 	INLINE_FUNCTION void pointer_array_remove_by_item_fast_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const aDataType *Item)	\
 	{																	\
 		for (size_t i = 0; i < Array->ValidLength; ++i) {				\
@@ -220,7 +235,7 @@
 				return;													\
 			}															\
 		}																\
-		__debugbreak();													\
+																		\
 		return;															\
 	}																	\
 

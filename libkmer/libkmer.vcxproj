@@ -33,20 +33,20 @@
   <ItemGroup>
     <ClInclude Include="..\include\assembly.h" />
     <ClInclude Include="..\include\found-sequence.h" />
+    <ClInclude Include="..\include\gen_dym_array.h" />
     <ClInclude Include="..\include\kmer-edge.h" />
     <ClInclude Include="..\include\kmer-graph.h" />
     <ClInclude Include="..\include\kmer-table.h" />
     <ClInclude Include="..\include\kmer.h" />
     <ClInclude Include="..\include\libkmer.h" />
     <ClInclude Include="..\include\pointer_array.h" />
+    <ClInclude Include="..\include\read-info.h" />
     <ClInclude Include="..\include\refseq-storage.h" />
     <ClInclude Include="..\shared\dym-array.h" />
     <ClInclude Include="..\shared\err.h" />
     <ClInclude Include="..\shared\general-queue.h" />
-    <ClInclude Include="..\shared\gen_dym_array.h" />
     <ClInclude Include="..\shared\utils.h" />
     <ClInclude Include="graph-reads.h" />
-    <ClInclude Include="read-info.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}</ProjectGuid>

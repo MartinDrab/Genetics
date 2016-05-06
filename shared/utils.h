@@ -26,7 +26,7 @@
 #define min(a, b)				((a) < (b) ? (a) : (b))
 #undef max
 #define max(a, b)				((a) > (b) ? (a) : (b))
-#define INLINE_FUNCTION			inline
+#define INLINE_FUNCTION			static
 
 #endif
 

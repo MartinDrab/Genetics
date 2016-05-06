@@ -200,135 +200,124 @@ void input_free_refseq(char *RefSeq, const size_t RefSeqLen)
 }
 
 
-ERR_VALUE input_get_reads(const char *Filename, const char *InputType, const uint64_t RegionStart, const uint64_t RegionSize, PONE_READ *Reads, size_t *ReadCount)
+ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ *Reads, size_t *ReadCount)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	/*
-	if (strcasecmp(InputType, "fasta") == 0) {
-		char *data = NULL;
-		size_t dataLength = 0;
 
-		ret = utils_file_read(Filename, &data, &dataLength);
-		if (ret == ERR_SUCCESS) {
-			ret = ERR_NOT_IMPLEMENTED;
-			utils_free(data);
-		}
-	} else */
-	if (strcasecmp(InputType, "sam") == 0) {
-		char *data = NULL;
-		size_t dataLength = 0;
+	char *data = NULL;
+	size_t dataLength = 0;
 
-		ret = utils_file_read(Filename, &data, &dataLength);
-		if (ret == ERR_SUCCESS) {
-			const char *line = data;
-			PONE_READ oneRead = NULL;
-			const char *lineEnd = _read_line(line);
-			DYM_ARRAY readArray;
+	ret = utils_file_read(Filename, &data, &dataLength);
+	if (ret == ERR_SUCCESS) {
+		const char *line = data;
+		PONE_READ oneRead = NULL;
+		const char *lineEnd = _read_line(line);
+		DYM_ARRAY readArray;
 
-			dym_array_create(&readArray, 140);
-			while (ret == ERR_SUCCESS && line != lineEnd) {
-				ret = read_create_from_sam_line(line, &oneRead);
-				if (ret == ERR_SUCCESS) {
-					if (
-						(RegionStart <= oneRead->Pos && oneRead->Pos < RegionStart + RegionSize) ||
-						(RegionStart <= oneRead->Pos + oneRead->ReadSequenceLen && oneRead->Pos + oneRead->ReadSequenceLen < RegionStart + RegionSize)) {
-						if (oneRead->ReadSequenceLen != (uint64_t)-1) {
-							// TODO: Well, let's cut  the read so it does not go outside the active region
-						}
-
-						ret = dym_array_push_back(&readArray, oneRead);
-					} else ret = ERR_NOT_IN_REGION;
-
-					if (ret != ERR_SUCCESS)
-						read_destroy(oneRead);
-				
-					if (ret == ERR_NOT_IN_REGION)
-						ret = ERR_SUCCESS;
-				}
-
-				line = _advance_to_next_line(lineEnd);
-				lineEnd = _read_line(line);
-			}
-
+		dym_array_create(&readArray, 140);
+		while (ret == ERR_SUCCESS && line != lineEnd) {
+			ret = read_create_from_sam_line(line, &oneRead);
 			if (ret == ERR_SUCCESS) {
-				PONE_READ tmpReads = NULL;
-				size_t tmpReadCount = dym_array_size(&readArray);
-
-				ret = utils_calloc(tmpReadCount, sizeof(ONE_READ), &tmpReads);
-				if (ret == ERR_SUCCESS) {
-					PONE_READ tmp = tmpReads;
-					
-					for (size_t i = 0; i < tmpReadCount; ++i) {
-						memcpy(tmp, dym_array_get(&readArray, i), sizeof(ONE_READ));
-						utils_free(dym_array_get(&readArray, i));
-						++tmp;
-					}
-					
-					*Reads = tmpReads;
-					*ReadCount = dym_array_size(&readArray);
-				}
+				ret = dym_array_push_back(&readArray, oneRead);
+				if (ret != ERR_SUCCESS)
+					read_destroy(oneRead);
+				
+				if (ret == ERR_NOT_IN_REGION)
+					ret = ERR_SUCCESS;
 			}
 
-			if (ret != ERR_SUCCESS) {
-				size_t len = dym_array_size(&readArray);
-
-				for (size_t i = 0; i < len; ++i)
-					read_destroy((PONE_READ)dym_array_get(&readArray, i));
-			}
-
-			dym_array_destroy(&readArray);
-			utils_free(data);
+			line = _advance_to_next_line(lineEnd);
+			lineEnd = _read_line(line);
 		}
+
+		if (ret == ERR_SUCCESS) {
+			PONE_READ tmpReads = NULL;
+			size_t tmpReadCount = dym_array_size(&readArray);
+
+			ret = utils_calloc(tmpReadCount, sizeof(ONE_READ), &tmpReads);
+			if (ret == ERR_SUCCESS) {
+				PONE_READ tmp = tmpReads;
+					
+				for (size_t i = 0; i < tmpReadCount; ++i) {
+					memcpy(tmp, dym_array_get(&readArray, i), sizeof(ONE_READ));
+					utils_free(dym_array_get(&readArray, i));
+					++tmp;
+				}
+					
+				*Reads = tmpReads;
+				*ReadCount = dym_array_size(&readArray);
+			}
+		}
+
+		if (ret != ERR_SUCCESS) {
+			size_t len = dym_array_size(&readArray);
+
+			for (size_t i = 0; i < len; ++i)
+				read_destroy((PONE_READ)dym_array_get(&readArray, i));
+		}
+
+		dym_array_destroy(&readArray);
+		utils_free(data);
 	}
-	/*
-	else if (strcasecmp(InputType, "none") == 0) {
-		*Reads = NULL;
-		*ReadCount = 0;
-		ret = ERR_SUCCESS;
-	} else if (strcasecmp(InputType, "test") == 0) {
-		char *data = NULL;
-		size_t dataLength = 0;
-
-		ret = utils_file_read(Filename, &data, &dataLength);
-		if (ret == ERR_SUCCESS) {
-			const char *start = data;
-			const char *end = _read_line(start);
-			DYM_ARRAY ra;
-
-			dym_array_create(&ra, 140);
-			while (ret == ERR_SUCCESS && start != end) {
-				PONE_READ r = NULL;
-
-				ret = read_create_from_test_line(start, end - start, &r);
-				if (ret == ERR_SUCCESS) {
-					ret = dym_array_push_back(&ra, r);
-					if (ret != ERR_SUCCESS)
-						read_destroy(r);
-				}
-				
-				start = _advance_to_next_line(end);
-				end = _read_line(start);
-			}
-
-			if (ret == ERR_SUCCESS) {
-				ret = dym_array_to_array(&ra, Reads);
-				if (ret == ERR_SUCCESS)
-					*ReadCount = dym_array_size(&ra);
-			}
-
-			if (ret != ERR_SUCCESS) {
-				for (size_t i = 0; i < dym_array_size(&ra); ++i)
-					read_destroy((PONE_READ)dym_array_data(&ra)[i]);
-			}
-
-			dym_array_destroy(&ra);
-			utils_free(data);
-		}
-	}*/ 
-	else ret = ERR_UNKNOWN_READS_INPUT_TYPE;
 	
 	return ret;
 }
+
+
+ERR_VALUE input_filter_reads(const ONE_READ *Source, const size_t SourceCount, const uint64_t RegionStart, const size_t RegionLength, PGEN_ARRAY_ONE_READ Result)
+{
+	size_t maxFilteredCount = 0;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	for (size_t i = 0; i < SourceCount; ++i) {
+		if (Source[i].PosQuality >= 20 && Source[i].Pos != (uint64_t)-1)
+			++maxFilteredCount;
+	}
+
+	ret = ERR_SUCCESS;
+	if (maxFilteredCount > 0) {
+		ret = dym_array_reserve_ONE_READ(Result, maxFilteredCount);
+		if (ret == ERR_SUCCESS) {
+			dym_array_clear_ONE_READ(Result);
+			for (size_t i = 0; i < SourceCount; ++i) {
+				const ONE_READ *r = Source + i;
+
+				if (Source[i].PosQuality < 20 && Source[i].Pos == (uint64_t)-1)
+					continue;
+
+				if ((RegionStart <= r->Pos && r->Pos < RegionStart + RegionLength) ||
+					(RegionStart <= r->Pos + r->ReadSequenceLen && r->Pos + r->ReadSequenceLen < RegionStart + RegionLength)
+					) {
+					ONE_READ tmp;
+
+					tmp = *r;
+					if (tmp.Pos < RegionStart) {
+						uint64_t diff = (RegionStart - tmp.Pos);
+
+						tmp.Pos += diff;
+						tmp.ReadSequenceLen -= (size_t)diff;
+						tmp.ReadSequence += diff;
+						if (tmp.QualityLen > 0) {
+							tmp.QualityLen -= diff;
+							tmp.Quality += diff;
+						}
+					}
+
+					if (tmp.Pos + tmp.ReadSequenceLen >= RegionStart + RegionLength) {
+						tmp.ReadSequenceLen = (RegionStart + RegionLength - tmp.Pos);
+						if (tmp.QualityLen > 0)
+							tmp.QualityLen = tmp.ReadSequenceLen;
+					}
+
+					dym_array_push_back_no_alloc_ONE_READ(Result, tmp);
+				}
+			}
+		}
+	}
+
+	return ret;
+}
+
 
 
 void input_free_reads(PONE_READ Reads, const size_t Count)

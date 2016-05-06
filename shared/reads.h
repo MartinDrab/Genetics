@@ -23,6 +23,7 @@ typedef struct _ONE_READ {
 
 typedef struct _ASSEMBLY_TASK {
 	boolean Allocated;
+	const char *Name;
 	const char *Reference;
 	size_t ReferenceLength;
 	const char *Alternate1;
@@ -57,6 +58,7 @@ ERR_VALUE seq_save(FILE *Stream, const char *RefSeq, const size_t Length);
 ERR_VALUE seq_load(FILE *Stream, char **RefSeq, size_t *Length);
 
 void assembly_task_init(PASSEMBLY_TASK Task, const char *RefSeq, const size_t RefSeqLen, const char *Alternate1, const size_t Alternate1Length, const char *Alternate2, const size_t Alternate2Length, const ONE_READ *ReadSet, const size_t ReadCount);
+void assembly_task_set_name(PASSEMBLY_TASK Task, const char *Name);
 void assembly_task_finit(PASSEMBLY_TASK Task);
 ERR_VALUE assembly_task_save(FILE *Stream, const ASSEMBLY_TASK *Task);
 ERR_VALUE assembly_task_save_file(const char *FileName, const ASSEMBLY_TASK *Task);
