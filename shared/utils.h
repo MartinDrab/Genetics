@@ -18,6 +18,7 @@
 #define strcasecmp				_stricmp
 #define off_t					long long
 #define INLINE_FUNCTION			__inline
+#define PATH_SEPARATOR			"\\"
 
 #else 
 
@@ -27,6 +28,7 @@
 #undef max
 #define max(a, b)				((a) > (b) ? (a) : (b))
 #define INLINE_FUNCTION			static
+#define PATH_SEPARATOR			"/"
 
 #endif
 
@@ -100,10 +102,19 @@ ERR_VALUE _utils_calloc_debug(const size_t Count, const size_t Size, void **Addr
 void _utils_free_debug(void *Address);
 void utils_allocator_check(void);
 
+#ifdef USE_DEBUG_ALLOCATOR
+
 #define utils_malloc(aSize, aAddress)					_utils_malloc_debug((aSize), (aAddress), __FUNCTION__, __LINE__)
 #define utils_calloc(aCount, aSize, aAddress)			_utils_calloc_debug((aCount), (aSize), (aAddress), __FUNCTION__, __LINE__)
 #define utils_free(aAddress)							_utils_free_debug((aAddress));
 
+#else
+
+#define utils_malloc(aSize, aAddress)					_utils_malloc((aSize), (aAddress))
+#define utils_calloc(aCount, aSize, aAddress)			_utils_calloc((aCount), (aSize), (aAddress))
+#define utils_free(aAddress)							_utils_free((aAddress));
+
+#endif
 
 #define UTILS_TYPED_MALLOC_FUNCTION(aType)	\
 	ERR_VALUE utils_malloc_##aType(aType ** aResult)						\

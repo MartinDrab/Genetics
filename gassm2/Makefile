@@ -1,7 +1,7 @@
 TARGET=gassm2
 BINDIR=../bin
 CC=gcc
-CFLAGS= -Wall --std=gnu99 -D_FILE_OFFSET_BITS=64 -m64 -fopenmp
+CFLAGS= -O3 -Wall --std=gnu99 -D_FILE_OFFSET_BITS=64 -m64 -fopenmp -DNDEBUG
 SHAREDDIR=../shared
 LIBKMERDIR=../libkmer
 TMPDIR=../tmp

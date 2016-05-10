@@ -17,7 +17,6 @@ typedef struct _REFSEQ_STORAGE {
 } REFSEQ_STORAGE, *PREFSEQ_STORAGE;
 
 
-void rs_storage_init(PREFSEQ_STORAGE Storage);
 INLINE_FUNCTION void rs_storage_init(PREFSEQ_STORAGE Storage)
 {
 	Storage->ValidLength = 0;
@@ -28,7 +27,6 @@ INLINE_FUNCTION void rs_storage_init(PREFSEQ_STORAGE Storage)
 }
 
 
-void rs_storage_finit(PREFSEQ_STORAGE Storage);
 INLINE_FUNCTION void rs_storage_finit(PREFSEQ_STORAGE Storage)
 {
 	if (Storage->Sequence != Storage->Storage)
@@ -38,7 +36,6 @@ INLINE_FUNCTION void rs_storage_finit(PREFSEQ_STORAGE Storage)
 }
 
 
-ERR_VALUE rs_storage_add(PREFSEQ_STORAGE Storage, char Base);
 INLINE_FUNCTION ERR_VALUE rs_storage_add(PREFSEQ_STORAGE Storage, char Base)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -68,7 +65,6 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add(PREFSEQ_STORAGE Storage, char Base)
 }
 
 
-ERR_VALUE rs_storage_add_seq(PREFSEQ_STORAGE Storage, const char *Bases, size_t Length);
 INLINE_FUNCTION ERR_VALUE rs_storage_add_seq(PREFSEQ_STORAGE Storage, const char *Bases, size_t Length)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -99,7 +95,6 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_seq(PREFSEQ_STORAGE Storage, const char
 }
 
 
-void rs_storage_remove(PREFSEQ_STORAGE Storage, size_t Length);
 INLINE_FUNCTION void rs_storage_remove(PREFSEQ_STORAGE Storage, size_t Length)
 {
 	Storage->ValidLength -= Length;
@@ -108,7 +103,6 @@ INLINE_FUNCTION void rs_storage_remove(PREFSEQ_STORAGE Storage, size_t Length)
 }
 
 
-void rs_storage_reset(PREFSEQ_STORAGE Storage);
 INLINE_FUNCTION void rs_storage_reset(PREFSEQ_STORAGE Storage)
 {
 	Storage->ValidLength = 0;
@@ -117,7 +111,6 @@ INLINE_FUNCTION void rs_storage_reset(PREFSEQ_STORAGE Storage)
 }
 
 
-ERR_VALUE rs_storage_create_string(const REFSEQ_STORAGE *Storage, char **String);
 INLINE_FUNCTION ERR_VALUE rs_storage_create_string(const REFSEQ_STORAGE *Storage, char **String)
 {
 	char *tmpString = NULL;

@@ -337,7 +337,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 			res = erSuccess;
 		}
 	} else printf("ERROR: kmer_graph_get_seqs(): %u\n", ret);
-	
+	/*
 	if (Task->Name != NULL && (Graph->TypedEdgeCount[kmetRead] > 0 ||
 		Graph->TypedEdgeCount[kmetVariant] > 0)) {
 		FILE *f = NULL;
@@ -360,8 +360,10 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 				break;
 		}
 
-		sprintf(graphName, "%s\\%s\\%s-%Iu.graph", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
-		sprintf(diffName, "%s\\%s\\%s-%Iu.diff", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
+#pragma warning (disable : 4996)											
+		sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-%Iu.graph", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
+#pragma warning (disable : 4996)											
+		sprintf(diffName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-%Iu.diff", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
 		unlink(graphName);
 		ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
 		if (ret == ERR_SUCCESS) {
@@ -378,7 +380,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 			}
 		}
 	}
-
+	*/
 	for (size_t j = 0; j < gen_array_size(&seqArray); ++j)
 		found_sequence_free(*pointer_array_item_FOUND_SEQUENCE(&seqArray, j));
 
@@ -411,8 +413,8 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 					if (ret == ERR_SUCCESS) {
 						size_t changeCount = 0;
 
-						ret = kmer_graph_connect_reads_by_refseq(g, Options->Threshold, &changeCount);
-//						ret = kmer_graph_connect_reads_by_pairs(g, Options->Threshold, &ep, &changeCount);
+//						ret = kmer_graph_connect_reads_by_refseq(g, Options->Threshold, &changeCount);
+						ret = kmer_graph_connect_reads_by_pairs(g, Options->Threshold, &ep, &changeCount);
 						if (ret == ERR_SUCCESS) {
 							kmer_graph_delete_1to1_vertices(g);
 							kmer_graph_resolve_db_triangles(g, Options->Threshold);
@@ -636,13 +638,13 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 											rs[Options->RegionLength] = '\0';
 											assembly_task_init(&task, rs, Options->RegionLength, alternate, alternateLen, alternate2, alternateLen2, finalReadSet, Options->ReadCount);
 #pragma warning (disable : 4996)											
-											sprintf(taskFileName, "%s\\tmp\\%09u.task", Options->OutputDirectoryBase, _taskNumber);
+											sprintf(taskFileName, "%s" PATH_SEPARATOR "tmp" PATH_SEPARATOR "%09u.task", Options->OutputDirectoryBase, _taskNumber);
 #pragma warning (disable : 4996)											
-											sprintf(succTaskFileName, "%s\\succ\\%09u.task", Options->OutputDirectoryBase, _taskNumber);
+											sprintf(succTaskFileName, "%s" PATH_SEPARATOR "succ" PATH_SEPARATOR "%09u.task", Options->OutputDirectoryBase, _taskNumber);
 #pragma warning (disable : 4996)											
-											sprintf(notTriedTaskFileName, "%s\\nottried\\%09u.task", Options->OutputDirectoryBase, _taskNumber);
+											sprintf(notTriedTaskFileName, "%s" PATH_SEPARATOR "nottried" PATH_SEPARATOR "%09u.task", Options->OutputDirectoryBase, _taskNumber);
 #pragma warning (disable : 4996)						
-											sprintf(failedTaskFileName, "%s\\fail\\%09u.task", Options->OutputDirectoryBase, _taskNumber);
+											sprintf(failedTaskFileName, "%s" PATH_SEPARATOR "fail" PATH_SEPARATOR "%09u.task", Options->OutputDirectoryBase, _taskNumber);
 											++_taskNumber;
 											unlink(taskFileName);
 											assembly_task_save_file(taskFileName, &task);
@@ -750,7 +752,7 @@ int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-//	omp_set_num_threads(3);
+//	omp_set_num_threads(1);
 	ret = options_module_init(37);
 	if (ret == ERR_SUCCESS) {
 		ret = _init_default_values();

@@ -563,7 +563,7 @@ ERR_VALUE option_set_description_const(const char *Name, const char *Description
 }
 
 
-ERR_VALUE option_set_shortcut(const char *Name, const char Shortcut)
+ERR_VALUE option_set_shortcut(const char *Name, const unsigned char Shortcut)
 {
 	PPROGRAM_OPTION record = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;

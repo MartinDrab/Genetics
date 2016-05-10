@@ -73,13 +73,36 @@ ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_P
 	ret = ERR_SUCCESS;
 	while (ret == ERR_SUCCESS && index1 < count1 && index2 < count2) {
 		if (entry1->ReadIndex == entry2->ReadIndex) {
-			if (!AscendingPosition || (entry1->ReadPosition <= entry2->ReadPosition && (ReadDistance == 0 || entry1->ReadPosition + ReadDistance == entry2->ReadPosition)))
-				ret = dym_array_push_back_READ_INFO_ENTRY(Intersection, *entry1);
+			size_t readIndex = (size_t)-1;
 			
-			++entry1;
-			++index1;
-			++entry2;
-			++index2;
+			if (!AscendingPosition || (entry1->ReadPosition <= entry2->ReadPosition && (ReadDistance == 0 || entry1->ReadPosition + ReadDistance == entry2->ReadPosition))) {
+				readIndex = entry1->ReadIndex;
+				ret = dym_array_push_back_READ_INFO_ENTRY(Intersection, *entry1);
+				while (index1 < count1 && entry1->ReadIndex == readIndex) {
+					++entry1;
+					++index1;
+				}
+
+				while (index2 < count2 && entry2->ReadIndex == readIndex) {
+					++entry2;
+					++index2;
+				}
+			} else {
+				if (AscendingPosition) {
+					if (entry1->ReadPosition < entry2->ReadPosition) {
+						++entry1;
+						++index1;
+					} else {
+						++entry2;
+						++index2;
+					}
+				} else {
+					++entry1;
+					++index1;
+					++entry2;
+					++index2;
+				}
+			}
 		} else if (entry1->ReadIndex < entry2->ReadIndex) {
 			++entry1;
 			++index1;
@@ -93,7 +116,7 @@ ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_P
 }
 
 
-ERR_VALUE read_info_diff(const READ_INFO *Info, const GEN_ARRAY_TYPE(READ_INFO_ENTRY) *Subtrahend, GEN_ARRAY_PTYPE(READ_INFO_ENTRY) Difference)
+ERR_VALUE read_info_diff(const READ_INFO *Info, const GEN_ARRAY_TYPE(READ_INFO_ENTRY) *Subtrahend, GEN_ARRAY_PTYPE(READ_INFO_ENTRY) Difference, const size_t Distance)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	const READ_INFO_ENTRY *entry1 = Info->Array.Data;
@@ -106,10 +129,27 @@ ERR_VALUE read_info_diff(const READ_INFO *Info, const GEN_ARRAY_TYPE(READ_INFO_E
 	ret = ERR_SUCCESS;
 	while (ret == ERR_SUCCESS && index1 < count1 && index2 < count2) {
 		if (entry1->ReadIndex == entry2->ReadIndex) {
-			++entry1;
-			++index1;
-			++entry2;
-			++index2;
+			if (Distance != (size_t)-1) {
+				if (entry1->ReadPosition - Distance == entry2->ReadPosition) {
+					++entry1;
+					++index1;
+					++entry2;
+					++index2;
+				} else if (entry1->ReadPosition - Distance < entry2->ReadPosition) {
+					ret = dym_array_push_back_READ_INFO_ENTRY(Difference, *entry1);
+					++entry1;
+					++index1;
+				} else {
+					ret = dym_array_push_back_READ_INFO_ENTRY(Difference, *entry2);
+					++entry2;
+					++index2;
+				}
+			} else {
+				++entry1;
+				++index1;
+				++entry2;
+				++index2;
+			}
 		} else if (entry1->ReadIndex < entry2->ReadIndex) {
 			ret = dym_array_push_back_READ_INFO_ENTRY(Difference, *entry1);
 			++entry1;

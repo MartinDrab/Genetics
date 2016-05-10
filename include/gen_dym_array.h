@@ -42,7 +42,6 @@
 
 
 #define GEN_ARRAY_INIT_FUNCTION(aDataType)												\
-	void dym_array_init_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array, const size_t Ratio);	\
 	INLINE_FUNCTION void dym_array_init_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array, const size_t Ratio)	\
 	{																					\
 		memset(Array, 0, sizeof(GEN_ARRAY_TYPE(aDataType)));								\
@@ -54,7 +53,6 @@
 	}																					\
 
 #define GEN_ARRAY_FINIT_FUNCTION(aDataType)												\
-	void dym_array_finit_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array);	\
 	INLINE_FUNCTION void dym_array_finit_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array)	\
 	{																					\
 		if (Array->AllocLength > 0 && Array->Data != Array->Storage)					\
@@ -65,7 +63,6 @@
 	}																					\
 
 #define GEN_ARRAY_RESERVE_FUNCTION(aDataType)											\
-	ERR_VALUE dym_array_reserve_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array, const size_t Count);	\
 	INLINE_FUNCTION ERR_VALUE dym_array_reserve_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array, const size_t Count)	\
 	{																							\
 		ERR_VALUE ret = ERR_INTERNAL_ERROR;														\
@@ -88,7 +85,6 @@
 	}																							\
 
 #define GEN_ARRAY_PUSH_BACK_NO_ALLOC_FUNCTION(aDataType)										\
-	void dym_array_push_back_no_alloc_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array, const aDataType Value);	\
 	INLINE_FUNCTION void dym_array_push_back_no_alloc_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array, const aDataType Value)	\
 	{																						\
 		assert(Array->ValidLength < Array->AllocLength);						\
@@ -99,7 +95,6 @@
 	}																						\
 
 #define GEN_ARRAY_PUSH_BACK_FUNCTION(aDataType)												\
-	ERR_VALUE dym_array_push_back_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array, const aDataType Value);	\
 	INLINE_FUNCTION ERR_VALUE dym_array_push_back_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array, const aDataType Value)	\
 	{																						\
 		ERR_VALUE ret = ERR_INTERNAL_ERROR;													\
@@ -117,7 +112,6 @@
 	}
 
 #define GEN_ARRAY_ITEM_FUNCTION(aDataType)													\
-	aDataType *dym_array_item_##aDataType(const GEN_ARRAY_TYPE(aDataType) *Array, const size_t Index); \
 	INLINE_FUNCTION aDataType *dym_array_item_##aDataType(const GEN_ARRAY_TYPE(aDataType) *Array, const size_t Index)				\
 	{																						\
 		assert(Array->ValidLength > Index);													\
@@ -126,7 +120,6 @@
 	}																						\
 
 #define GEN_ARRAY_CONST_ITEM_FUNCTION(aDataType)											\
-	const aDataType *dym_array_const_item_##aDataType(const GEN_ARRAY_TYPE(aDataType) *Array, const size_t Index); \
 	INLINE_FUNCTION const aDataType *dym_array_const_item_##aDataType(const GEN_ARRAY_TYPE(aDataType) *Array, const size_t Index)				\
 	{																						\
 		assert(Array->ValidLength > Index);													\
@@ -135,7 +128,6 @@
 	}																						\
 
 #define GEN_ARRAY_POP_BACK_FUNCTION(aDataType)												\
-	aDataType *dym_array_pop_back_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array);	\
 	INLINE_FUNCTION aDataType *dym_array_pop_back_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array)	\
 	{																						\
 		aDataType *ret = dym_array_item_##aDataType(Array, Array->ValidLength - 1);			\
@@ -147,7 +139,6 @@
 	}																						\
 
 #define GEN_ARRAY_CLEAR_FUNCTION(aDataType)													\
-	void dym_array_clear_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array);	\
 	INLINE_FUNCTION void dym_array_clear_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array)		\
 	{																						\
 		Array->ValidLength = 0;																\
@@ -156,7 +147,6 @@
 	}																						\
 
 #define GEN_ARRAY_REMOVE_FAST_FUNCTION(aDataType)											\
-	void dym_array_remove_fast##aDataType(GEN_ARRAY_PTYPE(aDataType) Array, const size_t Index); \
 	INLINE_FUNCTION void dym_array_remove_fast##aDataType(GEN_ARRAY_PTYPE(aDataType) Array, const size_t Index) \
 	{																							\
 		assert(Array->ValidLength > Index);														\
@@ -167,7 +157,6 @@
 	}																							\
 
 #define GEN_ARRAY_EXCHANGE_FUNCTION(aDataType)					\
-	void dym_array_exchange_##aDataType(GEN_ARRAY_PTYPE(aDataType) A1, GEN_ARRAY_PTYPE(aDataType) A2);	\
 	INLINE_FUNCTION void dym_array_exchange_##aDataType(GEN_ARRAY_PTYPE(aDataType) A1, GEN_ARRAY_PTYPE(aDataType) A2)	\
 	{											\
 		GEN_ARRAY_TYPE(aDataType) tmp;			\
@@ -185,7 +174,6 @@
 	}											\
 
 #define GEN_ARRAY_PUSH_BACK_ARRAY_FUNCTION(aDataType)	\
-	ERR_VALUE dym_array_push_back_array_##aDataType(GEN_ARRAY_PTYPE(aDataType) Target, const GEN_ARRAY_TYPE(aDataType) *Source);	\
 	INLINE_FUNCTION ERR_VALUE dym_array_push_back_array_##aDataType(GEN_ARRAY_PTYPE(aDataType) Target, const GEN_ARRAY_TYPE(aDataType) *Source)	\
 	{																								\
 		ERR_VALUE ret = ERR_SUCCESS;																\
@@ -202,7 +190,6 @@
 	}													\
 
 #define GEN_ARRAY_CONTAINS_FUNCTION(aDataType)	\
-	boolean dym_array_contains_##aDataType(const GEN_ARRAY_TYPE(aDataType) *Array, aDataType Item);	\
 	INLINE_FUNCTION boolean dym_array_contains_##aDataType(const GEN_ARRAY_TYPE(aDataType) *Array, aDataType Item)	\
 	{																	\
 		boolean ret = FALSE;											\
