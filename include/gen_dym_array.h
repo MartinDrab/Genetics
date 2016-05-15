@@ -24,6 +24,7 @@
 #define gen_array_size(aArray)							((aArray)->ValidLength)
 
 #define GEN_ARRAY_IMPLEMENTATION(aDataType)									\
+	GEN_ARRAY_ALLOC_FUNCTION(aDataType)										\
 	GEN_ARRAY_INIT_FUNCTION(aDataType)										\
 	GEN_ARRAY_FINIT_FUNCTION(aDataType)										\
 	GEN_ARRAY_RESERVE_FUNCTION(aDataType)									\
@@ -40,6 +41,11 @@
 
 
 
+#define GEN_ARRAY_ALLOC_FUNCTION(aDataType)						\
+	INLINE_FUNCTION ERR_VALUE dym_array_alloc_data_##aDataType(const size_t Count, aDataType **Data)	\
+	{																			\
+		return utils_calloc(Count, sizeof(aDataType), (void **)Data);			\
+	}																			\
 
 #define GEN_ARRAY_INIT_FUNCTION(aDataType)												\
 	INLINE_FUNCTION void dym_array_init_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array, const size_t Ratio)	\
@@ -71,7 +77,7 @@
 		if (Count <= Array->AllocLength)														\
 			return ERR_SUCCESS;																	\
 																								\
-		ret = utils_calloc(Count, sizeof(aDataType), (void **)&newData);						\
+		ret = dym_array_alloc_data_##aDataType(Count, &newData);						\
 		if (ret == ERR_SUCCESS) {																\
 			memcpy(newData, Array->Data, Array->ValidLength*sizeof(aDataType));					\
 			if (Array->AllocLength > 0 && Array->Data != Array->Storage)						\

@@ -78,15 +78,10 @@ ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_P
 			if (!AscendingPosition || (entry1->ReadPosition <= entry2->ReadPosition && (ReadDistance == 0 || entry1->ReadPosition + ReadDistance == entry2->ReadPosition))) {
 				readIndex = entry1->ReadIndex;
 				ret = dym_array_push_back_READ_INFO_ENTRY(Intersection, *entry1);
-				while (index1 < count1 && entry1->ReadIndex == readIndex) {
-					++entry1;
-					++index1;
-				}
-
-				while (index2 < count2 && entry2->ReadIndex == readIndex) {
-					++entry2;
-					++index2;
-				}
+				++entry1;
+				++index1;
+				++entry2;
+				++index2;
 			} else {
 				if (AscendingPosition) {
 					if (entry1->ReadPosition < entry2->ReadPosition) {
@@ -140,7 +135,6 @@ ERR_VALUE read_info_diff(const READ_INFO *Info, const GEN_ARRAY_TYPE(READ_INFO_E
 					++entry1;
 					++index1;
 				} else {
-					ret = dym_array_push_back_READ_INFO_ENTRY(Difference, *entry2);
 					++entry2;
 					++index2;
 				}
@@ -164,6 +158,76 @@ ERR_VALUE read_info_diff(const READ_INFO *Info, const GEN_ARRAY_TYPE(READ_INFO_E
 		ret = dym_array_push_back_READ_INFO_ENTRY(Difference, *entry1);
 		++entry1;
 		++index1;
+	}
+
+	return ret;
+}
+
+
+ERR_VALUE read_info_union(PREAD_INFO Target, const GEN_ARRAY_READ_INFO_ENTRY *Source)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	return ret;
+}
+
+ERR_VALUE read_info_merge(PREAD_INFO Dest, const READ_INFO *Info1, const READ_INFO *Info2)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	const READ_INFO_ENTRY *entry1 = NULL;
+	size_t index1 = 0;
+	const READ_INFO_ENTRY *entry2 = NULL;
+	size_t index2 = 0;
+	const size_t count1 = read_info_get_count(Info1);
+	const size_t count2 = read_info_get_count(Info2);
+
+	ret = dym_array_reserve_READ_INFO_ENTRY(&Dest->Array, count1 + count2);
+	if (ret == ERR_SUCCESS) {
+		size_t lastReadIndex = (size_t)-1;
+		
+		entry1 = read_info_get_entry(Info1, 0);
+		entry2 = read_info_get_entry(Info2, 0);
+		while (index1 < count1 && index2 < count2) {
+			while (index1 < count1 && entry1->ReadIndex == lastReadIndex) {
+				++entry1;
+				++index1;
+			}
+			
+			while (index2 < count2 && entry2->ReadIndex == lastReadIndex) {
+				++entry2;
+				++index2;
+			}
+
+			if (entry1->ReadIndex <= entry2->ReadIndex) {
+				dym_array_push_back_no_alloc_READ_INFO_ENTRY(&Dest->Array, *entry1);
+				lastReadIndex = entry1->ReadIndex;
+			} else {
+				dym_array_push_back_no_alloc_READ_INFO_ENTRY(&Dest->Array, *entry2);
+				lastReadIndex = entry2->ReadIndex;
+			}
+		}
+
+		size_t tmp = lastReadIndex;
+		while (index1 < count1) {
+			if (entry1->ReadIndex != tmp) {
+				dym_array_push_back_no_alloc_READ_INFO_ENTRY(&Dest->Array, *entry1);
+				tmp = entry1->ReadIndex;
+			}
+
+			++entry1;
+			++index1;
+		}
+
+		tmp = lastReadIndex;
+		while (index2 < count2) {
+			if (entry2->ReadIndex != tmp) {
+				dym_array_push_back_no_alloc_READ_INFO_ENTRY(&Dest->Array, *entry2);
+				tmp = entry2->ReadIndex;
+			}
+
+			++entry2;
+			++index2;
+		}
 	}
 
 	return ret;

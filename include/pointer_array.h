@@ -24,6 +24,7 @@
 #define pointer_array_size(aArray)							((aArray)->ValidLength)
 
 #define POINTER_ARRAY_IMPLEMENTATION(aDataType)									\
+	POINTER_ARRAY_ALLOC_FUNCTION(aDataType)										\
 	POINTER_ARRAY_INIT_FUNCTION(aDataType)										\
 	POINTER_ARRAY_FINIT_FUNCTION(aDataType)										\
 	POINTER_ARRAY_RESERVE_FUNCTION(aDataType)									\
@@ -41,6 +42,11 @@
 	POINTER_ARRAY_REMOVE_BY_ITEM_FAST(aDataType)								\
 
 
+#define POINTER_ARRAY_ALLOC_FUNCTION(aDataType)						\
+	INLINE_FUNCTION ERR_VALUE pointer_array_alloc_data_##aDataType(const size_t Count, aDataType ***Data)	\
+	{																			\
+		return utils_calloc(Count, sizeof(aDataType *), (void **)Data);			\
+	}																			\
 
 #define POINTER_ARRAY_INIT_FUNCTION(aDataType)												\
 	INLINE_FUNCTION void pointer_array_init_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const size_t Ratio)	\
@@ -72,7 +78,7 @@
 		if (Count <= Array->AllocLength)														\
 			return ERR_SUCCESS;																	\
 																								\
-		ret = utils_calloc(Count, sizeof(aDataType*), (void **)&newData);						\
+		ret = pointer_array_alloc_data_##aDataType(Count, &newData);						\
 		if (ret == ERR_SUCCESS) {																\
 			memcpy(newData, Array->Data, Array->ValidLength*sizeof(aDataType*));					\
 			if (Array->AllocLength > 0 && Array->Data != Array->Storage)						\
