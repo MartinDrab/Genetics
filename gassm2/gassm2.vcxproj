@@ -160,12 +160,12 @@
     <ClCompile Include="..\shared\input-file.c" />
     <ClCompile Include="..\shared\options.c" />
     <ClCompile Include="..\shared\reads.c" />
+    <ClCompile Include="..\shared\ssw.c" />
     <ClCompile Include="..\shared\utils.c" />
     <ClCompile Include="gassm2.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\gen_dym_array.h" />
-    <ClInclude Include="..\include\Header.h" />
     <ClInclude Include="..\include\libkmer.h" />
     <ClInclude Include="..\include\pointer_array.h" />
     <ClInclude Include="..\shared\dym-array.h" />
@@ -174,6 +174,7 @@
     <ClInclude Include="..\shared\input-file.h" />
     <ClInclude Include="..\shared\options.h" />
     <ClInclude Include="..\shared\reads.h" />
+    <ClInclude Include="..\shared\ssw.h" />
     <ClInclude Include="..\shared\utils.h" />
     <ClInclude Include="gassm2.h" />
   </ItemGroup>

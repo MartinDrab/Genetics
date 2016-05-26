@@ -13,91 +13,10 @@
 #include "gen_dym_array.h"
 #include "pointer_array.h"
 #include "read-info.h"
+#include "kmer-graph-types.h"
 #include "found-sequence.h"
 
 
-typedef struct _KMER_VERTEX;
-
-typedef enum _EKMerVertexType {
-	kmvtRefSeqStart,
-	kmvtRefSeqMiddle,
-	kmvtRefSeqEnd,
-	kmvtRead,
-} EKMerVertexType, PEKMerVertexType;
-
-
-typedef enum _EKMerEdgeType {
-	kmetReference,
-	kmetRead,
-	kmetVariant,
-	kmetMax,
-} EKMerEdgeType, *PEKMerEdgeType;
-
-
-/** Represents one edge in a kmer graph. */
-typedef struct _KMER_EDGE {
-	struct _KMER_VERTEX *Source;
-	struct _KMER_VERTEX *Dest;
-	/** Number of reads going through the edge. */
-	long Weight;
-	/** Number of kmers the edge skips in order to avoid cycles. Maximum value is
-	the kmer size minus one. */
-	uint32_t Length;
-	/** Edge creation order. */
-	unsigned int Order;
-	EKMerEdgeType Type;
-	uint32_t PassCount;
-	uint32_t MaxPassCount;
-	char *Seq;
-	size_t SeqLen;
-	char *Seq2;
-	size_t Seq2Len;
-	READ_INFO ReadInfo;
-} KMER_EDGE, *PKMER_EDGE;
-
-POINTER_ARRAY_TYPEDEF(KMER_EDGE);
-POINTER_ARRAY_IMPLEMENTATION(KMER_EDGE)
-
-typedef struct _KMER_VERTEX {
-	PKMER KMer;
-	uint32_t Order;
-	EKMerVertexType Type;
-	POINTER_ARRAY_KMER_EDGE Successors;
-	POINTER_ARRAY_KMER_EDGE Predecessors;
-	boolean Finished;
-	uint32_t LastRSOrder;
-} KMER_VERTEX, *PKMER_VERTEX;
-
-POINTER_ARRAY_TYPEDEF(KMER_VERTEX);
-POINTER_ARRAY_IMPLEMENTATION(KMER_VERTEX)
-
-typedef struct _KMER_VERTEX_PAIR {
-	PKMER_VERTEX U;
-	PKMER_VERTEX V;
-} KMER_VERTEX_PAIR, *PKMER_VERTEX_PAIR;
-
-GEN_ARRAY_TYPEDEF(KMER_VERTEX_PAIR);
-GEN_ARRAY_IMPLEMENTATION(KMER_VERTEX_PAIR)
-
-typedef struct _KMER_EDGE_PAIR {
-	PKMER_EDGE U;
-	PKMER_EDGE V;
-	uint32_t ReadDistance;
-} KMER_EDGE_PAIR, *PKMER_EDGE_PAIR;
-
-GEN_ARRAY_TYPEDEF(KMER_EDGE_PAIR);
-GEN_ARRAY_IMPLEMENTATION(KMER_EDGE_PAIR)
-
-typedef struct _KMER_GRAPH {
-	uint32_t KMerSize;
-	uint32_t NumberOfVertices;
-	uint32_t NumberOfEdges;
-	uint32_t TypedEdgeCount[kmetMax];
-	PKMER_TABLE VertexTable;
-	PKMER_EDGE_TABLE EdgeTable;
-	PKMER_VERTEX StartingVertex;
-	PKMER_VERTEX EndingVertex;
-} KMER_GRAPH, *PKMER_GRAPH;
 
 
 #define kmer_graph_get_kmer_size(aGraph)					((aGraph)->KMerSize)
@@ -126,7 +45,8 @@ ERR_VALUE kmer_graph_resolve_bubbles(PKMER_GRAPH Graph, const uint32_t Threshold
 ERR_VALUE kmer_graph_connect_reads_by_refseq(PKMER_GRAPH Graph, const size_t Threshold, size_t *ChangeCount);
 ERR_VALUE kmer_graph_connect_reads_by_reads(PKMER_GRAPH Graph, const size_t Threshold);
 ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Threshold, PGEN_ARRAY_KMER_EDGE_PAIR PairArray, size_t *ChangeCount);
-ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph);
+ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, boolean *Changed);
+void kmer_graph_delete_backward_edges(PKMER_GRAPH Graph);
 
 ERR_VALUE kmer_graph_add_vertex(PKMER_GRAPH Graph, const KMER *KMer, const EKMerVertexType Type);
 ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EKMerVertexType Type, PKMER_VERTEX *Vertex);

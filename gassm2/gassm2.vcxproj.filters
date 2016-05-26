@@ -36,6 +36,9 @@
     <ClCompile Include="..\shared\reads.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\shared\ssw.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gassm2.h">
@@ -65,13 +68,13 @@
     <ClInclude Include="..\shared\reads.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\Header.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\pointer_array.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\gen_dym_array.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\ssw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

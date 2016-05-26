@@ -17,6 +17,7 @@ OBJ=\
 	$(SHAREDOBJDIR)/general-queue.o \
 	$(SHAREDOBJDIR)/input-file.o \
 	$(SHAREDOBJDIR)/reads.o \
+	$(SHAREDOBJDIR)/ssw.o \
 	$(OBJDIR)/gassm2.o \
 	$(LIBKMEROBJDIR)/assembly.o \
 	$(LIBKMEROBJDIR)/found-sequence.o \

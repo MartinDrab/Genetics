@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include "err.h"
 #include "utils.h"
-
+#include "kmer-graph.h"
 
 
 typedef struct _REFSEQ_STORAGE {
@@ -89,6 +89,32 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_seq(PREFSEQ_STORAGE Storage, const char
 			Storage->ValidLength += Length;
 		}
 
+	}
+
+	return ret;
+}
+
+INLINE_FUNCTION ERR_VALUE rs_storage_add_edge(PREFSEQ_STORAGE Storage, const KMER_EDGE *Edge, boolean ReadOnly)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	switch (Edge->Type) {
+		case kmetReference:
+		case kmetRead:
+			ret = rs_storage_add_seq(Storage, Edge->Seq, Edge->SeqLen);
+			break;
+		case kmetVariant:
+			if (ReadOnly && Edge->SeqType != kmetRead) {
+				ret = (Edge->Seq2Type == kmetRead) ?
+					rs_storage_add_seq(Storage, Edge->Seq2, Edge->Seq2Len) :
+					ERR_INTERNAL_ERROR;
+			} else ret = rs_storage_add_seq(Storage, Edge->Seq, Edge->SeqLen);
+			break;
+	}
+
+	if (ret == ERR_SUCCESS) {
+		const KMER *destKMer = Edge->Dest->KMer;
+		ret = rs_storage_add(Storage, kmer_get_base(destKMer, kmer_get_size(destKMer) - 1));
 	}
 
 	return ret;

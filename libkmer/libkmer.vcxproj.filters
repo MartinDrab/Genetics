@@ -98,5 +98,8 @@
     <ClInclude Include="..\include\gen_dym_array.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\kmer-graph-types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

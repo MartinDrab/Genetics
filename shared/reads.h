@@ -32,6 +32,7 @@ typedef struct _ASSEMBLY_TASK {
 	size_t Alternate2Length;
 	const ONE_READ *Reads;
 	size_t ReadCount;
+	uint64_t RegionStart;
 } ASSEMBLY_TASK, *PASSEMBLY_TASK;
 
 GEN_ARRAY_TYPEDEF(ONE_READ);

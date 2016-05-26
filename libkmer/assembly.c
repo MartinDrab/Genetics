@@ -83,7 +83,7 @@ static ERR_VALUE _delete_all_but_ref_edges(PKMER_GRAPH Graph, PPOINTER_ARRAY_KME
 	pointer_array_finit_KMER_VERTEX(&survivingDests);
 	pointer_array_finit_KMER_VERTEX(&survivingSources);
 	*found = tmpFound;
-//	printf("%Iu, %Iu\n", pointer_array_size(Sources), pointer_array_size(Dests));
+//	printf("%Iu, %Iu --> %u\n", pointer_array_size(Sources), pointer_array_size(Dests), tmpFound);
 
 	return ret;
 }
@@ -288,7 +288,7 @@ static ERR_VALUE _kmer_graph_parse_read_v2(PKMER_GRAPH Graph, const ONE_READ *Re
 							if (ret != ERR_SUCCESS)
 								break;
 						}
-					} while (ret == ERR_SUCCESS && !changed);
+					} while (ret == ERR_SUCCESS && changed);
 					
 //					ret = _choose_best_path(Graph, vertices, maxNumberOfVertices);
 					if (ret == ERR_SUCCESS) {
@@ -704,7 +704,8 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 
 				sourceVertex = kmer_graph_get_vertex(Graph, sourceKMer);
 				destVertex = kmer_graph_get_vertex(Graph, destKMer);
-				ret = kmer_graph_add_edge_ex(Graph, sourceVertex, destVertex, Threshold, 1, kmetReference, &edge);
+				destVertex->RefSeqPosition = i;
+				ret = kmer_graph_add_edge_ex(Graph, sourceVertex, destVertex, 0, 1, kmetReference, &edge);
 				if (ret == ERR_ALREADY_EXISTS)
 					ret = ERR_SUCCESS;
 
@@ -745,10 +746,10 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, const struct _ONE_READ *Read
 
 				kmer_init(kmer, Reads->ReadSequence);
 				v = kmer_graph_get_vertex(Graph, kmer);
-				if (v != NULL && v->Type == kmvtRefSeqMiddle) {
+//				if (v != NULL && v->Type == kmvtRefSeqMiddle) {
 					ret = _kmer_graph_parse_read_v2(Graph, Reads, currentIndex, PairArray);
 					++currentIndex;
-				} else dym_array_push_back_no_alloc_ONE_READ(&readArray, *Reads);
+//				} else dym_array_push_back_no_alloc_ONE_READ(&readArray, *Reads);
 
 				if (ret != ERR_SUCCESS)
 					break;

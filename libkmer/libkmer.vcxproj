@@ -35,6 +35,7 @@
     <ClInclude Include="..\include\found-sequence.h" />
     <ClInclude Include="..\include\gen_dym_array.h" />
     <ClInclude Include="..\include\kmer-edge.h" />
+    <ClInclude Include="..\include\kmer-graph-types.h" />
     <ClInclude Include="..\include\kmer-graph.h" />
     <ClInclude Include="..\include\kmer-table.h" />
     <ClInclude Include="..\include\kmer.h" />

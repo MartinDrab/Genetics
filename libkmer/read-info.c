@@ -185,8 +185,8 @@ ERR_VALUE read_info_merge(PREAD_INFO Dest, const READ_INFO *Info1, const READ_IN
 	if (ret == ERR_SUCCESS) {
 		size_t lastReadIndex = (size_t)-1;
 		
-		entry1 = read_info_get_entry(Info1, 0);
-		entry2 = read_info_get_entry(Info2, 0);
+		entry1 = Info1->Array.Data;
+		entry2 = Info2->Array.Data;
 		while (index1 < count1 && index2 < count2) {
 			while (index1 < count1 && entry1->ReadIndex == lastReadIndex) {
 				++entry1;
@@ -198,12 +198,14 @@ ERR_VALUE read_info_merge(PREAD_INFO Dest, const READ_INFO *Info1, const READ_IN
 				++index2;
 			}
 
-			if (entry1->ReadIndex <= entry2->ReadIndex) {
-				dym_array_push_back_no_alloc_READ_INFO_ENTRY(&Dest->Array, *entry1);
-				lastReadIndex = entry1->ReadIndex;
-			} else {
-				dym_array_push_back_no_alloc_READ_INFO_ENTRY(&Dest->Array, *entry2);
-				lastReadIndex = entry2->ReadIndex;
+			if (index1 < count1 && index2 < count2) {
+				if (entry1->ReadIndex <= entry2->ReadIndex) {
+					dym_array_push_back_no_alloc_READ_INFO_ENTRY(&Dest->Array, *entry1);
+					lastReadIndex = entry1->ReadIndex;
+				} else {
+					dym_array_push_back_no_alloc_READ_INFO_ENTRY(&Dest->Array, *entry2);
+					lastReadIndex = entry2->ReadIndex;
+				}
 			}
 		}
 

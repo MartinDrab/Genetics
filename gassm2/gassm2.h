@@ -6,6 +6,8 @@
 #include "err.h"
 #include "utils.h"
 #include "reads.h"
+#include "gen_dym_array.h"
+#include "found-sequence.h"
 
 /************************************************************************/
 /*                   PROGRAM OTPIONS                                    */
@@ -31,6 +33,7 @@
 #define PROGRAM_OPTION_DELETE_RATIO						"delete-ratio"
 #define PROGRAM_OPTION_TESTFILE							"test-file"
 #define PROGRAM_OPTION_OUTPUT_DIRECTORY					"output-directory"
+#define PROGRAM_OPTION_VCFFILE							"vcf-file"
 
 #define PROGRAM_OPTION_ALT1_SEQ							"alternate1-seq"
 #define PROGRAM_OPTION_ALT2_SEQ							"alternate2-seq"
@@ -65,6 +68,7 @@
 #define PROGRAM_OPTION_DELETE_RATIO_DESC				"A probability that a base in an alternate sequence is deleted"
 #define PROGRAM_OPTION_TESTFILE_DESC					"Load a reference sequence, alternate sequences and reads from a given file"
 #define PROGRAM_OPTION_OUTPUT_DIRECTORY_DESC			"Base output directory"
+#define PROGRAM_OPTION_VCFFILE_DESC						"VCF file name"
 
 #define PROGRAM_OPTION_ALT1_SEQ_DESC					"alternate1-seq"
 #define PROGRAM_OPTION_ALT2_SEQ_DESC					"alternate2-seq"
@@ -105,6 +109,9 @@ typedef struct _PROGRAM_OPTIONS {
 	boolean ConnectReads;
 	boolean ResolveBubbles;
 	boolean MergeUnbranched;
+	const char *VCFFile;
+	FILE *VCFFileHandle;
+	GEN_ARRAY_VARIANT_CALL VCArray;
 } PROGRAM_OPTIONS, *PPROGRAM_OPTIONS;
 
 typedef struct _PROGRAM_STATISTICS {
