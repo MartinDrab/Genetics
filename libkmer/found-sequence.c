@@ -272,7 +272,7 @@ void vc_array_print(FILE *Stream, const GEN_ARRAY_VARIANT_CALL *Array)
 	fprintf(Stream, "##fileformat=VCFv4.0\n");
 	fprintf(Stream, "##fileDate=20160525\n");
 	fprintf(Stream, "##source=GASSMV2\n");
-	fprintf(Stream, "##reference=1000GenomesPilot-NCBI36\n");
+	fprintf(Stream, "##reference=1\n");
 	fprintf(Stream, "##phasing=partial\n");
 	fprintf(Stream, "##INFO=<ID=NS,Number=1,Type=Integer,Description=\"Number of Samples With Data\">\n");
 	fprintf(Stream, "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n");
@@ -288,7 +288,7 @@ void vc_array_print(FILE *Stream, const GEN_ARRAY_VARIANT_CALL *Array)
 	fprintf(Stream, "##FORMAT=<ID=HQ,Number=2,Type=Integer,Description=\"Haplotype Quality\">\n");
 	fprintf(Stream, "#CHROM\tPOS\tID\tREF ALT\tQUAL\tFILTER\tINFO\n");
 	for (size_t i = 0; i < gen_array_size(Array); ++i) {
-		fprintf(Stream, "%s\t%I64u\t%s\t%s\t%s\t60\tPASS\t.\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt);
+		fprintf(Stream, "%s\t%I64u\t%s\t%s\t%s\t60\tPASS\t\"%li-vs-%li\"\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, tmp->RefWeight, tmp->AltWeight);
 		++tmp;
 	}
 

@@ -1377,6 +1377,14 @@ ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Thre
 						putchar('D');
 						ret = pointer_array_push_back_KMER_EDGE(&edgesToDelete, eOut);
 					}
+
+					/*
+					ret = read_info_intersection(&rsLastEdge->ReadInfo, &eOut->ReadInfo, &intersection, FALSE, rsLastEdge->Length + pair.ReadDistance);
+					if (ret == ERR_SUCCESS && gen_array_size(&intersection) > 0)
+						ret = _remove_read_info_from_edges(Graph, rsLastEdge, eOut, &rsEdges, &intersection);
+
+					dym_array_clear_READ_INFO_ENTRY(&intersection);
+					*/
 				}
 
 				if (read_info_get_count(&rsNextEdge->ReadInfo) <= Threshold ||
@@ -1385,8 +1393,30 @@ ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Thre
 						putchar('D');
 						ret = pointer_array_push_back_KMER_EDGE(&edgesToDelete, eIn);
 					}
+
+					/*
+					ret = read_info_intersection(&eIn->ReadInfo, &rsNextEdge->ReadInfo, &intersection, FALSE, eIn->Length + pair.ReadDistance);
+					if (ret == ERR_SUCCESS && gen_array_size(&intersection) > 0)
+						ret = _remove_read_info_from_edges(Graph, eIn, rsNextEdge, &rsEdges, &intersection);
+
+					dym_array_clear_READ_INFO_ENTRY(&intersection);
+					*/
 				}
-				
+				/*
+				if (read_info_get_count(&rsLastEdge->ReadInfo) <= Threshold) {
+					if (!pointer_array_contains_KMER_EDGE(&edgesToDelete, rsLastEdge)) {
+						putchar('D');
+						ret = pointer_array_push_back_KMER_EDGE(&edgesToDelete, rsLastEdge);
+					}
+				}
+
+				if (read_info_get_count(&rsNextEdge->ReadInfo) <= Threshold) {
+					if (!pointer_array_contains_KMER_EDGE(&edgesToDelete, rsNextEdge)) {
+						putchar('D');
+						ret = pointer_array_push_back_KMER_EDGE(&edgesToDelete, rsNextEdge);
+					}
+				}
+				*/
 			}
 		}
 

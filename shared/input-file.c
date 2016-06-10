@@ -282,7 +282,7 @@ ERR_VALUE input_filter_reads(const ONE_READ *Source, const size_t SourceCount, c
 			for (size_t i = 0; i < SourceCount; ++i) {
 				const ONE_READ *r = Source + i;
 
-				if (Source[i].PosQuality < 20 && Source[i].Pos == (uint64_t)-1)
+				if (r->PosQuality < 20 || r->Pos == (uint64_t)-1)
 					continue;
 
 				if ((RegionStart <= r->Pos && r->Pos < RegionStart + RegionLength) ||
@@ -294,6 +294,8 @@ ERR_VALUE input_filter_reads(const ONE_READ *Source, const size_t SourceCount, c
 					if (tmp.Pos < RegionStart) {
 						uint64_t diff = (RegionStart - tmp.Pos);
 
+						tmp.StartStrips = (size_t)diff;
+						/*
 						tmp.Pos += diff;
 						tmp.ReadSequenceLen -= (size_t)diff;
 						tmp.ReadSequence += diff;
@@ -301,12 +303,16 @@ ERR_VALUE input_filter_reads(const ONE_READ *Source, const size_t SourceCount, c
 							tmp.QualityLen -= diff;
 							tmp.Quality += diff;
 						}
+						*/
 					}
 
 					if (tmp.Pos + tmp.ReadSequenceLen >= RegionStart + RegionLength) {
+						tmp.EndStrips = (tmp.ReadSequenceLen - (RegionStart + RegionLength - tmp.Pos));
+						/*
 						tmp.ReadSequenceLen = (RegionStart + RegionLength - tmp.Pos);
 						if (tmp.QualityLen > 0)
 							tmp.QualityLen = tmp.ReadSequenceLen;
+						*/
 					}
 
 					dym_array_push_back_no_alloc_ONE_READ(Result, tmp);

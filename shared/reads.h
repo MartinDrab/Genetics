@@ -19,6 +19,12 @@ typedef struct _ONE_READ {
 	uint8_t PosQuality;
 	char *TemplateName;
 	size_t TemplateNameLen;
+	/** Number of bases stripped from the start of the read in order to
+	    fit the read into the active region. */
+	size_t StartStrips;
+	/** Number of bases stripped from the end of the read in order to
+		fit the read into the active region. */
+	size_t EndStrips;
 } ONE_READ, *PONE_READ;
 
 typedef struct _ASSEMBLY_TASK {

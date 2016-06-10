@@ -311,7 +311,7 @@ ERR_VALUE ssw_clever(const char *A, const size_t ALen, const char *B, const size
 }
 
 
-ERR_VALUE write_seq_differences(PGEN_ARRAY_VARIANT_CALL VCArray, const char *RefSeq, const size_t RegionStart, const size_t RegionLength, const char *OpString, const char *AltSeq)
+ERR_VALUE write_seq_differences(PGEN_ARRAY_VARIANT_CALL VCArray, const char *RefSeq, const size_t RegionStart, const size_t RegionLength, const char *OpString, const char *AltSeq, const FOUND_SEQUENCE_VARIANT *Variant)
 {
 	size_t pos = RegionStart;
 	const char *rsPos = RefSeq;
@@ -337,6 +337,8 @@ ERR_VALUE write_seq_differences(PGEN_ARRAY_VARIANT_CALL VCArray, const char *Ref
 						altContent[altIndex] = '\0';
 						ret = variant_call_init("1", diffStart + 1, ".", rsContent, altContent, 60, &vc);
 						if (ret == ERR_SUCCESS) {
+							vc.RefWeight = Variant->Seq1Weight;
+							vc.AltWeight = Variant->Seq2Weight;
 							ret = vc_array_add(VCArray, &vc);
 							if (ret == ERR_ALREADY_EXISTS) {
 								variant_call_finit(&vc);
@@ -421,6 +423,8 @@ ERR_VALUE write_seq_differences(PGEN_ARRAY_VARIANT_CALL VCArray, const char *Ref
 				altContent[altIndex] = '\0';
 				ret = variant_call_init("1", diffStart + 1, ".", rsContent, altContent, 60, &vc);
 				if (ret == ERR_SUCCESS) {
+					vc.RefWeight = Variant->Seq1Weight;
+					vc.AltWeight = Variant->Seq2Weight;
 					ret = vc_array_add(VCArray, &vc);
 					if (ret == ERR_ALREADY_EXISTS) {
 						variant_call_finit(&vc);

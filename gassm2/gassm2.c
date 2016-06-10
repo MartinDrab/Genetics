@@ -410,7 +410,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 				if (var->Seq1Type == kmetRead) {
 					ret = ssw_clever(Task->Reference + var->RefSeqStart, var->RefSeqEnd - var->RefSeqStart, var->Seq1, var->Seq1Len, 2, -1, -1, &opString, &opStringLen);
 					if (ret == ERR_SUCCESS) {
-						write_seq_differences(&Options->VCArray, Task->Reference + var->RefSeqStart, Task->RegionStart + var->RefSeqStart, var->RefSeqEnd - var->RefSeqStart, opString, var->Seq1);
+						write_seq_differences(&Options->VCArray, Task->Reference + var->RefSeqStart, Task->RegionStart + var->RefSeqStart, var->RefSeqEnd - var->RefSeqStart, opString, var->Seq1, var);
 						utils_free(opString);
 					}
 				}
@@ -418,7 +418,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 				if (var->Seq2Type == kmetRead) {
 					ret = ssw_clever(Task->Reference + var->RefSeqStart, var->RefSeqEnd - var->RefSeqStart, var->Seq2, var->Seq2Len, 2, -1, -1, &opString, &opStringLen);
 					if (ret == ERR_SUCCESS) {
-						write_seq_differences(&Options->VCArray, Task->Reference + var->RefSeqStart, Task->RegionStart + var->RefSeqStart, var->RefSeqEnd - var->RefSeqStart, opString, var->Seq2);
+						write_seq_differences(&Options->VCArray, Task->Reference + var->RefSeqStart, Task->RegionStart + var->RefSeqStart, var->RefSeqEnd - var->RefSeqStart, opString, var->Seq2, var);
 						utils_free(opString);
 					}
 				}

@@ -48,6 +48,8 @@ typedef struct _VARIANT_CALL {
 	char *Ref;
 	char *Alt;
 	uint8_t Qual;
+	long RefWeight;
+	long AltWeight;
 } VARIANT_CALL, *PVARIANT_CALL;
 
 GEN_ARRAY_TYPEDEF(VARIANT_CALL);
