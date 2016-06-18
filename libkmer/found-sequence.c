@@ -208,10 +208,17 @@ ERR_VALUE variant_call_init(const char *Chrom, const uint64_t Pos, const char *I
 
 void variant_call_finit(PVARIANT_CALL VC)
 {
-	utils_free(VC->Alt);
-	utils_free(VC->Ref);
-	utils_free(VC->ID);
-	utils_free(VC->Chrom);
+	if (VC->Alt != NULL)
+		utils_free(VC->Alt);
+	
+	if (VC->Ref != NULL)
+		utils_free(VC->Ref);
+	
+	if (VC->ID != NULL)
+		utils_free(VC->ID);
+	
+	if (VC->Chrom != NULL)
+		utils_free(VC->Chrom);
 
 	return;
 }
@@ -313,4 +320,60 @@ void vc_array_sort(PGEN_ARRAY_VARIANT_CALL Array)
 	qsort(Array->Data, gen_array_size(Array), sizeof(VARIANT_CALL), _vc_comparator);
 
 	return;
+}
+
+
+ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL Sources, const size_t SourceCount)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	size_t *indices = NULL;
+	size_t *counts = NULL;
+	size_t remainingCount = SourceCount;
+
+	ret = utils_calloc(SourceCount, sizeof(size_t), &indices);
+	if (ret == ERR_SUCCESS) {
+		memset(indices, 0, SourceCount*sizeof(size_t));
+		ret = utils_calloc(SourceCount, sizeof(size_t), &counts);
+		if (ret == ERR_SUCCESS) {
+			for (size_t i = 0; i < SourceCount; ++i)
+				counts[i] = gen_array_size(Sources + i);
+
+			size_t minSourceIndex = 0;
+			uint64_t minValue = (uint64_t)-1;
+			const VARIANT_CALL *minVc = NULL;
+			while (ret == ERR_SUCCESS && remainingCount > 0) {
+				minValue = (uint64_t)-1;
+				for (size_t i = 0; i < SourceCount; ++i) {
+					if (indices[i] < counts[i]) {
+						const VARIANT_CALL *vc = dym_array_const_item_VARIANT_CALL(Sources + i, indices[i]);
+
+						if (vc->Pos < minValue) {
+							minValue = vc->Pos;
+							minSourceIndex = i;
+							minVc = vc;
+						}
+					}
+				}
+
+				if (minValue != (uint64_t)-1) {
+					ret = vc_array_add(Dest, minVc);
+					if (ret == ERR_SUCCESS)
+						memset(minVc, 0, sizeof(VARIANT_CALL));
+
+					if (ret == ERR_ALREADY_EXISTS)
+						ret = ERR_SUCCESS;
+
+					indices[minSourceIndex]++;
+					if (indices[minSourceIndex] == counts[minSourceIndex])
+						--remainingCount;
+				}
+			}
+
+			utils_free(counts);
+		}
+
+		utils_free(indices);
+	}
+
+	return ret;
 }

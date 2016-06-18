@@ -50,6 +50,8 @@ typedef struct _KMER_EDGE {
 	EKMerEdgeType Seq2Type;
 	long Seq2Weight;
 	READ_INFO ReadInfo;
+	boolean MarkedForDelete;
+	size_t PathCount;
 } KMER_EDGE, *PKMER_EDGE;
 
 POINTER_ARRAY_TYPEDEF(KMER_EDGE);

@@ -384,6 +384,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 #pragma warning (disable : 4996)											
 		sprintf(vcfName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-%Iu.vcf", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
 		unlink(vcfName);
+		/*
 		ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
 		if (ret == ERR_SUCCESS) {
 			kmer_graph_print(f, Graph);
@@ -397,28 +398,29 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 				utils_fclose(f);
 			}
 		}
-
+		*/
 		if (pointer_array_size(&seqArray) == 1 && Options->VCFFileHandle != NULL) {
 			PFOUND_SEQUENCE seq = *pointer_array_item_FOUND_SEQUENCE(&seqArray, 0);
 			const size_t variantCount = gen_array_size(&seq->Variants);
 			const FOUND_SEQUENCE_VARIANT *var = seq->Variants.Data;
+			PGEN_ARRAY_VARIANT_CALL vcArray = Options->VCSubArrays + omp_get_thread_num();
 
 			for (size_t i = 0; i < variantCount; ++i) {
 				char *opString = NULL;
 				size_t opStringLen = 0;
 
-				if (var->Seq1Type == kmetRead) {
+				if (var->Seq1Weight > Options->Threshold && var->Seq1Type == kmetRead) {
 					ret = ssw_clever(Task->Reference + var->RefSeqStart, var->RefSeqEnd - var->RefSeqStart, var->Seq1, var->Seq1Len, 2, -1, -1, &opString, &opStringLen);
 					if (ret == ERR_SUCCESS) {
-						write_seq_differences(&Options->VCArray, Task->Reference + var->RefSeqStart, Task->RegionStart + var->RefSeqStart, var->RefSeqEnd - var->RefSeqStart, opString, var->Seq1, var);
+						write_seq_differences(vcArray, Task->Reference + var->RefSeqStart, Task->RegionStart + var->RefSeqStart, var->RefSeqEnd - var->RefSeqStart, opString, var->Seq1, var);
 						utils_free(opString);
 					}
 				}
 
-				if (var->Seq2Type == kmetRead) {
+				if (var->Seq2Weight > Options->Threshold && var->Seq2Type == kmetRead) {
 					ret = ssw_clever(Task->Reference + var->RefSeqStart, var->RefSeqEnd - var->RefSeqStart, var->Seq2, var->Seq2Len, 2, -1, -1, &opString, &opStringLen);
 					if (ret == ERR_SUCCESS) {
-						write_seq_differences(&Options->VCArray, Task->Reference + var->RefSeqStart, Task->RegionStart + var->RefSeqStart, var->RefSeqEnd - var->RefSeqStart, opString, var->Seq2, var);
+						write_seq_differences(vcArray, Task->Reference + var->RefSeqStart, Task->RegionStart + var->RefSeqStart, var->RefSeqEnd - var->RefSeqStart, opString, var->Seq2, var);
 						utils_free(opString);
 					}
 				}
@@ -826,7 +828,10 @@ int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
+	omp_set_num_threads(omp_get_num_procs());
+#ifdef _DEBUG
 //	omp_set_num_threads(1);
+#endif
 	ret = options_module_init(37);
 	if (ret == ERR_SUCCESS) {
 		ret = _init_default_values();
@@ -1049,81 +1054,94 @@ int main(int argc, char *argv[])
 							}
 
 							if (ret == ERR_SUCCESS) {
+								ret = utils_calloc(omp_get_num_procs(), sizeof(GEN_ARRAY_VARIANT_CALL), &po.VCSubArrays);
+								if (ret == ERR_SUCCESS) {
+									const size_t numThreads = omp_get_num_procs();
+									for (size_t i = 0; i < numThreads; ++i)
+										dym_array_init_VARIANT_CALL(po.VCSubArrays + i, 140);
+
 								do {
 									size_t regionCount = 0;
 									PACTIVE_REGION regions = NULL;
 
 									ret = input_refseq_to_regions(po.ReferenceSequence, refSeqLen, &regions, &regionCount);
 									if (ret == ERR_SUCCESS) {
-										printf("Going through a reference sequence of length %" PRIu64 " MBases with %u regions...\n", (uint64_t)refSeqLen / 1000000, regionCount);
-										printf("%u test read cycles with %u reads of length %u...\n", po.TestReadCycles, po.ReadCount, po.ReadLength);
-										for (size_t i = 0; i < regionCount; ++i) {
-											PACTIVE_REGION pa = regions + i;
+											printf("Going through a reference sequence of length %" PRIu64 " MBases with %u regions...\n", (uint64_t)refSeqLen / 1000000, regionCount);
+											printf("%u test read cycles with %u reads of length %u...\n", po.TestReadCycles, po.ReadCount, po.ReadLength);
+											for (size_t i = 0; i < regionCount; ++i) {
+												PACTIVE_REGION pa = regions + i;
 
-											printf("Region #%u: Offset: %" PRIu64 " MBases, Length %" PRIu64 " Mbases\n", i, pa->Offset / 1000000, pa->Length / 1000000);
-											if (pa->Type == artValid && pa->Length >= po.RegionLength) {
-												int j = 0;
+												printf("Region #%u: Offset: %" PRIu64 " MBases, Length %" PRIu64 " Mbases\n", i, pa->Offset / 1000000, pa->Length / 1000000);
+												if (pa->Type == artValid && pa->Length >= po.RegionLength) {
+													int j = 0;
 
-												po.ReferenceSequence = pa->Sequence;
-// #pragma omp parallel for shared(po, st)	
-												for (j = 0; j < (int)(pa->Length - po.RegionLength); j += (int)po.TestStep) {
-													const char *refSeq = pa->Sequence + j;
-													PROGRAM_STATISTICS tmpstats;
-													ASSEMBLY_TASK task;
-													char taskName[128];
-													GEN_ARRAY_ONE_READ reads;
+													po.ReferenceSequence = pa->Sequence;
+#pragma omp parallel for shared(po, pa, st)
+													for (j = 0; j < (int)(pa->Length - po.RegionLength); j += (int)po.TestStep) {
+														const char *refSeq = pa->Sequence + j;
+														PROGRAM_STATISTICS tmpstats;
+														ASSEMBLY_TASK task;
+														char taskName[128];
+														GEN_ARRAY_ONE_READ reads;
 
-													dym_array_init_ONE_READ(&reads, 140);
-													ret = input_filter_reads(po.Reads, po.ReadCount, pa->Offset + j, po.RegionLength, &reads);
-													if (ret == ERR_SUCCESS && gen_array_size(&reads) > 0) {
-														printf("%i: %Iu reads\n", omp_get_thread_num(), gen_array_size(&reads));
-														sprintf(taskName, "%08" PRIu64 " r%Iu", (uint64_t)(pa->Offset + j), gen_array_size(&reads));
-														assembly_task_init(&task, refSeq, po.RegionLength, NULL, 0, NULL, 0, reads.Data, gen_array_size(&reads));
-														assembly_task_set_name(&task, taskName);
-														task.RegionStart = pa->Offset + j;
-														ret = _compute_graph(&po, &task, &tmpstats);
-														assembly_task_finit(&task);
+														dym_array_init_ONE_READ(&reads, 140);
+														ret = input_filter_reads(po.Reads, po.ReadCount, pa->Offset + j, po.RegionLength, &reads);
+														if (ret == ERR_SUCCESS && gen_array_size(&reads) > 0) {
+															printf("%i: %Iu reads\n", omp_get_thread_num(), gen_array_size(&reads));
+															sprintf(taskName, "%08" PRIu64 " r%Iu", (uint64_t)(pa->Offset + j), gen_array_size(&reads));
+															assembly_task_init(&task, refSeq, po.RegionLength, NULL, 0, NULL, 0, reads.Data, gen_array_size(&reads));
+															assembly_task_set_name(&task, taskName);
+															task.RegionStart = pa->Offset + j;
+															ret = _compute_graph(&po, &task, &tmpstats);
+															assembly_task_finit(&task);
+														}
+
+														dym_array_finit_ONE_READ(&reads);
 													}
 
-													dym_array_finit_ONE_READ(&reads);
-												}
+													if (pa->Length == po.RegionLength) {
+														const char *refSeq = pa->Sequence;
+														PROGRAM_STATISTICS tmpstats;
+														ASSEMBLY_TASK task;
+														GEN_ARRAY_ONE_READ reads;
+														char taskName[128];
 
-												if (pa->Length == po.RegionLength) {
-													const char *refSeq = pa->Sequence;
-													PROGRAM_STATISTICS tmpstats;
-													ASSEMBLY_TASK task;
-													GEN_ARRAY_ONE_READ reads;
-													char taskName[128];
+														dym_array_init_ONE_READ(&reads, 140);
+														ret = input_filter_reads(po.Reads, po.ReadCount, pa->Offset + j, po.RegionLength, &reads);
+														if (ret == ERR_SUCCESS && gen_array_size(&reads) > 0) {
+															printf("%i: %Iu reads\n", omp_get_thread_num(), gen_array_size(&reads));
+															sprintf(taskName, "%08" PRIu64 " r%Iu", (uint64_t)(pa->Offset + j), gen_array_size(&reads));
+															assembly_task_init(&task, refSeq, po.RegionLength, NULL, 0, NULL, 0, reads.Data, gen_array_size(&reads));
+															assembly_task_set_name(&task, taskName);
+															task.RegionStart = pa->Offset + j;
+															ret = _compute_graph(&po, &task, &tmpstats);
+															assembly_task_finit(&task);
+														}
 
-													dym_array_init_ONE_READ(&reads, 140);
-													ret = input_filter_reads(po.Reads, po.ReadCount, pa->Offset + j, po.RegionLength, &reads);
-													if (ret == ERR_SUCCESS && gen_array_size(&reads) > 0) {
-														printf("%i: %Iu reads\n", omp_get_thread_num(), gen_array_size(&reads));
-														sprintf(taskName, "%08" PRIu64 " r%Iu", (uint64_t)(pa->Offset + j), gen_array_size(&reads));
-														assembly_task_init(&task, refSeq, po.RegionLength, NULL, 0, NULL, 0, reads.Data, gen_array_size(&reads));
-														assembly_task_set_name(&task, taskName);
-														task.RegionStart = pa->Offset + j;
-														ret = _compute_graph(&po, &task, &tmpstats);
-														assembly_task_finit(&task);
+														dym_array_finit_ONE_READ(&reads);
 													}
-
-													dym_array_finit_ONE_READ(&reads);
 												}
+
+												++pa;
 											}
 
-											++pa;
+											input_free_regions(regions, regionCount);
 										}
 
-										input_free_regions(regions, regionCount);
-									}
+										utils_free(rsFasta);
+										ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
+										po.ReferenceSequence = rsFasta;
+									} while (ret == ERR_SUCCESS);
 
-									utils_free(rsFasta);
-									ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
-									po.ReferenceSequence = rsFasta;
-								} while (ret == ERR_SUCCESS);
-							
-								if (ret == ERR_NO_MORE_ENTRIES)
-									ret = ERR_SUCCESS;
+									if (ret == ERR_NO_MORE_ENTRIES)
+										ret = ERR_SUCCESS;
+								
+									ret = vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
+									for (size_t i = 0; i < numThreads; ++i)
+										vc_array_finit(po.VCSubArrays + i);
+
+									utils_free(po.VCSubArrays);
+								}
 
 								if (po.VCFFileHandle != NULL) {
 									if (ret == ERR_SUCCESS)
@@ -1132,6 +1150,7 @@ int main(int argc, char *argv[])
 									vc_array_finit(&po.VCArray);
 									utils_fclose(po.VCFFileHandle);
 								}
+
 							}
 
 							fasta_free(&seqFile);

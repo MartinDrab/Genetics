@@ -111,6 +111,7 @@ typedef struct _PROGRAM_OPTIONS {
 	boolean MergeUnbranched;
 	const char *VCFFile;
 	FILE *VCFFileHandle;
+	GEN_ARRAY_VARIANT_CALL *VCSubArrays;
 	GEN_ARRAY_VARIANT_CALL VCArray;
 } PROGRAM_OPTIONS, *PPROGRAM_OPTIONS;
 

@@ -72,7 +72,7 @@ ERR_VALUE vc_array_add(PGEN_ARRAY_VARIANT_CALL Array, const VARIANT_CALL *VC);
 void vc_array_finit(PGEN_ARRAY_VARIANT_CALL Array);
 void vc_array_print(FILE *Stream, const GEN_ARRAY_VARIANT_CALL *Array);
 void vc_array_sort(PGEN_ARRAY_VARIANT_CALL Array);
-
+ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL Sources, const size_t SourceCount);
 
 
 #endif 

@@ -31,12 +31,18 @@ void read_info_finit(PREAD_INFO Info)
 
 ERR_VALUE read_info_copy(PREAD_INFO Dest, const READ_INFO *Source)
 {
+	return read_info_add_array(Dest, &Source->Array);
+}
+
+
+ERR_VALUE read_info_add_array(PREAD_INFO Info, const GEN_ARRAY_READ_INFO_ENTRY *Array)
+{
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	const size_t count = read_info_get_count(Source);
-	const READ_INFO_ENTRY *entry = Source->Array.Data;
+	const size_t count = gen_array_size(Array);
+	const READ_INFO_ENTRY *entry = Array->Data;
 
 	for (size_t i = 0; i < count; ++i) {
-		ret = read_info_add(Dest, entry->ReadIndex, entry->ReadPosition);
+		ret = read_info_add(Info, entry->ReadIndex, entry->ReadPosition);
 		if (ret != ERR_SUCCESS)
 			break;
 

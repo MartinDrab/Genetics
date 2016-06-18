@@ -241,7 +241,7 @@ static ERR_VALUE _find_best_path(const KMER_GRAPH *Graph, PPOINTER_ARRAY_KMER_VE
 			for (size_t i = 0; i < gen_array_size(currentV); ++i)
 				currentD->Data[i].Distance = 0;
 
-			for (size_t i = 0; i < NumberOfVertices; ++i) {
+			for (size_t i = 0; i < NumberOfVertices - 1; ++i) {
 				assert(gen_array_size(currentD) == pointer_array_size(currentV));
 				assert(gen_array_size(nextD) == pointer_array_size(nextV));
 				for (size_t j = 0; j < gen_array_size(currentD); ++j) {
@@ -252,25 +252,8 @@ static ERR_VALUE _find_best_path(const KMER_GRAPH *Graph, PPOINTER_ARRAY_KMER_VE
 					for (size_t k = 0; k < gen_array_size(nextD); ++k) {
 						const KMER_VERTEX *v = *pointer_array_const_item_KMER_VERTEX(nextV, k);
 						size_t newDistance = dr.Distance;
-						boolean vContained = FALSE;
 
-						{
-							size_t index = j;
-							const DISTANCE_RECORD *tmp = dym_array_const_item_DISTANCE_RECORD(currentD, j);
-							for (size_t l = 0; l < j; ++l) {
-								vContained = (*pointer_array_const_item_KMER_VERTEX(currentV - l, index) == v);
-								if (vContained)
-									break;
-
-								index = tmp->BackIndex;
-								tmp = dym_array_const_item_DISTANCE_RECORD(currentD - l - 1, tmp->BackIndex);
-							}
-						}
-
-						if (!vContained)
-							newDistance += 2;
-						else newDistance += ((kmer_graph_get_edge(Graph, u->KMer, v->KMer) == NULL) ? 1 : 0);
-
+						newDistance += ((kmer_graph_get_edge(Graph, u->KMer, v->KMer) == NULL) ? 3 : 0);
 						if (d2->Distance > newDistance) {
 							d2->Distance = newDistance;
 							d2->BackIndex = j;
@@ -440,7 +423,8 @@ static ERR_VALUE _kmer_graph_parse_read_v2(PKMER_GRAPH Graph, const ONE_READ *Re
 							boolean found[500];
 
 							memset(found, 0, sizeof(found));
-							ret = _find_probable_paths(Graph, vertices, maxNumberOfEdges, found);
+//							ret = _find_probable_paths(Graph, vertices, maxNumberOfEdges, found);
+							ret = _find_best_path(Graph, vertices, maxNumberOfVertices);
 							if (ret == ERR_SUCCESS) {
 								PPOINTER_ARRAY_KMER_VERTEX sources = vertices;
 								PPOINTER_ARRAY_KMER_VERTEX dests = vertices + 1;
