@@ -45,6 +45,9 @@
     <ClCompile Include="found-sequence.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="paired-reads.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\kmer.h">
@@ -96,6 +99,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\kmer-graph-types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\khash.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\paired-reads.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

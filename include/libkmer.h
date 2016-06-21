@@ -11,6 +11,9 @@
 #include "assembly.h"
 #include "found-sequence.h"
 #include "refseq-storage.h"
+#include "paired-reads.h"
+
+
 
 
 #endif 

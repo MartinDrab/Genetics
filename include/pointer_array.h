@@ -218,16 +218,16 @@
 	}																	\
 
 #define POINTER_ARRAY_REMOVE_BY_ITEM_FAST(aDataType)	\
-	INLINE_FUNCTION void pointer_array_remove_by_item_fast_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const aDataType *Item)	\
+	INLINE_FUNCTION boolean pointer_array_remove_by_item_fast_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const aDataType *Item)	\
 	{																	\
 		for (size_t i = 0; i < Array->ValidLength; ++i) {				\
 			if (memcmp(Array->Data + i, &Item, sizeof(Item)) == 0) {	\
 				pointer_array_remove_fast_##aDataType(Array, i);		\
-				return;													\
+				return TRUE;													\
 			}															\
 		}																\
 																		\
-		return;															\
+		return FALSE;															\
 	}																	\
 
 

@@ -315,6 +315,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 	pointer_array_init_FOUND_SEQUENCE(&seqArray, 140);
 	ret = kmer_graph_get_seqs(Graph, &seqArray);
 	if (ret == ERR_SUCCESS) {
+//		kmer_graph_delete_seqs(Graph, &seqArray, Options->Threshold);
 		printf("%u\n", (uint32_t)gen_array_size(&seqArray));
 		if (Task->Alternate1Length > 0 && Task->Alternate2Length > 0) {
 			for (size_t i = 0; i < sizeof(alternateLens) / sizeof(size_t); ++i) {
@@ -384,7 +385,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 #pragma warning (disable : 4996)											
 		sprintf(vcfName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-%Iu.vcf", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
 		unlink(vcfName);
-		/*
+		
 		ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
 		if (ret == ERR_SUCCESS) {
 			kmer_graph_print(f, Graph);
@@ -398,7 +399,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 				utils_fclose(f);
 			}
 		}
-		*/
+		
 		if (pointer_array_size(&seqArray) == 1 && Options->VCFFileHandle != NULL) {
 			PFOUND_SEQUENCE seq = *pointer_array_item_FOUND_SEQUENCE(&seqArray, 0);
 			const size_t variantCount = gen_array_size(&seq->Variants);
@@ -437,6 +438,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 
 	return res;
 }
+
 
 static void _on_delete_edge(const KMER_GRAPH *Graph, const KMER_EDGE *Edge, void *Context)
 {
@@ -486,7 +488,6 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 						ret = kmer_graph_connect_reads_by_reads(g, Options->Threshold);
 						if (ret == ERR_SUCCESS) {
 							kmer_graph_delete_1to1_vertices(g);
-							kmer_graph_resolve_db_triangles(g, Options->Threshold);
 							kmer_graph_delete_backward_edges(g);
 							boolean changed = FALSE;
 							do {
@@ -703,6 +704,9 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 
 										reads1 = NULL;
 										reads2 = NULL;
+										for (size_t i = 0; i < Options->ReadCount; ++i)
+											read_split(finalReadSet + i, 0, 0);
+										
 										ret = utils_calloc(Options->RegionLength + 1, sizeof(char), &rs);
 										if (ret == ERR_SUCCESS) {
 											char taskFileName[128];
@@ -1032,128 +1036,132 @@ int main(int argc, char *argv[])
 
 							printf("Success: (%" PRIu64 "), Failures: (%" PRIu64 "), Not tried: (%" PRIu64 "), Percentage: (%" PRIu64 ")\n", st.SuccessCount, st.FailureCount, st.CannotSucceed, (uint64_t)(st.SuccessCount * 100 / (st.SuccessCount + st.FailureCount + st.CannotSucceed + 1)));
 						}
-					} else if (*po.RefSeqFile != '\0') {
-						size_t refSeqLen = 0;
-						FASTA_FILE seqFile;
-						char *rsFasta = NULL;
-
-						ret = fasta_load(po.RefSeqFile, &seqFile);
+					}
+					else if (*po.RefSeqFile != '\0') {
+						ret = paired_reads_init();
 						if (ret == ERR_SUCCESS) {
-							ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
-							po.ReferenceSequence = rsFasta;
-							if (ret != ERR_SUCCESS)
-								fasta_free(&seqFile);
-						}
+							size_t refSeqLen = 0;
+							FASTA_FILE seqFile;
+							char *rsFasta = NULL;
 
-						if (ret == ERR_SUCCESS) {
-							po.VCFFileHandle = NULL;
-							if (*po.VCFFile != '\0') {
-								ret = utils_fopen(po.VCFFile, FOPEN_MODE_WRITE, &po.VCFFileHandle);
-								if (ret == ERR_SUCCESS)
-									dym_array_init_VARIANT_CALL(&po.VCArray, 140);
+							ret = fasta_load(po.RefSeqFile, &seqFile);
+							if (ret == ERR_SUCCESS) {
+								ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
+								po.ReferenceSequence = rsFasta;
+								if (ret != ERR_SUCCESS)
+									fasta_free(&seqFile);
 							}
 
 							if (ret == ERR_SUCCESS) {
-								ret = utils_calloc(omp_get_num_procs(), sizeof(GEN_ARRAY_VARIANT_CALL), &po.VCSubArrays);
+								po.VCFFileHandle = NULL;
+								if (*po.VCFFile != '\0') {
+									ret = utils_fopen(po.VCFFile, FOPEN_MODE_WRITE, &po.VCFFileHandle);
+									if (ret == ERR_SUCCESS)
+										dym_array_init_VARIANT_CALL(&po.VCArray, 140);
+								}
+
 								if (ret == ERR_SUCCESS) {
-									const size_t numThreads = omp_get_num_procs();
-									for (size_t i = 0; i < numThreads; ++i)
-										dym_array_init_VARIANT_CALL(po.VCSubArrays + i, 140);
-
-								do {
-									size_t regionCount = 0;
-									PACTIVE_REGION regions = NULL;
-
-									ret = input_refseq_to_regions(po.ReferenceSequence, refSeqLen, &regions, &regionCount);
+									ret = utils_calloc(omp_get_num_procs(), sizeof(GEN_ARRAY_VARIANT_CALL), &po.VCSubArrays);
 									if (ret == ERR_SUCCESS) {
-											printf("Going through a reference sequence of length %" PRIu64 " MBases with %u regions...\n", (uint64_t)refSeqLen / 1000000, regionCount);
-											printf("%u test read cycles with %u reads of length %u...\n", po.TestReadCycles, po.ReadCount, po.ReadLength);
-											for (size_t i = 0; i < regionCount; ++i) {
-												PACTIVE_REGION pa = regions + i;
+										const size_t numThreads = omp_get_num_procs();
+										for (size_t i = 0; i < numThreads; ++i)
+											dym_array_init_VARIANT_CALL(po.VCSubArrays + i, 140);
 
-												printf("Region #%u: Offset: %" PRIu64 " MBases, Length %" PRIu64 " Mbases\n", i, pa->Offset / 1000000, pa->Length / 1000000);
-												if (pa->Type == artValid && pa->Length >= po.RegionLength) {
-													int j = 0;
+										do {
+											size_t regionCount = 0;
+											PACTIVE_REGION regions = NULL;
 
-													po.ReferenceSequence = pa->Sequence;
+											ret = input_refseq_to_regions(po.ReferenceSequence, refSeqLen, &regions, &regionCount);
+											if (ret == ERR_SUCCESS) {
+												printf("Going through a reference sequence of length %" PRIu64 " MBases with %u regions...\n", (uint64_t)refSeqLen / 1000000, regionCount);
+												printf("%u test read cycles with %u reads of length %u...\n", po.TestReadCycles, po.ReadCount, po.ReadLength);
+												for (size_t i = 0; i < regionCount; ++i) {
+													PACTIVE_REGION pa = regions + i;
+
+													printf("Region #%u: Offset: %" PRIu64 " MBases, Length %" PRIu64 " Mbases\n", i, pa->Offset / 1000000, pa->Length / 1000000);
+													if (pa->Type == artValid && pa->Length >= po.RegionLength) {
+														int j = 0;
+
+														po.ReferenceSequence = pa->Sequence;
 #pragma omp parallel for shared(po, pa, st)
-													for (j = 0; j < (int)(pa->Length - po.RegionLength); j += (int)po.TestStep) {
-														const char *refSeq = pa->Sequence + j;
-														PROGRAM_STATISTICS tmpstats;
-														ASSEMBLY_TASK task;
-														char taskName[128];
-														GEN_ARRAY_ONE_READ reads;
+														for (j = 0; j < (int)(pa->Length - po.RegionLength); j += (int)po.TestStep) {
+															PROGRAM_STATISTICS tmpstats;
+															ASSEMBLY_TASK task;
+															char taskName[128];
+															const char *refSeq = pa->Sequence + j;
+															PONE_READ filteredReadSet = NULL;
+															size_t filteredReadCount = 0;
 
-														dym_array_init_ONE_READ(&reads, 140);
-														ret = input_filter_reads(po.Reads, po.ReadCount, pa->Offset + j, po.RegionLength, &reads);
-														if (ret == ERR_SUCCESS && gen_array_size(&reads) > 0) {
-															printf("%i: %Iu reads\n", omp_get_thread_num(), gen_array_size(&reads));
-															sprintf(taskName, "%08" PRIu64 " r%Iu", (uint64_t)(pa->Offset + j), gen_array_size(&reads));
-															assembly_task_init(&task, refSeq, po.RegionLength, NULL, 0, NULL, 0, reads.Data, gen_array_size(&reads));
-															assembly_task_set_name(&task, taskName);
-															task.RegionStart = pa->Offset + j;
-															ret = _compute_graph(&po, &task, &tmpstats);
-															assembly_task_finit(&task);
+															ret = input_filter_reads(po.Reads, po.ReadCount, pa->Offset + j, po.RegionLength, &filteredReadSet, &filteredReadCount);
+															if (ret == ERR_SUCCESS && filteredReadCount > 0) {
+																printf("%i: %Iu reads\n", omp_get_thread_num(), filteredReadCount);
+																sprintf(taskName, "%08" PRIu64 " r%Iu", (uint64_t)(pa->Offset + j), filteredReadCount);
+																assembly_task_init(&task, refSeq, po.RegionLength, NULL, 0, NULL, 0, filteredReadSet, filteredReadCount);
+																assembly_task_set_name(&task, taskName);
+																task.RegionStart = pa->Offset + j;
+																ret = _compute_graph(&po, &task, &tmpstats);
+																assembly_task_finit(&task);
+																read_set_destroy(filteredReadSet, filteredReadCount);
+															}
 														}
 
-														dym_array_finit_ONE_READ(&reads);
-													}
+														if (pa->Length == po.RegionLength) {
+															const char *refSeq = pa->Sequence;
+															PROGRAM_STATISTICS tmpstats;
+															ASSEMBLY_TASK task;
+															char taskName[128];
+															PONE_READ filteredReadSet = NULL;
+															size_t filteredReadCount = 0;
 
-													if (pa->Length == po.RegionLength) {
-														const char *refSeq = pa->Sequence;
-														PROGRAM_STATISTICS tmpstats;
-														ASSEMBLY_TASK task;
-														GEN_ARRAY_ONE_READ reads;
-														char taskName[128];
-
-														dym_array_init_ONE_READ(&reads, 140);
-														ret = input_filter_reads(po.Reads, po.ReadCount, pa->Offset + j, po.RegionLength, &reads);
-														if (ret == ERR_SUCCESS && gen_array_size(&reads) > 0) {
-															printf("%i: %Iu reads\n", omp_get_thread_num(), gen_array_size(&reads));
-															sprintf(taskName, "%08" PRIu64 " r%Iu", (uint64_t)(pa->Offset + j), gen_array_size(&reads));
-															assembly_task_init(&task, refSeq, po.RegionLength, NULL, 0, NULL, 0, reads.Data, gen_array_size(&reads));
-															assembly_task_set_name(&task, taskName);
-															task.RegionStart = pa->Offset + j;
-															ret = _compute_graph(&po, &task, &tmpstats);
-															assembly_task_finit(&task);
+															ret = input_filter_reads(po.Reads, po.ReadCount, pa->Offset + j, po.RegionLength, &filteredReadSet, &filteredReadCount);
+															if (ret == ERR_SUCCESS && filteredReadCount > 0) {
+																printf("%i: %Iu reads\n", omp_get_thread_num(), filteredReadCount);
+																sprintf(taskName, "%08" PRIu64 " r%Iu", (uint64_t)(pa->Offset + j), filteredReadCount);
+																assembly_task_init(&task, refSeq, po.RegionLength, NULL, 0, NULL, 0, filteredReadSet, filteredReadCount);
+																assembly_task_set_name(&task, taskName);
+																task.RegionStart = pa->Offset + j;
+																ret = _compute_graph(&po, &task, &tmpstats);
+																assembly_task_finit(&task);
+																read_set_destroy(filteredReadSet, filteredReadCount);
+															}
 														}
-
-														dym_array_finit_ONE_READ(&reads);
 													}
+
+													++pa;
 												}
 
-												++pa;
+												input_free_regions(regions, regionCount);
 											}
 
-											input_free_regions(regions, regionCount);
-										}
+											utils_free(rsFasta);
+											ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
+											po.ReferenceSequence = rsFasta;
+										} while (ret == ERR_SUCCESS);
 
-										utils_free(rsFasta);
-										ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
-										po.ReferenceSequence = rsFasta;
-									} while (ret == ERR_SUCCESS);
+										if (ret == ERR_NO_MORE_ENTRIES)
+											ret = ERR_SUCCESS;
 
-									if (ret == ERR_NO_MORE_ENTRIES)
-										ret = ERR_SUCCESS;
-								
-									ret = vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
-									for (size_t i = 0; i < numThreads; ++i)
-										vc_array_finit(po.VCSubArrays + i);
+										ret = vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
+										for (size_t i = 0; i < numThreads; ++i)
+											vc_array_finit(po.VCSubArrays + i);
 
-									utils_free(po.VCSubArrays);
+										utils_free(po.VCSubArrays);
+									}
+
+									if (po.VCFFileHandle != NULL) {
+										if (ret == ERR_SUCCESS)
+											vc_array_print(po.VCFFileHandle, &po.VCArray);
+
+										vc_array_finit(&po.VCArray);
+										utils_fclose(po.VCFFileHandle);
+									}
+
 								}
 
-								if (po.VCFFileHandle != NULL) {
-									if (ret == ERR_SUCCESS)
-										vc_array_print(po.VCFFileHandle, &po.VCArray);
-
-									vc_array_finit(&po.VCArray);
-									utils_fclose(po.VCFFileHandle);
-								}
-
+								fasta_free(&seqFile);
 							}
 
-							fasta_free(&seqFile);
+							paired_reads_finit();
 						}
 					}
 				}

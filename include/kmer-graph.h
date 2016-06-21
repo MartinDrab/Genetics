@@ -42,7 +42,6 @@ ERR_VALUE kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph);
 void kmer_graph_delete_edges_under_threshold(PKMER_GRAPH Graph, const long Threshold);
 void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings);
 ERR_VALUE kmer_graph_resolve_bubbles(PKMER_GRAPH Graph, const uint32_t Threshold);
-ERR_VALUE kmer_graph_connect_reads_by_refseq(PKMER_GRAPH Graph, const size_t Threshold, size_t *ChangeCount);
 ERR_VALUE kmer_graph_connect_reads_by_reads(PKMER_GRAPH Graph, const size_t Threshold);
 ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Threshold, PGEN_ARRAY_KMER_EDGE_PAIR PairArray, size_t *ChangeCount);
 ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, boolean *Changed);
@@ -55,6 +54,7 @@ ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex);
 void kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge);
 ERR_VALUE kmer_graph_merge_edges(PKMER_GRAPH Graph, PKMER_EDGE Source, PKMER_EDGE Dest);
 ERR_VALUE kmer_graph_get_seqs(PKMER_GRAPH Graph, PPOINTER_ARRAY_FOUND_SEQUENCE SeqArray);
+void kmer_graph_delete_seqs(PKMER_GRAPH Graph, PPOINTER_ARRAY_FOUND_SEQUENCE FoundSequences, const size_t Threshold);
 ERR_VALUE kmer_vertex_get_certain_edges(const KMER_VERTEX *Vertex, const EKMerEdgeType EdgeType, const boolean Incomming, PPOINTER_ARRAY_KMER_EDGE Array);
 void kmer_graph_resolve_db_triangles(PKMER_GRAPH Graph, const size_t Threshold);
 

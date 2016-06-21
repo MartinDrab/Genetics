@@ -264,61 +264,78 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 }
 
 
-ERR_VALUE input_filter_reads(const ONE_READ *Source, const size_t SourceCount, const uint64_t RegionStart, const size_t RegionLength, PGEN_ARRAY_ONE_READ Result)
+ERR_VALUE input_filter_reads(const ONE_READ *Source, const size_t SourceCount, const uint64_t RegionStart, const size_t RegionLength, PONE_READ *NewReadSet, size_t *NewReadCount)
 {
-	size_t maxFilteredCount = 0;
+	size_t tmpNewCount = 0;
+	const ONE_READ *r = NULL;
+	PONE_READ tmpNewReadSet = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
+	ret = ERR_SUCCESS;
+	r = Source;
 	for (size_t i = 0; i < SourceCount; ++i) {
-		if (Source[i].PosQuality >= 20 && Source[i].Pos != (uint64_t)-1)
-			++maxFilteredCount;
+		if (r->PosQuality < 20 || r->Pos == (uint64_t)-1) {
+			++r;
+			continue;
+		}
+
+		if (RegionLength == 0) {
+			++tmpNewCount;
+			++r;
+			continue;
+		}
+
+		if ((RegionStart <= r->Pos && r->Pos < RegionStart + RegionLength) ||
+			(RegionStart < r->Pos + r->ReadSequenceLen && r->Pos + r->ReadSequenceLen < RegionStart + RegionLength))
+			++tmpNewCount;
+	
+		++r;
 	}
 
-	ret = ERR_SUCCESS;
-	if (maxFilteredCount > 0) {
-		ret = dym_array_reserve_ONE_READ(Result, maxFilteredCount);
-		if (ret == ERR_SUCCESS) {
-			dym_array_clear_ONE_READ(Result);
-			for (size_t i = 0; i < SourceCount; ++i) {
-				const ONE_READ *r = Source + i;
+	ret = utils_calloc(tmpNewCount, sizeof(ONE_READ), &tmpNewReadSet);
+	if (ret == ERR_SUCCESS) {
+		size_t ri = 0;
+		
+		r = Source;
+		for (size_t i = 0; i < SourceCount; ++i) {
+			if (r->PosQuality < 20 || r->Pos == (uint64_t)-1) {
+				++r;
+				continue;
+			}
 
-				if (r->PosQuality < 20 || r->Pos == (uint64_t)-1)
-					continue;
+			if (RegionLength == 0) {
+				ret = read_copy(tmpNewReadSet + ri, r);
+				if (ret == ERR_SUCCESS) {
+					ret = read_split(tmpNewReadSet + ri, RegionStart, RegionLength);
+					if (ret == ERR_SUCCESS)
+						++ri;
+				}
 
-				if ((RegionStart <= r->Pos && r->Pos < RegionStart + RegionLength) ||
-					(RegionStart <= r->Pos + r->ReadSequenceLen && r->Pos + r->ReadSequenceLen < RegionStart + RegionLength)
-					) {
-					ONE_READ tmp;
+				++r;
+				continue;
+			}
 
-					tmp = *r;
-					if (tmp.Pos < RegionStart) {
-						uint64_t diff = (RegionStart - tmp.Pos);
-
-						tmp.StartStrips = (size_t)diff;
-						/*
-						tmp.Pos += diff;
-						tmp.ReadSequenceLen -= (size_t)diff;
-						tmp.ReadSequence += diff;
-						if (tmp.QualityLen > 0) {
-							tmp.QualityLen -= diff;
-							tmp.Quality += diff;
-						}
-						*/
-					}
-
-					if (tmp.Pos + tmp.ReadSequenceLen >= RegionStart + RegionLength) {
-						tmp.EndStrips = (tmp.ReadSequenceLen - (RegionStart + RegionLength - tmp.Pos));
-						/*
-						tmp.ReadSequenceLen = (RegionStart + RegionLength - tmp.Pos);
-						if (tmp.QualityLen > 0)
-							tmp.QualityLen = tmp.ReadSequenceLen;
-						*/
-					}
-
-					dym_array_push_back_no_alloc_ONE_READ(Result, tmp);
+			if ((RegionStart <= r->Pos && r->Pos < RegionStart + RegionLength) ||
+				(RegionStart < r->Pos + r->ReadSequenceLen && r->Pos + r->ReadSequenceLen < RegionStart + RegionLength)
+				) {
+				ret = read_copy(tmpNewReadSet + ri, r);
+				if (ret == ERR_SUCCESS) {
+					ret = read_split(tmpNewReadSet + ri, RegionStart, RegionLength);
+					if (ret == ERR_SUCCESS)
+						++ri;
 				}
 			}
+
+			++r;
 		}
+
+		if (ret == ERR_SUCCESS) {
+			*NewReadSet = tmpNewReadSet;
+			*NewReadCount = tmpNewCount;
+		}
+
+		if (ret != ERR_SUCCESS)
+			read_set_destroy(tmpNewReadSet, ri);
 	}
 
 	return ret;
