@@ -192,10 +192,8 @@ void kmer_table_destroy(PKMER_TABLE Table)
 	PKMER_TABLE_ENTRY entry = Table->Entries;
 
 	for (size_t i = 0; i < Table->Size; ++i) {
-		if (!_kmer_table_entry_empty(entry)) {
+		if (!_kmer_table_entry_empty(entry))
 			Table->Callbacks.OnDelete(Table, entry->Data);
-			kmer_free(entry->KMer);
-		}
 
 		++entry;
 	}
@@ -248,70 +246,6 @@ ERR_VALUE kmer_table_extend(PKMER_TABLE Table)
 }
 
 
-ERR_VALUE kmer_table_copy(const PKMER_TABLE Source, PKMER_TABLE * Copied)
-{
-	PKMER_TABLE tmpTable = NULL;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = utils_malloc_KMER_TABLE(&tmpTable);
-	if (ret == ERR_SUCCESS) {
-		tmpTable->Inverse = Source->Inverse;
-		tmpTable->KMerSize = Source->KMerSize;
-		tmpTable->PowX = Source->PowX;
-		tmpTable->Size = Source->Size;
-		tmpTable->LastOrder = Source->LastOrder;
-		ret = utils_calloc_KMER_TABLE_ENTRY(tmpTable->Size, &tmpTable->Entries);
-		if (ret == ERR_SUCCESS) {
-			PKMER_TABLE_ENTRY sourceEntry = Source->Entries;
-			PKMER_TABLE_ENTRY destEntry = tmpTable->Entries;
-
-			memset(tmpTable->Entries, 0, sizeof(KMER_TABLE_ENTRY)*tmpTable->Size);
-			for (size_t i = 0; i < tmpTable->Size; ++i) {
-				if (!_kmer_table_entry_empty(sourceEntry) || sourceEntry->Deleted) {
-					memcpy(destEntry, sourceEntry, sizeof(KMER_TABLE_ENTRY));
-					if (sourceEntry->KMer != NULL) {
-						ret = kmer_copy(&destEntry->KMer, sourceEntry->KMer);
-						if (ret == ERR_SUCCESS) {
-							ret = Source->Callbacks.OnCopy(Source, sourceEntry->Data, &destEntry->Data);
-							if (ret == ERR_SUCCESS) {
-								tmpTable->Callbacks.OnInsert(tmpTable, destEntry->Data, tmpTable->LastOrder);
-								tmpTable->LastOrder++;
-							}
-						}
-					}
-				}
-
-				if (ret != ERR_SUCCESS) {
-					--destEntry;
-					for (size_t j = 0; j < i; ++j) {
-						if (!_kmer_table_entry_empty(destEntry)) {
-							tmpTable->Callbacks.OnDelete(tmpTable, destEntry->Data);
-							kmer_free(destEntry->KMer);
-						}
-
-						--destEntry;
-					}
-				}
-
-				++sourceEntry;
-				++destEntry;
-			}
-
-			if (ret == ERR_SUCCESS)
-				*Copied = tmpTable;
-				
-			if (ret != ERR_SUCCESS)
-				utils_free(tmpTable->Entries);
-		}
-
-		if (ret != ERR_SUCCESS)
-			utils_free(tmpTable);
-	}
-
-	return ret;
-}
-
-
 void kmer_table_print(FILE *Stream, const PKMER_TABLE Table)
 {
 	PKMER_TABLE_ENTRY entry = NULL;
@@ -337,12 +271,11 @@ ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const KMER *KMer, void *Data)
 	if (entry != NULL) {
 		if (_kmer_table_entry_empty(entry)) {
 			entry->Deleted = FALSE;
-			ret = kmer_copy(&entry->KMer, KMer);
 			entry->Data = Data;
-			if (ret == ERR_SUCCESS) {
-				Table->Callbacks.OnInsert(Table, entry->Data, Table->LastOrder);
-				++Table->LastOrder;
-			}
+			entry->KMer = KMer;
+			Table->Callbacks.OnInsert(Table, entry->Data, Table->LastOrder);
+			++Table->LastOrder;
+			ret = ERR_SUCCESS;
 		} else ret = ERR_ALREADY_EXISTS;
 	} else ret = ERR_TABLE_FULL;
 
@@ -359,7 +292,6 @@ ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const PKMER KMer)
 	if (entry != NULL) {
 		if (!_kmer_table_entry_empty(entry)) {
 			Table->Callbacks.OnDelete(Table, entry->Data);
-			kmer_free(entry->KMer);
 			memset(entry, 0, sizeof(KMER_TABLE_ENTRY));
 			entry->Deleted = TRUE;
 			ret = ERR_SUCCESS;
@@ -370,7 +302,7 @@ ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const PKMER KMer)
 }
 
 
-ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const PKMER KMer, const size_t Hash, void *Data)
+ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const KMER *KMer, const size_t Hash, void *Data)
 {
 	PKMER_TABLE_ENTRY entry = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -380,11 +312,10 @@ ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const PKMER KMer, const size
 		if (_kmer_table_entry_empty(entry)) {
 			entry->Deleted = FALSE;
 			entry->Data = Data;
-			ret = kmer_copy(&entry->KMer, KMer);
-			if (ret == ERR_SUCCESS) {
-				Table->Callbacks.OnInsert(Table, entry->Data, Table->LastOrder);
-				++Table->LastOrder;
-			}
+			entry->KMer = KMer;
+			Table->Callbacks.OnInsert(Table, entry->Data, Table->LastOrder);
+			++Table->LastOrder;
+			ret = ERR_SUCCESS;
 		} else ret = ERR_ALREADY_EXISTS;
 	} else ret = ERR_TABLE_FULL;
 
@@ -499,5 +430,3 @@ ERR_VALUE kmer_table_get_multiple(const KMER_TABLE *Table, const KMER *KMer, PDY
 
 	return ret;
 }
-
-

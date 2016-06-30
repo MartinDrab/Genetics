@@ -12,8 +12,8 @@
 
 typedef struct _KMER_EDGE_TABLE_ENTRY {
 	boolean Deleted;
-	PKMER Source;
-	PKMER Dest;
+	const KMER *Source;
+	const KMER *Dest;
 	void *Data;
 } KMER_EDGE_TABLE_ENTRY, *PKMER_EDGE_TABLE_ENTRY;
 
@@ -48,7 +48,6 @@ typedef struct _KMER_EDGE_TABLE {
 ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t X, const size_t Size, const PKMER_EDGE_TABLE_CALLBACKS Callbacks, PKMER_EDGE_TABLE *Table);
 void kmer_edge_table_destroy(PKMER_EDGE_TABLE Table);
 ERR_VALUE kmer_edge_table_extend(PKMER_EDGE_TABLE Table);
-ERR_VALUE kmer_edge_table_copy(const PKMER_EDGE_TABLE Source, PKMER_EDGE_TABLE * Copied);
 
 ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const KMER *Source, const KMER *Dest, void *Data);
 ERR_VALUE kmer_edge_table_delete(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest);

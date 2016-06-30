@@ -575,7 +575,7 @@ ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EK
 	ret = _vertex_create(KMer, Type, &v);
 	if (ret == ERR_SUCCESS) {
 		do {
-			ret = kmer_table_insert(Graph->VertexTable, KMer, v);
+			ret = kmer_table_insert(Graph->VertexTable, v->KMer, v);
 			if (ret == ERR_TABLE_FULL) {
 				ret = kmer_table_extend(Graph->VertexTable);
 				if (ret == ERR_SUCCESS)

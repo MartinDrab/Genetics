@@ -552,32 +552,30 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 	PKMER destKMer = NULL;
 	const uint32_t kmerSize = kmer_graph_get_kmer_size(Graph);
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	PKMER_VERTEX sourceVertex = NULL;
+	PKMER_VERTEX destVertex = NULL;
 	char *beginningSeq = alloca(kmerSize*sizeof(char));
 
 	memset(beginningSeq, 'B', kmerSize*sizeof(char));
 	KMER_STACK_ALLOC(sourceKMer, 0, kmerSize, beginningSeq);
-	ret = kmer_graph_add_vertex(Graph, sourceKMer, kmvtRefSeqStart);
+	ret = kmer_graph_add_vertex_ex(Graph, sourceKMer, kmvtRefSeqStart, &sourceVertex);
 	if (ret == ERR_SUCCESS) {
 		kmer_graph_set_starting_vertex(Graph, sourceKMer);
 		KMER_STACK_ALLOC(destKMer, 0, kmerSize, beginningSeq);
 		for (size_t i = 0; i < RefSeqLen; ++i) {
 			kmer_advance(destKMer, RefSeq[i]);
 			kmer_set_number(destKMer, 0);
-			ret = kmer_graph_add_vertex(Graph, destKMer, kmvtRefSeqMiddle);
+			ret = kmer_graph_add_vertex_ex(Graph, destKMer, kmvtRefSeqMiddle, &destVertex);
 			if (ret == ERR_ALREADY_EXISTS) {
 				do {
 					kmer_set_number(destKMer, kmer_get_number(destKMer) + 1);
-					ret = kmer_graph_add_vertex(Graph, destKMer, kmvtRefSeqMiddle);
+					ret = kmer_graph_add_vertex_ex(Graph, destKMer, kmvtRefSeqMiddle, &destVertex);
 				} while (ret == ERR_ALREADY_EXISTS);
 			}
 
 			if (ret == ERR_SUCCESS) {
 				PKMER_EDGE edge = NULL;
-				PKMER_VERTEX sourceVertex = NULL;
-				PKMER_VERTEX destVertex = NULL;
 
-				sourceVertex = kmer_graph_get_vertex(Graph, sourceKMer);
-				destVertex = kmer_graph_get_vertex(Graph, destKMer);
 				destVertex->RefSeqPosition = i;
 				ret = kmer_graph_add_edge_ex(Graph, sourceVertex, destVertex, 0, 1, kmetReference, &edge);
 				if (ret == ERR_ALREADY_EXISTS)
@@ -585,6 +583,7 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 
 				kmer_advance(sourceKMer, RefSeq[i]);
 				kmer_set_number(sourceKMer, kmer_get_number(destKMer));
+				sourceVertex = destVertex;
 			}
 
 			if (ret != ERR_SUCCESS)
@@ -594,14 +593,10 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 		if (ret == ERR_SUCCESS) {
 			kmer_advance(destKMer, 'E');
 			kmer_set_number(destKMer, 0);
-			ret = kmer_graph_add_vertex(Graph, destKMer, kmvtRefSeqEnd);
+			ret = kmer_graph_add_vertex_ex(Graph, destKMer, kmvtRefSeqEnd, &destVertex);
 			if (ret == ERR_SUCCESS) {
 				PKMER_EDGE edge = NULL;
-				PKMER_VERTEX sourceVertex = NULL;
-				PKMER_VERTEX destVertex = NULL;
 
-				sourceVertex = kmer_graph_get_vertex(Graph, sourceKMer);
-				destVertex = kmer_graph_get_vertex(Graph, destKMer);
 				destVertex->RefSeqPosition = RefSeqLen;
 				ret = kmer_graph_add_edge_ex(Graph, sourceVertex, destVertex, 0, 1, kmetReference, &edge);
 			}

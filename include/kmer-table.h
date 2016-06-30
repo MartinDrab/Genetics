@@ -10,7 +10,7 @@
 
 typedef struct _KMER_TABLE_ENTRY {
 	boolean Deleted;
-	PKMER KMer;
+	const KMER *KMer;
 	void *Data;
 } KMER_TABLE_ENTRY, *PKMER_TABLE_ENTRY;
 
@@ -43,12 +43,11 @@ typedef struct _KMER_TABLE {
 ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t X, const size_t Size, const KMER_TABLE_CALLBACKS *Callbacks, PKMER_TABLE *Table);
 void kmer_table_destroy(PKMER_TABLE Table);
 ERR_VALUE kmer_table_extend(PKMER_TABLE Table);
-ERR_VALUE kmer_table_copy(const PKMER_TABLE Source, PKMER_TABLE * Copied);
 void kmer_table_print(FILE *Stream, const PKMER_TABLE Table);
 
 ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const PKMER KMer);
 ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const KMER *KMer, void *Data);
-ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const PKMER KMer, const size_t Hash, void *Data);
+ERR_VALUE kmer_table_insert_hint(PKMER_TABLE Table, const KMER *KMer, const size_t Hash, void *Data);
 void *kmer_table_get(const struct _KMER_TABLE *Table, const struct _KMER *KMer);
 ERR_VALUE kmer_table_get_multiple(const KMER_TABLE *Table, const KMER *KMer, PDYM_ARRAY DataArray);
 

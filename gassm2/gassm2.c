@@ -849,7 +849,6 @@ ERR_VALUE process_active_region(const PROGRAM_OPTIONS *Options, const uint64_t R
 			ASSEMBLY_TASK task;
 			PROGRAM_STATISTICS tmpstats;
 
-			printf("%i: %Iu reads\n", omp_get_thread_num(), gen_array_size(FilteredReads));
 			sprintf(taskName, "%08" PRIu64 " r%Iu", (uint64_t)RegionStart, gen_array_size(FilteredReads));
 			assembly_task_init(&task, RefSeq, Options->RegionLength, NULL, 0, NULL, 0, FilteredReads->Data, gen_array_size(FilteredReads));
 			assembly_task_set_name(&task, taskName);

@@ -347,7 +347,8 @@ ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL S
 
 				size_t minSourceIndex = 0;
 				uint64_t minValue = (uint64_t)-1;
-				const VARIANT_CALL *minVc = NULL;
+				VARIANT_CALL *minVc = NULL;
+				
 				while (ret == ERR_SUCCESS && remainingCount > 0) {
 					minValue = (uint64_t)-1;
 					for (size_t i = 0; i < SourceCount; ++i) {

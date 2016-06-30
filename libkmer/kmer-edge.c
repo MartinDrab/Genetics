@@ -199,8 +199,6 @@ void kmer_edge_table_destroy(PKMER_EDGE_TABLE Table)
 
 	for (size_t i = 0; i < Table->Size; ++i) {
 		if (!_kmer_edge_table_entry_empty(entry)) {
-			kmer_free(entry->Dest);
-			kmer_free(entry->Source);
 			Table->Callbacks.OnDelete(Table, entry->Data);
 			memset(entry, 0, sizeof(KMER_EDGE_TABLE_ENTRY));
 		}
@@ -255,91 +253,6 @@ ERR_VALUE kmer_edge_table_extend(PKMER_EDGE_TABLE Table)
 }
 
 
-ERR_VALUE kmer_edge_table_copy(const PKMER_EDGE_TABLE Source, PKMER_EDGE_TABLE * Copied)
-{
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	PKMER_EDGE_TABLE tmpTable = NULL;
-
-	ret = utils_malloc_KMER_EDGE_TABLE(&tmpTable);
-	if (ret == ERR_SUCCESS) {
-		tmpTable->Inverse = Source->Inverse;
-		tmpTable->KMerSize = Source->KMerSize;
-		tmpTable->PowX = Source->PowX;
-		tmpTable->Size = Source->Size;
-		tmpTable->X = Source->X;
-		tmpTable->Callbacks = Source->Callbacks;
-		tmpTable->LastOrder = 0;
-		ret = utils_calloc_KMER_EDGE_TABLE_ENTRY(tmpTable->Size, &tmpTable->Entries);
-		if (ret == ERR_SUCCESS) {
-			PKMER_EDGE_TABLE_ENTRY sourceEntry = Source->Entries;
-			PKMER_EDGE_TABLE_ENTRY destEntry = tmpTable->Entries;
-
-			memset(tmpTable->Entries, 0, sizeof(KMER_EDGE_TABLE_ENTRY)*tmpTable->Size);
-			for (size_t i = 0; i < tmpTable->Size; ++i) {
-				if (!_kmer_edge_table_entry_empty(sourceEntry) || sourceEntry->Deleted) {
-					memcpy(destEntry, sourceEntry, sizeof(KMER_EDGE_TABLE_ENTRY));
-					destEntry->Source = NULL;
-					destEntry->Dest = NULL;
-					destEntry->Data = NULL;
-					if (!sourceEntry->Deleted) {
-						ret = kmer_copy(&destEntry->Source, sourceEntry->Source);
-						if (ret == ERR_SUCCESS) {
-							ret = kmer_copy(&destEntry->Dest, sourceEntry->Dest);
-							if (ret == ERR_SUCCESS) {
-								ret = Source->Callbacks.OnCopy(Source, sourceEntry->Data, &destEntry->Data);
-								if (ret == ERR_SUCCESS) {
-									tmpTable->Callbacks.OnInsert(tmpTable, destEntry->Data, tmpTable->LastOrder);
-									tmpTable->LastOrder++;
-								}
-
-								if (ret != ERR_SUCCESS) {
-									kmer_free(destEntry->Dest);
-									destEntry->Dest = NULL;
-								}
-							}
-
-							if (ret != ERR_SUCCESS) {
-								kmer_free(destEntry->Source);
-								destEntry->Source = NULL;
-							}
-						}
-					}
-				}
-
-				if (ret != ERR_SUCCESS) {
-					--destEntry;
-					for (size_t j = 0; j < i; ++j) {
-						if (!_kmer_edge_table_entry_empty(destEntry)) {
-							tmpTable->Callbacks.OnDelete(tmpTable, destEntry->Data);
-							kmer_free(destEntry->Dest);
-							kmer_free(destEntry->Source);
-						}
-
-						--destEntry;
-					}
-					
-					break;
-				}
-
-				++sourceEntry;
-				++destEntry;
-			}
-
-			if (ret == ERR_SUCCESS)
-				*Copied = tmpTable;
-
-			if (ret != ERR_SUCCESS)
-				utils_free(tmpTable->Entries);
-		}
-
-		if (ret != ERR_SUCCESS)
-			utils_free(tmpTable);
-	}
-
-	return ret;
-}
-
-
 PKMER_EDGE_TABLE_ENTRY kmer_edge_table_get(const struct _KMER_EDGE_TABLE *Table, const struct _KMER *Source, const struct _KMER *Dest)
 {
 	PKMER_EDGE_TABLE_ENTRY ret = NULL;
@@ -367,8 +280,6 @@ void *kmer_edge_table_get_data(const struct _KMER_EDGE_TABLE *Table, const struc
 void kmer_edge_table_delete_by_entry(PKMER_EDGE_TABLE Table, PKMER_EDGE_TABLE_ENTRY Entry)
 {
 	Table->Callbacks.OnDelete(Table, Entry->Data);
-	kmer_free(Entry->Source);
-	kmer_free(Entry->Dest);
 	memset(Entry, 0, sizeof(KMER_EDGE_TABLE_ENTRY));
 	Entry->Deleted = TRUE;
 
@@ -393,32 +304,19 @@ ERR_VALUE kmer_edge_table_delete(PKMER_EDGE_TABLE Table, const PKMER Source, con
 
 ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const KMER *Source, const KMER *Dest, void *Data)
 {
-	boolean oldDeleted = FALSE;
 	PKMER_EDGE_TABLE_ENTRY entry = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	entry = _kmer_edge_table_get_slot(Table, Source, Dest, totInsert);
 	if (entry != NULL) {
 		if (_kmer_edge_table_entry_empty(entry) || entry->Deleted) {
-			oldDeleted = entry->Deleted;
 			entry->Deleted = FALSE;
-			ret = kmer_copy(&entry->Source, Source);
-			if (ret == ERR_SUCCESS) {
-				ret = kmer_copy(&entry->Dest, Dest);
-				if (ret == ERR_SUCCESS) {
-					entry->Data = Data;
-					Table->Callbacks.OnInsert(Table, Data, Table->LastOrder);
-					Table->LastOrder++;
-				}
-
-				if (ret != ERR_SUCCESS) {
-					kmer_free(entry->Source);
-					entry->Source = NULL;
-				}
-			}
-
-			if (ret != ERR_SUCCESS)
-				entry->Deleted = oldDeleted;
+			entry->Source = Source;
+			entry->Dest = Dest;
+			entry->Data = Data;
+			Table->Callbacks.OnInsert(Table, Data, Table->LastOrder);
+			Table->LastOrder++;
+			ret = ERR_SUCCESS;
 		} else ret = ERR_ALREADY_EXISTS;
 	} else ret = ERR_TABLE_FULL;
 
