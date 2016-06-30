@@ -35,9 +35,6 @@ typedef struct _KMER_EDGE {
 	struct _KMER_VERTEX *Dest;
 	/** Number of reads going through the edge. */
 	long Weight;
-	/** Number of kmers the edge skips in order to avoid cycles. Maximum value is
-	the kmer size minus one. */
-	uint32_t Length;
 	/** Edge creation order. */
 	unsigned int Order;
 	EKMerEdgeType Type;

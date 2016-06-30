@@ -240,6 +240,7 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 					
 				for (size_t i = 0; i < tmpReadCount; ++i) {
 					memcpy(tmp, dym_array_get(&readArray, i), sizeof(ONE_READ));
+					dym_array_init_READ_PART(&tmp->Parts, 140);
 					utils_free(dym_array_get(&readArray, i));
 					++tmp;
 				}
@@ -264,66 +265,65 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 }
 
 
-ERR_VALUE input_filter_reads(const ONE_READ *Source, const size_t SourceCount, const uint64_t RegionStart, const size_t RegionLength, PONE_READ *NewReadSet, size_t *NewReadCount)
+ERR_VALUE input_filter_reads(const ONE_READ *Source, const size_t SourceCount, const uint64_t RegionStart, const size_t RegionLength, boolean *Indels, PGEN_ARRAY_ONE_READ NewReads)
 {
-	size_t tmpNewCount = 0;
+	boolean tmpIndels = FALSE;
+	size_t tmpNewReadCount = 0;
+	PONE_READ destRead = NULL;
+	const ONE_READ *r = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	r = Source;
+	for (size_t i = 0; i < SourceCount; ++i) {
+		if (in_range(RegionStart, RegionLength, r->Pos) || in_range(RegionStart, RegionLength, r->Pos + r->ReadSequenceLen))
+			++tmpNewReadCount;
+
+		++r;
+	}
+
+	ret = dym_array_reserve_ONE_READ(NewReads, tmpNewReadCount);
+	if (ret == ERR_SUCCESS) {		
+		destRead = NewReads->Data;
+		r = Source;
+		for (size_t i = 0; i < SourceCount; ++i) {
+			if (in_range(RegionStart, RegionLength, r->Pos) || in_range(RegionStart, RegionLength, r->Pos + r->ReadSequenceLen)) {
+				dym_array_push_back_no_alloc_ONE_READ(NewReads, *r);
+				dym_array_init_READ_PART(&destRead->Parts, 140);
+				ret = read_split(destRead, RegionStart, RegionLength, &tmpIndels);
+				if (ret == ERR_SUCCESS)
+					++destRead;
+
+				*Indels |= tmpIndels;
+				if (ret != ERR_SUCCESS)
+					break;
+			}
+
+			++r;
+		}
+	}
+
+	return ret;
+}
+
+
+ERR_VALUE input_filter_bad_reads(const ONE_READ *Source, const size_t SourceCount, const uint8_t MinQuality, PONE_READ *NewReadSet, uint32_t *NewReadCount)
+{
+	size_t tmpNewReadCount = 0;
 	const ONE_READ *r = NULL;
 	PONE_READ tmpNewReadSet = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = ERR_SUCCESS;
-	r = Source;
-	for (size_t i = 0; i < SourceCount; ++i) {
-		if (r->PosQuality < 20 || r->Pos == (uint64_t)-1) {
-			++r;
-			continue;
-		}
-
-		if (RegionLength == 0) {
-			++tmpNewCount;
-			++r;
-			continue;
-		}
-
-		if ((RegionStart <= r->Pos && r->Pos < RegionStart + RegionLength) ||
-			(RegionStart < r->Pos + r->ReadSequenceLen && r->Pos + r->ReadSequenceLen < RegionStart + RegionLength))
-			++tmpNewCount;
-	
-		++r;
-	}
-
-	ret = utils_calloc(tmpNewCount, sizeof(ONE_READ), &tmpNewReadSet);
+	ret = utils_calloc(SourceCount, sizeof(ONE_READ), &tmpNewReadSet);
 	if (ret == ERR_SUCCESS) {
-		size_t ri = 0;
-		
 		r = Source;
 		for (size_t i = 0; i < SourceCount; ++i) {
-			if (r->PosQuality < 20 || r->Pos == (uint64_t)-1) {
-				++r;
-				continue;
-			}
+			if (r->PosQuality >= MinQuality && r->Pos != (uint64_t)-1) {
+				ret = read_copy(tmpNewReadSet + tmpNewReadCount, r);
+				if (ret == ERR_SUCCESS)
+					++tmpNewReadCount;
 
-			if (RegionLength == 0) {
-				ret = read_copy(tmpNewReadSet + ri, r);
-				if (ret == ERR_SUCCESS) {
-					ret = read_split(tmpNewReadSet + ri, RegionStart, RegionLength);
-					if (ret == ERR_SUCCESS)
-						++ri;
-				}
-
-				++r;
-				continue;
-			}
-
-			if ((RegionStart <= r->Pos && r->Pos < RegionStart + RegionLength) ||
-				(RegionStart < r->Pos + r->ReadSequenceLen && r->Pos + r->ReadSequenceLen < RegionStart + RegionLength)
-				) {
-				ret = read_copy(tmpNewReadSet + ri, r);
-				if (ret == ERR_SUCCESS) {
-					ret = read_split(tmpNewReadSet + ri, RegionStart, RegionLength);
-					if (ret == ERR_SUCCESS)
-						++ri;
-				}
+				if (ret != ERR_SUCCESS)
+					break;
 			}
 
 			++r;
@@ -331,16 +331,15 @@ ERR_VALUE input_filter_reads(const ONE_READ *Source, const size_t SourceCount, c
 
 		if (ret == ERR_SUCCESS) {
 			*NewReadSet = tmpNewReadSet;
-			*NewReadCount = tmpNewCount;
+			*NewReadCount = tmpNewReadCount;
 		}
 
 		if (ret != ERR_SUCCESS)
-			read_set_destroy(tmpNewReadSet, ri);
+			read_set_destroy(tmpNewReadSet, tmpNewReadCount);
 	}
 
 	return ret;
 }
-
 
 
 void input_free_reads(PONE_READ Reads, const size_t Count)

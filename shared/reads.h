@@ -69,7 +69,7 @@ void read_destroy(PONE_READ Read);
 ERR_VALUE read_set_generate_from_sequence(const char *Seq, const size_t SeqLen, const uint32_t ReadLength, const size_t ReadCount, PONE_READ *ReadSet);
 void read_set_destroy(PONE_READ ReadSet, const size_t Count);
 ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ONE_READ *Source, const size_t SourceCount);
-ERR_VALUE read_split(PONE_READ Read, const uint64_t RegionStart, const size_t  RegionLength);
+ERR_VALUE read_split(PONE_READ Read, const uint64_t RegionStart, const size_t  RegionLength, boolean *Indels);
 
 ERR_VALUE read_save(FILE *Stream, const ONE_READ *Read);
 ERR_VALUE read_load(FILE *Stream, PONE_READ Read);

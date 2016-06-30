@@ -330,49 +330,57 @@ ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL S
 	size_t *counts = NULL;
 	size_t remainingCount = SourceCount;
 
-	ret = utils_calloc(SourceCount, sizeof(size_t), &indices);
-	if (ret == ERR_SUCCESS) {
-		memset(indices, 0, SourceCount*sizeof(size_t));
-		ret = utils_calloc(SourceCount, sizeof(size_t), &counts);
+	for (size_t i = 0; i < SourceCount; ++i) {
+		if (gen_array_size(Sources + i) == 0)
+			--remainingCount;
+	}
+
+	ret = ERR_SUCCESS;
+	if (remainingCount > 0) {
+		ret = utils_calloc(SourceCount, sizeof(size_t), &indices);
 		if (ret == ERR_SUCCESS) {
-			for (size_t i = 0; i < SourceCount; ++i)
-				counts[i] = gen_array_size(Sources + i);
+			memset(indices, 0, SourceCount*sizeof(size_t));
+			ret = utils_calloc(SourceCount, sizeof(size_t), &counts);
+			if (ret == ERR_SUCCESS) {
+				for (size_t i = 0; i < SourceCount; ++i)
+					counts[i] = gen_array_size(Sources + i);
 
-			size_t minSourceIndex = 0;
-			uint64_t minValue = (uint64_t)-1;
-			const VARIANT_CALL *minVc = NULL;
-			while (ret == ERR_SUCCESS && remainingCount > 0) {
-				minValue = (uint64_t)-1;
-				for (size_t i = 0; i < SourceCount; ++i) {
-					if (indices[i] < counts[i]) {
-						const VARIANT_CALL *vc = dym_array_const_item_VARIANT_CALL(Sources + i, indices[i]);
+				size_t minSourceIndex = 0;
+				uint64_t minValue = (uint64_t)-1;
+				const VARIANT_CALL *minVc = NULL;
+				while (ret == ERR_SUCCESS && remainingCount > 0) {
+					minValue = (uint64_t)-1;
+					for (size_t i = 0; i < SourceCount; ++i) {
+						if (indices[i] < counts[i]) {
+							const VARIANT_CALL *vc = dym_array_const_item_VARIANT_CALL(Sources + i, indices[i]);
 
-						if (vc->Pos < minValue) {
-							minValue = vc->Pos;
-							minSourceIndex = i;
-							minVc = vc;
+							if (vc->Pos < minValue) {
+								minValue = vc->Pos;
+								minSourceIndex = i;
+								minVc = vc;
+							}
 						}
+					}
+
+					if (minValue != (uint64_t)-1) {
+						ret = vc_array_add(Dest, minVc);
+						if (ret == ERR_SUCCESS)
+							memset(minVc, 0, sizeof(VARIANT_CALL));
+
+						if (ret == ERR_ALREADY_EXISTS)
+							ret = ERR_SUCCESS;
+
+						indices[minSourceIndex]++;
+						if (indices[minSourceIndex] == counts[minSourceIndex])
+							--remainingCount;
 					}
 				}
 
-				if (minValue != (uint64_t)-1) {
-					ret = vc_array_add(Dest, minVc);
-					if (ret == ERR_SUCCESS)
-						memset(minVc, 0, sizeof(VARIANT_CALL));
-
-					if (ret == ERR_ALREADY_EXISTS)
-						ret = ERR_SUCCESS;
-
-					indices[minSourceIndex]++;
-					if (indices[minSourceIndex] == counts[minSourceIndex])
-						--remainingCount;
-				}
+				utils_free(counts);
 			}
 
-			utils_free(counts);
+			utils_free(indices);
 		}
-
-		utils_free(indices);
 	}
 
 	return ret;

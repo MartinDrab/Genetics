@@ -88,6 +88,7 @@ static const char *_sam_read_int_field(const char *Start, int32_t *Value)
 }
 
 
+
 static void _read_destroy_structure(PONE_READ Read)
 {
 	if (Read->Quality != NULL)
@@ -154,7 +155,7 @@ ERR_VALUE read_copy(PONE_READ Dest, const ONE_READ *Source)
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	ret = ERR_SUCCESS;
-	memcpy(Dest, Source, sizeof(ONE_READ));
+	*Dest = *Source;
 	dym_array_init_READ_PART(&Dest->Parts, 140);
 	if (Dest->CIGARLen > 0)
 		ret = utils_copy_string(Source->CIGAR, &Dest->CIGAR);
@@ -235,8 +236,7 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ *Read)
 			if (Line != NULL && *Line == '\t') {
 				++Line;
 				tmpRead->Pos = tmp32;
-				if (tmpRead->Pos == 0)
-					tmpRead->Pos = (uint64_t)-1;
+				tmpRead->Pos--;
 			} else ret = ERR_SAM_INVALID_POS;
 		}
 
@@ -426,13 +426,14 @@ ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ON
 }
 
 
-ERR_VALUE read_split(PONE_READ Read, const uint64_t RegionStart, const size_t  RegionLength)
+ERR_VALUE read_split(PONE_READ Read, const uint64_t RegionStart, const size_t  RegionLength, boolean *Indels)
 {
 	READ_PART part;
 	size_t endStripped = 0;
 	size_t startStripped = 0;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
+	
+	*Indels = FALSE;
 	if (RegionLength > 0) {
 		if (Read->Pos < RegionStart)
 			startStripped = (size_t)(RegionStart - Read->Pos);
@@ -460,42 +461,49 @@ ERR_VALUE read_split(PONE_READ Read, const uint64_t RegionStart, const size_t  R
 			if (t != '\0' && count > 0) {
 				++c;
 				switch (t) {
-				case 'M':
-				case 'I':
-					part.ReadSequenceLength += count;
-					break;
-				case 'D':
-					break;
-				case 'S':
-					if (part.ReadSequenceLength > 0) {
-						part.Offset = (size_t)(part.Position - Read->Pos);
+					case 'M':
+					case 'I':
+						part.ReadSequenceLength += count;
+						*Indels = TRUE;
+						break;
+					case 'D':
+						*Indels = TRUE;
+						break;
+					case 'S':
+						if (part.ReadSequenceLength > 0) {
+							part.Offset = (size_t)(part.Position - Read->Pos);
+							ret = dym_array_push_back_READ_PART(&Read->Parts, part);
+						}
+
+						if (gen_array_size(&Read->Parts) > 0)
+							part.Position += count;
+
+						part.ReadSequence += count;
+						part.ReadSequenceLength = 0;
+						break;
+					case 'H':
+						if (part.ReadSequenceLength > 0) {
+							part.Offset = (size_t)(part.Position - Read->Pos);
+							ret = dym_array_push_back_READ_PART(&Read->Parts, part);
+						}
+
+						if (gen_array_size(&Read->Parts) > 0)
+							part.Position += count;
+						
+						part.ReadSequenceLength = 0;
+						break;
+					default:
+						*Indels = TRUE;
+						part.Offset = 0;
+						part.Position = Read->Pos;
+						part.ReadSequence = Read->ReadSequence;
+						part.ReadSequenceLength = Read->ReadSequenceLen;
+						dym_array_clear_READ_PART(&Read->Parts);
 						ret = dym_array_push_back_READ_PART(&Read->Parts, part);
-					}
+						if (ret == ERR_SUCCESS)
+							ret = ERR_NO_MORE_ENTRIES;
 
-					part.ReadSequence += count;
-					part.Position += count;
-					part.ReadSequenceLength = 0;
-					break;
-				case 'H':
-					if (part.ReadSequenceLength > 0) {
-						part.Offset = (size_t)(part.Position - Read->Pos);
-						ret = dym_array_push_back_READ_PART(&Read->Parts, part);
-					}
-
-					part.Position += count;
-					part.ReadSequenceLength = 0;
-					break;
-				default:
-					part.Offset = 0;
-					part.Position = Read->Pos;
-					part.ReadSequence = Read->ReadSequence;
-					part.ReadSequenceLength = Read->ReadSequenceLen;
-					dym_array_clear_READ_PART(&Read->Parts);
-					ret = dym_array_push_back_READ_PART(&Read->Parts, part);
-					if (ret == ERR_SUCCESS)
-						ret = ERR_NO_MORE_ENTRIES;
-
-					break;
+						break;
 				}
 			}
 		}
@@ -511,6 +519,7 @@ ERR_VALUE read_split(PONE_READ Read, const uint64_t RegionStart, const size_t  R
 			ret = ERR_SUCCESS;
 
 	} else {
+		*Indels = TRUE;
 		part.Position = Read->Pos;
 		part.ReadSequence = Read->ReadSequence;
 		part.ReadSequenceLength = Read->ReadSequenceLen;
@@ -527,9 +536,9 @@ ERR_VALUE read_split(PONE_READ Read, const uint64_t RegionStart, const size_t  R
 				if (part.ReadSequenceLength >= startStripped) {
 					part.ReadSequenceLength -= startStripped;
 					part.ReadSequence += startStripped;
+					part.Position += startStripped;
 					break;
-				}
-				else {
+				} else {
 					startStripped -= part.ReadSequenceLength;
 					part.ReadSequenceLength = 0;
 				}
@@ -609,12 +618,15 @@ ERR_VALUE read_load(FILE *Stream, PONE_READ Read)
 						ret = utils_fread(Read->Quality, sizeof(uint8_t), Read->QualityLen, Stream);
 						if (ret == ERR_SUCCESS) {
 							ret = utils_fread(&Read->Pos, sizeof(Read->Pos), 1, Stream);
-							if (ret == ERR_SUCCESS) {
+							if (ret == ERR_SUCCESS) {								
 								ret = utils_fread(&Read->PosQuality, sizeof(Read->PosQuality), 1, Stream);
 								if (ret == ERR_SUCCESS) {
 									ret = utils_fread(&Read->Flags, sizeof(Read->Flags), 1, Stream);
-									if (ret == ERR_SUCCESS)
-										ret = read_split(Read, 0, 0);
+									if (ret == ERR_SUCCESS) {
+										boolean tmp = FALSE;
+										
+										ret = read_split(Read, 0, 0, &tmp);
+									}
 								}
 							}
 						}

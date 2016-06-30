@@ -19,6 +19,7 @@ OBJ=\
 	$(SHAREDOBJDIR)/reads.o \
 	$(SHAREDOBJDIR)/ssw.o \
 	$(OBJDIR)/gassm2.o \
+	$(LIBKMEROBJDIR)/paired-reads.o \
 	$(LIBKMEROBJDIR)/assembly.o \
 	$(LIBKMEROBJDIR)/found-sequence.o \
 	$(LIBKMEROBJDIR)/read-info.o \

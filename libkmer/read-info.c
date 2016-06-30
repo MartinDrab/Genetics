@@ -75,12 +75,24 @@ ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_P
 	size_t index2 = 0;
 	const size_t count1 = read_info_get_count(Info1);
 	const size_t count2 = read_info_get_count(Info2);
+	size_t readIndex = (size_t)-1;
 
 	ret = ERR_SUCCESS;
 	while (ret == ERR_SUCCESS && index1 < count1 && index2 < count2) {
+		/*
+		if (entry1->ReadIndex == readIndex) {
+			++entry1;
+			++index1;
+			continue;
+		}
+
+		if (entry2->ReadIndex == readIndex) {
+			++entry2;
+			++index2;
+			continue;
+		}
+		*/
 		if (entry1->ReadIndex == entry2->ReadIndex) {
-			size_t readIndex = (size_t)-1;
-			
 			if (!AscendingPosition || (entry1->ReadPosition <= entry2->ReadPosition && (ReadDistance == 0 || entry1->ReadPosition + ReadDistance == entry2->ReadPosition))) {
 				readIndex = entry1->ReadIndex;
 				ret = dym_array_push_back_READ_INFO_ENTRY(Intersection, *entry1);

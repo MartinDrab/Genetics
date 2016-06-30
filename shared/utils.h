@@ -37,6 +37,8 @@
 #define flag_set(aValue, aFlag)					(aValue |= aFlag)
 #define flag_clear(aValue, aFlag)				(aValue &= ~(aFlag))
 
+#define in_range(aStart, aSize, aVal)			(((aStart) <= (aVal)) && ((aVal) < ((aStart) + (aSize))))
+
 typedef uint8_t boolean;
 
 #ifndef FALSE
