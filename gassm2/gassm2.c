@@ -868,7 +868,7 @@ int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	omp_set_num_threads(omp_get_num_procs());
+	omp_set_num_threads(3);
 #ifdef _DEBUG
 	omp_set_num_threads(1);
 #endif
