@@ -842,6 +842,8 @@ ERR_VALUE process_active_region(const PROGRAM_OPTIONS *Options, const uint64_t R
 	boolean indels = FALSE;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	
+	putchar('.');
+
 	ret = input_filter_reads(Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, &indels, FilteredReads);
 	if (ret == ERR_SUCCESS) {
 		if (gen_array_size(FilteredReads) > 0 && indels) {
@@ -868,7 +870,6 @@ int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	omp_set_num_threads(3);
 #ifdef _DEBUG
 	omp_set_num_threads(1);
 #endif
@@ -1038,6 +1039,7 @@ int main(int argc, char *argv[])
 											char *fileName = *pointer_array_item_char(&fileNameArray, i);
 											ASSEMBLY_TASK task;
 
+											putchar('.');
 											ret = assembly_task_load_file(fileName, &task);
 											if (ret == ERR_SUCCESS) {
 												char *taskName = strchr(fileName, '/');

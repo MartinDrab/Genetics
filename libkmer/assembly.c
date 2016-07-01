@@ -18,99 +18,6 @@
 /*                        HELPER FUNCTIONS                              */
 /************************************************************************/
 
-
-static boolean _vertex_array_is_homogenous(const POINTER_ARRAY_KMER_VERTEX *Array, const EKMerVertexType Type)
-{
-	boolean ret = TRUE;
-	const size_t count = gen_array_size(Array);
-
-	for (size_t i = 0; i < count; ++i) {
-		ret = ((*pointer_array_const_item_KMER_VERTEX(Array, i))->Type == Type);
-		if (!ret)
-			break;
-	}
-
-	return ret;
-}
-
-
-static ERR_VALUE _delete_all_but_ref_edges(PKMER_GRAPH Graph, PPOINTER_ARRAY_KMER_VERTEX Sources, PPOINTER_ARRAY_KMER_VERTEX Dests, boolean *found)
-{
-	boolean tmpFound = FALSE;
-	const size_t sourceCount = pointer_array_size(Sources);
-	const size_t destCount = pointer_array_size(Dests);
-	POINTER_ARRAY_KMER_VERTEX survivingSources;
-	POINTER_ARRAY_KMER_VERTEX survivingDests;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = ERR_SUCCESS;
-	pointer_array_init_KMER_VERTEX(&survivingSources, 140);
-	pointer_array_init_KMER_VERTEX(&survivingDests, 140);
-	for (size_t i = 0; i < sourceCount; ++i) {
-		PKMER_VERTEX source = *pointer_array_item_KMER_VERTEX(Sources, i);
-
-		for (size_t j = 0; j < destCount; ++j) {
-			PKMER_EDGE e = NULL;
-			PKMER_VERTEX dest = *pointer_array_item_KMER_VERTEX(Dests, j);
-
-			e = kmer_graph_get_edge(Graph, source->KMer, dest->KMer);
-			if (e != NULL) {
-				if (e->Type == kmetReference) {
-					tmpFound = TRUE;
-					ret = pointer_array_push_back_KMER_VERTEX(&survivingSources, source);
-					if (ret == ERR_SUCCESS)
-						ret = pointer_array_push_back_KMER_VERTEX(&survivingDests, dest);
-
-					break;
-				}
-			}
-		}
-
-		if (ret != ERR_SUCCESS)
-			break;
-	}
-
-	if (ret == ERR_SUCCESS && tmpFound) {
-		pointer_array_clear_KMER_VERTEX(Sources);
-		pointer_array_clear_KMER_VERTEX(Dests);
-		ret = pointer_array_push_back_array_KMER_VERTEX(Sources, &survivingSources);
-		if (ret == ERR_SUCCESS) {
-			ret = pointer_array_push_back_array_KMER_VERTEX(Dests, &survivingDests);
-		}
-	}
-
-	pointer_array_finit_KMER_VERTEX(&survivingDests);
-	pointer_array_finit_KMER_VERTEX(&survivingSources);
-	*found = tmpFound;
-
-	return ret;
-}
-
-
-static ERR_VALUE _get_edges(const KMER_GRAPH *Graph, const POINTER_ARRAY_KMER_VERTEX *Sources, const POINTER_ARRAY_KMER_VERTEX *Dests, PPOINTER_ARRAY_KMER_EDGE Edges)
-{
-	const KMER_EDGE *e = NULL;
-	const KMER_VERTEX *s = NULL;
-	const KMER_VERTEX *d = NULL;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = ERR_SUCCESS;
-	for (size_t i = 0; i < pointer_array_size(Sources); ++i) {
-		s = *pointer_array_const_item_KMER_VERTEX(Sources, i);
-		for (size_t j = 0; j < pointer_array_size(Dests); ++j) {
-			d = *pointer_array_const_item_KMER_VERTEX(Dests, j);
-			e = kmer_graph_get_edge(Graph, s->KMer, d->KMer);
-			if (e != NULL) {
-				ret = pointer_array_push_back_KMER_EDGE(Edges, e);
-				if (ret != ERR_SUCCESS)
-					break;
-			}
-		}
-	}
-	return ret;
-}
-
-
 static ERR_VALUE _capture_connect_candidates(const KMER_GRAPH *Graph, const KMER_VERTEX **Vertices, const size_t NumberOfEdges, PGEN_ARRAY_KMER_EDGE_PAIR PairArray)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -276,21 +183,15 @@ static ERR_VALUE _find_best_path(const KMER_GRAPH *Graph, PPOINTER_ARRAY_KMER_VE
 					}
 				}
 
-				{
-					const KMER_VERTEX *v = *pointer_array_const_item_KMER_VERTEX(currentV, minDistanceIndex);
 
-					Result[NumberOfVertices - 1] = v;
-				}
-
+				Result[NumberOfVertices - 1] = *pointer_array_const_item_KMER_VERTEX(currentV, minDistanceIndex);
 				dr.BackIndex = minDistanceBackIndex;
 				dr.Distance = minDistance;
 				for (size_t i = 0; i < NumberOfVertices - 1; ++i) {
 					--currentV;
 					--currentD;
-					const KMER_VERTEX *v = *pointer_array_const_item_KMER_VERTEX(currentV, dr.BackIndex);
-
+					Result[NumberOfVertices - i - 2] = *pointer_array_const_item_KMER_VERTEX(currentV, dr.BackIndex);
 					dr = *dym_array_item_DISTANCE_RECORD(currentD, dr.BackIndex);
-					Result[i] = v;
 				}
 			}
 
