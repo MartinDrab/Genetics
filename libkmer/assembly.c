@@ -514,5 +514,3 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, const struct _ONE_READ *Read
 
 	return ret;
 }
-
-

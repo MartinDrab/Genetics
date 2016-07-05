@@ -20,8 +20,8 @@ ERR_VALUE _utils_malloc(const size_t Size, void **Address)
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	addr = malloc(Size);
+	*Address = addr;
 	if (addr != NULL) {
-		*Address = addr;
 		ret = ERR_SUCCESS;
 	} else ret = ERR_OUT_OF_MEMORY;
 
@@ -34,8 +34,8 @@ ERR_VALUE _utils_calloc(const size_t Count, const size_t Size, void **Address)
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	addr = calloc(Count, Size);
+	*Address = addr;
 	if (addr != NULL) {
-		*Address = addr;
 		ret = ERR_SUCCESS;
 	} else ret = ERR_OUT_OF_MEMORY;
 

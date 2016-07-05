@@ -88,7 +88,6 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_seq(PREFSEQ_STORAGE Storage, const char
 			Storage->AllocatedLength = newAllocLength;
 			Storage->ValidLength += Length;
 		}
-
 	}
 
 	return ret;
