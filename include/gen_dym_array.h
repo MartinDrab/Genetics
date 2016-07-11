@@ -38,6 +38,7 @@
 	GEN_ARRAY_EXCHANGE_FUNCTION(aDataType)									\
 	GEN_ARRAY_PUSH_BACK_ARRAY_FUNCTION(aDataType)							\
 	GEN_ARRAY_CONTAINS_FUNCTION(aDataType)									\
+	GEN_ARRAY_REMOVE_FUNCTION(aDataType)									\
 
 
 
@@ -109,7 +110,7 @@
 			dym_array_push_back_no_alloc_##aDataType(Array, Value);							\
 			ret = ERR_SUCCESS;																\
 		} else {																			\
-			ret = dym_array_reserve_##aDataType(Array, (uint64_t)Array->AllocLength*Array->Ratio/100);	\
+			ret = dym_array_reserve_##aDataType(Array, Array->AllocLength*Array->Ratio/100);	\
 			if (ret == ERR_SUCCESS)															\
 				dym_array_push_back_no_alloc_##aDataType(Array, Value);						\
 		}																					\
@@ -209,6 +210,18 @@
 		return ret;														\
 	}																	\
 
+#define GEN_ARRAY_REMOVE_FUNCTION(aDataType)	\
+	INLINE_FUNCTION void dym_array_remove_##aDataType(GEN_ARRAY_PTYPE(aDataType) Array, aDataType Item)	\
+	{																	\
+		for (size_t i = 0; i < Array->ValidLength; ++i) {				\
+			if (memcmp(Array->Data + i, &Item, sizeof(Item)) == 0) {	\
+				memmove(Array->Data + i, Array->Data + i + 1, sizeof(Item)*(Array->ValidLength - (i + 1)));	\
+				--Array->ValidLength;									\
+			}															\
+		}																\
+																		\
+		return;														\
+	}																	\
 
 GEN_ARRAY_TYPEDEF(int8_t);
 GEN_ARRAY_IMPLEMENTATION(int8_t)

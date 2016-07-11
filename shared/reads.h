@@ -13,9 +13,10 @@ typedef struct _READ_PART {
 	/** Part position within the reference sequence. */
 	uint64_t Position;
 	/** The read part sequence (it is not null-terminated). */
-	const char *ReadSequence;
+	char *ReadSequence;
 	/** Length of the part sequence, in bases. */
 	size_t ReadSequenceLength;
+	const uint8_t *Quality;
 	/** Position of the part relative to the start of the read. */
 	size_t Offset;
 } READ_PART, *PREAD_PART;
@@ -36,7 +37,7 @@ typedef struct _ONE_READ {
 	uint8_t PosQuality;
 	char *TemplateName;
 	size_t TemplateNameLen;
-	GEN_ARRAY_READ_PART Parts;
+	READ_PART Part;
 } ONE_READ, *PONE_READ;
 
 typedef struct _ASSEMBLY_TASK {
@@ -69,7 +70,8 @@ void read_destroy(PONE_READ Read);
 ERR_VALUE read_set_generate_from_sequence(const char *Seq, const size_t SeqLen, const uint32_t ReadLength, const size_t ReadCount, PONE_READ *ReadSet);
 void read_set_destroy(PONE_READ ReadSet, const size_t Count);
 ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ONE_READ *Source, const size_t SourceCount);
-ERR_VALUE read_split(PONE_READ Read, const uint64_t RegionStart, const size_t  RegionLength, boolean *Indels);
+void read_split(PONE_READ Read, boolean *Indels);
+void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t RegionLength);
 
 ERR_VALUE read_save(FILE *Stream, const ONE_READ *Read);
 ERR_VALUE read_load(FILE *Stream, PONE_READ Read);

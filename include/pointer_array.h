@@ -17,7 +17,7 @@
 		size_t AllocLength;								\
 		aDataType **Data;								\
 		size_t Ratio;									\
-		aDataType *Storage[10];							\
+		aDataType *Storage[4];							\
 	} POINTER_ARRAY_TYPE(aDataType), *PPOINTER_ARRAY_##aDataType	\
 
 
@@ -40,6 +40,7 @@
 	POINTER_ARRAY_CONTAINS_FUNCTION(aDataType)									\
 	POINTER_ARRAY_CLEAN_COPY_FUNCTION(aDataType)								\
 	POINTER_ARRAY_REMOVE_BY_ITEM_FAST(aDataType)								\
+	POINTER_ARRAY_REMOVE_FUNCTION(aDataType)									\
 
 
 #define POINTER_ARRAY_ALLOC_FUNCTION(aDataType)						\
@@ -230,6 +231,18 @@
 		return FALSE;															\
 	}																	\
 
+#define POINTER_ARRAY_REMOVE_FUNCTION(aDataType)	\
+	INLINE_FUNCTION void pointer_array_remove_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const aDataType *Item)	\
+	{																	\
+		for (size_t i = 0; i < Array->ValidLength; ++i) {				\
+			if (memcmp(Array->Data + i, &Item, sizeof(Item)) == 0) {	\
+				memmove(Array->Data + i, Array->Data + i + 1, sizeof(Item)*(Array->ValidLength - (i + 1)));	\
+				--Array->ValidLength;									\
+			}															\
+		}																\
+																		\
+		return;														\
+	}																	\
 
 
 POINTER_ARRAY_TYPEDEF(int8_t);

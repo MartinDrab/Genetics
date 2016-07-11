@@ -101,6 +101,18 @@ static ERR_VALUE _init_default_values()
 	if (ret == ERR_SUCCESS)
 		ret = option_add_String(PROGRAM_OPTION_VCFFILE, "\0");
 
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Int32(PROGRAM_OPTION_OMP_THREADS, omp_get_num_procs());
+	
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(PROGRAM_OPTION_NO_READ_FIXING, FALSE);
+	
+	if (ret == ERR_SUCCESS)
+		ret = option_add_UInt8(PROGRAM_OPTION_BASE_QUALITY_THRESHOLD, 20);
+	
+	if (ret == ERR_SUCCESS)
+		ret = option_add_UInt32(PROGRAM_OPTION_BASE_QUALITY_MULTIPLIER, 10);
+
 	option_set_description_const(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQUENCE, PROGRAM_OPTION_SEQUENCE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQFILE, PROGRAM_OPTION_SEQFILE_DESC);
@@ -169,6 +181,18 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 	ret = option_get_UInt32(PROGRAM_OPTION_KMERSIZE, &Options->KMerSize);
 	if (ret == ERR_SUCCESS)
 		ret = option_get_UInt64(PROGRAM_OPTION_SEQSTART, &Options->RegionStart);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_Int32(PROGRAM_OPTION_OMP_THREADS, &Options->OMPThreads);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_Boolean(PROGRAM_OPTION_NO_READ_FIXING, &Options->NoFixReads);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_UInt8(PROGRAM_OPTION_BASE_QUALITY_THRESHOLD, &Options->BaseQualityThreshold);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_UInt32(PROGRAM_OPTION_BASE_QUALITY_MULTIPLIER, &Options->BaseQualityMultiplier);
 
 	if (ret == ERR_SUCCESS) {
 		char *outputDirectory = NULL;
@@ -303,7 +327,7 @@ typedef enum _EExperimentResult {
 } EExperimentResult, *PEExperimentResult;
 
 
-static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, const KMER_GRAPH *Graph, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
+static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER_GRAPH Graph, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
 {
 	boolean notFound = FALSE;
 	POINTER_ARRAY_FOUND_SEQUENCE seqArray;
@@ -319,7 +343,16 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 	pointer_array_init_FOUND_SEQUENCE(&seqArray, 140);
 	ret = kmer_graph_get_seqs(Graph, &seqArray);
 	if (ret == ERR_SUCCESS) {
+		/*
 		kmer_graph_delete_seqs(Graph, &seqArray, Options->Threshold);
+		for (size_t j = 0; j < gen_array_size(&seqArray); ++j)
+			found_sequence_free(*pointer_array_item_FOUND_SEQUENCE(&seqArray, j));
+
+		pointer_array_clear_FOUND_SEQUENCE(&seqArray);
+		boolean changed;
+		kmer_graph_detect_uncertainities(Graph, &changed);
+		kmer_graph_get_seqs(Graph, &seqArray);
+		*/
 		if (Task->Alternate1Length > 0 && Task->Alternate2Length > 0) {
 			for (size_t i = 0; i < sizeof(alternateLens) / sizeof(size_t); ++i) {
 				boolean found = FALSE;
@@ -386,7 +419,8 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 #pragma warning (disable : 4996)											
 		sprintf(vcfName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-%Iu.vcf", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
 		unlink(vcfName);
-		if (Options->VCFFileHandle != NULL) {
+		if (Options->VCFFileHandle != NULL) 
+		{
 			ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
 			if (ret == ERR_SUCCESS) {
 				kmer_graph_print(f, Graph);
@@ -490,7 +524,6 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 							ret = kmer_graph_connect_reads_by_reads(g, Options->Threshold);
 							if (ret == ERR_SUCCESS) {
 								kmer_graph_delete_1to1_vertices(g);
-								kmer_graph_delete_backward_edges(g);
 								boolean changed = FALSE;
 								do {
 									changed = FALSE;
@@ -501,12 +534,9 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 								if (ret == ERR_SUCCESS) {
 									res = _compare_alternate_sequences(Options, g, Task, Statistics);
 								} else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
-							} else printf("kmer_graph_connect_reads(): %u\n", ret);
-						} else printf("kmer_graph_connect_reads_by_reads(): %u\n", ret);
-					} else {
-						++Statistics->CannotSucceed;
-						printf("NOTTRIED\n");
-					}
+							} else printf("kmer_graph_connect_reads_by_reads(): %u\n", ret);
+						} else printf("kmer_graph_connect_reads_by_pairs(): %u\n", ret);
+					} else ++Statistics->CannotSucceed;
 				} else printf("kmer_graph_parse_reads(): %u\n", ret);
 			
 				dym_array_finit_KMER_EDGE_PAIR(&ep);
@@ -713,7 +743,7 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 										for (size_t i = 0; i < Options->ReadCount; ++i) {
 											boolean tmp = FALSE;
 
-											read_split(finalReadSet + i, 0, 0, &tmp);
+											read_split(finalReadSet + i, &tmp);
 										}
 										
 										ret = utils_calloc(Options->RegionLength + 1, sizeof(char), &rs);
@@ -837,13 +867,192 @@ static ERR_VALUE _obtain_files(PPOINTER_ARRAY_char Array, const size_t MaxCount,
 }
 
 
+typedef struct _BQ_PAIR {
+	char Base;
+	uint8_t Quality;
+	char *Pointer;
+} BQ_PAIR, *PBQ_PAIR;
+
+GEN_ARRAY_TYPEDEF(BQ_PAIR);
+GEN_ARRAY_IMPLEMENTATION(BQ_PAIR)
+
+typedef struct _JUNK_BASE {
+	uint32_t ReadIndex;
+	uint8_t Quality;
+	char Base;
+	char *Pointer;
+	/** Zero-based */
+	uint64_t Pos;
+	GEN_ARRAY_BQ_PAIR Pairs;
+} JUNK_BASE, *PJUNK_BASE;
+
+KHASH_MAP_INIT_INT64(jb, JUNK_BASE)
+
+
+ERR_VALUE fix_reads(PONE_READ Reads, const uint32_t ReadCount, const uint8_t QualityThreshold, const uint32_t CountMultiplier)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	khiter_t it;
+	PONE_READ r = Reads;
+	khash_t(jb) *table = kh_init(jb);
+
+	ret = ERR_SUCCESS;
+	for (uint32_t i = 0; i < ReadCount; ++i) {
+		boolean dummy = FALSE;
+		const READ_PART *part = NULL;
+
+		read_split(r, &dummy);
+		part = &r->Part;
+		for (size_t k = 0; k < part->ReadSequenceLength; ++k) {
+			if (part->Quality[k] <= QualityThreshold) {
+				JUNK_BASE junkBase;
+				int err;
+
+				junkBase.Base = part->ReadSequence[k];
+				junkBase.Pos = part->Position + k;
+				junkBase.Quality = part->Quality[k];
+				junkBase.ReadIndex = i;
+				junkBase.Pointer = part->ReadSequence + k;
+				it = kh_put(jb, table, junkBase.Pos, &err);
+				switch (err) {
+					case 0:
+						break;
+					case 1:
+					case 2:
+						kh_value(table, it) = junkBase;
+						break;
+					case -1:
+						ret = ERR_OUT_OF_MEMORY;
+						break;
+					default:
+						printf("Error %i\n", err);
+						fflush(stdout);
+						break;
+				}
+			}
+
+			if (ret != ERR_SUCCESS)
+				break;
+		}
+
+		if (ret != ERR_SUCCESS)
+			break;
+
+		++r;
+	}
+
+	if (ret == ERR_SUCCESS) {
+		for (it = kh_begin(table); it != kh_end(table); ++it) {
+			if (kh_exist(table, it)) {
+				PJUNK_BASE junkBase = &kh_value(table, it);
+
+				dym_array_init_BQ_PAIR(&junkBase->Pairs, 140);
+			}
+		}
+
+		r = Reads;
+		for (uint32_t i = 0; i < ReadCount; ++i) {
+			PREAD_PART part = NULL;
+
+			part = &r->Part;
+			uint64_t pos = part->Position;
+
+			for (size_t k = 0; k < part->ReadSequenceLength; ++k) {
+				it = kh_get(jb, table, pos);
+				if (kh_exist(table, it)) {
+					PJUNK_BASE junkBase = &kh_value(table, it);
+
+					if (junkBase->ReadIndex != i) {
+						BQ_PAIR p;
+
+						p.Base = part->ReadSequence[k];
+						p.Quality = part->Quality[k];
+						p.Pointer = part->ReadSequence + k;
+						ret = dym_array_push_back_BQ_PAIR(&junkBase->Pairs, p);
+						if (ret != ERR_SUCCESS)
+							break;
+					}
+				}
+
+				++pos;
+			}
+
+			if (ret != ERR_SUCCESS)
+				break;
+
+			++r;
+		}
+
+		for (it = kh_begin(table); it != kh_end(table); ++it) {
+			if (kh_exist(table, it)) {
+				PJUNK_BASE junkBase = &kh_value(table, it);
+				PBQ_PAIR p = junkBase->Pairs.Data;
+				uint32_t totalQualities[] = { 0, 0, 0, 0 };
+				char bases[] = { 'A', 'C', 'G', 'T' };
+				uint32_t counts[] = { 0, 0, 0, 0 };
+
+				for (size_t k = 0; k < gen_array_size(&junkBase->Pairs); ++k) {
+					if (p->Quality > QualityThreshold) {
+						switch (p->Base) {
+						case 'A': totalQualities[0] += p->Quality; ++counts[0]; break;
+						case 'C': totalQualities[1] += p->Quality; ++counts[1]; break;
+						case 'G': totalQualities[2] += p->Quality; ++counts[2]; break;
+						case 'T': totalQualities[3] += p->Quality; ++counts[3]; break;
+						}
+					}
+
+					++p;
+				}
+
+				uint32_t maxIndex = 0;
+				uint32_t maxValue = counts[0];
+				for (size_t j = 1; j < sizeof(counts) / sizeof(counts[0]); ++j) {
+					if (counts[j] > maxValue) {
+						maxValue = counts[j];
+						maxIndex = j;
+					}
+				}
+
+				boolean canRepair = TRUE;
+				for (size_t j = 0; j < sizeof(counts) / sizeof(counts[0]); ++j) {
+					if (maxIndex == j)
+						continue;
+
+					canRepair = (counts[j] * CountMultiplier <= maxValue);
+					if (!canRepair)
+						break;
+				}
+
+				if (canRepair) {
+					char b = bases[maxIndex];
+					if (junkBase->Base != b)
+						*junkBase->Pointer = b;
+
+					PBQ_PAIR p = junkBase->Pairs.Data;
+					for (size_t k = 0; k < gen_array_size(&junkBase->Pairs); ++k) {
+						if (p->Base != b)
+							*p->Pointer = b;
+
+						++p;
+					}
+				}
+
+				dym_array_finit_BQ_PAIR(&junkBase->Pairs);
+			}
+		}
+	}
+
+	kh_destroy(jb, table);
+
+	return ret;
+}
+
+
 ERR_VALUE process_active_region(const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads)
 {
 	boolean indels = FALSE;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	
-	putchar('.');
-
 	ret = input_filter_reads(Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, &indels, FilteredReads);
 	if (ret == ERR_SUCCESS) {
 		if (gen_array_size(FilteredReads) > 0 && indels) {
@@ -870,9 +1079,6 @@ int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-#ifdef _DEBUG
-	omp_set_num_threads(1);
-#endif
 	ret = options_module_init(37);
 	if (ret == ERR_SUCCESS) {
 		ret = _init_default_values();
@@ -885,6 +1091,11 @@ int main(int argc, char *argv[])
 				memset(&st, 0, sizeof(st));
 				ret = _capture_program_options(&po);
 				if (ret == ERR_SUCCESS) {
+//#ifdef _DEBUG
+//					omp_set_num_threads(1);
+//#else
+					omp_set_num_threads(po.OMPThreads);
+//#endif
 					if (po.Help) {
 						options_print_help();
 					} else if (po.Test) {
@@ -1075,98 +1286,112 @@ int main(int argc, char *argv[])
 							printf("\nSuccess: (%" PRIu64 "), Failures: (%" PRIu64 "), Not tried: (%" PRIu64 "), Percentage: (%" PRIu64 ")\n", st.SuccessCount, st.FailureCount, st.CannotSucceed, (uint64_t)(st.SuccessCount * 100 / (st.SuccessCount + st.FailureCount + st.CannotSucceed + 1)));
 						}
 					} else if (*po.RefSeqFile != '\0') {
+						printf("K-mer size:              %u\n", po.KMerSize);
+						printf("Active region length:    %u\n", po.RegionLength);
+						printf("Reference:               %s\n", po.RefSeqFile);
+						printf("Reads:                   %u\n", po.ReadCount);
+						printf("Read coverage threshold: %u\n", po.Threshold);
+						printf("Base quality threshold:  %u\n", po.BaseQualityThreshold);
+						printf("Base quality multiplier: %u\n", po.BaseQualityMultiplier);
+						printf("Fix reads:               %u\n", !po.NoFixReads);
+						printf("OpenMP thread count:     %i\n", po.OMPThreads);
+						printf("Output VCF file:         %s\n", po.VCFFile);
 						ret = paired_reads_init();
 						if (ret == ERR_SUCCESS) {
-							size_t refSeqLen = 0;
-							FASTA_FILE seqFile;
-							char *rsFasta = NULL;
-
-							ret = fasta_load(po.RefSeqFile, &seqFile);
+							if (!po.NoFixReads)
+								ret = fix_reads(po.Reads, po.ReadCount, po.BaseQualityThreshold, po.BaseQualityMultiplier);
+							
 							if (ret == ERR_SUCCESS) {
-								ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
-								po.ReferenceSequence = rsFasta;
-								if (ret != ERR_SUCCESS)
-									fasta_free(&seqFile);
-							}
+								size_t refSeqLen = 0;
+								FASTA_FILE seqFile;
+								char *rsFasta = NULL;
 
-							if (ret == ERR_SUCCESS) {
-								po.VCFFileHandle = NULL;
-								if (*po.VCFFile != '\0') {
-									ret = utils_fopen(po.VCFFile, FOPEN_MODE_WRITE, &po.VCFFileHandle);
-									if (ret == ERR_SUCCESS)
-										dym_array_init_VARIANT_CALL(&po.VCArray, 140);
+								ret = fasta_load(po.RefSeqFile, &seqFile);
+								if (ret == ERR_SUCCESS) {
+									ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
+									po.ReferenceSequence = rsFasta;
+									if (ret != ERR_SUCCESS)
+										fasta_free(&seqFile);
 								}
 
 								if (ret == ERR_SUCCESS) {
-									ret = utils_calloc(omp_get_num_procs(), sizeof(GEN_ARRAY_VARIANT_CALL), &po.VCSubArrays);
+									po.VCFFileHandle = NULL;
+									if (*po.VCFFile != '\0') {
+										ret = utils_fopen(po.VCFFile, FOPEN_MODE_WRITE, &po.VCFFileHandle);
+										if (ret == ERR_SUCCESS)
+											dym_array_init_VARIANT_CALL(&po.VCArray, 140);
+									}
+
 									if (ret == ERR_SUCCESS) {
-										ret = utils_calloc(omp_get_num_procs(), sizeof(GEN_ARRAY_ONE_READ), &po.ReadSubArrays);
+										ret = utils_calloc(omp_get_num_procs(), sizeof(GEN_ARRAY_VARIANT_CALL), &po.VCSubArrays);
 										if (ret == ERR_SUCCESS) {
-											const size_t numThreads = omp_get_num_procs();
-											for (size_t i = 0; i < numThreads; ++i) {
-												dym_array_init_VARIANT_CALL(po.VCSubArrays + i, 140);
-												dym_array_init_ONE_READ(po.ReadSubArrays + i, 140);
-											}
-
-											do {
-												size_t regionCount = 0;
-												PACTIVE_REGION regions = NULL;
-
-												ret = input_refseq_to_regions(po.ReferenceSequence, refSeqLen, &regions, &regionCount);
-												if (ret == ERR_SUCCESS) {
-													for (size_t i = 0; i < regionCount; ++i) {
-														PACTIVE_REGION pa = regions + i;
-
-														if (pa->Type == artValid && pa->Length >= po.RegionLength) {
-															int j = 0;
-															const int regionLength = po.RegionLength;
-															const int intervalLength = pa->Length;
-															const int step = po.TestStep;
-#pragma omp parallel for shared(po, pa)
-															for (j = 0; j < intervalLength - regionLength; j += step)
-																process_active_region(&po, pa->Offset + j, pa->Sequence + j, po.ReadSubArrays + omp_get_thread_num());
-
-															process_active_region(&po, pa->Offset + pa->Length - po.RegionLength, pa->Sequence + pa->Length - po.RegionLength, po.ReadSubArrays);
-														}
-
-														++pa;
-													}
-
-													input_free_regions(regions, regionCount);
+											ret = utils_calloc(omp_get_num_procs(), sizeof(GEN_ARRAY_ONE_READ), &po.ReadSubArrays);
+											if (ret == ERR_SUCCESS) {
+												const size_t numThreads = omp_get_num_procs();
+												for (size_t i = 0; i < numThreads; ++i) {
+													dym_array_init_VARIANT_CALL(po.VCSubArrays + i, 140);
+													dym_array_init_ONE_READ(po.ReadSubArrays + i, 140);
 												}
 
-												utils_free(rsFasta);
-												ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
-												po.ReferenceSequence = rsFasta;
-											} while (ret == ERR_SUCCESS);
+												do {
+													size_t regionCount = 0;
+													PACTIVE_REGION regions = NULL;
 
-											if (ret == ERR_NO_MORE_ENTRIES)
-												ret = ERR_SUCCESS;
+													ret = input_refseq_to_regions(po.ReferenceSequence, refSeqLen, &regions, &regionCount);
+													if (ret == ERR_SUCCESS) {
+														for (size_t i = 0; i < regionCount; ++i) {
+															PACTIVE_REGION pa = regions + i;
 
-											ret = vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
-											for (size_t i = 0; i < numThreads; ++i) {
-												dym_array_finit_ONE_READ(po.ReadSubArrays + i);
-												vc_array_finit(po.VCSubArrays + i);
+															if (pa->Type == artValid && pa->Length >= po.RegionLength) {
+																int j = 0;
+																const int regionLength = po.RegionLength;
+																const int step = po.TestStep;
+#pragma omp parallel for shared(po, pa)
+																for (j = 0; j < pa->Length - regionLength; j += step)
+																	process_active_region(&po, pa->Offset + j, pa->Sequence + j, po.ReadSubArrays + omp_get_thread_num());
+
+																process_active_region(&po, pa->Offset + pa->Length - po.RegionLength, pa->Sequence + pa->Length - po.RegionLength, po.ReadSubArrays);
+															}
+
+															++pa;
+														}
+
+														input_free_regions(regions, regionCount);
+													}
+
+													utils_free(rsFasta);
+													ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
+													po.ReferenceSequence = rsFasta;
+												} while (ret == ERR_SUCCESS);
+
+												if (ret == ERR_NO_MORE_ENTRIES)
+													ret = ERR_SUCCESS;
+
+												ret = vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
+												for (size_t i = 0; i < numThreads; ++i) {
+													dym_array_finit_ONE_READ(po.ReadSubArrays + i);
+													vc_array_finit(po.VCSubArrays + i);
+												}
+
+												utils_free(po.ReadSubArrays);
 											}
 
-											utils_free(po.ReadSubArrays);
+											utils_free(po.VCSubArrays);
 										}
 
-										utils_free(po.VCSubArrays);
+										if (po.VCFFileHandle != NULL) {
+											if (ret == ERR_SUCCESS)
+												vc_array_print(po.VCFFileHandle, &po.VCArray);
+
+											vc_array_finit(&po.VCArray);
+											utils_fclose(po.VCFFileHandle);
+										}
+
 									}
 
-									if (po.VCFFileHandle != NULL) {
-										if (ret == ERR_SUCCESS)
-											vc_array_print(po.VCFFileHandle, &po.VCArray);
-
-										vc_array_finit(&po.VCArray);
-										utils_fclose(po.VCFFileHandle);
-									}
-
+									fasta_free(&seqFile);
 								}
-
-								fasta_free(&seqFile);
-							}
+							} else printf("fix_reads(): %u\n", ret);
 
 							paired_reads_finit();
 						}

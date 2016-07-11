@@ -111,8 +111,9 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_edge(PREFSEQ_STORAGE Storage, const KME
 			break;
 	}
 
-	if (ret == ERR_SUCCESS) {
-		const KMER *destKMer = Edge->Dest->KMer;
+	if (ret == ERR_SUCCESS && Edge->Dest->Type != kmvtDummy &&
+		Edge->Dest->Type != kmvtRefSeqEnd) {
+		const KMER *destKMer = &Edge->Dest->KMer;
 		ret = rs_storage_add(Storage, kmer_get_base(destKMer, kmer_get_size(destKMer) - 1));
 	}
 
@@ -120,9 +121,31 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_edge(PREFSEQ_STORAGE Storage, const KME
 }
 
 
-INLINE_FUNCTION void rs_storage_remove(PREFSEQ_STORAGE Storage, size_t Length)
+INLINE_FUNCTION ERR_VALUE rs_storage_add_vertex(PREFSEQ_STORAGE Storage, const KMER_VERTEX *Vertex)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = rs_storage_add(Storage, kmer_get_base(&Vertex->KMer, Vertex->KMer.Size - 1));
+
+	return ret;
+}
+
+
+INLINE_FUNCTION void rs_storage_remove(PREFSEQ_STORAGE Storage, const size_t Length)
 {
 	Storage->ValidLength -= Length;
+
+	return;
+}
+
+
+INLINE_FUNCTION void rs_storage_remove_edge(PREFSEQ_STORAGE Storage, const KMER_EDGE *Edge)
+{
+	if (Edge->Dest->Type != kmvtRefSeqEnd && Edge->Dest->Type != kmvtDummy)
+		rs_storage_remove(Storage, 1);
+
+	rs_storage_remove(Storage, Edge->SeqLen);
+	assert(memcmp(Storage->Sequence + Storage->ValidLength, Edge->Seq, Edge->SeqLen*sizeof(char)) == 0);
 
 	return;
 }

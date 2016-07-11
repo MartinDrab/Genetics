@@ -34,6 +34,7 @@ typedef struct _FOUND_SEQUENCE {
 	char *Sequence;
 	size_t Len;
 	GEN_ARRAY_FOUND_SEQUENCE_VARIANT Variants;
+	GEN_ARRAY_FOUND_SEQUENCE_VARIANT ReadVariants;
 } FOUND_SEQUENCE, *PFOUND_SEQUENCE;
 
 GEN_ARRAY_TYPEDEF(FOUND_SEQUENCE);
@@ -64,6 +65,7 @@ ERR_VALUE found_sequence_init(const char *Sequence, const size_t Length, const s
 void found_sequence_finit(PFOUND_SEQUENCE FS);
 ERR_VALUE found_sequence_set_variant(PFOUND_SEQUENCE FS, const size_t Index, PFOUND_SEQUENCE_VARIANT Variant);
 boolean found_sequence_match(const FOUND_SEQUENCE *FS, const char *Seq, const size_t Length);
+ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_ARRAY_KMER_EDGE *PathEdges);
 
 ERR_VALUE variant_call_init(const char *Chrom, const uint64_t Pos, const char *ID, const char *Ref, const char *Alt, const uint8_t Qual, PVARIANT_CALL VC);
 void variant_call_finit(PVARIANT_CALL VC);

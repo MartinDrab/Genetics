@@ -240,7 +240,6 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 					
 				for (size_t i = 0; i < tmpReadCount; ++i) {
 					memcpy(tmp, dym_array_get(&readArray, i), sizeof(ONE_READ));
-					dym_array_init_READ_PART(&tmp->Parts, 140);
 					utils_free(dym_array_get(&readArray, i));
 					++tmp;
 				}
@@ -288,14 +287,10 @@ ERR_VALUE input_filter_reads(const ONE_READ *Source, const size_t SourceCount, c
 		for (size_t i = 0; i < SourceCount; ++i) {
 			if (in_range(RegionStart, RegionLength, r->Pos) || in_range(RegionStart, RegionLength, r->Pos + r->ReadSequenceLen)) {
 				dym_array_push_back_no_alloc_ONE_READ(NewReads, *r);
-				dym_array_init_READ_PART(&destRead->Parts, 140);
-				ret = read_split(destRead, RegionStart, RegionLength, &tmpIndels);
-				if (ret == ERR_SUCCESS)
-					++destRead;
-
+				read_split(destRead, &tmpIndels);
+				read_adjust(destRead, RegionStart, RegionLength);
+				++destRead;
 				*Indels |= tmpIndels;
-				if (ret != ERR_SUCCESS)
-					break;
 			}
 
 			++r;

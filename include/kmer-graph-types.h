@@ -18,6 +18,8 @@ typedef enum _EKMerVertexType {
 	kmvtRefSeqMiddle,
 	kmvtRefSeqEnd,
 	kmvtRead,
+	kmvtDummy,
+	kmvtMax
 } EKMerVertexType, PEKMerVertexType;
 
 
@@ -25,6 +27,7 @@ typedef enum _EKMerEdgeType {
 	kmetReference,
 	kmetRead,
 	kmetVariant,
+	kmetNone,
 	kmetMax,
 } EKMerEdgeType, *PEKMerEdgeType;
 
@@ -48,6 +51,7 @@ typedef struct _KMER_EDGE {
 	long Seq2Weight;
 	READ_INFO ReadInfo;
 	boolean MarkedForDelete;
+	boolean Finished;
 	GEN_ARRAY_size_t Paths;
 } KMER_EDGE, *PKMER_EDGE;
 
@@ -55,14 +59,12 @@ POINTER_ARRAY_TYPEDEF(KMER_EDGE);
 POINTER_ARRAY_IMPLEMENTATION(KMER_EDGE)
 
 typedef struct _KMER_VERTEX {
-	PKMER KMer;
 	uint32_t Order;
 	EKMerVertexType Type;
 	POINTER_ARRAY_KMER_EDGE Successors;
 	POINTER_ARRAY_KMER_EDGE Predecessors;
-	boolean Finished;
-	uint32_t LastRSOrder;
 	uint32_t RefSeqPosition;
+	KMER KMer;
 } KMER_VERTEX, *PKMER_VERTEX;
 
 POINTER_ARRAY_TYPEDEF(KMER_VERTEX);
@@ -95,6 +97,7 @@ typedef struct _KMER_GRAPH {
 	uint32_t TypedEdgeCount[kmetMax];
 	PKMER_TABLE VertexTable;
 	PKMER_EDGE_TABLE EdgeTable;
+	PKMER_EDGE_TABLE DummyVertices;
 	PKMER_VERTEX StartingVertex;
 	PKMER_VERTEX EndingVertex;
 	GRAPH_ON_DELETE_EDGE_CALLBACK *DeleteEdgeCallback;

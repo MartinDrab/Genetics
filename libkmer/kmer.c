@@ -39,7 +39,7 @@ void kmer_init(PKMER KMer, const char *Sequence)
 
 void kmer_init_from_kmer(PKMER Dest, const KMER *Source)
 {
-	assert(Dest->Size == Source->Size);
+	Dest->Size = Source->Size;
 	Dest->Number = Source->Number;
 	memcpy(Dest->Bases, Source->Bases, Dest->Size * sizeof(char));
 

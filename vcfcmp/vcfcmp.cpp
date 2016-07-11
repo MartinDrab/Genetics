@@ -24,7 +24,8 @@ bool load_reference(const std::string & aFileName, std::string & Reference)
 	try {
 		std::string line;
 
-		auto fs = std::fstream(aFileName, std::fstream::in);
+		std::ifstream fs;
+		fs.open(aFileName);
 		try {
 			while (!fs.eof()) {
 				std::getline(fs, line);
@@ -40,7 +41,6 @@ bool load_reference(const std::string & aFileName, std::string & Reference)
 		printf("ERROR: failed to open the reference sequence file: %i\n", err);
 		ret = false;
 	}
-
 
 	return ret;
 }

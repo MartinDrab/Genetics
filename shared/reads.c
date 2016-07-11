@@ -103,8 +103,6 @@ static void _read_destroy_structure(PONE_READ Read)
 	if (Read->TemplateName != NULL)
 		utils_free(Read->TemplateName);
 
-	dym_array_finit_READ_PART(&Read->Parts);
-
 	return;
 }
 
@@ -120,7 +118,6 @@ ERR_VALUE read_create_from_test_line(const char *Line, const size_t Length, PONE
 	ret = utils_calloc(1, sizeof(ONE_READ), &tmpRead);
 	if (ret == ERR_SUCCESS) {
 		memset(tmpRead, 0, sizeof(ONE_READ));
-		dym_array_init_READ_PART(&tmpRead->Parts, 140);
 		tmpRead->Pos = (uint64_t)-1;
 		tmpRead->ReadSequenceLen = Length;
 		ret = utils_calloc(Length + 1, sizeof(char), &tmpRead->ReadSequence);
@@ -130,10 +127,8 @@ ERR_VALUE read_create_from_test_line(const char *Line, const size_t Length, PONE
 			*Read = tmpRead;
 		}
 
-		if (ret != ERR_SUCCESS) {
-			dym_array_finit_READ_PART(&tmpRead->Parts);
+		if (ret != ERR_SUCCESS)
 			utils_free(tmpRead);
-		}
 	}
 
 	return ret;
@@ -156,7 +151,6 @@ ERR_VALUE read_copy(PONE_READ Dest, const ONE_READ *Source)
 
 	ret = ERR_SUCCESS;
 	*Dest = *Source;
-	dym_array_init_READ_PART(&Dest->Parts, 140);
 	if (Dest->CIGARLen > 0)
 		ret = utils_copy_string(Source->CIGAR, &Dest->CIGAR);
 
@@ -193,9 +187,6 @@ ERR_VALUE read_copy(PONE_READ Dest, const ONE_READ *Source)
 		}
 	}
 
-	if (ret != ERR_SUCCESS)
-		dym_array_finit_READ_PART(&Dest->Parts);
-
 	return ret;
 }
 
@@ -210,7 +201,6 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ *Read)
 		uint32_t tmp32;
 
 		memset(tmpRead, 0, sizeof(ONE_READ));
-		dym_array_init_READ_PART(&tmpRead->Parts, 140);
 		Line = _sam_read_string_field(Line, &tmpRead->TemplateName, &tmpRead->TemplateNameLen);
 		if (Line != NULL && *Line == '\t')
 			++Line;
@@ -291,7 +281,6 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ *Read)
 
 		if (ret == ERR_SUCCESS) {
 			if (tmpRead->ReadSequenceLen == tmpRead->QualityLen) {
-				tmpRead->Pos--;
 				for (size_t i = 0; i < tmpRead->QualityLen; ++i)
 					tmpRead->Quality[i] -= 33;
 
@@ -312,7 +301,6 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ *Read)
 			if (tmpRead->TemplateName != NULL)
 				utils_free(tmpRead->TemplateName);
 
-			dym_array_finit_READ_PART(&tmpRead->Parts);
 			utils_free(tmpRead);
 		}
 	}
@@ -348,7 +336,6 @@ ERR_VALUE read_set_generate_from_sequence(const char *Seq, const size_t SeqLen, 
 		r = tmpReadSet;
 		for (size_t i = 0; i < ReadCount; ++i) {
 			memset(r, 0, sizeof(ONE_READ));
-			dym_array_init_READ_PART(&r->Parts, 140);
 			r->Pos = utils_ranged_rand(0, SeqLen - ReadLength + 1);
 
 			r->PosQuality = 254;
@@ -413,10 +400,7 @@ ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ON
 	ret = utils_calloc(TargetCount + SourceCount, sizeof(ONE_READ), &tmp);
 	if (ret == ERR_SUCCESS) {
 		memcpy(tmp, *Target, TargetCount*sizeof(ONE_READ));
-		memcpy(tmp + TargetCount, Source, SourceCount*sizeof(ONE_READ));
-		for (size_t i = 0; i < TargetCount + SourceCount; ++i)
-			dym_array_init_READ_PART(&(tmp[i].Parts), 140);
-		
+		memcpy(tmp + TargetCount, Source, SourceCount*sizeof(ONE_READ));		
 		utils_free(Source);
 		utils_free(*Target);
 		*Target = tmp;
@@ -426,33 +410,61 @@ ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ON
 }
 
 
-ERR_VALUE read_split(PONE_READ Read, const uint64_t RegionStart, const size_t  RegionLength, boolean *Indels)
+void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t RegionLength)
 {
-	READ_PART part;
+	PREAD_PART part;
 	size_t endStripped = 0;
 	size_t startStripped = 0;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	
-	*Indels = FALSE;
-	if (RegionLength > 0) {
-		if (Read->Pos < RegionStart)
-			startStripped = (size_t)(RegionStart - Read->Pos);
 
-		if (Read->Pos + Read->ReadSequenceLen >= RegionStart + RegionLength)
-			endStripped = (size_t)(Read->Pos + Read->ReadSequenceLen - RegionStart - RegionLength);
+	if (Read->Pos < RegionStart)
+		startStripped = (size_t)(RegionStart - Read->Pos);
+
+	if (Read->Pos + Read->ReadSequenceLen >= RegionStart + RegionLength)
+		endStripped = (size_t)(Read->Pos + Read->ReadSequenceLen - RegionStart - RegionLength);
+
+	if (startStripped > 0) {
+		part = &Read->Part;
+		if (part->ReadSequenceLength >= startStripped) {
+			part->ReadSequenceLength -= startStripped;
+			part->ReadSequence += startStripped;
+			part->Quality += startStripped;
+			part->Position += startStripped;
+		} else {
+			startStripped -= part->ReadSequenceLength;
+			part->ReadSequenceLength = 0;
+		}
 	}
 
+	if (endStripped > 0) {
+		part = &Read->Part;
+		if (part->ReadSequenceLength > endStripped) {
+			part->ReadSequenceLength -= endStripped;
+		} else {
+			endStripped -= part->ReadSequenceLength;
+			part->ReadSequenceLength = 0;
+		}
+	}
+
+	return;
+}
+
+
+void read_split(PONE_READ Read, boolean *Indels)
+{
+	READ_PART part;
+	
+	*Indels = FALSE;
 	if (Read->CIGAR != NULL && *Read->CIGAR != '\0' && *Read->CIGAR != '*') {
 		char t;
 		unsigned long count = 1;
 		const char *c = Read->CIGAR;
 
-		ret = ERR_SUCCESS;
 		part.ReadSequence = Read->ReadSequence;
 		part.Position = Read->Pos;
 		part.Offset = 0;
 		part.ReadSequenceLength = 0;
-		while (ret == ERR_SUCCESS && *c != '\0') {
+		part.Quality = Read->Quality;
+		while (*c != '\0') {
 			char *tmp;
 
 			count = strtoul(c, &tmp, 10);
@@ -472,24 +484,19 @@ ERR_VALUE read_split(PONE_READ Read, const uint64_t RegionStart, const size_t  R
 					case 'S':
 						if (part.ReadSequenceLength > 0) {
 							part.Offset = (size_t)(part.Position - Read->Pos);
-							ret = dym_array_push_back_READ_PART(&Read->Parts, part);
+							Read->Part = part;
 						}
 
-						if (gen_array_size(&Read->Parts) > 0)
-							part.Position += count;
-
 						part.ReadSequence += count;
+						part.Quality += count;
 						part.ReadSequenceLength = 0;
 						break;
 					case 'H':
 						if (part.ReadSequenceLength > 0) {
 							part.Offset = (size_t)(part.Position - Read->Pos);
-							ret = dym_array_push_back_READ_PART(&Read->Parts, part);
+							Read->Part = part;
 						}
 
-						if (gen_array_size(&Read->Parts) > 0)
-							part.Position += count;
-						
 						part.ReadSequenceLength = 0;
 						break;
 					default:
@@ -498,70 +505,28 @@ ERR_VALUE read_split(PONE_READ Read, const uint64_t RegionStart, const size_t  R
 						part.Position = Read->Pos;
 						part.ReadSequence = Read->ReadSequence;
 						part.ReadSequenceLength = Read->ReadSequenceLen;
-						dym_array_clear_READ_PART(&Read->Parts);
-						ret = dym_array_push_back_READ_PART(&Read->Parts, part);
-						if (ret == ERR_SUCCESS)
-							ret = ERR_NO_MORE_ENTRIES;
-
+						part.Quality = Read->Quality;
+						Read->Part = part;
 						break;
 				}
 			}
 		}
 
-		if (ret == ERR_SUCCESS) {
-			if (part.ReadSequenceLength > 0) {
-				part.Offset = (size_t)(part.Position - Read->Pos);
-				ret = dym_array_push_back_READ_PART(&Read->Parts, part);
-			}
+		if (part.ReadSequenceLength > 0) {
+			part.Offset = (size_t)(part.Position - Read->Pos);
+			Read->Part = part;
 		}
-
-		if (ret == ERR_NO_MORE_ENTRIES)
-			ret = ERR_SUCCESS;
-
 	} else {
 		*Indels = TRUE;
 		part.Position = Read->Pos;
 		part.ReadSequence = Read->ReadSequence;
 		part.ReadSequenceLength = Read->ReadSequenceLen;
 		part.Offset = 0;
-		ret = dym_array_push_back_READ_PART(&Read->Parts, part);
+		part.Quality = Read->Quality;
+		Read->Part = part;
 	}
 
-	if (ret == ERR_SUCCESS) {
-		if (startStripped > 0) {
-			const size_t partCount = gen_array_size(&Read->Parts);
-
-			for (size_t i = 0; i < partCount; ++i) {
-				part = *dym_array_item_READ_PART(&Read->Parts, i);
-				if (part.ReadSequenceLength >= startStripped) {
-					part.ReadSequenceLength -= startStripped;
-					part.ReadSequence += startStripped;
-					part.Position += startStripped;
-					break;
-				} else {
-					startStripped -= part.ReadSequenceLength;
-					part.ReadSequenceLength = 0;
-				}
-			}
-		}
-
-		if (endStripped > 0) {
-			const size_t partCount = gen_array_size(&Read->Parts);
-
-			for (size_t i = partCount; i > 0; --i) {
-				part = *dym_array_item_READ_PART(&Read->Parts, i - 1);
-				if (part.ReadSequenceLength > endStripped) {
-					part.ReadSequenceLength -= endStripped;
-					break;
-				} else {
-					endStripped -= part.ReadSequenceLength;
-					dym_array_pop_back_READ_PART(&Read->Parts);
-				}
-			}
-		}
-	}
-
-	return ret;
+	return;
 }
 
 
@@ -601,7 +566,6 @@ ERR_VALUE read_load(FILE *Stream, PONE_READ Read)
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	memset(Read, 0, sizeof(ONE_READ));
-	dym_array_init_READ_PART(&Read->Parts, 140);
 	ret = utils_fread(&rsLen32, sizeof(rsLen32), 1, Stream);
 	if (ret == ERR_SUCCESS) {
 		Read->ReadSequenceLen = rsLen32;
@@ -625,7 +589,7 @@ ERR_VALUE read_load(FILE *Stream, PONE_READ Read)
 									if (ret == ERR_SUCCESS) {
 										boolean tmp = FALSE;
 										
-										ret = read_split(Read, 0, 0, &tmp);
+										read_split(Read, &tmp);
 									}
 								}
 							}
@@ -641,9 +605,6 @@ ERR_VALUE read_load(FILE *Stream, PONE_READ Read)
 				utils_free(Read->ReadSequence);
 		}
 	}
-
-	if (ret != ERR_SUCCESS)
-		dym_array_finit_READ_PART(&Read->Parts);
 
 	return ret;
 }
