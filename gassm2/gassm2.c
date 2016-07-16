@@ -954,6 +954,8 @@ ERR_VALUE kmer_freq_distribution(const uint32_t KMerSize, const ONE_READ *Reads,
 								kh_value(table, it) += 1;
 								if (kh_value(table, it) > maxValue)
 									maxValue = kh_value(table, it);
+
+								utils_free(s);
 								break;
 							case 1:
 							case 2:
@@ -1017,7 +1019,6 @@ ERR_VALUE kmer_freq_distribution(const uint32_t KMerSize, const ONE_READ *Reads,
 	}
 
 	int i = 0;
-	const int max = kh_end(table);
 #pragma omp parallel for shared(table)
 	for (i = (int)kh_begin(table); i < (int)kh_end(table); ++i) {
 		if (kh_exist(table, i))
@@ -1493,7 +1494,6 @@ int main(int argc, char *argv[])
 										fasta_free(&seqFile);
 								}
 
-								__debugbreak();
 								if (ret == ERR_SUCCESS) {
 									po.VCFFileHandle = NULL;
 									if (*po.VCFFile != '\0') {
