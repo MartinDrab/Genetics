@@ -449,11 +449,11 @@ void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t Region
 }
 
 
-void read_split(PONE_READ Read, boolean *Indels)
+void read_split(PONE_READ Read)
 {
 	READ_PART part;
-	
-	*Indels = FALSE;
+
+	Read->Indels = FALSE;
 	if (Read->CIGAR != NULL && *Read->CIGAR != '\0' && *Read->CIGAR != '*') {
 		char t;
 		unsigned long count = 1;
@@ -476,10 +476,10 @@ void read_split(PONE_READ Read, boolean *Indels)
 					case 'M':
 					case 'I':
 						part.ReadSequenceLength += count;
-						*Indels = TRUE;
+						Read->Indels = TRUE;
 						break;
 					case 'D':
-						*Indels = TRUE;
+						Read->Indels = TRUE;
 						break;
 					case 'S':
 						if (part.ReadSequenceLength > 0) {
@@ -500,7 +500,7 @@ void read_split(PONE_READ Read, boolean *Indels)
 						part.ReadSequenceLength = 0;
 						break;
 					default:
-						*Indels = TRUE;
+						Read->Indels = TRUE;
 						part.Offset = 0;
 						part.Position = Read->Pos;
 						part.ReadSequence = Read->ReadSequence;
@@ -517,7 +517,7 @@ void read_split(PONE_READ Read, boolean *Indels)
 			Read->Part = part;
 		}
 	} else {
-		*Indels = TRUE;
+		Read->Indels = TRUE;
 		part.Position = Read->Pos;
 		part.ReadSequence = Read->ReadSequence;
 		part.ReadSequenceLength = Read->ReadSequenceLen;
@@ -586,11 +586,8 @@ ERR_VALUE read_load(FILE *Stream, PONE_READ Read)
 								ret = utils_fread(&Read->PosQuality, sizeof(Read->PosQuality), 1, Stream);
 								if (ret == ERR_SUCCESS) {
 									ret = utils_fread(&Read->Flags, sizeof(Read->Flags), 1, Stream);
-									if (ret == ERR_SUCCESS) {
-										boolean tmp = FALSE;
-										
-										read_split(Read, &tmp);
-									}
+									if (ret == ERR_SUCCESS)										
+										read_split(Read);
 								}
 							}
 						}

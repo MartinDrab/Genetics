@@ -106,12 +106,16 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_edge(PREFSEQ_STORAGE Storage, const KME
 			if (ReadOnly && Edge->SeqType != kmetRead) {
 				ret = (Edge->Seq2Type == kmetRead) ?
 					rs_storage_add_seq(Storage, Edge->Seq2, Edge->Seq2Len) :
-					ERR_INTERNAL_ERROR;
-			} else ret = rs_storage_add_seq(Storage, Edge->Seq, Edge->SeqLen);
+					ERR_TWO_READ_SEQUENCES;
+			} else {
+				if (ReadOnly)
+					ret = ERR_TWO_READ_SEQUENCES;
+				else ret = rs_storage_add_seq(Storage, Edge->Seq, Edge->SeqLen);
+			}
 			break;
 	}
 
-	if (ret == ERR_SUCCESS && Edge->Dest->Type != kmvtDummy &&
+	if (ret == ERR_SUCCESS && !Edge->Dest->Helper &&
 		Edge->Dest->Type != kmvtRefSeqEnd) {
 		const KMER *destKMer = &Edge->Dest->KMer;
 		ret = rs_storage_add(Storage, kmer_get_base(destKMer, kmer_get_size(destKMer) - 1));
@@ -141,7 +145,7 @@ INLINE_FUNCTION void rs_storage_remove(PREFSEQ_STORAGE Storage, const size_t Len
 
 INLINE_FUNCTION void rs_storage_remove_edge(PREFSEQ_STORAGE Storage, const KMER_EDGE *Edge)
 {
-	if (Edge->Dest->Type != kmvtRefSeqEnd && Edge->Dest->Type != kmvtDummy)
+	if (Edge->Dest->Type != kmvtRefSeqEnd && !Edge->Dest->Helper)
 		rs_storage_remove(Storage, 1);
 
 	rs_storage_remove(Storage, Edge->SeqLen);

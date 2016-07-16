@@ -95,8 +95,8 @@
 #define POINTER_ARRAY_PUSH_BACK_NO_ALLOC_FUNCTION(aDataType)										\
 	INLINE_FUNCTION void pointer_array_push_back_no_alloc_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const aDataType *Value)	\
 	{																						\
-		assert(Array->ValidLength < Array->AllocLength);						\
-		memcpy(Array->Data + Array->ValidLength, &Value, sizeof(Value));				\
+		if (Array->ValidLength >= Array->AllocLength) exit(256);							\
+		memcpy(Array->Data + Array->ValidLength, &Value, sizeof(Value));					\
 		++Array->ValidLength;																\
 																							\
 		return;																				\

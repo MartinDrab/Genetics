@@ -15,11 +15,11 @@ typedef struct _FOUND_SEQUENCE_VARIANT {
 	EKMerEdgeType Seq1Type;
 	char *Seq1;
 	size_t Seq1Len;
-	long Seq1Weight;
+	size_t Seq1Weight;
 	EKMerEdgeType Seq2Type;
 	char *Seq2;
 	size_t Seq2Len;
-	long Seq2Weight;
+	size_t Seq2Weight;
 	size_t Reserved;
 	const char *LastFPos;
 	const char *LastSPos;
@@ -67,7 +67,7 @@ ERR_VALUE found_sequence_set_variant(PFOUND_SEQUENCE FS, const size_t Index, PFO
 boolean found_sequence_match(const FOUND_SEQUENCE *FS, const char *Seq, const size_t Length);
 ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_ARRAY_KMER_EDGE *PathEdges);
 
-ERR_VALUE variant_call_init(const char *Chrom, const uint64_t Pos, const char *ID, const char *Ref, const char *Alt, const uint8_t Qual, PVARIANT_CALL VC);
+ERR_VALUE variant_call_init(const char *Chrom, const uint64_t Pos, const char *ID, const char *Ref, size_t RefLen, const char *Alt, const uint8_t Qual, PVARIANT_CALL VC);
 void variant_call_finit(PVARIANT_CALL VC);
 boolean variant_call_equal(const VARIANT_CALL *VC1, const VARIANT_CALL *VC2);
 ERR_VALUE vc_array_add(PGEN_ARRAY_VARIANT_CALL Array, const VARIANT_CALL *VC);

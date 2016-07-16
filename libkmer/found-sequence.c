@@ -192,6 +192,7 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 	const KMER_EDGE *e = NULL;
 	size_t startIndex = (size_t)-1;
 	REFSEQ_STORAGE seqStorage;
+	size_t weight = 0;
 
 	ret = ERR_SUCCESS;
 	rs_storage_init(&seqStorage);
@@ -205,6 +206,7 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 			}
 
 			if (startIndex != (size_t)-1) {
+				weight = max(weight, read_info_get_count(&e->ReadInfo));
 				ret = rs_storage_add_edge(&seqStorage, e, TRUE);
 				if (ret != ERR_SUCCESS)
 					break;
@@ -221,7 +223,7 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 					ret = rs_storage_create_string(&seqStorage, &var.Seq1);
 					if (ret == ERR_SUCCESS) {
 						var.Seq1Len = strlen(var.Seq1);
-						var.Seq1Weight = 1;
+						var.Seq1Weight = weight;
 						var.Seq2Type = kmetNone;
 						var.Seq2 = NULL;
 						var.Seq2Len = 0;
@@ -246,9 +248,10 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 }
 
 
-ERR_VALUE variant_call_init(const char *Chrom, const uint64_t Pos, const char *ID, const char *Ref, const char *Alt, const uint8_t Qual, PVARIANT_CALL VC)
+ERR_VALUE variant_call_init(const char *Chrom, const uint64_t Pos, const char *ID, const char *Ref, size_t RefLen, const char *Alt, const uint8_t Qual, PVARIANT_CALL VC)
 {
 	char *tmp = NULL;
+	size_t altLen = strlen(Alt);
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	ret = utils_copy_string(Chrom, &tmp);
@@ -259,12 +262,21 @@ ERR_VALUE variant_call_init(const char *Chrom, const uint64_t Pos, const char *I
 		ret = utils_copy_string(ID, &tmp);
 		if (ret == ERR_SUCCESS) {
 			VC->ID = tmp;
-			ret = utils_copy_string(Ref, &tmp);
+			ret = utils_calloc(RefLen + 1, sizeof(char), &tmp);
 			if (ret == ERR_SUCCESS) {
+				memcpy(tmp, Ref, RefLen*sizeof(char));
+				tmp[RefLen] = '\0';
 				VC->Ref = tmp;
 				ret = utils_copy_string(Alt, &tmp);
-				if (ret == ERR_SUCCESS)
+				if (ret == ERR_SUCCESS) {
 					VC->Alt = tmp;
+					while (RefLen > 1 && altLen > 1 && VC->Alt[altLen - 1] == VC->Ref[RefLen - 1]) {
+						--RefLen;
+						VC->Ref[RefLen] = '\0';
+						--altLen;
+						VC->Alt[altLen] = '\0';
+					}
+				}
 				
 				if (ret != ERR_SUCCESS)
 					utils_free(VC->Ref);
@@ -327,7 +339,7 @@ ERR_VALUE vc_array_add(PGEN_ARRAY_VARIANT_CALL Array, const VARIANT_CALL *VC)
 	}
 
 	if (ret == ERR_SUCCESS)
-		dym_array_push_back_VARIANT_CALL(Array, *VC);
+		ret = dym_array_push_back_VARIANT_CALL(Array, *VC);
 
 	return ret;
 }
@@ -350,7 +362,7 @@ void vc_array_finit(PGEN_ARRAY_VARIANT_CALL Array)
 
 void vc_array_print(FILE *Stream, const GEN_ARRAY_VARIANT_CALL *Array)
 {
-	PVARIANT_CALL tmp = Array->Data;
+	const VARIANT_CALL *tmp = Array->Data;
 
 	fprintf(Stream, "##fileformat=VCFv4.0\n");
 	fprintf(Stream, "##fileDate=20160525\n");
@@ -371,7 +383,7 @@ void vc_array_print(FILE *Stream, const GEN_ARRAY_VARIANT_CALL *Array)
 	fprintf(Stream, "##FORMAT=<ID=HQ,Number=2,Type=Integer,Description=\"Haplotype Quality\">\n");
 	fprintf(Stream, "#CHROM\tPOS\tID\tREF ALT\tQUAL\tFILTER\tINFO\n");
 	for (size_t i = 0; i < gen_array_size(Array); ++i) {
-		fprintf(Stream, "%s\t%I64u\t%s\t%s\t%s\t60\tPASS\t\"%li-vs-%li\"\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, tmp->RefWeight, tmp->AltWeight);
+		fprintf(Stream, "%s\t%I64u\t%s\t%s\t%s\t60\tPASS\t\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt);
 		++tmp;
 	}
 
@@ -423,7 +435,7 @@ ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL S
 
 				size_t minSourceIndex = 0;
 				uint64_t minValue = (uint64_t)-1;
-				VARIANT_CALL *minVc = NULL;
+				const VARIANT_CALL *minVc = NULL;
 				
 				while (ret == ERR_SUCCESS && remainingCount > 0) {
 					minValue = (uint64_t)-1;
@@ -441,9 +453,6 @@ ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL S
 
 					if (minValue != (uint64_t)-1) {
 						ret = vc_array_add(Dest, minVc);
-						if (ret == ERR_SUCCESS)
-							memset(minVc, 0, sizeof(VARIANT_CALL));
-
 						if (ret == ERR_ALREADY_EXISTS)
 							ret = ERR_SUCCESS;
 
@@ -452,6 +461,9 @@ ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL S
 							--remainingCount;
 					}
 				}
+
+				for (size_t i = 0; i < SourceCount; ++i)
+					dym_array_clear_VARIANT_CALL(Sources + i);
 
 				utils_free(counts);
 			}

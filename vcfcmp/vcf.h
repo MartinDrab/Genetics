@@ -37,11 +37,12 @@ public:
 	}
 	CVCFRecord(const CVCFRecord & aRecord)
 		: Pos_(aRecord.Pos), Ref_(aRecord.Ref), Alt_(aRecord.Alt),
-		RefName_(aRecord.RefName), Type_(aRecord.Type), 
+		Index_(aRecord.Index), RefName_(aRecord.RefName), Type_(aRecord.Type), Index(Index_),
 		Type(Type_), Pos(Pos_), RefName(RefName_), Ref(Ref_), Alt(Alt_)
 	{ }
-	CVCFRecord(const std::string & aLine, const bool aSecond)
-		: Type_(vcfrtUnknown), Type(Type_), Ref(Ref_), RefName(RefName_), Pos(Pos_), Alt(Alt_)
+	CVCFRecord(const std::string & aLine, const bool aSecond, const std::size_t aIndex = 0)
+		: Type_(vcfrtUnknown), Type(Type_), Ref(Ref_), RefName(RefName_), Pos(Pos_), Alt(Alt_), Index(Index_),
+		Index_(aIndex)
 	{
 		size_t index = aLine.find('\t');
 		
@@ -89,12 +90,14 @@ public:
 	const std::string & Alt = Alt_;
 	const std::size_t & Pos = Pos_;
 	const EVCFRecordType & Type = Type_;
+	const std::size_t & Index = Index_;
 private:
 	std::string RefName_;
 	std::string Ref_;
 	std::string Alt_;
 	std::size_t Pos_;
 	EVCFRecordType Type_;
+	std::size_t Index_;
 };
 
 

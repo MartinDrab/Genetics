@@ -18,7 +18,6 @@ typedef enum _EKMerVertexType {
 	kmvtRefSeqMiddle,
 	kmvtRefSeqEnd,
 	kmvtRead,
-	kmvtDummy,
 	kmvtMax
 } EKMerVertexType, PEKMerVertexType;
 
@@ -36,19 +35,17 @@ typedef enum _EKMerEdgeType {
 typedef struct _KMER_EDGE {
 	struct _KMER_VERTEX *Source;
 	struct _KMER_VERTEX *Dest;
-	/** Number of reads going through the edge. */
-	long Weight;
 	/** Edge creation order. */
 	unsigned int Order;
 	EKMerEdgeType Type;
 	char *Seq;
 	size_t SeqLen;
 	EKMerEdgeType SeqType;
-	long Seq1Weight;
+	size_t Seq1Weight;
 	char *Seq2;
 	size_t Seq2Len;
 	EKMerEdgeType Seq2Type;
-	long Seq2Weight;
+	size_t Seq2Weight;
 	READ_INFO ReadInfo;
 	boolean MarkedForDelete;
 	boolean Finished;
@@ -60,6 +57,7 @@ POINTER_ARRAY_IMPLEMENTATION(KMER_EDGE)
 
 typedef struct _KMER_VERTEX {
 	uint32_t Order;
+	boolean Helper;
 	EKMerVertexType Type;
 	POINTER_ARRAY_KMER_EDGE Successors;
 	POINTER_ARRAY_KMER_EDGE Predecessors;
@@ -81,6 +79,7 @@ GEN_ARRAY_IMPLEMENTATION(KMER_VERTEX_PAIR)
 typedef struct _KMER_EDGE_PAIR {
 	PKMER_EDGE U;
 	PKMER_EDGE V;
+	PKMER_EDGE ConnectingEdge;
 	uint32_t ReadDistance;
 } KMER_EDGE_PAIR, *PKMER_EDGE_PAIR;
 

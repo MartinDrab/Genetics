@@ -78,7 +78,7 @@ void read_info_remove(PREAD_INFO Info, const size_t ReadIndex, const size_t Read
 }
 
 
-ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_PTYPE(READ_INFO_ENTRY) Intersection, const boolean AscendingPosition, const size_t ReadDistance)
+ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_PTYPE(READ_INFO_ENTRY) Intersection, const size_t ReadDistance)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	const READ_INFO_ENTRY *entry1 = Info1->Array.Data;
@@ -90,9 +90,10 @@ ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_P
 	size_t readIndex = (size_t)-1;
 
 	ret = ERR_SUCCESS;
+	dym_array_clear_READ_INFO_ENTRY(Intersection);
 	while (ret == ERR_SUCCESS && index1 < count1 && index2 < count2) {
 		if (entry1->ReadIndex == entry2->ReadIndex) {
-			if (!AscendingPosition || (entry1->ReadPosition <= entry2->ReadPosition && (ReadDistance == 0 || entry1->ReadPosition + ReadDistance == entry2->ReadPosition))) {
+			if (entry1->ReadPosition + ReadDistance == entry2->ReadPosition) {
 				readIndex = entry1->ReadIndex;
 				ret = dym_array_push_back_READ_INFO_ENTRY(Intersection, *entry1);
 				++entry1;
@@ -100,17 +101,10 @@ ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_P
 				++entry2;
 				++index2;
 			} else {
-				if (AscendingPosition) {
-					if (entry1->ReadPosition < entry2->ReadPosition) {
-						++entry1;
-						++index1;
-					} else {
-						++entry2;
-						++index2;
-					}
-				} else {
+				if (entry1->ReadPosition + ReadDistance < entry2->ReadPosition) {
 					++entry1;
 					++index1;
+				} else {
 					++entry2;
 					++index2;
 				}
@@ -128,9 +122,8 @@ ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_P
 }
 
 
-ERR_VALUE read_info_diff(const READ_INFO *Info, const GEN_ARRAY_TYPE(READ_INFO_ENTRY) *Subtrahend, GEN_ARRAY_PTYPE(READ_INFO_ENTRY) Difference, const size_t Distance)
+void read_info_subtract(PREAD_INFO Info, const GEN_ARRAY_TYPE(READ_INFO_ENTRY) *Subtrahend, const size_t Distance)
 {
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	const READ_INFO_ENTRY *entry1 = Info->Array.Data;
 	const READ_INFO_ENTRY *entry2 = Subtrahend->Data;
 	size_t index1 = 0;
@@ -138,31 +131,24 @@ ERR_VALUE read_info_diff(const READ_INFO *Info, const GEN_ARRAY_TYPE(READ_INFO_E
 	const size_t count1 = read_info_get_count(Info);
 	const size_t count2 = gen_array_size(Subtrahend);
 
-	ret = ERR_SUCCESS;
-	while (ret == ERR_SUCCESS && index1 < count1 && index2 < count2) {
+	Info->Array.ValidLength = 0;
+	while (index1 < count1 && index2 < count2) {
 		if (entry1->ReadIndex == entry2->ReadIndex) {
-			if (Distance != (size_t)-1) {
-				if (entry1->ReadPosition - Distance == entry2->ReadPosition) {
-					++entry1;
-					++index1;
-					++entry2;
-					++index2;
-				} else if (entry1->ReadPosition - Distance < entry2->ReadPosition) {
-					ret = dym_array_push_back_READ_INFO_ENTRY(Difference, *entry1);
-					++entry1;
-					++index1;
-				} else {
-					++entry2;
-					++index2;
-				}
-			} else {
+			if (entry1->ReadPosition - Distance == entry2->ReadPosition) {
 				++entry1;
 				++index1;
 				++entry2;
 				++index2;
+			} else if (entry1->ReadPosition - Distance < entry2->ReadPosition) {
+				dym_array_push_back_no_alloc_READ_INFO_ENTRY(&Info->Array, *entry1);
+				++entry1;
+				++index1;
+			} else {
+				++entry2;
+				++index2;
 			}
 		} else if (entry1->ReadIndex < entry2->ReadIndex) {
-			ret = dym_array_push_back_READ_INFO_ENTRY(Difference, *entry1);
+			dym_array_push_back_no_alloc_READ_INFO_ENTRY(&Info->Array, *entry1);
 			++entry1;
 			++index1;
 		} else {
@@ -171,13 +157,13 @@ ERR_VALUE read_info_diff(const READ_INFO *Info, const GEN_ARRAY_TYPE(READ_INFO_E
 		}
 	}
 
-	while (ret == ERR_SUCCESS && index1 < count1) {
-		ret = dym_array_push_back_READ_INFO_ENTRY(Difference, *entry1);
+	while (index1 < count1) {
+		dym_array_push_back_no_alloc_READ_INFO_ENTRY(&Info->Array, *entry1);
 		++entry1;
 		++index1;
 	}
 
-	return ret;
+	return;
 }
 
 

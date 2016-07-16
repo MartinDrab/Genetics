@@ -31,8 +31,8 @@ ERR_VALUE read_info_copy(PREAD_INFO Dest, const READ_INFO *Source);
 ERR_VALUE read_info_add_array(PREAD_INFO Info, const GEN_ARRAY_READ_INFO_ENTRY *Array);
 ERR_VALUE read_info_add(PREAD_INFO Info, const size_t ReadIndex, const size_t ReadPosition);
 void read_info_remove(PREAD_INFO Info, const size_t ReadIndex, const size_t ReadPosition);
-ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_PTYPE(READ_INFO_ENTRY) Intersection, const boolean AscendingPosition, const size_t ReadDistance);
-ERR_VALUE read_info_diff(const READ_INFO *Info, const GEN_ARRAY_TYPE(READ_INFO_ENTRY) *Subtrahend, GEN_ARRAY_PTYPE(READ_INFO_ENTRY) Difference, const size_t Distance);
+ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_PTYPE(READ_INFO_ENTRY) Intersection, const size_t ReadDistance);
+void read_info_subtract(PREAD_INFO Info, const GEN_ARRAY_TYPE(READ_INFO_ENTRY) *Subtrahend, const size_t Distance);
 ERR_VALUE read_info_union(PREAD_INFO Target, const GEN_ARRAY_READ_INFO_ENTRY *Source);
 ERR_VALUE read_info_merge(PREAD_INFO Dest, const READ_INFO *Info1, const READ_INFO *Info2);
 #define	read_info_get_count(aInfo)								gen_array_size(&(aInfo)->Array)

@@ -38,6 +38,7 @@
 #define PROGRAM_OPTION_NO_READ_FIXING					"no-read-fixing"
 #define PROGRAM_OPTION_BASE_QUALITY_THRESHOLD			"base-quality"
 #define PROGRAM_OPTION_BASE_QUALITY_MULTIPLIER			"base-multiplier"
+#define PROGRAM_OPTION_READ_POS_QUALITY					"pos-quality"
 
 #define PROGRAM_OPTION_ALT1_SEQ							"alternate1-seq"
 #define PROGRAM_OPTION_ALT2_SEQ							"alternate2-seq"
@@ -117,6 +118,7 @@ typedef struct _PROGRAM_OPTIONS {
 	int32_t OMPThreads;
 	uint8_t BaseQualityThreshold;
 	uint32_t BaseQualityMultiplier;
+	uint8_t ReadPosQuality;
 	boolean NoFixReads;
 	FILE *VCFFileHandle;
 	GEN_ARRAY_VARIANT_CALL *VCSubArrays;

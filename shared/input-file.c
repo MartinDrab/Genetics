@@ -264,7 +264,7 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 }
 
 
-ERR_VALUE input_filter_reads(const ONE_READ *Source, const size_t SourceCount, const uint64_t RegionStart, const size_t RegionLength, boolean *Indels, PGEN_ARRAY_ONE_READ NewReads)
+ERR_VALUE input_filter_reads(const ONE_READ *Source, const size_t SourceCount, const uint64_t RegionStart, const size_t RegionLength, PGEN_ARRAY_ONE_READ NewReads)
 {
 	boolean tmpIndels = FALSE;
 	size_t tmpNewReadCount = 0;
@@ -287,10 +287,9 @@ ERR_VALUE input_filter_reads(const ONE_READ *Source, const size_t SourceCount, c
 		for (size_t i = 0; i < SourceCount; ++i) {
 			if (in_range(RegionStart, RegionLength, r->Pos) || in_range(RegionStart, RegionLength, r->Pos + r->ReadSequenceLen)) {
 				dym_array_push_back_no_alloc_ONE_READ(NewReads, *r);
-				read_split(destRead, &tmpIndels);
+				read_split(destRead);
 				read_adjust(destRead, RegionStart, RegionLength);
 				++destRead;
-				*Indels |= tmpIndels;
 			}
 
 			++r;
