@@ -4,8 +4,10 @@
 
 
 #include <cstdint>
+#include <omp.h>
 #include <string>
 #include <vector>
+#include <map>
 #include <cassert>
 #include <cstring>
 #include <fstream>
@@ -40,48 +42,17 @@ public:
 		Index_(aRecord.Index), RefName_(aRecord.RefName), Type_(aRecord.Type), Index(Index_),
 		Type(Type_), Pos(Pos_), RefName(RefName_), Ref(Ref_), Alt(Alt_)
 	{ }
-	CVCFRecord(const std::string & aLine, const bool aSecond, const std::size_t aIndex = 0)
+	CVCFRecord(const std::string & aRefName, const std::string & aRef, const std::string & aAlt, const size_t aPosition, const std::size_t aIndex = 0)
 		: Type_(vcfrtUnknown), Type(Type_), Ref(Ref_), RefName(RefName_), Pos(Pos_), Alt(Alt_), Index(Index_),
-		Index_(aIndex)
+		Index_(aIndex), RefName_(aRefName), Ref_(aRef), Alt_(aAlt), Pos_(aPosition)
 	{
-		size_t index = aLine.find('\t');
-		
-		RefName_ = aLine.substr(0, index);
-		size_t endIndex = aLine.find('\t', index + 1);
-		std::string strPos = aLine.substr(index + 1, endIndex - index - 1);
-		Pos_ = (size_t)strtoull(strPos.data(), 0, 10);
-		if (Pos_ == 0)
-			throw std::exception();
-
-		index = endIndex;
-		endIndex = aLine.find('\t', index + 1);
-		Ref_ = aLine.substr(index + 1, endIndex - index - 1);
-		if (Ref_ == ".") {
-			index = endIndex;
-			endIndex = aLine.find('\t', index + 1);
-			Ref_ = aLine.substr(index + 1, endIndex - index - 1);
-		}
-
-		index = endIndex;
-		endIndex = aLine.find('\t', index + 1);
-		Alt_ = aLine.substr(index + 1, endIndex - index - 1);
-		index = Alt_.find(',');
-		if (index != std::string::npos) {
-			if (aSecond)
-				Alt_ = Alt_.substr(index + 1);
-			else Alt_ = Alt_.substr(0, index);
-		} else if (aSecond)
-			Alt_.clear();
-
-		if (Alt_.size() > 0) {
-			if (Ref_.size() == 1 && Alt_.size() == 1)
-				Type_ = vcfrtSNP;
-			else if (Ref_.size() == 1)
-				Type_ = vcfrtInsertion;
-			else if (Alt_.size() == 1)
-				Type_ = vcfrtDeletion;
-			else Type_ = vcfrtReplace;
-		}
+		if (Ref_.size() == 1 && Alt_.size() == 1)
+			Type_ = vcfrtSNP;
+		else if (Ref_.size() == 1)
+			Type_ = vcfrtInsertion;
+		else if (Alt_.size() == 1)
+			Type_ = vcfrtDeletion;
+		else Type_ = vcfrtReplace;
 
 		return;
 	}
@@ -100,50 +71,211 @@ private:
 	std::size_t Index_;
 };
 
+enum EVCFVertexType {
+	vcfvtReference,
+	vcfvtVariantCall,
+};
 
-class CRefSeqInterval {
+struct CVCFVertex {
 public:
-	const char *Sequence() const { return Sequence_; }
-	size_t Pos() const { return Pos_; }
-	size_t Length() const { return Length_; }
-	CRefSeqInterval(const char *aSequence, const size_t aPos, const size_t aLength)
-		: Sequence_(aSequence), Pos_(aPos), Length_(aLength) { }
+	EVCFVertexType Type() const { return Type_; }
+	size_t Position() const { return Position_; }
+	CVCFVertex *Son(const char aBase) const 
+	{
+		size_t index = (size_t)-1;
+
+		switch (aBase) {
+			case 'A':
+				index = 0;
+				break;
+			case 'C':
+				index = 1;
+				break;
+			case 'G':
+				index = 2;
+				break;
+			case 'T':
+				index = 3;
+				break;
+		}
+
+		return Sons_[index];
+	}
+	bool AddSon(const char aBase, CVCFVertex *aVertex)
+	{
+		bool ret = false;
+		size_t index = (size_t)-1;
+
+		switch (aBase) {
+		case 'A':
+			index = 0;
+			break;
+		case 'C':
+			index = 1;
+			break;
+		case 'G':
+			index = 2;
+			break;
+		case 'T':
+			index = 3;
+			break;
+		}
+
+		ret = (Sons_[index] == 0 || Sons_[index] == aVertex);
+		if (Sons_[index] == 0)
+			Sons_[index] = aVertex;
+		
+		return ret;
+	}
+	CVCFVertex(const EVCFVertexType aType, const size_t aPosition = (size_t)-1)
+		: Type_(aType), Position_(aPosition)
+	{
+		memset(Sons_, 0, sizeof(Sons_));
+		
+		return;
+	}
 private:
-	const char *Sequence_;
-	size_t Pos_;
-	size_t Length_;
+	CVCFVertex *Sons_[4];
+	EVCFVertexType Type_;
+	size_t Position_;
 };
 
-struct CVCFDifference {
+class CVCFGraph {
 public:
-	size_t Pos;
-	std::string Ref;
-	std::string AltOriginal;
-	std::string AltOther;
-	CVCFDifference(const size_t aPos, const std::string & aRef, const std::string & aOrig, const std::string & aOther)
-		: Pos(aPos), Ref(aRef), AltOriginal(aOrig), AltOther(aOther) { }
+	bool CheckVCFRecord(const CVCFRecord & aRecord, const std::string & aReference)
+	{
+		bool ret = true;
+		size_t pos = aRecord.Pos - 1;
+		CVCFVertex *tmp = 0;
+
+		for (size_t i = 0; i < aRecord.Ref.size(); ++i) {
+			auto v = Vertices_[pos + i];
+			if (v == NULL)
+				throw std::exception();
+
+			if (tmp != 0 && tmp->Son(aRecord.Ref[i - 1]) != v)
+				throw std::exception();
+
+			if (v->Type() != vcfvtReference)
+				throw std::exception();
+
+			tmp = v;
+		}
+
+		tmp = Vertices_[pos];
+		for (size_t i = 0; i < aRecord.Alt.size(); ++i) {
+			tmp = tmp->Son(aRecord.Alt[i]);
+			ret = (tmp != 0);
+			if (!ret)
+				break;
+		}
+
+		if (ret && aRecord.Type == vcfrtDeletion) {
+			for (size_t i = 0; i < 10; ++i) {
+				const char base = aReference[pos + aRecord.Ref.size() + i];
+
+				if (base == 'N')
+					break;
+
+				tmp = tmp->Son(base);
+				ret = (tmp != 0);
+				if (!ret)
+					break;
+			}
+		}
+
+		return ret;
+	}
+	void AddVCFRecord(const CVCFRecord & aRecord, const std::string & aReference)
+	{
+		size_t pos = aRecord.Pos - 1;
+		CVCFVertex *tmp = 0;
+
+		for (size_t i = 0; i < aRecord.Ref.size(); ++i) {			
+			auto v = Vertices_[pos + i];
+			if (v == NULL)
+				throw std::exception();
+		
+			if (tmp != 0 && tmp->Son(aRecord.Ref[i - 1]) != v)
+				throw std::exception();
+
+			if (v->Type() != vcfvtReference)
+				throw std::exception();
+
+			tmp = v;
+		}
+
+		CVCFVertex *rsVertex = Vertices_[pos];
+		for (size_t i = 0; i < aRecord.Alt.size() - 1; ++i) {
+			const char base = aRecord.Alt[i];
+
+			tmp = rsVertex->Son(base);
+			if (tmp == 0) {
+				tmp = new CVCFVertex(vcfvtVariantCall);
+				if (!rsVertex->AddSon(base, tmp))
+					__debugbreak();
+			}
+
+			rsVertex = tmp;
+		}
+
+		{
+			tmp = Vertices_[pos + aRecord.Ref.size()];
+			if (tmp != 0) {
+				size_t index = 0;
+				char base = aRecord.Alt[aRecord.Alt.size() - 1];
+
+				while (!rsVertex->AddSon(base, tmp)) {
+					rsVertex = rsVertex->Son(base);
+					++index;
+					tmp = Vertices_[pos + aRecord.Ref.size() + index];
+					base = aReference[pos + aRecord.Ref.size() + index - 1];
+				}
+			}
+		}
+
+		return;
+	}
+	void AddReference(const std::string & aReference)
+	{
+		int baseIndex = 0;
+		CVCFVertex *prev = 0;
+		Vertices_ = new CVCFVertex *[aReference.size() + 1];
+
+		memset(Vertices_, 0, sizeof(CVCFVertex *)*aReference.size() + 1);
+		Vertices_[0] = new CVCFVertex(vcfvtReference, 0);
+#pragma omp parallel for shared(aReference)
+		for (baseIndex = 1; baseIndex <= (int)aReference.size(); ++baseIndex) {
+			if (aReference[baseIndex - 1] != 'N')
+				Vertices_[baseIndex] = new CVCFVertex(vcfvtReference, baseIndex);
+		}
+
+		int pos = 0;
+#pragma omp parallel for shared(aReference)
+		for (pos = 1; pos <= (int)aReference.size(); ++pos) {
+			const char base = aReference[pos - 1];
+			
+			if (base != 'N') {
+				if (Vertices_[pos - 1] == NULL)
+					Vertices_[pos - 1] = new CVCFVertex(vcfvtReference, pos - 1);
+
+				Vertices_[pos - 1]->AddSon(base, Vertices_[pos]);
+			}
+		}
+
+		return;
+	}
+private:
+	CVCFVertex  **Vertices_;
 };
 
-struct CVCFCompareStatistics {
-public:
-	size_t Insertions;
-	size_t Deletions;
-	size_t SNPs;
-	size_t Replaces;
-	size_t Undiscovered;
-	std::vector<CVCFDifference> Differences;
-	CVCFCompareStatistics()
-		: Deletions(0), SNPs(0), Replaces(0), Insertions(0), Undiscovered(0) 
-	{ }
-};
 
-class CUpdatedRefSeq {
+class CVCFFile {
 public:
-	CUpdatedRefSeq() { }
-	CUpdatedRefSeq(const std::string & aFileName, const std::string & aReference)
-		: Reference_(0), SNPs_(0), Insertions_(0), Deletions_(0), ReferenceLength_(aReference.size()),
-		Replaces(Replaces_), Replaces_(0),
-		Alternate_(0), AlternateSize_(0)
+	CVCFFile(const std::string & aFileName)
+		: Records(vcfRecords_), Insertions(Insertions_), Deletions(Deletions_),
+		Replaces(Replaces_), SNPs(SNPs_), Insertions_(0), Deletions_(0), Replaces_(0),
+		SNPs_(0)
 	{
 		std::ifstream fs;
 		fs.open(aFileName);
@@ -154,136 +286,71 @@ public:
 			if (line.empty() || (line.size() > 0 && line[0] == '#'))
 				continue;
 
-			CVCFRecord vr = CVCFRecord(line, false);
-			vcfRecords_.push_back(vr);
-			vr = CVCFRecord(line, true);
-			if (vr.Alt.size() > 0)
-				vcfRecords_.push_back(vr);
+			ParseLine(line);
 		}
 
-		Reference_ = new char[ReferenceLength_ + 1];
-		Reference_[ReferenceLength_] = '\0';
-		memcpy(Reference_, aReference.data(), ReferenceLength_*sizeof(char));
-
-		size_t lastPos = 0;
-		for (auto & record : vcfRecords_) {
-			switch (record.Type) {
-				case vcfrtSNP: ++SNPs_; break;
+		for (auto & rec : vcfRecords_) {
+			switch (rec.Type) {
 				case vcfrtInsertion: ++Insertions_; break;
 				case vcfrtDeletion: ++Deletions_; break;
 				case vcfrtReplace: ++Replaces_; break;
+				case vcfrtSNP: ++SNPs_; break;
 			}
-
-			if (lastPos >= record.Pos - 1)
-				continue;
-
-			AlternateSize_ += (record.Pos - 1 - lastPos);
-			AlternateSize_ += record.Alt.size();
-			lastPos = record.Pos - 1 + record.Ref.size();
-		}
-
-		Alternate_ = new char[AlternateSize_ + 1];
-		Alternate_[AlternateSize_] = '\0';
-		lastPos = 0;
-		size_t altPos = 0;
-		for (auto & record : vcfRecords_) {
-			if (lastPos >= record.Pos - 1)
-				continue;
-
-			const size_t refSeqPartSize = (record.Pos - 1 - lastPos);
-
-			Intervals_.push_back(CRefSeqInterval(Alternate_ + altPos, lastPos, refSeqPartSize));
-			memcpy(Alternate_ + altPos, Reference_ + lastPos, refSeqPartSize*sizeof(char));
-			altPos += refSeqPartSize;
-			lastPos = record.Pos -1 + record.Ref.size();
-			Intervals_.push_back(CRefSeqInterval(Alternate_ + altPos, record.Pos - 1, record.Ref.size()));
-			memcpy(Alternate_ + altPos, record.Alt.data(), record.Alt.size()*sizeof(char));
-			altPos += record.Alt.size();
 		}
 
 		return;
 	}
-	~CUpdatedRefSeq()
-	{
-		delete[] Alternate_;
-		delete[] Reference_;
-
-		return;
-	}
-	const char *Reference() const { return Reference_; }
-	const char *Alternate() const { return Alternate_; }
-	std::size_t Insertions() const { return Insertions_; }
-	std::size_t Deletions() const { return Deletions_; }
-	std::size_t SNPs() const { return SNPs_; }
+	const std::vector<CVCFRecord> & Records = vcfRecords_;
+	const std::size_t & Insertions = Insertions_;
+	const std::size_t & Deletions = Deletions_;
 	const std::size_t & Replaces = Replaces_;
-	void compare(const CUpdatedRefSeq & aOther, CVCFCompareStatistics & aStatistics)
-	{
-		auto & ointer = aOther.Intervals();
-		size_t matchCount = 0;
-
-		for (auto & record : vcfRecords_) {			
-			const char *altSeq = NULL;
-			size_t recordPos = record.Pos - 1;
-
-			for (size_t index = 0; index < ointer.size(); ++index) {
-				if (ointer[index].Pos() <= recordPos && recordPos < ointer[index].Pos() + ointer[index].Length())
-					altSeq = ointer[index].Sequence() + recordPos - ointer[index].Pos();
-				else if (index < ointer.size() && recordPos >= ointer[index].Pos() + ointer[index].Length() && recordPos < ointer[index + 1].Pos())
-					altSeq = ointer[index].Sequence() + recordPos - (ointer[index].Pos() + ointer[index].Length());
-			
-				if (altSeq != NULL)
-					break;
-			}
-
-			if (altSeq != NULL) {
-				if (memcmp(altSeq, record.Alt.data(), (record.Alt.size())*sizeof(char)) == 0) {
-					switch (record.Type) {
-						case vcfrtDeletion: {
-							const char *refStart = Reference_ + record.Pos - 1 + 1;
-
-							assert(record.Alt.size() == 1);
-							if (memcmp(refStart, altSeq + 1, 5 * sizeof(char)) == 0)
-								++aStatistics.Deletions;
-						} break;
-						case vcfrtInsertion:
-							++aStatistics.Insertions;
-							break;
-						case vcfrtReplace:
-							++aStatistics.Replaces;
-							break;
-						case vcfrtSNP:
-							++aStatistics.SNPs;
-							break;
-					}
-				} else {
-					const char *refStart = Reference_ + record.Pos - 1;
-					std::string refSeqpart(refStart, refStart + record.Alt.size());
-					std::string alt(altSeq, altSeq + record.Alt.size());
-
-					if (!alt.compare(refSeqpart))
-						++aStatistics.Undiscovered;
-
-					aStatistics.Differences.push_back(CVCFDifference(record.Pos, refSeqpart, record.Alt, alt));
-				}
-			}
-		}
-
-		return;
-	}
-
-	const std::vector<CVCFRecord> & VCFRecords() const { return vcfRecords_; }
-	const std::vector<CRefSeqInterval> & Intervals() const { return Intervals_;  }
+	const std::size_t & SNPs = SNPs_;
 private:
+	CVCFFile() = delete;
+	CVCFFile(const CVCFFile & aFile) = delete;
+	CVCFFile & operator = (const CVCFFile &) = delete;
+	
 	std::size_t Insertions_;
 	std::size_t Deletions_;
-	std::size_t SNPs_;
 	std::size_t Replaces_;
+	std::size_t SNPs_;
 	std::vector<CVCFRecord> vcfRecords_;
-	char *Reference_;
-	std::size_t ReferenceLength_;
-	char *Alternate_;
-	size_t AlternateSize_;
-	std::vector<CRefSeqInterval> Intervals_;
+	void ParseLine(const std::string & aLine)
+	{
+		size_t index = aLine.find('\t');
+
+		std::string refName = aLine.substr(0, index);
+		size_t endIndex = aLine.find('\t', index + 1);
+		std::string strPos = aLine.substr(index + 1, endIndex - index - 1);
+		size_t pos = (size_t)strtoull(strPos.data(), 0, 10);
+		if (pos == 0)
+			throw std::exception();
+
+		index = endIndex;
+		endIndex = aLine.find('\t', index + 1);
+		std::string ref = aLine.substr(index + 1, endIndex - index - 1);
+		if (ref == ".") {
+			index = endIndex;
+			endIndex = aLine.find('\t', index + 1);
+			ref = aLine.substr(index + 1, endIndex - index - 1);
+		}
+
+		index = endIndex;
+		endIndex = aLine.find('\t', index + 1);
+		std::string altString = aLine.substr(index + 1, endIndex - index - 1);
+		index = altString.find(',');
+		if (index != std::string::npos) {
+			while (index != std::string::npos) {
+				vcfRecords_.push_back(CVCFRecord(refName, ref, altString.substr(0, index), pos));
+				altString = altString.substr(index + 1);
+				index = altString.find(',');
+			}
+
+			vcfRecords_.push_back(CVCFRecord(refName, ref, altString, pos));
+		} else vcfRecords_.push_back(CVCFRecord(refName, ref, altString, pos));
+
+		return;
+	}
 };
 
 

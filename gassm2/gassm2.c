@@ -516,7 +516,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 
 			for (size_t i = 0; i < pointer_array_size(&seqArray); ++i) {
 				_process_variant_calls(vcArray, Task, &(*pseq)->Variants, Options->Threshold);
-//				_process_variant_calls(vcArray, Task, &(*pseq)->ReadVariants, Options->Threshold);
+				_process_variant_calls(vcArray, Task, &(*pseq)->ReadVariants, Options->Threshold);
 				++pseq;
 			}
 		}

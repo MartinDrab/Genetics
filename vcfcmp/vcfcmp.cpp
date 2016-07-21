@@ -1,4 +1,5 @@
 
+#include <omp.h>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -54,24 +55,54 @@ int main(int argc, char *argv[])
 		std::string refseq;
 
 		if (load_reference(args[0], refseq)) {
-			CUpdatedRefSeq orig(args[1], refseq);
-			CUpdatedRefSeq res(args[2], refseq);
-			CVCFCompareStatistics stats;
-			orig.compare(res, stats);
-			std::cout << "Done" << std::endl;
-			for (const auto & diff : stats.Differences) {
-				std::cout << "POS:      " << diff.Pos << std::endl;
-				std::cout << "ORIGINAL: " << diff.AltOriginal << std::endl;
-				std::cout << "OTHER:    " << diff.AltOther << std::endl;
-				std::cout << "REF:      " << diff.Ref << std::endl;
-				std::cout << std::endl;
+			CVCFFile orig(args[1]);
+			CVCFFile res(args[2]);
+			CVCFGraph graph;
+
+			graph.AddReference(refseq);
+			for (const auto & rec : res.Records)
+				graph.AddVCFRecord(rec, refseq);
+
+			int numProcs = omp_get_num_procs();
+			size_t *insertionArray = new size_t[numProcs*4];
+			memset(insertionArray, 0, 4*sizeof(size_t)*numProcs);
+			size_t *deletionArray = insertionArray + numProcs;
+			size_t *replaceArray = deletionArray + numProcs;
+			size_t *SNPArray = replaceArray + numProcs;
+			int index = 0;
+#pragma omp parallel for shared(graph, refseq, orig, insertionArray, deletionArray, replaceArray, SNPArray)
+			for (index = 0; index < (int)orig.Records.size(); ++index) {
+				const CVCFRecord & rec = orig.Records[index];
+				int tid = omp_get_thread_num();
+
+				if (graph.CheckVCFRecord(rec, refseq)) {
+					switch (rec.Type) {
+						case vcfrtInsertion: ++insertionArray[tid]; break;
+						case vcfrtDeletion: ++deletionArray[tid]; break;
+						case vcfrtReplace: ++replaceArray[tid]; break;
+						case vcfrtSNP: ++SNPArray[tid]; break;
+						default: throw std::exception(); break;
+					}
+				}
 			}
 
-			std::cout << "Insertions:   " << stats.Insertions << " / " << orig.Insertions() << std::endl;
-			std::cout << "Deletions:    " << stats.Deletions << " / " << orig.Deletions() << std::endl;
-			std::cout << "Replaces:     " << stats.Replaces << " / " << orig.Replaces << std::endl;
-			std::cout << "SNPs:         " << stats.SNPs << " / " << orig.SNPs() << std::endl;
-			std::cout << "Undiscovered: " << stats.Undiscovered << std::endl;
+			size_t insertions = 0;
+			size_t deletions = 0;
+			size_t replaces = 0;
+			size_t SNPs = 0;
+			for (int i = 0; i < numProcs; ++i) {
+				insertions += insertionArray[i];
+				deletions += deletionArray[i];
+				replaces += replaceArray[i];
+				SNPs += SNPArray[i];
+			}
+
+			std::cout << "Insertions: " << insertions << " / " << orig.Insertions << " (" << ((insertions + 1)*100 / (orig.Insertions + 1)) << " %)" <<  std::endl;
+			std::cout << "Deletions:  " << deletions << " / " << orig.Deletions << " (" << ((deletions + 1)*100 / (orig.Deletions + 1)) << " %)" << std::endl;
+			std::cout << "Replaces:   " << replaces << " / " << orig.Replaces << " (" << ((replaces + 1)*100 / (orig.Replaces + 1)) << " %)" << std::endl;
+			std::cout << "SNPs:       " << SNPs << " / " << orig.SNPs << " (" << ((SNPs + 1)*100 / (orig.SNPs + 1)) << " %)" << std::endl;
+			
+			delete[] insertionArray;
 		}
 	} else print_usage();
 
