@@ -5,6 +5,40 @@
 #include "read-info.h"
 
 
+double read_info_weight(const READ_INFO *Info, const size_t CurrentReadIndex, const size_t CurrentReadPosition)
+{
+	double ret = 0;
+	size_t readIndex = (size_t)-1;
+	const READ_INFO_ENTRY *entry = Info->Array.Data;
+
+	for (size_t i = 0; i < read_info_get_count(Info); ++i) {
+		if (readIndex == entry->ReadIndex) {
+			++entry;
+			continue;
+		}
+		
+		if (entry->ReadIndex == CurrentReadIndex &&
+			entry->ReadPosition < CurrentReadPosition) {
+			++entry;
+			continue;
+		}
+
+		if (entry->Quality == 0)
+			ret += 0;
+		else if (entry->Quality < 20)
+			ret += 0.25;
+		else if (entry->Quality < 30)
+			ret += 0.50;
+		else if (entry->Quality < 40)
+			ret += 0.75;
+		else ret += 1;
+
+		readIndex = entry->ReadIndex;
+		++entry;
+	}
+
+	return ret;
+}
 
 void read_info_init(PREAD_INFO Info)
 {
@@ -42,7 +76,7 @@ ERR_VALUE read_info_add_array(PREAD_INFO Info, const GEN_ARRAY_READ_INFO_ENTRY *
 	const READ_INFO_ENTRY *entry = Array->Data;
 
 	for (size_t i = 0; i < count; ++i) {
-		ret = read_info_add(Info, entry->ReadIndex, entry->ReadPosition);
+		ret = read_info_add(Info, entry->ReadIndex, entry->ReadPosition, entry->Quality);
 		if (ret != ERR_SUCCESS)
 			break;
 
@@ -53,13 +87,14 @@ ERR_VALUE read_info_add_array(PREAD_INFO Info, const GEN_ARRAY_READ_INFO_ENTRY *
 }
 
 
-ERR_VALUE read_info_add(PREAD_INFO Info, const size_t ReadIndex, const size_t ReadPosition)
+ERR_VALUE read_info_add(PREAD_INFO Info, const size_t ReadIndex, const size_t ReadPosition, const uint8_t Quality)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	READ_INFO_ENTRY entry;
 
 	entry.ReadIndex = ReadIndex;
 	entry.ReadPosition = ReadPosition;
+	entry.Quality = Quality;
 	ret = dym_array_push_back_READ_INFO_ENTRY(&Info->Array, entry);
 
 	return ret;
@@ -69,10 +104,44 @@ ERR_VALUE read_info_add(PREAD_INFO Info, const size_t ReadIndex, const size_t Re
 void read_info_remove(PREAD_INFO Info, const size_t ReadIndex, const size_t ReadPosition)
 {
 	READ_INFO_ENTRY entry;
+	PREAD_INFO_ENTRY item = Info->Array.Data;
 
 	entry.ReadIndex = ReadIndex;
 	entry.ReadPosition = ReadPosition;
-	dym_array_remove_READ_INFO_ENTRY(&Info->Array, entry);
+	for (size_t i = 0; i < gen_array_size(&Info->Array); ++i) {
+		if (item->ReadIndex == entry.ReadIndex &&
+			item->ReadPosition == entry.ReadPosition) {
+			memmove(item, item + 1, (read_info_get_count(Info) - i - 1)*sizeof(READ_INFO_ENTRY));
+			dym_array_pop_back_READ_INFO_ENTRY(&Info->Array);
+			break;
+		}
+
+		++item;
+	}
+
+	return;
+}
+
+
+void read_info_remove_2(PREAD_INFO Info, const size_t ReadIndex)
+{
+	boolean removed = FALSE;
+
+	do {
+		PREAD_INFO_ENTRY entry = Info->Array.Data;
+
+		removed = FALSE;
+		for (size_t i = 0; i < read_info_get_count(Info); ++i) {
+			removed = (entry->ReadIndex == ReadIndex);
+			if (removed) {
+				memmove(entry, entry + 1, (read_info_get_count(Info) - i - 1)*sizeof(READ_INFO_ENTRY));
+				dym_array_pop_back_READ_INFO_ENTRY(&Info->Array);
+				break;
+			}
+
+			++entry;
+		}
+	} while (removed);
 
 	return;
 }

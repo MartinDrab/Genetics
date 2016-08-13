@@ -148,20 +148,6 @@ public:
 		size_t pos = aRecord.Pos - 1;
 		CVCFVertex *tmp = 0;
 
-		for (size_t i = 0; i < aRecord.Ref.size(); ++i) {
-			auto v = Vertices_[pos + i];
-			if (v == NULL)
-				throw std::exception();
-
-			if (tmp != 0 && tmp->Son(aRecord.Ref[i - 1]) != v)
-				throw std::exception();
-
-			if (v->Type() != vcfvtReference)
-				throw std::exception();
-
-			tmp = v;
-		}
-
 		tmp = Vertices_[pos];
 		for (size_t i = 0; i < aRecord.Alt.size(); ++i) {
 			tmp = tmp->Son(aRecord.Alt[i]);
@@ -170,8 +156,9 @@ public:
 				break;
 		}
 
+		
 		if (ret && aRecord.Type == vcfrtDeletion) {
-			for (size_t i = 0; i < 10; ++i) {
+			for (size_t i = 0; i < 5; ++i) {
 				const char base = aReference[pos + aRecord.Ref.size() + i];
 
 				if (base == 'N')
@@ -183,27 +170,15 @@ public:
 					break;
 			}
 		}
+		
 
 		return ret;
 	}
-	void AddVCFRecord(const CVCFRecord & aRecord, const std::string & aReference)
+	void AddVCFRecordAlt(const CVCFRecord & aRecord, const std::string & aReference)
 	{
 		size_t pos = aRecord.Pos - 1;
 		CVCFVertex *tmp = 0;
-
-		for (size_t i = 0; i < aRecord.Ref.size(); ++i) {			
-			auto v = Vertices_[pos + i];
-			if (v == NULL)
-				throw std::exception();
-		
-			if (tmp != 0 && tmp->Son(aRecord.Ref[i - 1]) != v)
-				throw std::exception();
-
-			if (v->Type() != vcfvtReference)
-				throw std::exception();
-
-			tmp = v;
-		}
+		CVCFVertex *v = 0;
 
 		CVCFVertex *rsVertex = Vertices_[pos];
 		for (size_t i = 0; i < aRecord.Alt.size() - 1; ++i) {
@@ -212,8 +187,7 @@ public:
 			tmp = rsVertex->Son(base);
 			if (tmp == 0) {
 				tmp = new CVCFVertex(vcfvtVariantCall);
-				if (!rsVertex->AddSon(base, tmp))
-					__debugbreak();
+				rsVertex->AddSon(base, tmp);
 			}
 
 			rsVertex = tmp;
@@ -221,17 +195,80 @@ public:
 
 		{
 			tmp = Vertices_[pos + aRecord.Ref.size()];
-			if (tmp != 0) {
-				size_t index = 0;
-				char base = aRecord.Alt[aRecord.Alt.size() - 1];
+			if (tmp == 0) {
+				tmp = new CVCFVertex(vcfvtReference, pos + aRecord.Ref.size());
+				Vertices_[pos + aRecord.Ref.size()] = tmp;
+				rsVertex->AddSon(aRecord.Alt[aRecord.Alt.size() - 1], tmp);
+			}
 
-				while (!rsVertex->AddSon(base, tmp)) {
-					rsVertex = rsVertex->Son(base);
-					++index;
-					tmp = Vertices_[pos + aRecord.Ref.size() + index];
-					base = aReference[pos + aRecord.Ref.size() + index - 1];
+			size_t index = 0;
+			char base = aRecord.Alt[aRecord.Alt.size() - 1];
+
+			while (!rsVertex->AddSon(base, tmp)) {
+				rsVertex = rsVertex->Son(base);
+				++index;
+				base = aReference[pos + aRecord.Ref.size() + index - 1];
+				tmp = Vertices_[pos + aRecord.Ref.size() + index];
+				if (tmp == 0) {
+					tmp = new CVCFVertex(vcfvtReference, pos + aRecord.Ref.size() + index);
+					Vertices_[pos + aRecord.Ref.size() + index] = tmp;
+					Vertices_[pos + aRecord.Ref.size() + index - 1]->AddSon(base, tmp);
 				}
 			}
+		}
+
+		return;
+	}
+
+	void AddVCFRecordRef(const CVCFRecord & aRecord, const std::string & aReference)
+	{
+		size_t pos = aRecord.Pos - 1;
+		CVCFVertex *tmp = 0;
+		CVCFVertex *v = 0;
+
+		for (size_t i = pos - 100; i < pos; ++i) {
+			v = Vertices_[i];
+			if (v == NULL) {
+				v = new CVCFVertex(vcfvtReference, i);
+				Vertices_[i] = v;
+			}
+
+			if (tmp != 0)
+				tmp->AddSon(aReference[i - 1], v);
+
+			tmp = v;
+		}
+
+		for (size_t i = 0; i < aRecord.Ref.size(); ++i) {			
+			v = Vertices_[pos + i];
+			if (v == NULL) {
+				v = new CVCFVertex(vcfvtReference, pos + i);
+				Vertices_[pos + i] = v;
+			}
+
+			if (tmp != 0)
+				tmp->AddSon(aReference[pos + i - 1], v);
+
+			if (tmp != 0 && tmp->Son(aReference[pos + i - 1]) != v)
+				throw std::exception();
+
+			if (v->Type() != vcfvtReference)
+				throw std::exception();
+
+			tmp = v;
+		}
+
+		for (size_t i = pos + aRecord.Ref.size(); i < pos + aRecord.Ref.size() + 100; ++i) {
+			v = Vertices_[i];
+			if (v == NULL) {
+				v = new CVCFVertex(vcfvtReference, i);
+				Vertices_[i] = v;
+			}
+
+			if (tmp != 0)
+				tmp->AddSon(aReference[i - 1], v);
+
+			tmp = v;
 		}
 
 		return;
@@ -244,24 +281,6 @@ public:
 
 		memset(Vertices_, 0, sizeof(CVCFVertex *)*aReference.size() + 1);
 		Vertices_[0] = new CVCFVertex(vcfvtReference, 0);
-#pragma omp parallel for shared(aReference)
-		for (baseIndex = 1; baseIndex <= (int)aReference.size(); ++baseIndex) {
-			if (aReference[baseIndex - 1] != 'N')
-				Vertices_[baseIndex] = new CVCFVertex(vcfvtReference, baseIndex);
-		}
-
-		int pos = 0;
-#pragma omp parallel for shared(aReference)
-		for (pos = 1; pos <= (int)aReference.size(); ++pos) {
-			const char base = aReference[pos - 1];
-			
-			if (base != 'N') {
-				if (Vertices_[pos - 1] == NULL)
-					Vertices_[pos - 1] = new CVCFVertex(vcfvtReference, pos - 1);
-
-				Vertices_[pos - 1]->AddSon(base, Vertices_[pos]);
-			}
-		}
 
 		return;
 	}

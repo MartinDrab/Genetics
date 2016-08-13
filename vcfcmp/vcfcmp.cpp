@@ -54,15 +54,28 @@ int main(int argc, char *argv[])
 	if (args.size() == 3) {
 		std::string refseq;
 
+		std::cerr << "Loading reference..." << std::endl;
 		if (load_reference(args[0], refseq)) {
+			std::cerr << "Loading the truth set VCF..." << std::endl;
 			CVCFFile orig(args[1]);
+			std::cerr << "Loading our VCF..." << std::endl;
 			CVCFFile res(args[2]);
 			CVCFGraph graph;
 
 			graph.AddReference(refseq);
+			std::cerr << "Adding ref parts of our set..." << std::endl;
 			for (const auto & rec : res.Records)
-				graph.AddVCFRecord(rec, refseq);
+				graph.AddVCFRecordRef(rec, refseq);
 
+			std::cerr << "Adding ref parts of the truth set..." << std::endl;
+			for (const auto & rec : orig.Records)
+				graph.AddVCFRecordRef(rec, refseq);
+
+			std::cerr << "Adding alt parts of our set..." << std::endl;
+			for (const auto & rec : res.Records)
+				graph.AddVCFRecordAlt(rec, refseq);
+
+			std::cerr << "Comparing the sets..." << std::endl;
 			int numProcs = omp_get_num_procs();
 			size_t *insertionArray = new size_t[numProcs*4];
 			memset(insertionArray, 0, 4*sizeof(size_t)*numProcs);

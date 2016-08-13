@@ -12,6 +12,7 @@
 #include "read-info.h"
 
 typedef struct _KMER_VERTEX;
+typedef struct _KMER_GRAPH;
 
 typedef enum _EKMerVertexType {
 	kmvtRefSeqStart,
@@ -62,6 +63,10 @@ typedef struct _KMER_VERTEX {
 	POINTER_ARRAY_KMER_EDGE Successors;
 	POINTER_ARRAY_KMER_EDGE Predecessors;
 	uint32_t RefSeqPosition;
+	union {
+		struct _KMER_VERTEX *Next;
+		struct _KMER_GRAPH *Graph;
+	} Lists;
 	KMER KMer;
 } KMER_VERTEX, *PKMER_VERTEX;
 
@@ -101,6 +106,7 @@ typedef struct _KMER_GRAPH {
 	PKMER_VERTEX EndingVertex;
 	GRAPH_ON_DELETE_EDGE_CALLBACK *DeleteEdgeCallback;
 	void *DeleteEdgeCallbackContext;
+	PKMER_VERTEX VerticesToDeleteList;
 } KMER_GRAPH, *PKMER_GRAPH;
 
 

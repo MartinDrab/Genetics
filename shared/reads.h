@@ -16,7 +16,7 @@ typedef struct _READ_PART {
 	char *ReadSequence;
 	/** Length of the part sequence, in bases. */
 	size_t ReadSequenceLength;
-	const uint8_t *Quality;
+	uint8_t *Quality;
 	/** Position of the part relative to the start of the read. */
 	size_t Offset;
 } READ_PART, *PREAD_PART;
