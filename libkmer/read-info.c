@@ -26,11 +26,13 @@ double read_info_weight(const READ_INFO *Info, const size_t CurrentReadIndex, co
 		if (entry->Quality == 0)
 			ret += 0;
 		else if (entry->Quality < 20)
-			ret += 0.25;
+			ret += 0.5;
 		else if (entry->Quality < 30)
-			ret += 0.50;
-		else if (entry->Quality < 40)
 			ret += 0.75;
+		else if (entry->Quality < 40)
+			ret += 1;
+		else if (entry->Quality == 255)
+			ret += 20;
 		else ret += 1;
 
 		readIndex = entry->ReadIndex;

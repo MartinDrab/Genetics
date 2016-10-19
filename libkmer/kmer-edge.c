@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+#include "khash.h"
 #include "err.h"
 #include "utils.h"
 #include "kmer.h"
@@ -23,6 +24,8 @@ typedef enum _ETableOpType {
 
 
 #define _kmer_edge_table_entry_empty(aEntry)						((aEntry)->Source == NULL)
+#define _kmer_edge_table_next_entry(aEntry)							((aEntry) + 1)
+#define _kmer_edge_table_nth_entry(aTable, aIndex)				((aTable)->Entries + (aIndex))
 #define _next_hash_attempt(aHash, aAttempt, aModulus)				((aHash + 2 * aAttempt + 1) % aModulus)
 
 
@@ -40,7 +43,7 @@ static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_insert_hint(const KMER_E
 	PKMER_EDGE_TABLE_ENTRY firstDeleted = NULL;
 	PKMER_EDGE_TABLE_ENTRY ret = NULL;
 
-	ret = Table->Entries + Hash;
+	ret = _kmer_edge_table_nth_entry(Table, Hash);
 	if ((!_kmer_edge_table_entry_empty(ret) || ret->Deleted) && (ret->Deleted || !kmer_equal(ret->Source, Source) || !kmer_equal(ret->Dest, Dest))) {
 		size_t attempt = 1;
 		PKMER_EDGE_TABLE_ENTRY first = ret;
@@ -50,7 +53,7 @@ static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_insert_hint(const KMER_E
 
 		do {
 			Hash = _next_hash_attempt(Hash, attempt, Table->Size);
-			ret = Table->Entries + Hash;
+			ret = _kmer_edge_table_nth_entry(Table, Hash);
 			if (firstDeleted == NULL && ret->Deleted)
 				firstDeleted = ret;
 			
@@ -77,14 +80,14 @@ static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_delsearch_hint(const KME
 {
 	PKMER_EDGE_TABLE_ENTRY ret = NULL;
 
-	ret = Table->Entries + Hash;
+	ret = _kmer_edge_table_nth_entry(Table, Hash);
 	if ((!_kmer_edge_table_entry_empty(ret) || ret->Deleted) && (ret->Deleted || !kmer_equal(ret->Source, Source) || !kmer_equal(ret->Dest, Dest))) {
 		size_t attempt = 1;
 		PKMER_EDGE_TABLE_ENTRY first = ret;
 
 		do {
 			Hash = _next_hash_attempt(Hash, attempt, Table->Size);
-			ret = Table->Entries + Hash;
+			ret = _kmer_edge_table_nth_entry(Table, Hash);
 			if (!ret->Deleted && (_kmer_edge_table_entry_empty(ret) || (kmer_equal(ret->Source, Source) && kmer_equal(ret->Dest, Dest))))
 				break;
 
@@ -106,7 +109,7 @@ static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot(const struct _KMER_EDGE_
 	size_t hash = 0;
 	PKMER_EDGE_TABLE_ENTRY ret = NULL;
 
-	hash = kmer_edge_hash(Table, Source, Dest);
+	hash = kmer_edge_hash(Source, Dest) % Table->Size;
 	assert(hash < Table->Size);
 	switch (OpType) {
 		case totInsert:
@@ -154,7 +157,7 @@ static void _on_print_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemD
 /*                        PUBLIC FUNCTIONS                              */
 /************************************************************************/
 
-ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t X, const size_t Size, const PKMER_EDGE_TABLE_CALLBACKS Callbacks, PKMER_EDGE_TABLE *Table)
+ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t Size, const PKMER_EDGE_TABLE_CALLBACKS Callbacks, PKMER_EDGE_TABLE *Table)
 {
 	PKMER_EDGE_TABLE tmpTable = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -162,10 +165,9 @@ ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t X, const si
 	if (utils_is_prime(Size)) {
 		ret = utils_malloc_KMER_EDGE_TABLE(&tmpTable);
 		if (ret == ERR_SUCCESS) {
+			tmpTable->NumberOfItems = 0;
 			tmpTable->Size = Size;
-			tmpTable->X = X;
 			tmpTable->KMerSize = KMerSize;
-			tmpTable->PowX = utils_pow_mod(tmpTable->X, KMerSize - 1, tmpTable->Size);
 			if (Callbacks == NULL) {
 				tmpTable->Callbacks.OnInsert = _on_insert_dummy_callback;
 				tmpTable->Callbacks.OnDelete = _on_delete_dummy_callback;
@@ -174,14 +176,11 @@ ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t X, const si
 			} else tmpTable->Callbacks = *Callbacks;
 			
 			tmpTable->LastOrder = 0;
-			ret = utils_mul_inverse(X, Size, &tmpTable->Inverse);
+			assert((X*tmpTable->Inverse % Size) == 1);
+			ret = utils_calloc_KMER_EDGE_TABLE_ENTRY(tmpTable->Size, &tmpTable->Entries);
 			if (ret == ERR_SUCCESS) {
-				assert((X*tmpTable->Inverse % Size) == 1);
-				ret = utils_calloc_KMER_EDGE_TABLE_ENTRY(tmpTable->Size, &tmpTable->Entries);
-				if (ret == ERR_SUCCESS) {
-					memset(tmpTable->Entries, 0, tmpTable->Size*sizeof(KMER_EDGE_TABLE_ENTRY));
-					*Table = tmpTable;
-				}
+				memset(tmpTable->Entries, 0, tmpTable->Size*sizeof(KMER_EDGE_TABLE_ENTRY));
+				*Table = tmpTable;
 			}
 
 			if (ret != ERR_SUCCESS)
@@ -203,7 +202,7 @@ void kmer_edge_table_destroy(PKMER_EDGE_TABLE Table)
 			memset(entry, 0, sizeof(KMER_EDGE_TABLE_ENTRY));
 		}
 
-		++entry;
+		entry = _kmer_edge_table_next_entry(entry);
 	}
 	
 	utils_free(Table->Entries);
@@ -221,7 +220,7 @@ ERR_VALUE kmer_edge_table_extend(PKMER_EDGE_TABLE Table)
 
 	newSize = Table->Size * 2;
 	newSize = utils_next_prime(newSize);
-	ret = kmer_edge_table_create(Table->KMerSize, Table->X, newSize, &Table->Callbacks, &newTable);
+	ret = kmer_edge_table_create(Table->KMerSize, newSize, &Table->Callbacks, &newTable);
 	if (ret == ERR_SUCCESS) {
 		const KMER_EDGE_TABLE_ENTRY *entry = Table->Entries;
 		PKMER_EDGE_TABLE_ENTRY newSlot = NULL;
@@ -237,11 +236,13 @@ ERR_VALUE kmer_edge_table_extend(PKMER_EDGE_TABLE Table)
 			if (ret != ERR_SUCCESS)
 				break;
 
-			++entry;
+			entry = _kmer_edge_table_next_entry(entry);
 		}
 
 		if (ret == ERR_SUCCESS) {
 			utils_free(Table->Entries);
+			newTable->LastOrder = Table->LastOrder;
+			newTable->NumberOfItems = Table->NumberOfItems;
 			memcpy(Table, newTable, sizeof(KMER_EDGE_TABLE));
 		}
 
@@ -282,6 +283,7 @@ void kmer_edge_table_delete_by_entry(PKMER_EDGE_TABLE Table, PKMER_EDGE_TABLE_EN
 	Table->Callbacks.OnDelete(Table, Entry->Data);
 	memset(Entry, 0, sizeof(KMER_EDGE_TABLE_ENTRY));
 	Entry->Deleted = TRUE;
+	--Table->NumberOfItems;
 
 	return;
 }
@@ -307,51 +309,54 @@ ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const KMER *Source, con
 	PKMER_EDGE_TABLE_ENTRY entry = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	entry = _kmer_edge_table_get_slot(Table, Source, Dest, totInsert);
-	if (entry != NULL) {
-		if (_kmer_edge_table_entry_empty(entry) || entry->Deleted) {
-			entry->Deleted = FALSE;
-			entry->Source = Source;
-			entry->Dest = Dest;
-			entry->Data = Data;
-			Table->Callbacks.OnInsert(Table, Data, Table->LastOrder);
-			Table->LastOrder++;
-			ret = ERR_SUCCESS;
-		} else ret = ERR_ALREADY_EXISTS;
+	if (Table->NumberOfItems * 100 / Table->Size < 50) {
+		entry = _kmer_edge_table_get_slot(Table, Source, Dest, totInsert);
+		if (entry != NULL) {
+			if (_kmer_edge_table_entry_empty(entry) || entry->Deleted) {
+				entry->Deleted = FALSE;
+				entry->Source = Source;
+				entry->Dest = Dest;
+				entry->Data = Data;
+				Table->Callbacks.OnInsert(Table, Data, Table->LastOrder);
+				++Table->LastOrder;
+				++Table->NumberOfItems;
+				ret = ERR_SUCCESS;
+			} else ret = ERR_ALREADY_EXISTS;
+		} else ret = ERR_TABLE_FULL;
 	} else ret = ERR_TABLE_FULL;
 
 	return ret;
 }
 
 
-size_t kmer_edge_hash(const struct _KMER_EDGE_TABLE *Table, const struct _KMER *Source, const struct _KMER *Dest)
+size_t kmer_edge_hash(const struct _KMER *Source, const struct _KMER *Dest)
 {
-	size_t hash = 0;
+	size_t hash1 = 0;
+	size_t hash2 = 0;
+	const size_t kmerSize = Source->Size;
 
-	for (size_t i = 0; i < kmer_get_size(Source); ++i) {
-		hash = (hash*Table->X + kmer_get_base(Source, i));
-		hash %= Table->Size;
+	assert(Source->Size == Dest->Size);
+	for (size_t i = 0; i < kmerSize; ++i) {
+		hash1 <<= 1;
+		hash2 <<= 1;
+		hash1 += (kmer_get_base(Source, i));
+		hash2 += (kmer_get_base(Dest, i));
 	}
 
-	for (size_t i = 0; i < kmer_get_size(Dest); ++i) {
-		hash = (hash*Table->X + kmer_get_base(Dest, i));
-		hash %= Table->Size;
-	}
-
-	return hash;
+	return (((Source->Number + 1)*hash1 << 1) + (Dest->Number + 1)*hash2);
 }
 
 
 void kmer_edge_table_print(FILE *Stream, const PKMER_EDGE_TABLE Table)
 {
-	PKMER_EDGE_TABLE_ENTRY edge = NULL;
+	const KMER_EDGE_TABLE_ENTRY *edge = NULL;
 
 	edge = Table->Entries;
 	for (size_t j = 0; j < Table->Size; ++j) {
 		if (!_kmer_edge_table_entry_empty(edge))
 			Table->Callbacks.OnPrint(Table, edge->Data, Stream);
 
-		++edge;
+		edge = _kmer_edge_table_next_entry(edge);
 	}
 
 	return;
@@ -371,7 +376,7 @@ ERR_VALUE kmer_edge_table_first(const PKMER_EDGE_TABLE Table, PKMER_EDGE_TABLE_E
 			break;
 		}
 
-		++entry;
+		entry = _kmer_edge_table_next_entry(entry);
 	}
 
 	return ret;
@@ -381,7 +386,7 @@ ERR_VALUE kmer_edge_table_first(const PKMER_EDGE_TABLE Table, PKMER_EDGE_TABLE_E
 ERR_VALUE kmer_edge_table_next(const PKMER_EDGE_TABLE Table, const PKMER_EDGE_TABLE_ENTRY Current, PKMER_EDGE_TABLE_ENTRY *Next)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	PKMER_EDGE_TABLE_ENTRY entry = Current + 1;
+	PKMER_EDGE_TABLE_ENTRY entry = _kmer_edge_table_next_entry(Current);
 
 	ret = ERR_NO_MORE_ENTRIES;
 	for (size_t i = (Current - Table->Entries) + 1; i < Table->Size; ++i) {
@@ -391,7 +396,7 @@ ERR_VALUE kmer_edge_table_next(const PKMER_EDGE_TABLE Table, const PKMER_EDGE_TA
 			break;
 		}
 
-		++entry;
+		entry = _kmer_edge_table_next_entry(entry);
 	}
 
 	return ret;

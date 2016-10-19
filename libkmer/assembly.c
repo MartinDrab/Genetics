@@ -276,7 +276,7 @@ static ERR_VALUE _create_long_edge(PKMER_GRAPH Graph, PKMER_VERTEX U, PKMER_VERT
 	return ret;
 }
 
-static ERR_VALUE _create_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertices, const size_t NumberOfVertices, const READ_PART *ReadPart, const size_t ReadIndex, const size_t StartOffset, PGEN_ARRAY_KMER_EDGE_PAIR PairArray, const boolean LongEdges)
+static ERR_VALUE _create_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertices, const size_t NumberOfVertices, const READ_PART *ReadPart, const size_t ReadIndex, const size_t StartOffset, PGEN_ARRAY_KMER_EDGE_PAIR PairArray)
 {
 	PKMER_EDGE e = NULL;
 	size_t readGapStart = (size_t)-1;
@@ -292,10 +292,7 @@ static ERR_VALUE _create_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertices, c
 			PKMER_VERTEX v = Vertices[i];
 			PKMER_VERTEX w = Vertices[i + 1];
 
-			if (!LongEdges)
-				ret = _create_short_edge(Graph, v, w, ReadIndex, ReadPart->Offset + seqIndex + StartOffset, ReadPart->Quality[seqIndex + StartOffset], &e);
-			else e = kmer_graph_get_edge(Graph, &v->KMer, &w->KMer);
-
+			ret = _create_short_edge(Graph, v, w, ReadIndex, ReadPart->Offset + seqIndex + StartOffset, ReadPart->Quality[seqIndex + StartOffset], &e);
 			if (v->Type == kmvtRead && w->Type == kmvtRefSeqMiddle) {
 				readGapStart = i;
 				readGapSeqStart = seqIndex;
@@ -303,7 +300,7 @@ static ERR_VALUE _create_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertices, c
 			} else if (
 				(v->Type == kmvtRefSeqMiddle || v->Type == kmvtRefSeqStart) &&
 				w->Type == kmvtRead) {
-				if (LongEdges && readGapStart != (size_t)-1) {
+				if (readGapStart != (size_t)-1) {
 					PKMER_EDGE connectingEdge = NULL;
 
 					ret = _create_long_edge(Graph, gapStartE->Source, w, readGapSeqStart, seqIndex + 1, StartOffset, ReadPart, ReadIndex, &connectingEdge);
@@ -361,7 +358,7 @@ static ERR_VALUE _produce_single_path(PKMER_GRAPH Graph, const char *ReadSequenc
 }
 
 
-static ERR_VALUE _kmer_graph_parse_read_v2(PKMER_GRAPH Graph, const ONE_READ *Read, const size_t ReadIndex, const uint64_t RegionStart, PKMER_VERTEX **Path, size_t *PathLength)
+static ERR_VALUE _kmer_graph_parse_read_v2(PKMER_GRAPH Graph, const ONE_READ *Read, const size_t ReadIndex, const uint64_t RegionStart, PKMER_VERTEX **Path, size_t *PathLength, PGEN_ARRAY_KMER_EDGE_PAIR PairArray)
 {
 	const size_t kmerSize = kmer_graph_get_kmer_size(Graph);
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -381,7 +378,7 @@ static ERR_VALUE _kmer_graph_parse_read_v2(PKMER_GRAPH Graph, const ONE_READ *Re
 			PKMER_VERTEX *tmpPath = NULL;
 			ret = _produce_single_path(Graph, part->ReadSequence, maxNumberOfVertices, regionStartTouch, TRUE, &tmpPath, &tmpPathLength);
 			if (ret == ERR_SUCCESS) {
-				ret = _create_read_edges(Graph, tmpPath, tmpPathLength, part, ReadIndex, (regionStartTouch ? 0 : kmerSize), NULL, FALSE);
+				ret = _create_read_edges(Graph, tmpPath, tmpPathLength, part, ReadIndex, (regionStartTouch ? 0 : kmerSize), PairArray);
 				if (ret == ERR_SUCCESS) {
 					*Path = tmpPath;
 					*PathLength = tmpPathLength;
@@ -416,8 +413,9 @@ static ERR_VALUE _fix_read(PKMER_GRAPH Graph, PONE_READ Read, PKMER_VERTEX **Ver
 			fixed = FALSE;
 			for (size_t i = 0; i < tmpVertexCount - 1; ++i) {
 				PKMER_EDGE e = kmer_graph_get_edge(Graph, &u->KMer, &v->KMer);
+				double origWeight = read_info_weight(&e->ReadInfo, ReadIndex, pBase - Read->Part.ReadSequence);
 
-				if (pBase - Read->Part.ReadSequence > baseIndex && read_info_weight(&e->ReadInfo, ReadIndex, pBase - Read->Part.ReadSequence) <= (double)Threshold) {
+				if (pBase - Read->Part.ReadSequence > baseIndex && (origWeight <= (double)Threshold || *pBase == 'N')) {
 					double maxValue = 0;
 					size_t maxIndex = 0;
 					size_t rsIndex = (size_t)-1;
@@ -439,11 +437,8 @@ static ERR_VALUE _fix_read(PKMER_GRAPH Graph, PONE_READ Read, PKMER_VERTEX **Ver
 						}
 					}
 
-					if (maxValue > (double)Threshold || rsIndex != (size_t)-1) {
+					if (maxValue > (double)Threshold || maxValue > origWeight) {
 						PKMER_EDGE newPath = kmer_vertex_get_succ_edge(u, maxIndex);
-
-						if (maxValue <= (double)Threshold)
-							maxIndex = rsIndex;
 
 						if (newPath->Dest->Helper)
 							newPath = kmer_vertex_get_succ_edge(newPath->Dest, 0);
@@ -451,9 +446,9 @@ static ERR_VALUE _fix_read(PKMER_GRAPH Graph, PONE_READ Read, PKMER_VERTEX **Ver
 						assert(!newPath->Dest->Helper);
 						char newBase = kmer_get_base(&(newPath->Dest->KMer), kmerSize - 1);
 						if (*pBase != newBase) {
-							baseIndex = pBase - Read->Part.ReadSequence + 1;
-							printf("(%Iu:%Iu): %c -> %c\n", ReadIndex, baseIndex - 1, *pBase, newBase);
-							Read->Part.Quality[pBase - Read->Part.ReadSequence] = 255;
+							baseIndex = pBase - Read->Part.ReadSequence;
+							printf("(%Iu:%Iu): %c -> %c (%lf -> %lf)\n", ReadIndex, baseIndex - 1, *pBase, newBase, origWeight, maxValue);
+							Read->Part.Quality[baseIndex] = 255;
 							*pBase = newBase;
 							fixed = TRUE;
 							break;
@@ -483,7 +478,7 @@ static ERR_VALUE _fix_read(PKMER_GRAPH Graph, PONE_READ Read, PKMER_VERTEX **Ver
 				utils_free(tmpVertices);
 				ret = _produce_single_path(Graph, Read->Part.ReadSequence, readSeqLen, regionStartTouch, TRUE, &tmpVertices, &tmpVertexCount);
 				if (ret == ERR_SUCCESS)
-					ret = _create_read_edges(Graph, tmpVertices, tmpVertexCount, &Read->Part, ReadIndex, regionStartTouch, NULL, FALSE);
+					ret = _create_read_edges(Graph, tmpVertices, tmpVertexCount, &Read->Part, ReadIndex, regionStartTouch, NULL);
 			}
 		} while (ret == ERR_SUCCESS && fixed);
 	}
@@ -581,14 +576,13 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_
 	PKMER_VERTEX **paths = NULL;
 	size_t *pathLengths = 0;
 
-
 	ret = utils_calloc(ReadCount, sizeof(PKMER_VERTEX *), &paths);
 	if (ret == ERR_SUCCESS) {
 		ret = utils_calloc(ReadCount, sizeof(size_t), &pathLengths);
 		if (ret == ERR_SUCCESS) {
 			currentRead = Reads;
 			for (size_t i = 0; i < ReadCount; ++i) {
-				ret = _kmer_graph_parse_read_v2(Graph, currentRead, i, RegionStart, paths + i, pathLengths + i);
+				ret = _kmer_graph_parse_read_v2(Graph, currentRead, i, RegionStart, paths + i, pathLengths + i, PairArray);
 				if (ret != ERR_SUCCESS)
 					break;
 
@@ -597,7 +591,7 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_
 		
 			if (ret == ERR_SUCCESS) {
 				boolean fixed = FALSE;
-
+				/*
 				do {
 					fixed = FALSE;
 					currentRead = Reads;
@@ -609,7 +603,8 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_
 						++currentRead;
 					}
 				} while (ret == ERR_SUCCESS && fixed);
-
+				*/
+				/*
 				if (ret == ERR_SUCCESS) {
 					currentRead = Reads;
 					for (size_t i = 0; i < ReadCount; ++i) {
@@ -620,6 +615,7 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_
 						++currentRead;
 					}
 				}
+				*/
 			}
 
 			utils_free(pathLengths);

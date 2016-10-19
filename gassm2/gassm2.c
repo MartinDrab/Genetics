@@ -1250,7 +1250,10 @@ ERR_VALUE process_active_region(const PROGRAM_OPTIONS *Options, const uint64_t R
 int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	uint64_t startTime = 0;
+	uint64_t endTime = 0;
 
+	startTime = GetTickCount64();
 	ret = options_module_init(37);
 	if (ret == ERR_SUCCESS) {
 		ret = _init_default_values();
@@ -1575,6 +1578,9 @@ int main(int argc, char *argv[])
 	
 		options_module_finit();
 	}
+
+	endTime = GetTickCount64();
+	printf("Time: %I64u s\n", (endTime - startTime) / 1000);
 
 	return ret;
 }

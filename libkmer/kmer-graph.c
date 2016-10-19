@@ -342,15 +342,15 @@ ERR_VALUE kmer_graph_create(const uint32_t KMerSize, PKMER_GRAPH *Graph)
 		vCallbacks.OnDelete = _vertex_table_on_delete;
 		vCallbacks.OnInsert = _vertex_table_on_insert;
 		vCallbacks.OnPrint = _vertex_table_on_print;
-		ret = kmer_table_create(KMerSize, 2, 37, &vCallbacks, &tmpGraph->VertexTable);
+		ret = kmer_table_create(KMerSize, 47, &vCallbacks, &tmpGraph->VertexTable);
 		if (ret == ERR_SUCCESS) {
 			eCallbacks.OnCopy = _edge_table_on_copy;
 			eCallbacks.OnDelete = _edge_table_on_delete;
 			eCallbacks.OnInsert = _edge_table_on_insert;
 			eCallbacks.OnPrint = _edge_table_on_print;
-			ret = kmer_edge_table_create(KMerSize, 2, 37, &eCallbacks, &tmpGraph->EdgeTable);
+			ret = kmer_edge_table_create(KMerSize, 47, &eCallbacks, &tmpGraph->EdgeTable);
 			if (ret == ERR_SUCCESS) {
-				ret = kmer_edge_table_create(KMerSize, 2, 37, NULL, &tmpGraph->DummyVertices);
+				ret = kmer_edge_table_create(KMerSize, 47, NULL, &tmpGraph->DummyVertices);
 				if (ret == ERR_SUCCESS)
 					*Graph = tmpGraph;
 				
