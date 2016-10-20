@@ -1566,8 +1566,8 @@ int main(int argc, char *argv[])
 								}
 							} else printf("fix_reads(): %u\n", ret);
 
-							printf("Computing k-mer frequency distribution...\n");
-							kmer_freq_distribution(po.KMerSize, po.Reads, po.ReadCount, "kmer-dist2.csv");
+//							printf("Computing k-mer frequency distribution...\n");
+//							kmer_freq_distribution(po.KMerSize, po.Reads, po.ReadCount, "kmer-dist2.csv");
 
 							paired_reads_finit();
 						}

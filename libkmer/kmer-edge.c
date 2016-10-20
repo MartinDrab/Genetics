@@ -254,24 +254,13 @@ ERR_VALUE kmer_edge_table_extend(PKMER_EDGE_TABLE Table)
 }
 
 
-PKMER_EDGE_TABLE_ENTRY kmer_edge_table_get(const struct _KMER_EDGE_TABLE *Table, const struct _KMER *Source, const struct _KMER *Dest)
-{
-	PKMER_EDGE_TABLE_ENTRY ret = NULL;
-
-	ret = _kmer_edge_table_get_slot(Table, Source, Dest, totSearch);
-	if (ret != NULL && _kmer_edge_table_entry_empty(ret))
-		ret = NULL;
-
-	return ret;
-}
-
-
-void *kmer_edge_table_get_data(const struct _KMER_EDGE_TABLE *Table, const struct _KMER *Source, const struct _KMER *Dest)
+void *kmer_edge_table_get(const struct _KMER_EDGE_TABLE *Table, const struct _KMER *Source, const struct _KMER *Dest)
 {
 	void *ret = NULL;
-	PKMER_EDGE_TABLE_ENTRY entry = kmer_edge_table_get(Table, Source, Dest);
+	PKMER_EDGE_TABLE_ENTRY entry = NULL;
 
-	if (entry != NULL)
+	entry = _kmer_edge_table_get_slot(Table, Source, Dest, totSearch);
+	if (entry != NULL && !_kmer_edge_table_entry_empty(entry))
 		ret = entry->Data;
 
 	return ret;

@@ -597,28 +597,33 @@ ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EK
 	PKMER_VERTEX v = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = _vertex_create(KMer, Type, &v);
-	if (ret == ERR_SUCCESS) {
-		do {
-			ret = kmer_table_insert(Graph->VertexTable, &v->KMer, v);
-			if (ret == ERR_SUCCESS) {
-				Graph->NumberOfVertices++;
-				v->Lists.Graph = Graph;
-			} else if (ret == ERR_TABLE_FULL) {
-				ret = kmer_table_extend(Graph->VertexTable);
-				if (ret == ERR_SUCCESS)
-					ret = ERR_TABLE_FULL;
-			} else if (ret == ERR_ALREADY_EXISTS) {
+	v = (PKMER_VERTEX)kmer_table_get(Graph->VertexTable, KMer);
+	if (v == NULL) {
+		ret = _vertex_create(KMer, Type, &v);
+		if (ret == ERR_SUCCESS) {
+			do {
+				ret = kmer_table_insert(Graph->VertexTable, &v->KMer, v);
+				if (ret == ERR_SUCCESS) {
+					Graph->NumberOfVertices++;
+					v->Lists.Graph = Graph;
+					*Vertex = v;
+				} else if (ret == ERR_TABLE_FULL) {
+					ret = kmer_table_extend(Graph->VertexTable);
+					if (ret == ERR_SUCCESS)
+						ret = ERR_TABLE_FULL;
+				}
+				else if (ret == ERR_ALREADY_EXISTS) {
+					_vertex_destroy(v);
+					v = kmer_table_get(Graph->VertexTable, KMer);
+				}
+			} while (ret == ERR_TABLE_FULL);
+
+			if (ret != ERR_SUCCESS)
 				_vertex_destroy(v);
-				v = kmer_table_get(Graph->VertexTable, KMer);
-			}
-		} while (ret == ERR_TABLE_FULL);
-
-		if (ret != ERR_SUCCESS && ret != ERR_ALREADY_EXISTS)
-			_vertex_destroy(v);
-
-		if (Vertex != NULL)
-			*Vertex = v;
+		}
+	} else {
+		*Vertex = v;
+		ret = ERR_ALREADY_EXISTS;
 	}
 
 	return ret;
@@ -636,7 +641,7 @@ ERR_VALUE kmer_graph_add_helper_vertex(PKMER_GRAPH Graph, const KMER *KMer1, con
 	ret = ERR_SUCCESS;
 	memset(dummySeq, 'D', kmerSize*sizeof(char));
 	KMER_STACK_ALLOC(kmer, 0, kmerSize, dummySeq);
-	v = (PKMER_VERTEX)kmer_edge_table_get_data(Graph->DummyVertices, KMer1, KMer2);
+	v = (PKMER_VERTEX)kmer_edge_table_get(Graph->DummyVertices, KMer1, KMer2);
 	if (v == NULL) {
 		do {
 			ret = kmer_graph_add_vertex_ex(Graph, kmer, kmvtRead, &v);
@@ -671,47 +676,44 @@ ERR_VALUE kmer_graph_add_helper_vertex(PKMER_GRAPH Graph, const KMER *KMer1, con
 }
 
 
-ERR_VALUE kmer_graph_add_vertex(PKMER_GRAPH Graph, const KMER *KMer, const EKMerVertexType Type)
-{
-	return kmer_graph_add_vertex_ex(Graph, KMer, Type, NULL);
-}
-
-
 ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_VERTEX Dest, const EKMerEdgeType Type, PKMER_EDGE *Edge)
 {
 	PKMER_EDGE edge = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = _edge_create(Source, Dest, Type, &edge);
-	if (ret == ERR_SUCCESS) {
-		do {
-			ret = kmer_edge_table_insert(Graph->EdgeTable, &Source->KMer, &Dest->KMer, edge);
-			if (ret == ERR_SUCCESS) {
-				ret = pointer_array_reserve_KMER_EDGE(&Source->Successors, pointer_array_size(&Source->Successors) + 1);
+	edge = (PKMER_EDGE)kmer_edge_table_get(Graph->EdgeTable, &Source->KMer, &Dest->KMer);
+	if (edge == NULL) {
+		ret = _edge_create(Source, Dest, Type, &edge);
+		if (ret == ERR_SUCCESS) {
+			do {
+				ret = kmer_edge_table_insert(Graph->EdgeTable, &Source->KMer, &Dest->KMer, edge);
 				if (ret == ERR_SUCCESS) {
-					ret = pointer_array_reserve_KMER_EDGE(&Dest->Predecessors, pointer_array_size(&Dest->Predecessors) + 1);
+					ret = pointer_array_reserve_KMER_EDGE(&Source->Successors, pointer_array_size(&Source->Successors) + 1);
 					if (ret == ERR_SUCCESS) {
-						pointer_array_push_back_no_alloc_KMER_EDGE(&Source->Successors, edge);
-						pointer_array_push_back_no_alloc_KMER_EDGE(&Dest->Predecessors, edge);
-						Graph->NumberOfEdges++;
-						Graph->TypedEdgeCount[Type]++;
-						*Edge = edge;
+						ret = pointer_array_reserve_KMER_EDGE(&Dest->Predecessors, pointer_array_size(&Dest->Predecessors) + 1);
+						if (ret == ERR_SUCCESS) {
+							pointer_array_push_back_no_alloc_KMER_EDGE(&Source->Successors, edge);
+							pointer_array_push_back_no_alloc_KMER_EDGE(&Dest->Predecessors, edge);
+							Graph->NumberOfEdges++;
+							Graph->TypedEdgeCount[Type]++;
+							*Edge = edge;
+						}
 					}
 				}
-			}
 
-			if (ret == ERR_TABLE_FULL) {
-				ret = kmer_edge_table_extend(Graph->EdgeTable);
-				if (ret == ERR_SUCCESS)
-					ret = ERR_TABLE_FULL;
-			}
-		} while (ret == ERR_TABLE_FULL);
+				if (ret == ERR_TABLE_FULL) {
+					ret = kmer_edge_table_extend(Graph->EdgeTable);
+					if (ret == ERR_SUCCESS)
+						ret = ERR_TABLE_FULL;
+				}
+			} while (ret == ERR_TABLE_FULL);
 
-		if (ret != ERR_SUCCESS)
-			_edge_destroy(edge);
-
-		if (ret == ERR_ALREADY_EXISTS)
-			*Edge = (PKMER_EDGE)kmer_edge_table_get_data(Graph->EdgeTable, &Source->KMer, &Dest->KMer);
+			if (ret != ERR_SUCCESS)
+				_edge_destroy(edge);
+		}
+	} else {
+		*Edge = edge;
+		ret = ERR_ALREADY_EXISTS;
 	}
 
 	return ret;
@@ -720,7 +722,7 @@ ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_V
 
 PKMER_EDGE kmer_graph_get_edge(const struct _KMER_GRAPH *Graph, const struct _KMER *Source, const struct _KMER *Dest)
 {
-	return (PKMER_EDGE)kmer_edge_table_get_data(Graph->EdgeTable, Source, Dest);
+	return (PKMER_EDGE)kmer_edge_table_get(Graph->EdgeTable, Source, Dest);
 }
 
 
