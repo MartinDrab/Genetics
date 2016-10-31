@@ -8,9 +8,9 @@
 #include "kmer.h"
 
 
+#define KMER_TABLE_KMER_NUMBER_SLOSTS			16
+
 typedef struct _KMER_TABLE_ENTRY {
-	boolean Deleted;
-	const KMER *KMer;
 	void *Data;
 } KMER_TABLE_ENTRY, *PKMER_TABLE_ENTRY;
 
@@ -28,6 +28,9 @@ typedef struct _KMER_TABLE_CALLBACKS {
 	KMER_TABLE_ON_PRINT_CALLBACK *OnPrint;
 } KMER_TABLE_CALLBACKS, *PKMER_TABLE_CALLBACKS;
 
+#define KMER_TABLE_ENTRY_FLAG_USED				1
+#define KMER_TABLE_ENTRY_FLAG_DELETED			2
+
 typedef struct _KMER_TABLE {
 	size_t NumberOfItems;
 	size_t Size;
@@ -35,6 +38,8 @@ typedef struct _KMER_TABLE {
 	uint32_t LastOrder;
 	KMER_TABLE_CALLBACKS Callbacks;
 	PKMER_TABLE_ENTRY Entries;
+	uint8_t *Flags;
+	const KMER **Keys;
 } KMER_TABLE, *PKMER_TABLE;
 
 

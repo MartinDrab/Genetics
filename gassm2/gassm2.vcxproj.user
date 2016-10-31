@@ -7,7 +7,7 @@
     <LocalDebuggerCommand>$(TargetPath)</LocalDebuggerCommand>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LocalDebuggerCommandArguments>-k 30 -l 2000 -w 2 -v result.vcf -f input.fa -F reads.sam</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-k 15 -g sample</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
@@ -18,7 +18,7 @@
     <LocalDebuggerCommand>$(TargetPath)</LocalDebuggerCommand>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-k 30 -l 2000 -w 2 -v result.vcf -f input.fa -F reads.sam</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-k 15 -g sample</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\$(Platform)\$(Configuration)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>

@@ -86,7 +86,16 @@ typedef struct _KMER_EDGE_PAIR {
 	PKMER_EDGE V;
 	PKMER_EDGE ConnectingEdge;
 	uint32_t ReadDistance;
+	PKMER_EDGE *Edges;
+	size_t EdgeCount;
 } KMER_EDGE_PAIR, *PKMER_EDGE_PAIR;
+
+typedef struct _KMER_EDGE_PAIR_KEY {
+	PKMER_EDGE U;
+	PKMER_EDGE V;
+	PKMER_EDGE ConnectingEdge;
+	uint32_t ReadDistance;
+} KMER_EDGE_PAIR_KEY, *PKMER_EDGE_PAIR_KEY;
 
 GEN_ARRAY_TYPEDEF(KMER_EDGE_PAIR);
 GEN_ARRAY_IMPLEMENTATION(KMER_EDGE_PAIR)

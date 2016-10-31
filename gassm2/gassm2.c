@@ -414,7 +414,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 	alternateLens[0] = Task->Alternate1Length;
 	alternateLens[1] = Task->Alternate2Length;
 	pointer_array_init_FOUND_SEQUENCE(&seqArray, 140);
-	ret = kmer_graph_get_seqs(Graph, &seqArray);
+	ret = kmer_graph_get_seqs(Graph, Task->Reference, &seqArray);
 	if (ret == ERR_SUCCESS) {
 		/*
 		kmer_graph_delete_seqs(Graph, &seqArray, Options->Threshold);
@@ -538,6 +538,11 @@ static void _on_delete_edge(const KMER_GRAPH *Graph, const KMER_EDGE *Edge, void
 
 	while (i < gen_array_size(pairs)) {
 		if (p->U == Edge || p->V == Edge) {
+			if (p->Edges != NULL) {
+				utils_free(p->Edges);
+				p->Edges = NULL;
+			}
+
 			dym_array_remove_fastKMER_EDGE_PAIR(pairs, i);
 			continue;
 		}
@@ -555,7 +560,7 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 	PKMER_GRAPH g = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-		ret = kmer_graph_create(Options->KMerSize, &g);
+		ret = kmer_graph_create(Options->KMerSize, 2500, 6000, &g);
 		if (ret == ERR_SUCCESS) {
 			ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength, Options->Threshold);
 			if (ret == ERR_SUCCESS) {
@@ -575,15 +580,15 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 						size_t changeCount = 0;
 						ret = kmer_graph_connect_reads_by_pairs(g, Options->Threshold, &ep, &changeCount);
 						if (ret == ERR_SUCCESS) {
-							ret = kmer_graph_connect_reads_by_reads(g, Options->Threshold);
+//							ret = kmer_graph_connect_reads_by_reads(g, Options->Threshold);
 							if (ret == ERR_SUCCESS) {
 								kmer_graph_delete_1to1_vertices(g);
 								boolean changed = FALSE;
-								do {
+//								do {
 									changed = FALSE;
 									ret = kmer_graph_detect_uncertainities(g, &changed);
 									kmer_graph_delete_trailing_things(g, &deletedThings);
-								} while (ret == ERR_SUCCESS && changed);
+//								} while (ret == ERR_SUCCESS && changed);
 
 								if (ret == ERR_SUCCESS) {
 									res = _compare_alternate_sequences(Options, g, Task, Statistics);
@@ -593,6 +598,15 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 					} else ++Statistics->CannotSucceed;
 				} else printf("kmer_graph_parse_reads(): %u\n", ret);
 			
+				PKMER_EDGE_PAIR p = ep.Data;
+
+				for (size_t i = 0; i < gen_array_size(&ep); ++i) {
+					if (p->Edges != NULL)
+						utils_free(p->Edges);
+
+					++p;
+				}
+
 				dym_array_finit_KMER_EDGE_PAIR(&ep);
 			} else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
 
@@ -1415,10 +1429,10 @@ int main(int argc, char *argv[])
 								POINTER_ARRAY_char fileNameArray;
 								
 								pointer_array_init_char(&fileNameArray, 140);
-								ret = pointer_array_reserve_char(&fileNameArray, 4096);
+								ret = pointer_array_reserve_char(&fileNameArray, 16384);
 								if (ret == ERR_SUCCESS) {
 									do {
-										_obtain_files(&fileNameArray, 4096, &dir);
+										_obtain_files(&fileNameArray, 16384, &dir);
 										int i = 0;
 #pragma omp parallel for shared(po, stats, fileNameArray)	
 										for (i = 0; i < (int)pointer_array_size(&fileNameArray); ++i) {

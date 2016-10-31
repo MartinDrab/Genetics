@@ -38,13 +38,24 @@ static UTILS_TYPED_MALLOC_FUNCTION(KMER_EDGE_TABLE)
 static UTILS_TYPED_CALLOC_FUNCTION(KMER_EDGE_TABLE_ENTRY)
 
 
+
+static boolean _kmer_edge_entry_equal(const KMER_EDGE_TABLE_ENTRY *Entry, const KMER *Source, const KMER *Dest)
+{
+	return (
+		kmer_get_number(Source) == kmer_get_number(Entry->Source) &&
+		kmer_get_number(Dest) == kmer_get_number(Entry->Dest) &&
+		kmer_seq_equal(Source, Entry->Source) &&
+		kmer_seq_equal(Dest, Entry->Dest)
+		);
+}
+
 static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_insert_hint(const KMER_EDGE_TABLE *Table, size_t Hash, const KMER *Source, const KMER *Dest)
 {
 	PKMER_EDGE_TABLE_ENTRY firstDeleted = NULL;
 	PKMER_EDGE_TABLE_ENTRY ret = NULL;
 
 	ret = _kmer_edge_table_nth_entry(Table, Hash);
-	if ((!_kmer_edge_table_entry_empty(ret) || ret->Deleted) && (ret->Deleted || !kmer_equal(ret->Source, Source) || !kmer_equal(ret->Dest, Dest))) {
+	if ((!_kmer_edge_table_entry_empty(ret) || ret->Deleted) && (ret->Deleted || !_kmer_edge_entry_equal(ret, Source, Dest))) {
 		size_t attempt = 1;
 		PKMER_EDGE_TABLE_ENTRY first = ret;
 
@@ -57,7 +68,7 @@ static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_insert_hint(const KMER_E
 			if (firstDeleted == NULL && ret->Deleted)
 				firstDeleted = ret;
 			
-			if (!ret->Deleted && (_kmer_edge_table_entry_empty(ret) || (kmer_equal(ret->Source, Source) && kmer_equal(ret->Dest, Dest))))
+			if (!ret->Deleted && (_kmer_edge_table_entry_empty(ret) || _kmer_edge_entry_equal(ret, Source, Dest)))
 				break;
 
 			if (first == ret) {
@@ -81,14 +92,14 @@ static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_delsearch_hint(const KME
 	PKMER_EDGE_TABLE_ENTRY ret = NULL;
 
 	ret = _kmer_edge_table_nth_entry(Table, Hash);
-	if ((!_kmer_edge_table_entry_empty(ret) || ret->Deleted) && (ret->Deleted || !kmer_equal(ret->Source, Source) || !kmer_equal(ret->Dest, Dest))) {
+	if ((!_kmer_edge_table_entry_empty(ret) || ret->Deleted) && (ret->Deleted || !_kmer_edge_entry_equal(ret, Source, Dest))) {
 		size_t attempt = 1;
 		PKMER_EDGE_TABLE_ENTRY first = ret;
 
 		do {
 			Hash = _next_hash_attempt(Hash, attempt, Table->Size);
 			ret = _kmer_edge_table_nth_entry(Table, Hash);
-			if (!ret->Deleted && (_kmer_edge_table_entry_empty(ret) || (kmer_equal(ret->Source, Source) && kmer_equal(ret->Dest, Dest))))
+			if (!ret->Deleted && (_kmer_edge_table_entry_empty(ret) || _kmer_edge_entry_equal(ret, Source, Dest)))
 				break;
 
 			if (first == ret) {
@@ -176,7 +187,6 @@ ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t Size, const
 			} else tmpTable->Callbacks = *Callbacks;
 			
 			tmpTable->LastOrder = 0;
-			assert((X*tmpTable->Inverse % Size) == 1);
 			ret = utils_calloc_KMER_EDGE_TABLE_ENTRY(tmpTable->Size, &tmpTable->Entries);
 			if (ret == ERR_SUCCESS) {
 				memset(tmpTable->Entries, 0, tmpTable->Size*sizeof(KMER_EDGE_TABLE_ENTRY));
