@@ -324,7 +324,7 @@ static ERR_VALUE _mark_long_edge_flags(const PKMER_VERTEX *Vertices, const size_
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	ret = ERR_SUCCESS;
-	if (NumberOfVertices > 2) {
+	if (NumberOfVertices >= 2) {
 		ret = utils_calloc(NumberOfVertices, sizeof(uint8_t), &tmpFlags);
 		if (ret == ERR_SUCCESS) {
 			memset(tmpFlags, 0, NumberOfVertices*sizeof(uint8_t));
@@ -452,69 +452,76 @@ static ERR_VALUE _add_read_helper_vertices(PKMER_GRAPH Graph, PKMER_VERTEX **pVe
 
 	pointer_array_init_KMER_VERTEX(&va, 140);
 	pointer_array_init_KMER_EDGE(&ea, 140);
-	ret = pointer_array_push_back_KMER_VERTEX(&va, pathVertices[0]);
+	ret = pointer_array_reserve_KMER_VERTEX(&va, 20);
 	if (ret == ERR_SUCCESS) {
-		for (size_t i = 0; i < numberOfVertices - 1; ++i) {
-			PKMER_VERTEX u = pathVertices[i];
-			PKMER_VERTEX v = pathVertices[i + 1];
-			PKMER_EDGE e = kmer_graph_get_edge(Graph, &u->KMer, &v->KMer);
+		ret = pointer_array_reserve_KMER_EDGE(&ea, 20);
+		if (ret == ERR_SUCCESS) {
+			pointer_array_push_back_no_alloc_KMER_VERTEX(&va, pathVertices[0]);
+			if (ret == ERR_SUCCESS) {
+				for (size_t i = 0; i < numberOfVertices - 1; ++i) {
+					PKMER_VERTEX u = pathVertices[i];
+					PKMER_VERTEX v = pathVertices[i + 1];
+					PKMER_EDGE e = kmer_graph_get_edge(Graph, &u->KMer, &v->KMer);
 
-			if (u->Type == kmvtRead && v->Type == kmvtRead) {
-				split = (
-					kmer_vertex_out_degree(u) > 1 ||
-					(kmer_vertex_in_degree(v) > 1)
-					);
-			}
+					if (u->Type == kmvtRead && v->Type == kmvtRead) {
+						split = (
+							kmer_vertex_out_degree(u) > 1 ||
+							(kmer_vertex_in_degree(v) > 1)
+							);
+					}
 
-			if (split) {
-				PKMER_VERTEX sv = NULL;
-				PKMER_EDGE se = NULL;
-				PKMER_EDGE de = NULL;
+					if (split) {
+						PKMER_VERTEX sv = NULL;
+						PKMER_EDGE se = NULL;
+						PKMER_EDGE de = NULL;
 
-				if (e != NULL)
-					ret = kmer_graph_split_edge(Graph, e, &se, &de, &sv);
-				else ret = kmer_graph_get_splitted_edge(Graph, u, v, &se, &de, &sv);
+						if (e != NULL)
+							ret = kmer_graph_split_edge(Graph, e, &se, &de, &sv);
+						else ret = kmer_graph_get_splitted_edge(Graph, u, v, &se, &de, &sv);
 
-				if (ret != ERR_SUCCESS) {
-					printf("_add_read_helper_vertices(): %u\n", ret);
-					exit(0);
-					ret = ERR_SUCCESS;
+						if (ret != ERR_SUCCESS) {
+							printf("_add_read_helper_vertices(): %u\n", ret);
+							exit(0);
+							ret = ERR_SUCCESS;
+						}
+
+						if (ret == ERR_SUCCESS)
+							ret = pointer_array_push_back_KMER_VERTEX(&va, sv);
+
+						if (ret == ERR_SUCCESS)
+							ret = pointer_array_push_back_KMER_VERTEX(&va, v);
+
+						if (ret == ERR_SUCCESS)
+							ret = pointer_array_push_back_KMER_EDGE(&ea, se);
+
+						if (ret == ERR_SUCCESS)
+							ret = pointer_array_push_back_KMER_EDGE(&ea, de);
+
+						split = FALSE;
+					}
+					else {
+						ret = pointer_array_push_back_KMER_VERTEX(&va, v);
+						if (ret == ERR_SUCCESS)
+							ret = pointer_array_push_back_KMER_EDGE(&ea, e);
+					}
+
+					if (ret != ERR_SUCCESS)
+						break;
 				}
 
-				if (ret == ERR_SUCCESS)
-					ret = pointer_array_push_back_KMER_VERTEX(&va, sv);
-				
-				if (ret == ERR_SUCCESS)
-					ret = pointer_array_push_back_KMER_VERTEX(&va, v);
-
-				if (ret == ERR_SUCCESS)
-					ret = pointer_array_push_back_KMER_EDGE(&ea, se);
-
-				if (ret == ERR_SUCCESS)
-					ret = pointer_array_push_back_KMER_EDGE(&ea, de);
-			
-				split = FALSE;
-			} else {
-				ret = pointer_array_push_back_KMER_VERTEX(&va, v);
-				if (ret == ERR_SUCCESS)
-					ret = pointer_array_push_back_KMER_EDGE(&ea, e);
+				if (ret == ERR_SUCCESS) {
+					*pNumberOfVertices = pointer_array_size(&va);
+					utils_free(*pVertices);
+					*pVertices = va.Data;
+					*pEdges = ea.Data;
+				}
 			}
-
-			if (ret != ERR_SUCCESS)
-				break;
 		}
+	}
 
-		if (ret == ERR_SUCCESS) {
-			*pNumberOfVertices = pointer_array_size(&va);
-			utils_free(*pVertices);
-			*pVertices = va.Data;
-			*pEdges = ea.Data;
-		}
-
-		if (ret != ERR_SUCCESS) {
-			pointer_array_finit_KMER_EDGE(&ea);
-			pointer_array_finit_KMER_VERTEX(&va);
-		}
+	if (ret != ERR_SUCCESS) {
+		pointer_array_finit_KMER_EDGE(&ea);
+		pointer_array_finit_KMER_VERTEX(&va);
 	}
 
 	return ret;
@@ -554,22 +561,20 @@ static ERR_VALUE _kmer_graph_parse_read_v2(PKMER_GRAPH Graph, const ONE_READ *Re
 	*Path = NULL;
 	*PathLength = 0;
 	ret = ERR_SUCCESS;
-	if (Read->ReadSequenceLen > kmerSize) {
-		const READ_PART *part = NULL;
+	const READ_PART *part = NULL;
 
-		part = &Read->Part;
-		if (part->ReadSequenceLength > kmerSize) {
-			const size_t maxNumberOfVertices = part->ReadSequenceLength - (kmerSize - 1);
-			size_t tmpPathLength = 0;
-			PKMER_VERTEX *tmpPath = NULL;
+	part = &Read->Part;
+	if (part->ReadSequenceLength > kmerSize) {
+		const size_t maxNumberOfVertices = part->ReadSequenceLength - (kmerSize - 1);
+		size_t tmpPathLength = 0;
+		PKMER_VERTEX *tmpPath = NULL;
 
-			ret = _produce_single_path(Graph, part->ReadSequence, maxNumberOfVertices, TRUE, &tmpPath, &tmpPathLength);
+		ret = _produce_single_path(Graph, part->ReadSequence, maxNumberOfVertices, TRUE, &tmpPath, &tmpPathLength);
+		if (ret == ERR_SUCCESS) {
+			ret = _create_short_read_edges(Graph, tmpPath, tmpPathLength, part, ReadIndex);
 			if (ret == ERR_SUCCESS) {
-				ret = _create_short_read_edges(Graph, tmpPath, tmpPathLength, part, ReadIndex);
-				if (ret == ERR_SUCCESS) {
-					*Path = tmpPath;
-					*PathLength = tmpPathLength;
-				}
+				*Path = tmpPath;
+				*PathLength = tmpPathLength;
 			}
 		}
 	}
@@ -762,46 +767,48 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_
 						++currentRead;
 					}
 
-					currentRead = Reads;
-					for (size_t i = 0; i < ReadCount; ++i) {
-						ret = _add_read_helper_vertices(Graph, paths + i, edgePaths + i, pathLengths + i);
-						if (ret == ERR_SUCCESS)
-							ret = _mark_long_edge_flags(paths[i], pathLengths[i], flagPaths + i);
-
-						if (ret != ERR_SUCCESS)
-							break;
-
-						++currentRead;
-					}
-
 					if (ret == ERR_SUCCESS) {
-						boolean fixed = FALSE;
-						/*
-						do {
-						fixed = FALSE;
 						currentRead = Reads;
 						for (size_t i = 0; i < ReadCount; ++i) {
-						ret = _fix_read(Graph, currentRead, paths + i, pathLengths + i, i, Threshold, RegionStart, &fixed);
-						if (ret != ERR_SUCCESS)
-						break;
+							ret = _add_read_helper_vertices(Graph, paths + i, edgePaths + i, pathLengths + i);
+							if (ret == ERR_SUCCESS)
+								ret = _mark_long_edge_flags(paths[i], pathLengths[i], flagPaths + i);
 
-						++currentRead;
+							if (ret != ERR_SUCCESS)
+								break;
+
+							++currentRead;
 						}
-						} while (ret == ERR_SUCCESS && fixed);
-						*/
 
 						if (ret == ERR_SUCCESS) {
+							boolean fixed = FALSE;
+							/*
+							do {
+							fixed = FALSE;
 							currentRead = Reads;
 							for (size_t i = 0; i < ReadCount; ++i) {
-								ret = _create_long_read_edges(Graph, paths[i], edgePaths[i], flagPaths[i], pathLengths[i], &currentRead->Part, i, PairArray);
-								if (ret != ERR_SUCCESS)
-									break;
+							ret = _fix_read(Graph, currentRead, paths + i, pathLengths + i, i, Threshold, RegionStart, &fixed);
+							if (ret != ERR_SUCCESS)
+							break;
 
-								++currentRead;
+							++currentRead;
+							}
+							} while (ret == ERR_SUCCESS && fixed);
+							*/
+
+							if (ret == ERR_SUCCESS) {
+								currentRead = Reads;
+								for (size_t i = 0; i < ReadCount; ++i) {
+									ret = _create_long_read_edges(Graph, paths[i], edgePaths[i], flagPaths[i], pathLengths[i], &currentRead->Part, i, PairArray);
+									if (ret != ERR_SUCCESS)
+										break;
+
+									++currentRead;
+								}
 							}
 						}
 					}
-				
+
 					for (size_t i = 0; i < ReadCount; ++i) {
 						if (flagPaths[i] != NULL)
 							utils_free(flagPaths[i]);

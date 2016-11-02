@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include "err.h"
+#include "khash.h"
 #include "utils.h"
 #include "kmer.h"
 
@@ -13,13 +14,6 @@ typedef struct _KMER_EDGE_TABLE_KEY {
 	const KMER *Source;
 	const KMER *Dest;
 } KMER_EDGE_TABLE_KEY, *PKMER_EDGE_TABLE_KEY;
-
-typedef struct _KMER_EDGE_TABLE_ENTRY {
-	boolean Deleted;
-	const KMER *Source;
-	const KMER *Dest;
-	void *Data;
-} KMER_EDGE_TABLE_ENTRY, *PKMER_EDGE_TABLE_ENTRY;
 
 typedef struct _KMER_EDGE_TABLE;
 
@@ -35,14 +29,15 @@ typedef struct _KMER_EDGE_TABLE_CALLBACKS {
 	KMER_EDGE_TABLE_ON_PRINT_CALLBACK *OnPrint;
 } KMER_EDGE_TABLE_CALLBACKS, *PKMER_EDGE_TABLE_CALLBACKS;
 
+
+__KHASH_TYPE(edgeTable, KMER_EDGE_TABLE_KEY, void *)
+
+
 typedef struct _KMER_EDGE_TABLE {
-	size_t NumberOfItems;
-	size_t Size;
 	size_t KMerSize;
 	unsigned int LastOrder;
-	void *KHashTable;
+	khash_t(edgeTable) *KHashTable;
 	KMER_EDGE_TABLE_CALLBACKS Callbacks;
-	PKMER_EDGE_TABLE_ENTRY Entries;
 } KMER_EDGE_TABLE, *PKMER_EDGE_TABLE;
 
 
@@ -50,16 +45,13 @@ typedef struct _KMER_EDGE_TABLE {
 
 ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t Size, const PKMER_EDGE_TABLE_CALLBACKS Callbacks, PKMER_EDGE_TABLE *Table);
 void kmer_edge_table_destroy(PKMER_EDGE_TABLE Table);
-ERR_VALUE kmer_edge_table_extend(PKMER_EDGE_TABLE Table);
 
 ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const KMER *Source, const KMER *Dest, void *Data);
 ERR_VALUE kmer_edge_table_delete(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest);
-void kmer_edge_table_delete_by_entry(PKMER_EDGE_TABLE Table, PKMER_EDGE_TABLE_ENTRY Entry);
 void *kmer_edge_table_get(const struct _KMER_EDGE_TABLE *Table, const struct _KMER *Source, const struct _KMER *Dest);
-ERR_VALUE kmer_edge_table_first(const PKMER_EDGE_TABLE Table, PKMER_EDGE_TABLE_ENTRY *Slot);
-ERR_VALUE kmer_edge_table_next(const PKMER_EDGE_TABLE Table, const PKMER_EDGE_TABLE_ENTRY Current, PKMER_EDGE_TABLE_ENTRY *Next);
+ERR_VALUE kmer_edge_table_first(const PKMER_EDGE_TABLE Table, void **Slot, void **Data);
+ERR_VALUE kmer_edge_table_next(const PKMER_EDGE_TABLE Table, const void *Current, void **Next, void **Data);
 
-size_t kmer_edge_hash(const struct _KMER *Source, const struct _KMER *Dest);
 void kmer_edge_table_print(FILE *Stream, const PKMER_EDGE_TABLE Table);
 
 

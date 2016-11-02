@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
+#include "khash.h"
 #include "err.h"
 #include "utils.h"
 #include "dym-array.h"
@@ -13,97 +14,27 @@
 /*                      HELPER MACROS AND TYPES                         */
 /************************************************************************/
 
-#define _kmer_table_slot_used(aFlags, aIndex)				(((aFlags)[(aIndex)]) & KMER_TABLE_ENTRY_FLAG_USED)
-#define _kmer_table_slot_deleted(aFlags, aIndex)			(((aFlags)[(aIndex)]) & KMER_TABLE_ENTRY_FLAG_DELETED)
-#define _next_hash_attempt(aHash, aAttempt)		(aHash + 2 * aAttempt + 1)
-#define _kmer_table_nth_key(aKeys, aIndex)		((aKeys)[(aIndex)])
-
-
-typedef enum _ETableOpType {
-	totSearch,
-	totInsert,
-	totDelete,
-} ETableOpType, *PETableOpType;
-
 /************************************************************************/
 /*                   HELPER FUNCTIONS                                   */
 /************************************************************************/
 
 
 static UTILS_TYPED_MALLOC_FUNCTION(KMER_TABLE)
-static UTILS_TYPED_CALLOC_FUNCTION(KMER_TABLE_ENTRY)
 
 
-static size_t _kmer_table_get_slot_insert_hint(const KMER_TABLE *Table, size_t Hash, const KMER *KMer)
-{
-	size_t ret = (size_t)-1;
-	size_t firstDeleted = (size_t)-1;
-	const uint8_t *flags = Table->Flags;
-	const KMER **keys = Table->Keys;
-	const size_t tableSize = Table->Size;
-
-	if (flags[Hash] != 0 && (!_kmer_table_slot_used(flags, Hash) || !kmer_equal(KMer, _kmer_table_nth_key(keys, Hash)))) {
-		if (_kmer_table_slot_deleted(flags, Hash))
-			firstDeleted = Hash;
-
-		for (size_t attempt = 1; attempt <= tableSize; ++attempt) {
-			Hash = _next_hash_attempt(Hash, attempt) % tableSize;
-			if (firstDeleted == (size_t)-1 && _kmer_table_slot_deleted(flags, Hash))
-				firstDeleted = Hash;
-			
-			if (!_kmer_table_slot_deleted(flags, Hash) && (!_kmer_table_slot_used(flags, Hash) || kmer_equal(_kmer_table_nth_key(keys, Hash), KMer))) {
-				ret = Hash;
-				break;
-			}
-		}
-
-		if (firstDeleted != (size_t)-1 && ret != (size_t)-1 && !_kmer_table_slot_used(flags, Hash))
-			ret = firstDeleted;
-	} else ret = Hash;
-
-	return ret;
-}
-
-
-static size_t _kmer_table_get_slot_delsearch_hint(const KMER_TABLE *Table, size_t Hash, const KMER *KMer)
-{
-	size_t ret = (size_t)-1;
-	const uint8_t *flags = Table->Flags;
-	const KMER **keys = Table->Keys;
-	const size_t tableSize = Table->Size;
-
-	if ((flags[Hash] != 0) && (!_kmer_table_slot_used(flags, Hash) || !kmer_equal(_kmer_table_nth_key(keys, Hash), KMer))) {
-		for (size_t attempt = 1; attempt <= tableSize; ++attempt) {
-			Hash = _next_hash_attempt(Hash, attempt) % tableSize;
-			if (!_kmer_table_slot_deleted(flags, Hash) && (!_kmer_table_slot_used(flags, Hash) || kmer_equal(_kmer_table_nth_key(keys , Hash), KMer))) {
-				ret = Hash;
-				break;
-			}
-		}
-	} else ret = Hash;
-
-	return ret;
-}
-
-
-static size_t _kmer_table_get_slot(const KMER_TABLE *Table, const KMER *KMer, const ETableOpType OpType)
+static INLINE_FUNCTION size_t _kmer_hash(const struct _KMER *KMer)
 {
 	size_t hash = 0;
+	const size_t kmerSize = kmer_get_size(KMer);
 
-	hash = kmer_hash(KMer) % Table->Size;
-	assert(hash < Table->Size);
-	switch (OpType) {
-		case totInsert:
-			hash = _kmer_table_get_slot_insert_hint(Table, hash, KMer);
-			break;
-		case totSearch:
-		case totDelete:
-			hash = _kmer_table_get_slot_delsearch_hint(Table, hash, KMer);
-			break;
-	}
+	for (size_t i = 0 + 1; i < kmerSize; ++i)
+		hash = (hash << 5) - hash + kmer_get_base(KMer, i);
 
 	return hash;
 }
+
+
+__KHASH_IMPL(vertexTable, INLINE_FUNCTION, const KMER *, void *, TRUE, _kmer_hash, kmer_equal)
 
 
 static void _on_insert_dummy_callback(struct _KMER_TABLE *Table, void *ItemData, const uint32_t Order)
@@ -141,12 +72,12 @@ ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t Size, const KMER
 	PKMER_TABLE tmpTable = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	if (utils_is_prime(Size)) {
-		ret = utils_malloc_KMER_TABLE(&tmpTable);
-		if (ret == ERR_SUCCESS) {
-			tmpTable->NumberOfItems = 0;
+	ret = utils_malloc_KMER_TABLE(&tmpTable);
+	if (ret == ERR_SUCCESS) {
+		tmpTable->KHashTable = kh_init(vertexTable);
+		if (tmpTable != NULL) {
+			kh_resize(vertexTable, tmpTable->KHashTable, Size);
 			tmpTable->LastOrder = 0;
-			tmpTable->Size = Size;
 			tmpTable->KMerSize = KMerSize;
 			if (Callbacks == NULL) {
 				tmpTable->Callbacks.OnInsert = _on_insert_dummy_callback;
@@ -155,19 +86,13 @@ ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t Size, const KMER
 				tmpTable->Callbacks.OnPrint = _on_print_dummy_callback;
 			} else tmpTable->Callbacks = *Callbacks;
 
-			tmpTable->Entries = (PKMER_TABLE_ENTRY)malloc(tmpTable->Size*(sizeof(KMER_TABLE_ENTRY) + sizeof(PKMER) + sizeof(uint8_t)));
-			tmpTable->Keys = (PKMER *)(tmpTable->Entries + tmpTable->Size);
-			tmpTable->Flags = (uint8_t *)(tmpTable->Keys + tmpTable->Size);
-			if (tmpTable->Entries != NULL) {
-				memset(tmpTable->Entries, 0, tmpTable->Size*sizeof(KMER_TABLE_ENTRY));
-				memset(tmpTable->Flags, 0, sizeof(uint8_t)*tmpTable->Size);
-				*Table = tmpTable;
-			} else ret = ERR_OUT_OF_MEMORY;
-
-			if (ret != ERR_SUCCESS)
-				utils_free(tmpTable);
-		}
-	} else ret = ERR_NOT_A_PRIME;
+			*Table = tmpTable;
+			ret = ERR_SUCCESS;
+		} else ret = ERR_OUT_OF_MEMORY;
+		
+		if (ret != ERR_SUCCESS)
+			utils_free(tmpTable);
+	} else ret = ERR_OUT_OF_MEMORY;
 
 	return ret;
 }
@@ -175,75 +100,23 @@ ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t Size, const KMER
 
 void kmer_table_destroy(PKMER_TABLE Table)
 {
-	const uint8_t *flags = Table->Flags;
-
-	for (size_t i = 0; i < Table->Size; ++i) {
-		if (_kmer_table_slot_used(flags, i))
-			Table->Callbacks.OnDelete(Table, Table->Entries[i].Data);
+	for (khiter_t it = kh_begin(Table->KHashTable); it != kh_end(Table->KHashTable); ++it) {
+		if (kh_exist(Table->KHashTable, it))
+			Table->Callbacks.OnDelete(Table, kh_val(Table->KHashTable, it));
 	}
 
-	free(Table->Entries);
+	kh_destroy(vertexTable, Table->KHashTable);
 	utils_free(Table);
 
 	return;
 }
 
 
-ERR_VALUE kmer_table_extend(PKMER_TABLE Table)
-{
-	size_t newSize = 0;
-	PKMER_TABLE newTable = NULL;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	newSize = Table->Size * 2;
-	newSize = utils_next_prime(newSize);
-	ret = kmer_table_create(Table->KMerSize, newSize, &Table->Callbacks, &newTable);
-	if (ret == ERR_SUCCESS) {
-		const uint8_t *flags = Table->Flags;
-		const KMER **keys = Table->Keys;
-		const KMER_TABLE_ENTRY *entry = Table->Entries;
-		KMER_TABLE_ENTRY *newEntries = newTable->Entries;
-		size_t slotIndex = 0;
-		
-		for (size_t i = 0; i < Table->Size; ++i) {
-			if (_kmer_table_slot_used(flags, i)) {				
-				slotIndex = _kmer_table_get_slot(newTable, _kmer_table_nth_key(keys, i), totInsert);
-				if (slotIndex != (size_t)-1) {
-					memcpy(newEntries + slotIndex, entry, sizeof(KMER_TABLE_ENTRY));
-					newTable->Flags[slotIndex] = KMER_TABLE_ENTRY_FLAG_USED;
-					newTable->Keys[slotIndex] = keys[i];
-				} else ret = ERR_TABLE_FULL;
-			}
-
-			if (ret != ERR_SUCCESS)
-				break;
-
-			++entry;
-		}
-
-		if (ret == ERR_SUCCESS) {
-			free(Table->Entries);
-			newTable->NumberOfItems = Table->NumberOfItems;
-			newTable->LastOrder = Table->LastOrder;
-			memcpy(Table, newTable, sizeof(KMER_TABLE));
-			utils_free(newTable);
-		}
-
-		if (ret != ERR_SUCCESS)
-			kmer_table_destroy(newTable);
-	}
-
-	return ret;
-}
-
-
 void kmer_table_print(FILE *Stream, const PKMER_TABLE Table)
 {
-	const uint8_t *flags = Table->Flags;
-
-	for (size_t i = 0; i < Table->Size; ++i) {
-		if (_kmer_table_slot_used(flags, i))
-			Table->Callbacks.OnPrint(Table, Table->Entries[i].Data, Stream);
+	for (khiter_t it = kh_begin(Table->KHashTable); it != kh_end(Table->KHashTable); ++it) {
+		if (kh_exist(Table->KHashTable, it))
+			Table->Callbacks.OnPrint(Table, kh_val(Table->KHashTable, it), Stream);
 	}
 
 	return;
@@ -252,25 +125,29 @@ void kmer_table_print(FILE *Stream, const PKMER_TABLE Table)
 
 ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const KMER *KMer, void *Data)
 {
-	size_t slotIndex = (size_t)-1;
-	PKMER_TABLE_ENTRY entry = NULL;
+	int r = 0;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	khiter_t it;
 
-	if (Table->NumberOfItems * 100 / Table->Size < 50) {
-		slotIndex = _kmer_table_get_slot(Table, KMer, totInsert);
-		if (slotIndex != (size_t)-1) {
-			entry = Table->Entries + slotIndex;
-			if (!_kmer_table_slot_used(Table->Flags, slotIndex)) {
-				entry->Data = Data;
-				Table->Keys[slotIndex] = KMer;
-				Table->Flags[slotIndex] = KMER_TABLE_ENTRY_FLAG_USED;
-				Table->Callbacks.OnInsert(Table, entry->Data, Table->LastOrder);
-				++Table->LastOrder;
-				++Table->NumberOfItems;
-				ret = ERR_SUCCESS;
-			} else ret = ERR_ALREADY_EXISTS;
-		} else ret = ERR_TABLE_FULL;
-	} else ret = ERR_TABLE_FULL;
+	it = kh_put(vertexTable, Table->KHashTable, KMer, &r);
+	switch (r) {
+		case 0:
+			ret = ERR_ALREADY_EXISTS;
+			break;
+		case 1:
+		case 2:
+			kh_val(Table->KHashTable, it) = Data;
+			Table->Callbacks.OnInsert(Table, Data, Table->LastOrder);
+			++Table->LastOrder;
+			ret = ERR_SUCCESS;
+			break;
+		case -1:
+			ret = ERR_OUT_OF_MEMORY;
+			break;
+		default:
+			__debugbreak();
+			break;
+	}
 
 	return ret;
 }
@@ -278,20 +155,14 @@ ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const KMER *KMer, void *Data)
 
 ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const PKMER KMer)
 {
-	size_t slot = (size_t)-1;
-	PKMER_TABLE_ENTRY entry = NULL;
+	khiter_t it;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	slot = _kmer_table_get_slot(Table, KMer, totDelete);
-	if (slot != (size_t)-1) {
-		entry = Table->Entries + slot;
-		if (_kmer_table_slot_used(Table->Flags, slot)) {
-			Table->Callbacks.OnDelete(Table, entry->Data);
-			memset(entry, 0, sizeof(KMER_TABLE_ENTRY));
-			Table->Flags[slot] = KMER_TABLE_ENTRY_FLAG_DELETED;
-			--Table->NumberOfItems;
-			ret = ERR_SUCCESS;
-		} else ret = ERR_NOT_FOUND;
+	it = kh_get(vertexTable, Table->KHashTable, KMer);
+	if (it != kh_end(Table->KHashTable)) {
+		Table->Callbacks.OnDelete(Table, kh_val(Table->KHashTable, it));
+		kh_del(vertexTable, Table->KHashTable, it);
+		ret = ERR_SUCCESS;
 	} else ret = ERR_NOT_FOUND;
 
 	return ret;
@@ -301,28 +172,25 @@ ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const PKMER KMer)
 void *kmer_table_get(const struct _KMER_TABLE *Table, const struct _KMER *KMer)
 {
 	void *ret = NULL;
-	size_t slot = (size_t)-1;
+	khiter_t it;
 
-	slot = _kmer_table_get_slot(Table, KMer, totSearch);
-	if (slot != (size_t)-1 && !_kmer_table_slot_used(Table->Flags, slot))
-		slot = (size_t)-1;
-
-	if (slot != (size_t)-1)
-		ret = Table->Entries[slot].Data;
+	it = kh_get(vertexTable, Table->KHashTable, KMer);
+	if (it != kh_end(Table->KHashTable))
+		ret = kh_val(Table->KHashTable, it);
 
 	return ret;
 }
 
 
-ERR_VALUE kmer_table_first(const PKMER_TABLE Table, PKMER_TABLE_ENTRY *Slot)
+ERR_VALUE kmer_table_first(const PKMER_TABLE Table, void **Slot, void **Data)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	const uint8_t *flags = Table->Flags;
 
 	ret = ERR_NO_MORE_ENTRIES;
-	for (size_t i = 0; i < Table->Size; ++i) {
-		if (_kmer_table_slot_used(flags, i)) {
-			*Slot = Table->Entries + i;
+	for (khiter_t it = kh_begin(Table->KHashTable); it != kh_end(Table->KHashTable); ++it) {
+		if (kh_exist(Table->KHashTable, it)) {
+			*Slot = (void *)it;
+			*Data = kh_val(Table->KHashTable, it);
 			ret = ERR_SUCCESS;
 			break;
 		}
@@ -332,67 +200,48 @@ ERR_VALUE kmer_table_first(const PKMER_TABLE Table, PKMER_TABLE_ENTRY *Slot)
 }
 
 
-ERR_VALUE kmer_table_next(const PKMER_TABLE Table, const PKMER_TABLE_ENTRY Current, PKMER_TABLE_ENTRY *Next)
+ERR_VALUE kmer_table_next(const PKMER_TABLE Table, const void *Current, void **Next, void **Data)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	const uint8_t *flags = Table->Flags;
 
 	ret = ERR_NO_MORE_ENTRIES;
-	for (size_t i = (Current - Table->Entries) + 1; i < Table->Size; ++i) {
-		if (_kmer_table_slot_used(flags, i)) {
-			*Next = Table->Entries + i;
+	for (khiter_t it = (khiter_t)Current + 1; it != kh_end(Table->KHashTable); ++it) {
+		if (kh_exist(Table->KHashTable, it)) {
+			*Next = (void *)it;
+			*Data = kh_val(Table->KHashTable, it);
 			ret = ERR_SUCCESS;
 			break;
 		}
 	}
 
 	return ret;
-}
-
-
-size_t kmer_hash(const struct _KMER *KMer)
-{
-	size_t hash = 0;
-	const size_t kmerSize = kmer_get_size(KMer);
-
-	for (size_t i = 0; i < kmerSize; ++i) {
-		hash <<= 1;
-		hash += (kmer_get_base(KMer, i));
-	}
-
-	return hash;
 }
 
 
 ERR_VALUE kmer_table_get_multiple(const KMER_TABLE *Table, const KMER *KMer, PDYM_ARRAY DataArray)
 {
-	size_t hash = 0;
-	const uint8_t *flags = Table->Flags;
-	const KMER **keys = Table->Keys;
-	const size_t tableSize = Table->Size;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	const khash_t(vertexTable) *kht = Table->KHashTable;
 
 	ret = ERR_SUCCESS;
-	hash = kmer_hash(KMer) % tableSize;
-	if (_kmer_table_slot_used(flags, hash)) {
-		if (kmer_seq_equal(KMer, _kmer_table_nth_key(keys, hash) ))
-			ret = dym_array_push_back(DataArray, (Table->Entries + hash)->Data);
-	}
-
-	if (ret == ERR_SUCCESS && flags[hash] != 0) {
-		for (size_t attempt = 1; attempt <= tableSize; ++attempt) {
-			hash = _next_hash_attempt(hash, attempt) % tableSize;
-			if (flags[hash] == 0)
-				break;
-
-			if (_kmer_table_slot_used(flags, hash)) {
-				if (kmer_seq_equal(KMer, _kmer_table_nth_key(keys, hash))) {
-					ret = dym_array_push_back(DataArray, (Table->Entries + hash)->Data);
-					if (ret != ERR_SUCCESS)
-						break;
-				}
+	if (kht->n_buckets > 0) {
+		khint_t k, i, last, mask, step = 0;
+		
+		mask = kht->n_buckets - 1;									
+		k = _kmer_hash(KMer); 
+		i = k & mask;
+		last = i;
+		while (!__ac_isempty(kht->flags, i) || __ac_isdel(kht->flags, i)) {
+			if (kmer_seq_equal(KMer, kht->keys[i])) {
+				ret = dym_array_push_back(DataArray, kht->vals[i]);
+				if (ret != ERR_SUCCESS)
+					break;
 			}
-		}
+			
+			i = (i + (++step)) & mask;
+			if (i == last)
+				break;
+		}															
 	}
 
 	return ret;

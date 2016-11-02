@@ -581,13 +581,12 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 						size_t changeCount = 0;
 						ret = kmer_graph_connect_reads_by_pairs(g, Options->Threshold, &ep, &changeCount);
 						if (ret == ERR_SUCCESS) {
-//								kmer_graph_delete_1to1_vertices(g);
+								kmer_graph_delete_1to1_vertices(g);
 								boolean changed = FALSE;
-//								do {
+								do {
 									changed = FALSE;
 									ret = kmer_graph_detect_uncertainities(g, &changed);
-									kmer_graph_delete_trailing_things(g, &deletedThings);
-//								} while (ret == ERR_SUCCESS && changed);
+								} while (ret == ERR_SUCCESS && changed);
 
 								if (ret == ERR_SUCCESS) {
 									res = _compare_alternate_sequences(Options, g, Task, Statistics);
@@ -1237,7 +1236,7 @@ ERR_VALUE process_active_region(const PROGRAM_OPTIONS *Options, const uint64_t R
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	
-	ret = input_filter_reads(Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, FilteredReads);
+	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, FilteredReads);
 	if (ret == ERR_SUCCESS) {
 		if (gen_array_size(FilteredReads) > 0) {
 			char taskName[128];
