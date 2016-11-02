@@ -226,6 +226,7 @@ ERR_VALUE kmer_table_extend(PKMER_TABLE Table)
 			newTable->NumberOfItems = Table->NumberOfItems;
 			newTable->LastOrder = Table->LastOrder;
 			memcpy(Table, newTable, sizeof(KMER_TABLE));
+			utils_free(newTable);
 		}
 
 		if (ret != ERR_SUCCESS)

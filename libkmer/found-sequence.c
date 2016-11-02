@@ -215,7 +215,9 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 			if (e->Dest->Type == kmvtRefSeqMiddle) {
 				FOUND_SEQUENCE_VARIANT var;
 				
-				rs_storage_remove(&seqStorage, 1);
+				if (!e->Dest->Helper && !e->Dest->Type != kmvtRefSeqEnd)
+					rs_storage_remove(&seqStorage, 1);
+				
 				var.RefSeqStart = refseqStart;
 				var.RefSeqEnd = e->Dest->RefSeqPosition;
 				if (var.RefSeqStart < var.RefSeqEnd) {

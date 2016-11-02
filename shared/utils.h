@@ -110,6 +110,9 @@ void utils_allocator_check(void);
 #define utils_malloc(aSize, aAddress)					_utils_malloc_debug((aSize), (aAddress), __FUNCTION__, __LINE__)
 #define utils_calloc(aCount, aSize, aAddress)			_utils_calloc_debug((aCount), (aSize), (aAddress), __FUNCTION__, __LINE__)
 #define utils_free(aAddress)							_utils_free_debug((aAddress));
+void *_utils_alloc_mark(void);
+void _utils_alloc_diff(void *Mark);
+
 
 #else
 

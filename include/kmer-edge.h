@@ -9,6 +9,10 @@
 #include "kmer.h"
 
 
+typedef struct _KMER_EDGE_TABLE_KEY {
+	const KMER *Source;
+	const KMER *Dest;
+} KMER_EDGE_TABLE_KEY, *PKMER_EDGE_TABLE_KEY;
 
 typedef struct _KMER_EDGE_TABLE_ENTRY {
 	boolean Deleted;
@@ -36,6 +40,7 @@ typedef struct _KMER_EDGE_TABLE {
 	size_t Size;
 	size_t KMerSize;
 	unsigned int LastOrder;
+	void *KHashTable;
 	KMER_EDGE_TABLE_CALLBACKS Callbacks;
 	PKMER_EDGE_TABLE_ENTRY Entries;
 } KMER_EDGE_TABLE, *PKMER_EDGE_TABLE;

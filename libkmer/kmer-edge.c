@@ -49,6 +49,37 @@ static boolean _kmer_edge_entry_equal(const KMER_EDGE_TABLE_ENTRY *Entry, const 
 		);
 }
 
+static boolean _kmer_edge_key_equal(const KMER_EDGE_TABLE_KEY Key1, const KMER_EDGE_TABLE_KEY Key2)
+{
+	return (
+		kmer_get_number(Key1.Source) == kmer_get_number(Key2.Source) &&
+		kmer_get_number(Key1.Dest) == kmer_get_number(Key2.Dest) &&
+		kmer_seq_equal(Key1.Source, Key2.Source) &&
+		kmer_seq_equal(Key1.Dest, Key2.Dest)
+		);
+}
+
+static size_t _kmer_edge_key_hash(const KMER_EDGE_TABLE_KEY Key)
+{
+	size_t hash1 = 0;
+	size_t hash2 = 0;
+	const size_t kmerSize = Key.Source->Size;
+
+	for (size_t i = 0; i < kmerSize; ++i) {
+		hash1 <<= 1;
+		hash2 <<= 1;
+		hash1 += (kmer_get_base(Key.Source, i));
+		hash2 += (kmer_get_base(Key.Dest, i));
+	}
+
+	return (((Key.Source->Number + 1)*hash1 << 1) + (Key.Dest->Number + 1)*hash2);
+}
+
+__KHASH_TYPE(edgeTable, KMER_EDGE_TABLE_KEY, void *)
+
+__KHASH_IMPL(edgeTable, INLINE_FUNCTION, KMER_EDGE_TABLE_KEY, void *, TRUE, _kmer_edge_key_hash, _kmer_edge_key_equal)
+
+
 static PKMER_EDGE_TABLE_ENTRY _kmer_edge_table_get_slot_insert_hint(const KMER_EDGE_TABLE *Table, size_t Hash, const KMER *Source, const KMER *Dest)
 {
 	PKMER_EDGE_TABLE_ENTRY firstDeleted = NULL;
@@ -254,6 +285,7 @@ ERR_VALUE kmer_edge_table_extend(PKMER_EDGE_TABLE Table)
 			newTable->LastOrder = Table->LastOrder;
 			newTable->NumberOfItems = Table->NumberOfItems;
 			memcpy(Table, newTable, sizeof(KMER_EDGE_TABLE));
+			utils_free(newTable);
 		}
 
 		if (ret != ERR_SUCCESS)

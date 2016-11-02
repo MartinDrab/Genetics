@@ -560,6 +560,7 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 	PKMER_GRAPH g = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
+
 		ret = kmer_graph_create(Options->KMerSize, 2500, 6000, &g);
 		if (ret == ERR_SUCCESS) {
 			ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength, Options->Threshold);
@@ -580,9 +581,7 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 						size_t changeCount = 0;
 						ret = kmer_graph_connect_reads_by_pairs(g, Options->Threshold, &ep, &changeCount);
 						if (ret == ERR_SUCCESS) {
-//							ret = kmer_graph_connect_reads_by_reads(g, Options->Threshold);
-							if (ret == ERR_SUCCESS) {
-								kmer_graph_delete_1to1_vertices(g);
+//								kmer_graph_delete_1to1_vertices(g);
 								boolean changed = FALSE;
 //								do {
 									changed = FALSE;
@@ -593,7 +592,6 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 								if (ret == ERR_SUCCESS) {
 									res = _compare_alternate_sequences(Options, g, Task, Statistics);
 								} else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
-							} else printf("kmer_graph_connect_reads_by_reads(): %u\n", ret);
 						} else printf("kmer_graph_connect_reads_by_pairs(): %u\n", ret);
 					} else ++Statistics->CannotSucceed;
 				} else printf("kmer_graph_parse_reads(): %u\n", ret);

@@ -52,6 +52,24 @@ void _utils_free(void *Address)
 static ALLOCATOR_HEADER _allocHead = {&_allocHead, &_allocHead};
 
 
+void *_utils_alloc_mark(void)
+{
+	return _allocHead.Prev;
+}
+
+void _utils_alloc_diff(void *Mark)
+{
+	PALLOCATOR_HEADER item = (PALLOCATOR_HEADER)Mark;
+
+	item = item->Next;
+	while (item != &_allocHead) {
+		printf("[LEAK]: %u bytes, function %s, line %u\n", item->BodySize, item->Function, item->Line);
+		item = item->Next;
+	}
+
+	return;
+}
+
 ERR_VALUE _utils_malloc_debug(const size_t Size, void **Address, const char *Function, const uint32_t Line)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -71,11 +89,13 @@ ERR_VALUE _utils_malloc_debug(const size_t Size, void **Address, const char *Fun
 		h->Signature = ALLOCATOR_HEADER_SIGNATURE;
 		h->Signature2 = ALLOCATOR_HEADER_SIGNATURE;
 		f->Signature = ALLOCATOR_FOOTER_SIGNATURE;
-//		h->Next = &_allocHead;
-//		h->Prev = _allocHead.Prev;
-//		_allocHead.Prev->Next = h;
-//		_allocHead.Prev = h;
+		h->Next = &_allocHead;
+		h->Prev = _allocHead.Prev;
+		_allocHead.Prev->Next = h;
+		_allocHead.Prev = h;
 		*Address = addr;
+	} else {
+		printf("Allocation failed: %Iu bytes, function %s, line %u\n", Size, Function, Line);
 	}
 
 	return ret;
@@ -99,8 +119,8 @@ void _utils_free_debug(void *Address)
 	h->Signature = 0;
 	h->Signature2 = 0;
 	f->Signature = 0;
-//	h->Prev->Next = h->Next;
-//	h->Next->Prev = h->Prev;
+	h->Prev->Next = h->Next;
+	h->Next->Prev = h->Prev;
 	memset(h, 0xbadf00d, h->BodySize + sizeof(ALLOCATOR_HEADER) + sizeof(ALLOCATOR_FOOTER));
 	_utils_free(h);
 

@@ -129,8 +129,10 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_vertex(PREFSEQ_STORAGE Storage, const K
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = rs_storage_add(Storage, kmer_get_base(&Vertex->KMer, Vertex->KMer.Size - 1));
-
+	ret = ERR_SUCCESS;
+	if (!Vertex->Helper && Vertex->Type != kmvtRefSeqEnd)
+		ret = rs_storage_add(Storage, kmer_get_base(&Vertex->KMer, Vertex->KMer.Size - 1));
+	
 	return ret;
 }
 
@@ -148,8 +150,9 @@ INLINE_FUNCTION void rs_storage_remove_edge(PREFSEQ_STORAGE Storage, const KMER_
 	if (Edge->Dest->Type != kmvtRefSeqEnd && !Edge->Dest->Helper)
 		rs_storage_remove(Storage, 1);
 
-	rs_storage_remove(Storage, Edge->SeqLen);
-	assert(memcmp(Storage->Sequence + Storage->ValidLength, Edge->Seq, Edge->SeqLen*sizeof(char)) == 0);
+	if (Edge->Type != kmetVariant)
+		rs_storage_remove(Storage, Edge->SeqLen);
+	else rs_storage_remove(Storage, 1);
 
 	return;
 }
