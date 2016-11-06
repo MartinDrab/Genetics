@@ -614,7 +614,48 @@ void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings)
 	void *iter = NULL;
 	PKMER_VERTEX v = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	POINTER_ARRAY_KMER_VERTEX stack;
+	PKMER_EDGE e = NULL;
 
+	pointer_array_init_KMER_VERTEX(&stack, 140);
+	ret = kmer_table_first(Graph->VertexTable, &iter, (void **)&v);
+	while (ret != ERR_SUCCESS) {
+		if (v->Type != kmvtRefSeqStart && v->Type != kmvtRefSeqEnd) {
+			if (kmer_vertex_in_degree(v) == 0 ||
+				kmer_vertex_out_degree(v) == 0) {
+				ret = pointer_array_push_back_KMER_VERTEX(&stack, v);
+			}
+		}
+
+		ret = kmer_table_next(Graph->VertexTable, iter, &iter, (void **)&v);
+	}
+
+	while (ret == ERR_SUCCESS && pointer_array_size(&stack) > 0) {
+		v = *pointer_array_pop_back_KMER_VERTEX(&stack);
+		while (kmer_vertex_in_degree(v) > 0) {
+			e = kmer_vertex_get_pred_edge(v, 0);
+			if (kmer_vertex_out_degree(e->Dest) == 1 &&
+				kmer_vertex_in_degree(e->Dest) > 0)
+				ret = pointer_array_push_back_KMER_VERTEX(&stack, e->Dest);
+
+			kmer_graph_delete_edge(Graph, e);
+		}
+
+		while (kmer_vertex_out_degree(v) > 0) {
+			e = kmer_vertex_get_succ_edge(v, 0);
+			if (kmer_vertex_in_degree(e->Dest) == 1 &&
+				kmer_vertex_out_degree(e->Dest) > 0)
+				ret = pointer_array_push_back_KMER_VERTEX(&stack, e->Dest);
+
+			kmer_graph_delete_edge(Graph, e);
+		}
+
+		kmer_graph_delete_vertex(Graph, v);
+		*DeletedThings += 1;
+	}
+
+	pointer_array_finit_KMER_VERTEX(&stack);
+	/*
 	ret = kmer_table_first(Graph->VertexTable, &iter, (void **)&v);
 	while (ret != ERR_SUCCESS) {
 		boolean deleted = FALSE;
@@ -640,7 +681,7 @@ void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings)
 			kmer_table_first(Graph->VertexTable, &iter, (void **)&v) :
 			kmer_table_next(Graph->VertexTable, iter, &iter, (void **)&v);
 	}
-
+	*/
 	return;
 }
 

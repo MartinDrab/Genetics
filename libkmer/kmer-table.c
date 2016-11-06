@@ -76,7 +76,6 @@ ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t Size, const KMER
 	if (ret == ERR_SUCCESS) {
 		tmpTable->KHashTable = kh_init(vertexTable);
 		if (tmpTable != NULL) {
-			kh_resize(vertexTable, tmpTable->KHashTable, Size);
 			tmpTable->LastOrder = 0;
 			tmpTable->KMerSize = KMerSize;
 			if (Callbacks == NULL) {

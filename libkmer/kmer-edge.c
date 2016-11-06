@@ -89,8 +89,6 @@ ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t Size, const
 	if (ret == ERR_SUCCESS) {
 		tmpTable->KHashTable = kh_init(edgeTable);
 		tmpTable->KMerSize = KMerSize;
-		
-		kh_resize(edgeTable, tmpTable->KHashTable, Size);
 		if (Callbacks == NULL) {
 			tmpTable->Callbacks.OnInsert = _on_insert_dummy_callback;
 			tmpTable->Callbacks.OnDelete = _on_delete_dummy_callback;
