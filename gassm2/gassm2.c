@@ -568,7 +568,7 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 				GEN_ARRAY_KMER_EDGE_PAIR ep;
 				
 				dym_array_init_KMER_EDGE_PAIR(&ep, 140);
-				ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount, Task->RegionStart, Options->Threshold, &ep);
+				ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount, Options->Threshold, &ep);
 				if (ret == ERR_SUCCESS) {
 					size_t deletedThings = 0;
 
@@ -1577,8 +1577,8 @@ int main(int argc, char *argv[])
 								}
 							} else printf("fix_reads(): %u\n", ret);
 
-//							printf("Computing k-mer frequency distribution...\n");
-//							kmer_freq_distribution(po.KMerSize, po.Reads, po.ReadCount, "kmer-dist2.csv");
+							printf("Computing k-mer frequency distribution...\n");
+							kmer_freq_distribution(po.KMerSize, po.Reads, po.ReadCount, "kmer-dist2.csv");
 
 							paired_reads_finit();
 						}

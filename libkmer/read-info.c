@@ -5,7 +5,7 @@
 #include "read-info.h"
 
 
-double read_info_weight(const READ_INFO *Info, const size_t CurrentReadIndex, const size_t CurrentReadPosition)
+double read_info_weight(const READ_INFO *Info)
 {
 	double ret = 0;
 	size_t readIndex = (size_t)-1;
@@ -13,12 +13,6 @@ double read_info_weight(const READ_INFO *Info, const size_t CurrentReadIndex, co
 
 	for (size_t i = 0; i < read_info_get_count(Info); ++i) {
 		if (readIndex == entry->ReadIndex) {
-			++entry;
-			continue;
-		}
-		
-		if (entry->ReadIndex == CurrentReadIndex &&
-			entry->ReadPosition < CurrentReadPosition) {
 			++entry;
 			continue;
 		}
@@ -31,8 +25,6 @@ double read_info_weight(const READ_INFO *Info, const size_t CurrentReadIndex, co
 			ret += 0.75;
 		else if (entry->Quality < 40)
 			ret += 1;
-		else if (entry->Quality == 255)
-			ret += 20;
 		else ret += 1;
 
 		readIndex = entry->ReadIndex;
@@ -288,9 +280,15 @@ ERR_VALUE read_info_union(PREAD_INFO Target, const GEN_ARRAY_READ_INFO_ENTRY *So
 		++index2;
 	}
 
-	qsort(Target->Array.Data, gen_array_size(&Target->Array), sizeof(READ_INFO_ENTRY), _read_info_entry_compare);
-
 	return ret;
+}
+
+
+void read_info_sort(PREAD_INFO ReadInfo)
+{
+	qsort(ReadInfo->Array.Data, gen_array_size(&ReadInfo->Array), sizeof(READ_INFO_ENTRY), _read_info_entry_compare);
+
+	return;
 }
 
 ERR_VALUE read_info_merge(PREAD_INFO Dest, const READ_INFO *Info1, const READ_INFO *Info2)

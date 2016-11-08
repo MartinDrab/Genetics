@@ -883,7 +883,7 @@ void kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge)
 		pointer_array_remove_by_item_fast_KMER_EDGE(&dest->Predecessors, Edge);
 		--Graph->TypedEdgeCount[edgeType];
 		--Graph->NumberOfEdges;
-	} else __debugbreak();
+	}
 
 	return;
 }

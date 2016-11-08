@@ -179,7 +179,6 @@ ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const KMER *Source, con
 			ret = ERR_OUT_OF_MEMORY;
 			break;
 		default:
-			__debugbreak();
 			ret = ERR_INTERNAL_ERROR;
 			break;
 	}
