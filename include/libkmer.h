@@ -12,7 +12,7 @@
 #include "found-sequence.h"
 #include "refseq-storage.h"
 #include "paired-reads.h"
-
+#include "ssw.h"
 
 
 

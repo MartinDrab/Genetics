@@ -48,6 +48,9 @@
     <ClCompile Include="paired-reads.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ssw.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\kmer.h">
@@ -105,6 +108,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\paired-reads.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ssw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

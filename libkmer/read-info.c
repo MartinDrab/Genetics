@@ -5,9 +5,9 @@
 #include "read-info.h"
 
 
-double read_info_weight(const READ_INFO *Info)
+size_t read_info_weight(const READ_INFO *Info)
 {
-	double ret = 0;
+	size_t ret = 0;
 	size_t readIndex = (size_t)-1;
 	const READ_INFO_ENTRY *entry = Info->Array.Data;
 
@@ -20,12 +20,12 @@ double read_info_weight(const READ_INFO *Info)
 		if (entry->Quality == 0)
 			ret += 0;
 		else if (entry->Quality < 20)
-			ret += 0.5;
+			ret += 50;
 		else if (entry->Quality < 30)
-			ret += 0.75;
+			ret += 75;
 		else if (entry->Quality < 40)
-			ret += 1;
-		else ret += 1;
+			ret += 100;
+		else ret += 100;
 
 		readIndex = entry->ReadIndex;
 		++entry;
@@ -95,8 +95,9 @@ ERR_VALUE read_info_add(PREAD_INFO Info, const size_t ReadIndex, const size_t Re
 }
 
 
-void read_info_remove(PREAD_INFO Info, const size_t ReadIndex, const size_t ReadPosition)
+size_t read_info_remove(PREAD_INFO Info, const size_t ReadIndex, const size_t ReadPosition)
 {
+	size_t ret = 0;
 	READ_INFO_ENTRY entry;
 	PREAD_INFO_ENTRY item = Info->Array.Data;
 
@@ -107,13 +108,14 @@ void read_info_remove(PREAD_INFO Info, const size_t ReadIndex, const size_t Read
 			item->ReadPosition == entry.ReadPosition) {
 			memmove(item, item + 1, (read_info_get_count(Info) - i - 1)*sizeof(READ_INFO_ENTRY));
 			dym_array_pop_back_READ_INFO_ENTRY(&Info->Array);
+			ret = 1;
 			break;
 		}
 
 		++item;
 	}
 
-	return;
+	return ret;
 }
 
 

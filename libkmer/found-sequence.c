@@ -193,6 +193,7 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 	size_t startIndex = (size_t)-1;
 	REFSEQ_STORAGE seqStorage;
 	size_t weight = 0;
+	size_t rsWeight = 0;
 
 	ret = ERR_SUCCESS;
 	rs_storage_init(&seqStorage);
@@ -200,13 +201,26 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 		e = *pointer_array_const_item_KMER_EDGE(PathEdges, i);
 		if (e->Type == kmetRead) {
 			if ((e->Source->Type == kmvtRefSeqMiddle || e->Source->Type == kmvtRefSeqStart)) {
+				const KMER_EDGE *rsEdge = _get_refseq_or_variant_edge(e->Source);
+				
 				refseqStart = e->Source->RefSeqPosition + 1;
 				startIndex = i;
 				rs_storage_reset(&seqStorage);
+				weight = read_info_weight(&e->ReadInfo);
+				switch (rsEdge->Type) {
+					case kmetReference:
+						rsWeight = read_info_weight(&rsEdge->ReadInfo);
+						break;
+					case kmetVariant:
+						rsWeight = rsEdge->Seq1Weight;
+						break;
+					default:
+						__debugbreak();
+						break;
+				}
 			}
 
 			if (startIndex != (size_t)-1) {
-				weight = max(weight, read_info_get_count(&e->ReadInfo));
 				ret = rs_storage_add_edge(&seqStorage, e, TRUE);
 				if (ret != ERR_SUCCESS)
 					break;
@@ -229,7 +243,7 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 						var.Seq2Type = kmetNone;
 						var.Seq2 = NULL;
 						var.Seq2Len = 0;
-						var.Seq2Weight = 0;
+						var.Seq2Weight = rsWeight;
 						ret = dym_array_push_back_FOUND_SEQUENCE_VARIANT(&FS->ReadVariants, var);
 						if (ret != ERR_SUCCESS)
 							utils_free(var.Seq1);
@@ -250,10 +264,9 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 }
 
 
-ERR_VALUE variant_call_init(const char *Chrom, const uint64_t Pos, const char *ID, const char *Ref, size_t RefLen, const char *Alt, const uint8_t Qual, PVARIANT_CALL VC)
+ERR_VALUE variant_call_init(const char *Chrom, const uint64_t Pos, const char *ID, const char *Ref, size_t RefLen, const char *Alt, size_t AltLen, const uint8_t Qual, PVARIANT_CALL VC)
 {
 	char *tmp = NULL;
-	size_t altLen = strlen(Alt);
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	ret = utils_copy_string(Chrom, &tmp);
@@ -269,15 +282,19 @@ ERR_VALUE variant_call_init(const char *Chrom, const uint64_t Pos, const char *I
 				memcpy(tmp, Ref, RefLen*sizeof(char));
 				tmp[RefLen] = '\0';
 				VC->Ref = tmp;
-				ret = utils_copy_string(Alt, &tmp);
+				ret = utils_calloc(AltLen + 1, sizeof(char), &tmp);
 				if (ret == ERR_SUCCESS) {
+					memcpy(tmp, Alt, AltLen*sizeof(char));
+					tmp[AltLen] = '\0';
 					VC->Alt = tmp;
+					/*
 					while (RefLen > 1 && altLen > 1 && VC->Alt[altLen - 1] == VC->Ref[RefLen - 1]) {
 						--RefLen;
 						VC->Ref[RefLen] = '\0';
 						--altLen;
 						VC->Alt[altLen] = '\0';
 					}
+					*/
 				}
 				
 				if (ret != ERR_SUCCESS)
@@ -385,7 +402,7 @@ void vc_array_print(FILE *Stream, const GEN_ARRAY_VARIANT_CALL *Array)
 	fprintf(Stream, "##FORMAT=<ID=HQ,Number=2,Type=Integer,Description=\"Haplotype Quality\">\n");
 	fprintf(Stream, "#CHROM\tPOS\tID\tREF ALT\tQUAL\tFILTER\tINFO\n");
 	for (size_t i = 0; i < gen_array_size(Array); ++i) {
-		fprintf(Stream, "%s\t%I64u\t%s\t%s\t%s\t60\tPASS\t\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt);
+		fprintf(Stream, "%s\t%I64u\t%s\t%s\t%s\t60\tPASS\t\"%Iu %Iu\"\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, tmp->RefWeight, tmp->AltWeight);
 		++tmp;
 	}
 

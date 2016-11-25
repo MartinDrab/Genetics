@@ -276,6 +276,9 @@ ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, co
 		if (in_range(RegionStart, RegionLength, r->Pos) || in_range(RegionStart, RegionLength, r->Pos + r->ReadSequenceLen))
 			++tmpNewReadCount;
 
+//		for (size_t j = 0; j < r->QualityLen; ++j)
+//			r->Quality[j] = min(r->Quality[j], r->PosQuality);
+
 		++r;
 	}
 

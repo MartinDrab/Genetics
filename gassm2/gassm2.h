@@ -8,6 +8,7 @@
 #include "reads.h"
 #include "gen_dym_array.h"
 #include "found-sequence.h"
+#include "libkmer.h"
 
 /************************************************************************/
 /*                   PROGRAM OTPIONS                                    */
@@ -35,18 +36,19 @@
 #define PROGRAM_OPTION_OUTPUT_DIRECTORY					"output-directory"
 #define PROGRAM_OPTION_VCFFILE							"vcf-file"
 #define PROGRAM_OPTION_OMP_THREADS						"omp-threads"
-#define PROGRAM_OPTION_NO_READ_FIXING					"no-read-fixing"
-#define PROGRAM_OPTION_BASE_QUALITY_THRESHOLD			"base-quality"
-#define PROGRAM_OPTION_BASE_QUALITY_MULTIPLIER			"base-multiplier"
 #define PROGRAM_OPTION_READ_POS_QUALITY					"pos-quality"
 
 #define PROGRAM_OPTION_ALT1_SEQ							"alternate1-seq"
 #define PROGRAM_OPTION_ALT2_SEQ							"alternate2-seq"
 
-#define PROGRAM_OPTION_DISTINCT_PASSES					"distinct-passes"
-#define PROGRAM_OPTION_CONNECT_READS					"connect-reads"
-#define PROGRAM_OPTION_RESOLVE_BUBBLES					"resolve-bubbles"
-#define PROGRAM_OPTION_MERGE_UNBRANCHED					"merge-unbranched"
+#define PROGRAM_OPTION_NO_CONNECT_REFSEQ				"no-connect-refseq"
+#define PROGRAM_OPTION_NO_CONNECT_READS					"no-connect-reads"
+#define PROGRAM_OPTION_NO_BUBBLE_MERGING				"no-bubble-merging"
+#define PROGRAM_OPTION_NO_READ_FIXING					"no-read-fixing"
+#define PROGRAM_OPTION_NO_LINEAR_SHRINK					"no-linear-shrink"
+#define PROGRAM_OPTION_NO_HELPER_VERTICES				"no-helper-vertices"
+#define PROGRAM_OPTION_MISSING_EDGE_PENALTY				"missing-edge-penalty"
+#define PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY			"backward-refseq-penalty"
 
 
 /************************************************************************/
@@ -78,11 +80,6 @@
 #define PROGRAM_OPTION_ALT1_SEQ_DESC					"alternate1-seq"
 #define PROGRAM_OPTION_ALT2_SEQ_DESC					"alternate2-seq"
 
-#define PROGRAM_OPTION_DISTINCT_PASSES_DESC				"distinct-passes"
-#define PROGRAM_OPTION_CONNECT_READS_DESC				"connect-reads"
-#define PROGRAM_OPTION_RESOLVE_BUBBLES_DESC				"resolve-bubbles"
-#define PROGRAM_OPTION_MERGE_UNBRANCHED_DESC			"merge-unbranched"
-
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/
@@ -110,20 +107,14 @@ typedef struct _PROGRAM_OPTIONS {
 	double DeleteRatio;
 	char *AltenrateSequence1;
 	char *AlternateSequence2;
-	boolean MakeDistinctPasses;
-	boolean ConnectReads;
-	boolean ResolveBubbles;
-	boolean MergeUnbranched;
 	const char *VCFFile;
 	int32_t OMPThreads;
-	uint8_t BaseQualityThreshold;
-	uint32_t BaseQualityMultiplier;
 	uint8_t ReadPosQuality;
-	boolean NoFixReads;
 	FILE *VCFFileHandle;
 	GEN_ARRAY_VARIANT_CALL *VCSubArrays;
 	GEN_ARRAY_ONE_READ *ReadSubArrays;
 	GEN_ARRAY_VARIANT_CALL VCArray;
+	PARSE_OPTIONS ParseOptions;
 } PROGRAM_OPTIONS, *PPROGRAM_OPTIONS;
 
 typedef struct _PROGRAM_STATISTICS {

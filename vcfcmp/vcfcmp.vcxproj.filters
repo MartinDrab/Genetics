@@ -18,9 +18,15 @@
     <ClCompile Include="vcfcmp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ssw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vcf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ssw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -151,9 +151,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ssw.cpp" />
     <ClCompile Include="vcfcmp.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ssw.h" />
     <ClInclude Include="vcf.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

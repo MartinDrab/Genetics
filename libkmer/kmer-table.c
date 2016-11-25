@@ -22,7 +22,7 @@
 static UTILS_TYPED_MALLOC_FUNCTION(KMER_TABLE)
 
 
-static INLINE_FUNCTION size_t _kmer_hash(const struct _KMER *KMer)
+INLINE_FUNCTION size_t _kmer_hash(const struct _KMER *KMer)
 {
 	size_t hash = 0;
 	const size_t kmerSize = kmer_get_size(KMer);

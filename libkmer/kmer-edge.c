@@ -21,7 +21,7 @@
 static UTILS_TYPED_MALLOC_FUNCTION(KMER_EDGE_TABLE)
 
 
-static INLINE_FUNCTION boolean _kmer_edge_key_equal(const KMER_EDGE_TABLE_KEY Key1, const KMER_EDGE_TABLE_KEY Key2)
+INLINE_FUNCTION boolean _kmer_edge_key_equal(const KMER_EDGE_TABLE_KEY Key1, const KMER_EDGE_TABLE_KEY Key2)
 {
 	return (
 		kmer_get_number(Key1.Source) == kmer_get_number(Key2.Source) &&
@@ -31,7 +31,8 @@ static INLINE_FUNCTION boolean _kmer_edge_key_equal(const KMER_EDGE_TABLE_KEY Ke
 		);
 }
 
-static INLINE_FUNCTION size_t _kmer_edge_key_hash(const KMER_EDGE_TABLE_KEY Key)
+
+INLINE_FUNCTION size_t _kmer_edge_key_hash(const KMER_EDGE_TABLE_KEY Key)
 {
 	size_t hash1 = Key.Source->Number;
 	size_t hash2 = Key.Dest->Number;

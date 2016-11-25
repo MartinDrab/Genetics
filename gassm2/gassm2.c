@@ -13,7 +13,6 @@
 #include "input-file.h"
 #include "reads.h"
 #include "pointer_array.h"
-#include "ssw.h"
 #include "gassm2.h"
 
 
@@ -81,18 +80,6 @@ static ERR_VALUE _init_default_values()
 		ret = option_add_String(PROGRAM_OPTION_ALT2_SEQ, "\0");
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_CONNECT_READS, FALSE);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_DISTINCT_PASSES, FALSE);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_MERGE_UNBRANCHED, FALSE);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_RESOLVE_BUBBLES, FALSE);
-
-	if (ret == ERR_SUCCESS)
 		ret = option_add_String(PROGRAM_OPTION_TESTFILE, "\0");
 
 	if (ret == ERR_SUCCESS)
@@ -103,18 +90,33 @@ static ERR_VALUE _init_default_values()
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_Int32(PROGRAM_OPTION_OMP_THREADS, omp_get_num_procs());
-	
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_NO_READ_FIXING, FALSE);
-	
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt8(PROGRAM_OPTION_BASE_QUALITY_THRESHOLD, 20);
-	
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_BASE_QUALITY_MULTIPLIER, 8);
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt8(PROGRAM_OPTION_READ_POS_QUALITY, 20);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(PROGRAM_OPTION_NO_CONNECT_REFSEQ, FALSE);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(PROGRAM_OPTION_NO_CONNECT_READS, FALSE);
+	
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(PROGRAM_OPTION_NO_BUBBLE_MERGING, FALSE);
+	
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(PROGRAM_OPTION_NO_READ_FIXING, FALSE);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(PROGRAM_OPTION_NO_LINEAR_SHRINK, FALSE);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(PROGRAM_OPTION_NO_HELPER_VERTICES, FALSE);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_UInt32(PROGRAM_OPTION_MISSING_EDGE_PENALTY, 3);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_UInt32(PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY, 2);
 
 	option_set_description_const(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQUENCE, PROGRAM_OPTION_SEQUENCE_DESC);
@@ -136,10 +138,6 @@ static ERR_VALUE _init_default_values()
 	option_set_description_const(PROGRAM_OPTION_DELETE_RATIO, PROGRAM_OPTION_DELETE_RATIO_DESC);
 	option_set_description_const(PROGRAM_OPTION_ALT1_SEQ, PROGRAM_OPTION_ALT1_SEQ_DESC);
 	option_set_description_const(PROGRAM_OPTION_ALT2_SEQ, PROGRAM_OPTION_ALT2_SEQ_DESC);
-	option_set_description_const(PROGRAM_OPTION_DISTINCT_PASSES, PROGRAM_OPTION_DISTINCT_PASSES_DESC);
-	option_set_description_const(PROGRAM_OPTION_CONNECT_READS, PROGRAM_OPTION_CONNECT_READS_DESC);
-	option_set_description_const(PROGRAM_OPTION_RESOLVE_BUBBLES, PROGRAM_OPTION_RESOLVE_BUBBLES_DESC);
-	option_set_description_const(PROGRAM_OPTION_MERGE_UNBRANCHED, PROGRAM_OPTION_MERGE_UNBRANCHED_DESC);
 	option_set_description_const(PROGRAM_OPTION_TESTFILE, PROGRAM_OPTION_TESTFILE_DESC);
 	option_set_description_const(PROGRAM_OPTION_OUTPUT_DIRECTORY, PROGRAM_OPTION_OUTPUT_DIRECTORY_DESC);
 	option_set_description_const(PROGRAM_OPTION_VCFFILE, PROGRAM_OPTION_VCFFILE_DESC);
@@ -164,10 +162,6 @@ static ERR_VALUE _init_default_values()
 	option_set_shortcut(PROGRAM_OPTION_SNP_RATIO, 'r');
 	option_set_shortcut(PROGRAM_OPTION_INSERT_RATIO, 'i');
 	option_set_shortcut(PROGRAM_OPTION_DELETE_RATIO, 'd');
-	option_set_shortcut(PROGRAM_OPTION_DISTINCT_PASSES, '1');
-	option_set_shortcut(PROGRAM_OPTION_CONNECT_READS, '2');
-	option_set_shortcut(PROGRAM_OPTION_RESOLVE_BUBBLES, '3');
-	option_set_shortcut(PROGRAM_OPTION_MERGE_UNBRANCHED, '4');
 	option_set_shortcut(PROGRAM_OPTION_TESTFILE, 'g');
 	option_set_shortcut(PROGRAM_OPTION_OUTPUT_DIRECTORY, 'o');
 	option_set_shortcut(PROGRAM_OPTION_VCFFILE, 'v');
@@ -178,6 +172,7 @@ static ERR_VALUE _init_default_values()
 
 static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 {
+	boolean b = FALSE;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	memset(Options, 0, sizeof(PROGRAM_OPTIONS));
@@ -190,15 +185,6 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 
 	if (ret == ERR_SUCCESS)
 		ret = option_get_UInt8(PROGRAM_OPTION_READ_POS_QUALITY, &Options->ReadPosQuality);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_Boolean(PROGRAM_OPTION_NO_READ_FIXING, &Options->NoFixReads);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_UInt8(PROGRAM_OPTION_BASE_QUALITY_THRESHOLD, &Options->BaseQualityThreshold);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_UInt32(PROGRAM_OPTION_BASE_QUALITY_MULTIPLIER, &Options->BaseQualityMultiplier);
 
 	if (ret == ERR_SUCCESS) {
 		char *outputDirectory = NULL;
@@ -292,19 +278,22 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 		ret = option_get_String(PROGRAM_OPTION_ALT2_SEQ, &Options->AlternateSequence2);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_get_Boolean(PROGRAM_OPTION_DISTINCT_PASSES, &Options->MakeDistinctPasses);;
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_Boolean(PROGRAM_OPTION_CONNECT_READS, &Options->ConnectReads);;
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_Boolean(PROGRAM_OPTION_RESOLVE_BUBBLES, &Options->ResolveBubbles);;
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_Boolean(PROGRAM_OPTION_MERGE_UNBRANCHED, &Options->MergeUnbranched);;
-
-	if (ret == ERR_SUCCESS)
 		ret = option_get_String(PROGRAM_OPTION_TESTFILE, &Options->TestFile);
+
+	option_get_Boolean(PROGRAM_OPTION_NO_CONNECT_REFSEQ, &b);
+	Options->ParseOptions.ConnectRefSeq = !b;
+	option_get_Boolean(PROGRAM_OPTION_NO_CONNECT_READS, &b);
+	Options->ParseOptions.ConnectReads = !b;
+	option_get_Boolean(PROGRAM_OPTION_NO_BUBBLE_MERGING, &b);
+	Options->ParseOptions.MergeBubbles = !b;
+	option_get_Boolean(PROGRAM_OPTION_NO_READ_FIXING, &b);
+	Options->ParseOptions.FixReads = !b;
+	option_get_Boolean(PROGRAM_OPTION_NO_LINEAR_SHRINK, &b);
+	Options->ParseOptions.LinearShrink = !b;
+	option_get_Boolean(PROGRAM_OPTION_NO_HELPER_VERTICES, &b);
+	Options->ParseOptions.HelperVertices = !b;
+	option_get_UInt32(PROGRAM_OPTION_MISSING_EDGE_PENALTY, &Options->ParseOptions.MissingEdgePenalty);
+	option_get_UInt32(PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY, &Options->ParseOptions.BackwardRefseqPenalty);
 
 	return ret;
 }
@@ -334,40 +323,106 @@ typedef enum _EExperimentResult {
 
 
 
-static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t RefSeqStart, const size_t RefSeqEnd, const char *AltSeq, const size_t AltSeqLen, PGEN_ARRAY_VARIANT_CALL VCArray)
+static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t RefSeqStart, const size_t RefSeqEnd, const char *AltSeq, size_t AltSeqLen, const size_t RSWeight, const size_t ReadWeight, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	VARIANT_CALL vc;
+	char *altSeqStart = NULL;
 	size_t rsPos = Task->RegionStart + RefSeqStart + 1;
 	size_t rsLen = RefSeqEnd - RefSeqStart;
+	size_t altLen = AltSeqLen;
 	char *altSeq = NULL;
 	const char *refSeq = Task->Reference + RefSeqStart;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = utils_calloc(AltSeqLen + 2, sizeof(char), &altSeq);
+	/*
+	if (altLen > 0) {
+		while (rsLen > 0 && altLen > 0 && refSeq[rsLen - 1] == AltSeq[altLen - 1]) {
+			--rsLen;
+			--altLen;
+		}
+	}
+	*/
+	ret = utils_calloc(altLen + 2, sizeof(char), &altSeq);
 	if (ret == ERR_SUCCESS) {
-		if (rsLen == 0 || AltSeqLen == 0) {
-			++rsLen;
-			--rsPos;
-			--refSeq;
-			memcpy(altSeq + 1, AltSeq, AltSeqLen*sizeof(char));
-			*altSeq = Task->Reference[RefSeqStart];
-			altSeq[1 + AltSeqLen] = '\0';
-		} else {
-			memcpy(altSeq, AltSeq, AltSeqLen*sizeof(char));
-			altSeq[AltSeqLen] = '\0';
-		}
+		altSeqStart = altSeq;
+		memcpy(altSeq + 1, AltSeq, altLen*sizeof(char));
+		*altSeq = *(refSeq - 1);
+		++altSeq;
+		altSeq[altLen] = '\0';
 
-		ret = variant_call_init("1", rsPos, ".", refSeq, rsLen, altSeq, 60, &vc);
+		char *opString = NULL;
+		size_t opStringLen = 0;
+		ret = ssw_clever(refSeq, rsLen, altSeq, altLen, 2, -1, -1, &opString, &opStringLen);;
 		if (ret == ERR_SUCCESS) {
-			ret = vc_array_add(VCArray, &vc);
-			if (ret != ERR_SUCCESS) {
-				variant_call_finit(&vc);
-				if (ret == ERR_ALREADY_EXISTS)
-					ret = ERR_SUCCESS;
+			const char *opIt = opString;
+			const char *tmpRS = refSeq;
+			const char *tmpAltS = altSeq;
+			size_t pos = rsPos;
+			boolean nothing = TRUE;
+
+			while (ret == ERR_SUCCESS) {
+				switch (*opIt) {
+					case '\0':
+					case 'M':
+						if (!nothing) {
+							if (altSeq == tmpAltS || refSeq == tmpRS) {
+								--rsPos;
+								--refSeq;
+								--altSeq;
+							}
+
+							ret = variant_call_init("1", rsPos, ".", refSeq, tmpRS - refSeq, altSeq, tmpAltS - altSeq, 60, &vc);
+							if (ret == ERR_SUCCESS) {
+								vc.RefWeight = RSWeight;
+								vc.AltWeight = ReadWeight;
+								ret = vc_array_add(VCArray, &vc);
+								if (ret == ERR_SUCCESS) {
+									rsPos += (tmpRS - refSeq);
+									refSeq = tmpRS;
+									altSeq = tmpAltS;
+								}
+
+								if (ret != ERR_SUCCESS) {
+									variant_call_finit(&vc);
+									if (ret == ERR_ALREADY_EXISTS)
+										ret = ERR_SUCCESS;
+								}
+							}
+
+							nothing = TRUE;
+						} else {
+							rsPos += (tmpRS - refSeq);
+							refSeq = tmpRS;
+							altSeq = tmpAltS;
+						}
+
+						++tmpRS;
+						++tmpAltS;
+						break;
+					case 'X':
+						++tmpRS;
+						++tmpAltS;
+						nothing = FALSE;
+						break;
+					case 'I':
+						++tmpAltS;
+						nothing = FALSE;
+						break;
+					case 'D':
+						++tmpRS;
+						nothing = FALSE;
+						break;
+				}
+
+				if (*opIt == '\0')
+					break;
+
+				++opIt;
 			}
+			
+			utils_free(opString);
 		}
 
-		utils_free(altSeq);
+		utils_free(altSeqStart);
 	}
 
 	return ret;
@@ -379,6 +434,7 @@ static ERR_VALUE _process_variant_calls(PGEN_ARRAY_VARIANT_CALL VCArray, const A
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	const size_t variantCount = gen_array_size(VariantArray);
 	const FOUND_SEQUENCE_VARIANT *var = VariantArray->Data;
+	const size_t realThreshold = Threshold * 100;
 
 	ret = ERR_SUCCESS;
 	for (size_t i = 0; i < variantCount; ++i) {
@@ -387,11 +443,11 @@ static ERR_VALUE _process_variant_calls(PGEN_ARRAY_VARIANT_CALL VCArray, const A
 		char *altSeq = NULL;
 		const char *refSeq = Task->Reference + var->RefSeqStart;
 
-		if (var->Seq1Weight > Threshold && var->Seq1Type == kmetRead)
-			ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, VCArray);
+		if (var->Seq1Weight > realThreshold && var->Seq1Type == kmetRead)
+			ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, var->Seq2Weight, var->Seq1Weight, VCArray);
 
-		if (var->Seq2Weight > Threshold && var->Seq2Type == kmetRead)
-			ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq2, var->Seq2Len, VCArray);
+		if (var->Seq2Weight > realThreshold && var->Seq2Type == kmetRead)
+			ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq2, var->Seq2Len, var->Seq1Weight, var->Seq2Weight, VCArray);
 
 		++var;
 	}
@@ -568,7 +624,7 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 				GEN_ARRAY_KMER_EDGE_PAIR ep;
 				
 				dym_array_init_KMER_EDGE_PAIR(&ep, 140);
-				ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount, Options->Threshold, &ep);
+				ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount, Options->Threshold, &Options->ParseOptions, &ep);
 				if (ret == ERR_SUCCESS) {
 					size_t deletedThings = 0;
 
@@ -581,16 +637,21 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 						size_t changeCount = 0;
 						ret = kmer_graph_connect_reads_by_pairs(g, Options->Threshold, &ep, &changeCount);
 						if (ret == ERR_SUCCESS) {
-								kmer_graph_delete_1to1_vertices(g);
+//							if (Options->ParseOptions.LinearShrink)
+//								kmer_graph_delete_1to1_vertices(g);
+								
+							if (Options->ParseOptions.MergeBubbles) {
 								boolean changed = FALSE;
+
 								do {
 									changed = FALSE;
 									ret = kmer_graph_detect_uncertainities(g, &changed);
 								} while (ret == ERR_SUCCESS && changed);
+							}
 
-								if (ret == ERR_SUCCESS) {
-									res = _compare_alternate_sequences(Options, g, Task, Statistics);
-								} else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
+							if (ret == ERR_SUCCESS)
+								res = _compare_alternate_sequences(Options, g, Task, Statistics);
+							else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
 						} else printf("kmer_graph_connect_reads_by_pairs(): %u\n", ret);
 					} else ++Statistics->CannotSucceed;
 				} else printf("kmer_graph_parse_reads(): %u\n", ret);
@@ -1232,7 +1293,12 @@ ERR_VALUE fix_reads(PONE_READ Reads, const uint32_t ReadCount, const uint8_t Qua
 }
 
 
-ERR_VALUE process_active_region(const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads)
+static double _readBaseCount = 0;
+static size_t _totalRegionLength = 0;
+static omp_lock_t _readCoverageLock;
+
+
+ERR_VALUE process_active_region(PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	
@@ -1242,11 +1308,30 @@ ERR_VALUE process_active_region(const PROGRAM_OPTIONS *Options, const uint64_t R
 			char taskName[128];
 			ASSEMBLY_TASK task;
 			PROGRAM_STATISTICS tmpstats;
+			/*
+			size_t coverage = 0;
+			{
+				const ONE_READ *fr = FilteredReads->Data;
+				size_t baseCount = 0;
 
+				omp_set_lock(&_readCoverageLock);
+				_totalRegionLength += Options->RegionLength;
+				for (size_t i = 0; i < gen_array_size(FilteredReads); ++i) {
+					_readBaseCount += fr->Part.ReadSequenceLength;
+					baseCount += fr->Part.ReadSequenceLength;
+					++fr;
+				}
+
+				omp_unset_lock(&_readCoverageLock);
+				coverage = baseCount / Options->RegionLength;
+//				printf("%Iu\n", coverage);
+			}
+			*/
 			sprintf(taskName, "%08" PRIu64 " r%Iu", (uint64_t)RegionStart, gen_array_size(FilteredReads));
 			assembly_task_init(&task, RefSeq, Options->RegionLength, NULL, 0, NULL, 0, FilteredReads->Data, gen_array_size(FilteredReads));
 			assembly_task_set_name(&task, taskName);
 			task.RegionStart = RegionStart;
+			Options->ParseOptions.ReadThreshold = Options->Threshold;
 			ret = _compute_graph(Options, &task, &tmpstats);
 			assembly_task_finit(&task);
 		}
@@ -1261,10 +1346,11 @@ ERR_VALUE process_active_region(const PROGRAM_OPTIONS *Options, const uint64_t R
 int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	uint64_t startTime = 0;
-	uint64_t endTime = 0;
 
-	startTime = GetTickCount64();
+	omp_init_lock(&_readCoverageLock);
+#ifdef _MSC_VER
+	uint64_t startTime = GetTickCount64();
+#endif
 	ret = options_module_init(37);
 	if (ret == ERR_SUCCESS) {
 		ret = _init_default_values();
@@ -1422,7 +1508,6 @@ int main(int argc, char *argv[])
 
 							memset(&stats, 0, sizeof(stats));
 							if (tinydir_open(&dir, po.TestFile) == ERR_SUCCESS) {
-								printf("The given \"file\" is a directory\n");
 								POINTER_ARRAY_char fileNameArray;
 								
 								pointer_array_init_char(&fileNameArray, 140);
@@ -1436,7 +1521,6 @@ int main(int argc, char *argv[])
 											char *fileName = *pointer_array_item_char(&fileNameArray, i);
 											ASSEMBLY_TASK task;
 
-											putchar('.');
 											ret = assembly_task_load_file(fileName, &task);
 											if (ret == ERR_SUCCESS) {
 												char *taskName = strchr(fileName, '/');
@@ -1469,7 +1553,7 @@ int main(int argc, char *argv[])
 								st.SuccessCount += stats[i].SuccessCount;
 							}
 
-							printf("\nSuccess: (%" PRIu64 "), Failures: (%" PRIu64 "), Not tried: (%" PRIu64 "), Percentage: (%" PRIu64 ")\n", st.SuccessCount, st.FailureCount, st.CannotSucceed, (uint64_t)(st.SuccessCount * 100 / (st.SuccessCount + st.FailureCount + st.CannotSucceed + 1)));
+							printf("%" PRIu64 " %" PRIu64 " me=%u,br=%u\n", st.SuccessCount, st.FailureCount, po.ParseOptions.MissingEdgePenalty, po.ParseOptions.BackwardRefseqPenalty);
 						}
 					} else if (*po.RefSeqFile != '\0') {
 						printf("K-mer size:                 %u\n", po.KMerSize);
@@ -1478,9 +1562,6 @@ int main(int argc, char *argv[])
 						printf("Reads:                      %u\n", po.ReadCount);
 						printf("Read coverage threshold:    %u\n", po.Threshold);
 						printf("Min. read position quality: %u\n", po.ReadPosQuality);
-						printf("Base quality threshold:     %u\n", po.BaseQualityThreshold);
-						printf("Base quality multiplier:    %u\n", po.BaseQualityMultiplier);
-						printf("Fix reads:                  %u\n", !po.NoFixReads);
 						printf("OpenMP thread count:        %i\n", po.OMPThreads);
 						printf("Output VCF file:            %s\n", po.VCFFile);
 						ret = paired_reads_init();
@@ -1578,6 +1659,7 @@ int main(int argc, char *argv[])
 							} else printf("fix_reads(): %u\n", ret);
 
 							printf("Computing k-mer frequency distribution...\n");
+							printf("Read coverage: %lf\n", _readBaseCount / _totalRegionLength );
 							kmer_freq_distribution(po.KMerSize, po.Reads, po.ReadCount, "kmer-dist2.csv");
 
 							paired_reads_finit();
@@ -1590,8 +1672,11 @@ int main(int argc, char *argv[])
 		options_module_finit();
 	}
 
-	endTime = GetTickCount64();
+#ifdef _MSC_VER
+	uint64_t endTime = GetTickCount64();
 	printf("Time: %I64u s\n", (endTime - startTime) / 1000);
+#endif
+	omp_destroy_lock(&_readCoverageLock);
 
 	return ret;
 }

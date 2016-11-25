@@ -83,6 +83,10 @@ int main(int argc, char *argv[])
 			size_t *replaceArray = deletionArray + numProcs;
 			size_t *SNPArray = replaceArray + numProcs;
 			int index = 0;
+
+			omp_lock_t printLock;
+
+			omp_init_lock(&printLock);
 #pragma omp parallel for shared(graph, refseq, orig, insertionArray, deletionArray, replaceArray, SNPArray)
 			for (index = 0; index < (int)orig.Records.size(); ++index) {
 				const CVCFRecord & rec = orig.Records[index];
@@ -96,8 +100,14 @@ int main(int argc, char *argv[])
 						case vcfrtSNP: ++SNPArray[tid]; break;
 						default: throw std::exception(); break;
 					}
+				} else {
+					omp_set_lock(&printLock);
+					std::cout << rec.Pos << "\t" << rec.Ref << "\t"  << rec.Alt <<  "\t" << rec.SSW << std::endl;
+					omp_unset_lock(&printLock);
 				}
 			}
+
+			omp_destroy_lock(&printLock);
 
 			size_t insertions = 0;
 			size_t deletions = 0;

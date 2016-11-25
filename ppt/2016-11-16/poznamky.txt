@@ -1,0 +1,1 @@
+Porovnat s bcftools mpileup | bcftool call -mv

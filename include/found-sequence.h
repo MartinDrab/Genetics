@@ -49,8 +49,8 @@ typedef struct _VARIANT_CALL {
 	char *Ref;
 	char *Alt;
 	uint8_t Qual;
-	long RefWeight;
-	long AltWeight;
+	size_t RefWeight;
+	size_t AltWeight;
 } VARIANT_CALL, *PVARIANT_CALL;
 
 GEN_ARRAY_TYPEDEF(VARIANT_CALL);
@@ -67,7 +67,7 @@ ERR_VALUE found_sequence_set_variant(PFOUND_SEQUENCE FS, const size_t Index, PFO
 boolean found_sequence_match(const FOUND_SEQUENCE *FS, const char *Seq, const size_t Length);
 ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_ARRAY_KMER_EDGE *PathEdges);
 
-ERR_VALUE variant_call_init(const char *Chrom, const uint64_t Pos, const char *ID, const char *Ref, size_t RefLen, const char *Alt, const uint8_t Qual, PVARIANT_CALL VC);
+ERR_VALUE variant_call_init(const char *Chrom, const uint64_t Pos, const char *ID, const char *Ref, size_t RefLen, const char *Alt, size_t AltLen, const uint8_t Qual, PVARIANT_CALL VC);
 void variant_call_finit(PVARIANT_CALL VC);
 boolean variant_call_equal(const VARIANT_CALL *VC1, const VARIANT_CALL *VC2);
 ERR_VALUE vc_array_add(PGEN_ARRAY_VARIANT_CALL Array, const VARIANT_CALL *VC);

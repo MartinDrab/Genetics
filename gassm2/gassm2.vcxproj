@@ -162,7 +162,6 @@
     <ClCompile Include="..\shared\input-file.c" />
     <ClCompile Include="..\shared\options.c" />
     <ClCompile Include="..\shared\reads.c" />
-    <ClCompile Include="..\shared\ssw.c" />
     <ClCompile Include="..\shared\utils.c" />
     <ClCompile Include="gassm2.c" />
   </ItemGroup>
@@ -176,7 +175,6 @@
     <ClInclude Include="..\shared\input-file.h" />
     <ClInclude Include="..\shared\options.h" />
     <ClInclude Include="..\shared\reads.h" />
-    <ClInclude Include="..\shared\ssw.h" />
     <ClInclude Include="..\shared\utils.h" />
     <ClInclude Include="gassm2.h" />
   </ItemGroup>

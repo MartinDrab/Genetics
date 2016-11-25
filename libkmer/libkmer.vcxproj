@@ -30,6 +30,7 @@
     <ClCompile Include="kmer.c" />
     <ClCompile Include="paired-reads.c" />
     <ClCompile Include="read-info.c" />
+    <ClCompile Include="ssw.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\assembly.h" />
@@ -51,6 +52,7 @@
     <ClInclude Include="..\shared\general-queue.h" />
     <ClInclude Include="..\shared\utils.h" />
     <ClInclude Include="graph-reads.h" />
+    <ClInclude Include="ssw.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}</ProjectGuid>

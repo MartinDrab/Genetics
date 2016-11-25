@@ -11,6 +11,8 @@
 #include <cassert>
 #include <cstring>
 #include <fstream>
+#include "ssw.h"
+
 
 
 enum EVCFRecordType {
@@ -26,11 +28,21 @@ class CVCFRecord {
 public:
 	CVCFRecord()
 		: Type(Type_), RefName(RefName_), Pos(Pos_), Ref(Ref_), Alt(Alt_)
-	{ }
+	{ 
+		char *opString;
+		size_t opStringLen = 0;
+	
+		ssw_clever(Alt_.data(), Alt_.size(), Ref_.data(), Ref_.size(), 2, -1, -1, &opString, &opStringLen);
+		SSW_ = std::string(opString);
+		delete[] opString;
+
+		return;
+	}
 	void operator =(const CVCFRecord & aRecord)
 	{
 		Ref_ = aRecord.Ref;
 		Alt_ = aRecord.Alt;
+		SSW_ = aRecord.SSW;
 		Pos_ = aRecord.Pos;
 		Type_ = aRecord.Type;
 		RefName_ = aRecord.RefName;
@@ -38,13 +50,13 @@ public:
 		return;
 	}
 	CVCFRecord(const CVCFRecord & aRecord)
-		: Pos_(aRecord.Pos), Ref_(aRecord.Ref), Alt_(aRecord.Alt),
+		: Pos_(aRecord.Pos), Ref_(aRecord.Ref), Alt_(aRecord.Alt), SSW_(aRecord.SSW),
 		Index_(aRecord.Index), RefName_(aRecord.RefName), Type_(aRecord.Type), Index(Index_),
-		Type(Type_), Pos(Pos_), RefName(RefName_), Ref(Ref_), Alt(Alt_)
+		Type(Type_), Pos(Pos_), RefName(RefName_), Ref(Ref_), Alt(Alt_), SSW(SSW_)
 	{ }
 	CVCFRecord(const std::string & aRefName, const std::string & aRef, const std::string & aAlt, const size_t aPosition, const std::size_t aIndex = 0)
 		: Type_(vcfrtUnknown), Type(Type_), Ref(Ref_), RefName(RefName_), Pos(Pos_), Alt(Alt_), Index(Index_),
-		Index_(aIndex), RefName_(aRefName), Ref_(aRef), Alt_(aAlt), Pos_(aPosition)
+		Index_(aIndex), RefName_(aRefName), Ref_(aRef), Alt_(aAlt), Pos_(aPosition), SSW(SSW_)
 	{
 		if (Ref_.size() == 1 && Alt_.size() == 1)
 			Type_ = vcfrtSNP;
@@ -53,12 +65,20 @@ public:
 		else if (Alt_.size() == 1)
 			Type_ = vcfrtDeletion;
 		else Type_ = vcfrtReplace;
+		/*
+		char *opString;
+		size_t opStringLen = 0;
 
+		ssw_clever(Ref_.data(), Ref_.size(), Alt_.data(), Alt_.size(), 2, -1, -1, &opString, &opStringLen);
+		SSW_ = std::string(opString);
+		delete[] opString;
+		*/
 		return;
 	}
 	const std::string & RefName = RefName_;
 	const std::string & Ref = Ref_;
 	const std::string & Alt = Alt_;
+	const std::string & SSW = SSW_;
 	const std::size_t & Pos = Pos_;
 	const EVCFRecordType & Type = Type_;
 	const std::size_t & Index = Index_;
@@ -67,6 +87,7 @@ private:
 	std::string Ref_;
 	std::string Alt_;
 	std::size_t Pos_;
+	std::string SSW_;
 	EVCFRecordType Type_;
 	std::size_t Index_;
 };
@@ -156,7 +177,6 @@ public:
 				break;
 		}
 
-		
 		if (ret && aRecord.Type == vcfrtDeletion) {
 			for (size_t i = 0; i < 5; ++i) {
 				const char base = aReference[pos + aRecord.Ref.size() + i];
@@ -179,18 +199,30 @@ public:
 		size_t pos = aRecord.Pos - 1;
 		CVCFVertex *tmp = 0;
 		CVCFVertex *v = 0;
+		size_t rsIndex = pos;
 
 		CVCFVertex *rsVertex = Vertices_[pos];
 		for (size_t i = 0; i < aRecord.Alt.size() - 1; ++i) {
 			const char base = aRecord.Alt[i];
 
-			tmp = rsVertex->Son(base);
-			if (tmp == 0) {
-				tmp = new CVCFVertex(vcfvtVariantCall);
+			if (rsVertex->Type() != vcfvtReference &&
+				i < aRecord.SSW.size() && aRecord.SSW[i] == 'M' &&
+				rsIndex - pos < aRecord.Ref.size() &&
+				Vertices_[rsIndex]->Son(base) == Vertices_[rsIndex + 1]) {
+				tmp = Vertices_[rsIndex + 1];
 				rsVertex->AddSon(base, tmp);
+			} else {
+				tmp = rsVertex->Son(base);
+				if (tmp == 0) {
+					tmp = new CVCFVertex(vcfvtVariantCall);
+					rsVertex->AddSon(base, tmp);
+				}
 			}
 
 			rsVertex = tmp;
+			if (i < aRecord.SSW.size() && 
+				(aRecord.SSW[i] == 'D' || aRecord.SSW[i] == 'M' || aRecord.SSW[i] == 'X'))
+				++rsIndex;
 		}
 
 		{
