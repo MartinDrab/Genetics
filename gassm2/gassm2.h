@@ -49,6 +49,7 @@
 #define PROGRAM_OPTION_NO_HELPER_VERTICES				"no-helper-vertices"
 #define PROGRAM_OPTION_MISSING_EDGE_PENALTY				"missing-edge-penalty"
 #define PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY			"backward-refseq-penalty"
+#define PROGRAM_OPTION_MAX_PATHS						"max-paths"
 
 
 /************************************************************************/
@@ -114,6 +115,7 @@ typedef struct _PROGRAM_OPTIONS {
 	GEN_ARRAY_VARIANT_CALL *VCSubArrays;
 	GEN_ARRAY_ONE_READ *ReadSubArrays;
 	GEN_ARRAY_VARIANT_CALL VCArray;
+	uint32_t MaxPaths;
 	PARSE_OPTIONS ParseOptions;
 } PROGRAM_OPTIONS, *PPROGRAM_OPTIONS;
 

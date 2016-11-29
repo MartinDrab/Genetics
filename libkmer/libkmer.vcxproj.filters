@@ -113,5 +113,11 @@
     <ClInclude Include="ssw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="kmer-graph-base-types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="found-sequence-types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

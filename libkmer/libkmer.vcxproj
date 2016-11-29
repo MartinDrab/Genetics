@@ -51,7 +51,9 @@
     <ClInclude Include="..\shared\err.h" />
     <ClInclude Include="..\shared\general-queue.h" />
     <ClInclude Include="..\shared\utils.h" />
+    <ClInclude Include="found-sequence-types.h" />
     <ClInclude Include="graph-reads.h" />
+    <ClInclude Include="kmer-graph-base-types.h" />
     <ClInclude Include="ssw.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

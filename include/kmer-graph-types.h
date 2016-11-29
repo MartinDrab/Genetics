@@ -4,32 +4,17 @@
 
 
 #include "utils.h"
+#include "kmer-graph-base-types.h"
 #include "gen_dym_array.h"
 #include "pointer_array.h"
 #include "kmer.h"
 #include "kmer-table.h"
 #include "kmer-edge.h"
 #include "read-info.h"
+#include "found-sequence-types.h"
 
 typedef struct _KMER_VERTEX;
 typedef struct _KMER_GRAPH;
-
-typedef enum _EKMerVertexType {
-	kmvtRefSeqStart,
-	kmvtRefSeqMiddle,
-	kmvtRefSeqEnd,
-	kmvtRead,
-	kmvtMax
-} EKMerVertexType, PEKMerVertexType;
-
-
-typedef enum _EKMerEdgeType {
-	kmetReference,
-	kmetRead,
-	kmetVariant,
-	kmetNone,
-	kmetMax,
-} EKMerEdgeType, *PEKMerEdgeType;
 
 
 /** Represents one edge in a kmer graph. */
@@ -43,14 +28,15 @@ typedef struct _KMER_EDGE {
 	size_t SeqLen;
 	EKMerEdgeType SeqType;
 	size_t Seq1Weight;
-	char *Seq2;
-	size_t Seq2Len;
-	EKMerEdgeType Seq2Type;
-	size_t Seq2Weight;
 	READ_INFO ReadInfo;
 	boolean MarkedForDelete;
 	boolean Finished;
 	GEN_ARRAY_size_t Paths;
+
+	uint32_t RefSeqPosition;
+	uint32_t RefseqWeight;
+	uint32_t ReadWeight;
+	GEN_ARRAY_FOUND_SEQUENCE_VARIANT Variants;
 } KMER_EDGE, *PKMER_EDGE;
 
 POINTER_ARRAY_TYPEDEF(KMER_EDGE);

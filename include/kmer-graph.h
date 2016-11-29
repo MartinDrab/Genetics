@@ -42,7 +42,7 @@ void kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph);
 void kmer_graph_delete_edges_under_threshold(PKMER_GRAPH Graph, const size_t Threshold);
 void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings);
 ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Threshold, PGEN_ARRAY_KMER_EDGE_PAIR PairArray, size_t *ChangeCount);
-ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, boolean *Changed);
+ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Reference, boolean *Changed);
 void kmer_graph_delete_backward_edges(PKMER_GRAPH Graph);
 
 ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EKMerVertexType Type, PKMER_VERTEX *Vertex);

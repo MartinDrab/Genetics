@@ -156,7 +156,8 @@ ERR_VALUE utils_copy_string(const char *String, char **Result)
 	
 	ret = utils_calloc(len + 1, sizeof(char), &tmp);
 	if (ret == ERR_SUCCESS) {
-		memcpy(tmp, String, (len + 1)*sizeof(char));
+		memcpy(tmp, String, len*sizeof(char));
+		tmp[len] = '\0';
 		*Result = tmp;
 	}
 

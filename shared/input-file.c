@@ -303,6 +303,15 @@ ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, co
 }
 
 
+static int _read_comparator(const void *A, const void *B)
+{
+	const ONE_READ *rA = (const ONE_READ *)A;
+	const ONE_READ *rB = (const ONE_READ *)B;
+
+	return (int)((int64_t)(rA->Pos - rB->Pos));
+}
+
+
 ERR_VALUE input_filter_bad_reads(const ONE_READ *Source, const size_t SourceCount, const uint8_t MinQuality, PONE_READ *NewReadSet, uint32_t *NewReadCount)
 {
 	size_t tmpNewReadCount = 0;
@@ -327,6 +336,7 @@ ERR_VALUE input_filter_bad_reads(const ONE_READ *Source, const size_t SourceCoun
 		}
 
 		if (ret == ERR_SUCCESS) {
+			qsort(tmpNewReadSet, tmpNewReadCount, sizeof(ONE_READ), _read_comparator);
 			*NewReadSet = tmpNewReadSet;
 			*NewReadCount = tmpNewReadCount;
 		}

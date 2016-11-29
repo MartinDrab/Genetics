@@ -93,7 +93,7 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_seq(PREFSEQ_STORAGE Storage, const char
 	return ret;
 }
 
-INLINE_FUNCTION ERR_VALUE rs_storage_add_edge(PREFSEQ_STORAGE Storage, const KMER_EDGE *Edge, boolean ReadOnly)
+INLINE_FUNCTION ERR_VALUE rs_storage_add_edge(PREFSEQ_STORAGE Storage, const KMER_EDGE *Edge)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
@@ -101,17 +101,6 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_edge(PREFSEQ_STORAGE Storage, const KME
 		case kmetReference:
 		case kmetRead:
 			ret = rs_storage_add_seq(Storage, Edge->Seq, Edge->SeqLen);
-			break;
-		case kmetVariant:
-			if (ReadOnly && Edge->SeqType != kmetRead) {
-				ret = (Edge->Seq2Type == kmetRead) ?
-					rs_storage_add_seq(Storage, Edge->Seq2, Edge->Seq2Len) :
-					ERR_TWO_READ_SEQUENCES;
-			} else {
-				if (ReadOnly)
-					ret = ERR_TWO_READ_SEQUENCES;
-				else ret = rs_storage_add_seq(Storage, Edge->Seq, Edge->SeqLen);
-			}
 			break;
 	}
 

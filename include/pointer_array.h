@@ -187,7 +187,7 @@
 		ERR_VALUE ret = ERR_SUCCESS;																\
 																									\
 		if (Target->AllocLength < Target->ValidLength + Source->ValidLength)						\
-			ret =pointer_array_reserve_##aDataType(Target, 1 + Target->ValidLength + Source->ValidLength);	\
+			ret = pointer_array_reserve_##aDataType(Target, 1 + Target->ValidLength + Source->ValidLength);	\
 																									\
 		if (ret == ERR_SUCCESS) {																	\
 			memcpy(Target->Data + Target->ValidLength, Source->Data, Source->ValidLength*sizeof(aDataType*));	\

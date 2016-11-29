@@ -6,15 +6,42 @@
 #include "found-sequence.h"
 
 
-static void _variant_free(PFOUND_SEQUENCE_VARIANT Variant)
+
+
+void found_sequence_variant_free(const FOUND_SEQUENCE_VARIANT *FSV)
 {
-	if (Variant->Seq1 != NULL)
-		utils_free(Variant->Seq1);
-	
-	if (Variant->Seq2 != NULL)
-		utils_free(Variant->Seq2);
+	if (FSV->Seq1 != NULL)
+		utils_free(FSV->Seq1);
+
+	if (FSV->Seq2 != NULL)
+		utils_free(FSV->Seq2);
+
+}
+
+void found_sequence_variant_array_free(const FOUND_SEQUENCE_VARIANT *Array, const size_t Count)
+{
+	for (size_t i = 0; i < Count; ++i)
+		found_sequence_variant_free(Array + i);
 
 	return;
+}
+
+
+ERR_VALUE found_sequence_variant_copy(PFOUND_SEQUENCE_VARIANT Target, const FOUND_SEQUENCE_VARIANT *Source)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	*Target = *Source;
+	ret = utils_copy_string(Source->Seq1, &Target->Seq1);
+	if (ret == ERR_SUCCESS) {
+		ret = utils_copy_string(Source->Seq2, &Target->Seq2);
+		if (ret != ERR_SUCCESS) {
+			utils_free(Target->Seq1);
+			Target->Seq1 = NULL;
+		}
+	}
+
+	return ret;
 }
 
 
@@ -47,13 +74,9 @@ void found_sequence_finit(PFOUND_SEQUENCE FS)
 	const size_t rCount = gen_array_size(&FS->ReadVariants);
 	const size_t vCount = gen_array_size(&FS->Variants);
 
-	for (size_t i = 0; i < rCount; ++i)
-		_variant_free(dym_array_item_FOUND_SEQUENCE_VARIANT(&FS->ReadVariants, i));
-
+	found_sequence_variant_array_free(FS->ReadVariants.Data, gen_array_size(&FS->ReadVariants));
 	dym_array_finit_FOUND_SEQUENCE_VARIANT(&FS->ReadVariants);
-	for (size_t i = 0; i < vCount; ++i)
-		_variant_free(dym_array_item_FOUND_SEQUENCE_VARIANT(&FS->Variants, i));
-
+	found_sequence_variant_array_free(FS->Variants.Data, gen_array_size(&FS->Variants));
 	dym_array_finit_FOUND_SEQUENCE_VARIANT(&FS->Variants);
 	utils_free(FS->Sequence);
 
@@ -214,14 +237,11 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 					case kmetVariant:
 						rsWeight = rsEdge->Seq1Weight;
 						break;
-					default:
-						__debugbreak();
-						break;
 				}
 			}
 
 			if (startIndex != (size_t)-1) {
-				ret = rs_storage_add_edge(&seqStorage, e, TRUE);
+				ret = rs_storage_add_edge(&seqStorage, e);
 				if (ret != ERR_SUCCESS)
 					break;
 			}
@@ -229,6 +249,7 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 			if (e->Dest->Type == kmvtRefSeqMiddle) {
 				FOUND_SEQUENCE_VARIANT var;
 				
+				assert(startIndex != (size_t)-1);
 				if (!e->Dest->Helper && !e->Dest->Type != kmvtRefSeqEnd)
 					rs_storage_remove(&seqStorage, 1);
 				
@@ -248,14 +269,43 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 						if (ret != ERR_SUCCESS)
 							utils_free(var.Seq1);
 					}
-
-					if (ret != ERR_SUCCESS)
-						break;
 				}
 
+				rs_storage_reset(&seqStorage);
 				startIndex = (size_t)-1;
 			}
+		} else if (e->Type == kmetReference && startIndex != (size_t)-1) {
+			FOUND_SEQUENCE_VARIANT var;
+
+			assert(e->Source->Type == kmvtRead);
+			assert(e->Dest->Type == kmvtRead);
+			var.RefSeqStart = refseqStart;
+			var.RefSeqEnd = e->Source->RefSeqPosition;
+			if (var.RefSeqStart < var.RefSeqEnd) {
+				var.Seq1Type = kmetRead;
+				ret = rs_storage_create_string(&seqStorage, &var.Seq1);
+				if (ret == ERR_SUCCESS) {
+					var.Seq1Len = strlen(var.Seq1);
+					var.Seq1Weight = weight;
+					var.Seq2Type = kmetNone;
+					var.Seq2 = NULL;
+					var.Seq2Len = 0;
+					var.Seq2Weight = rsWeight;
+					ret = dym_array_push_back_FOUND_SEQUENCE_VARIANT(&FS->ReadVariants, var);
+					if (ret != ERR_SUCCESS)
+						utils_free(var.Seq1);
+				}
+			}
+
+			if (ret == ERR_SUCCESS) {
+				startIndex = e->Source->RefSeqPosition + 1 + e->SeqLen;
+				rs_storage_reset(&seqStorage);
+				ret = rs_storage_add_vertex(&seqStorage, e->Dest);
+			}
 		}
+
+		if (ret != ERR_SUCCESS)
+			break;
 	}
 
 	rs_storage_finit(&seqStorage);

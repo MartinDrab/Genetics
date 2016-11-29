@@ -118,6 +118,9 @@ static ERR_VALUE _init_default_values()
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY, 2);
 
+	if (ret == ERR_SUCCESS)
+		ret = option_add_UInt32(PROGRAM_OPTION_MAX_PATHS, 10);
+
 	option_set_description_const(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQUENCE, PROGRAM_OPTION_SEQUENCE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQFILE, PROGRAM_OPTION_SEQFILE_DESC);
@@ -294,6 +297,7 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 	Options->ParseOptions.HelperVertices = !b;
 	option_get_UInt32(PROGRAM_OPTION_MISSING_EDGE_PENALTY, &Options->ParseOptions.MissingEdgePenalty);
 	option_get_UInt32(PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY, &Options->ParseOptions.BackwardRefseqPenalty);
+	option_get_UInt32(PROGRAM_OPTION_MAX_PATHS, &Options->MaxPaths);
 
 	return ret;
 }
@@ -443,11 +447,15 @@ static ERR_VALUE _process_variant_calls(PGEN_ARRAY_VARIANT_CALL VCArray, const A
 		char *altSeq = NULL;
 		const char *refSeq = Task->Reference + var->RefSeqStart;
 
-		if (var->Seq1Weight > realThreshold && var->Seq1Type == kmetRead)
-			ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, var->Seq2Weight, var->Seq1Weight, VCArray);
+		if (var->RefSeqStart < var->RefSeqEnd) {
+			if (var->Seq1Weight > realThreshold && var->Seq1Type == kmetRead)
+				ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, var->Seq2Weight, var->Seq1Weight, VCArray);
 
-		if (var->Seq2Weight > realThreshold && var->Seq2Type == kmetRead)
-			ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq2, var->Seq2Len, var->Seq1Weight, var->Seq2Weight, VCArray);
+			if (var->Seq2Weight > realThreshold && var->Seq2Type == kmetRead)
+				ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq2, var->Seq2Len, var->Seq1Weight, var->Seq2Weight, VCArray);
+		} else {
+			printf("VAR-BACK: %u->%u, %s\n", var->RefSeqStart, var->RefSeqEnd, var->Seq1);
+		}
 
 		++var;
 	}
@@ -472,16 +480,6 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 	pointer_array_init_FOUND_SEQUENCE(&seqArray, 140);
 	ret = kmer_graph_get_seqs(Graph, Task->Reference, &seqArray);
 	if (ret == ERR_SUCCESS) {
-		/*
-		kmer_graph_delete_seqs(Graph, &seqArray, Options->Threshold);
-		for (size_t j = 0; j < pointer_array_size(&seqArray); ++j)
-			found_sequence_free(*pointer_array_item_FOUND_SEQUENCE(&seqArray, j));
-
-		pointer_array_clear_FOUND_SEQUENCE(&seqArray);
-		boolean changed;
-		kmer_graph_detect_uncertainities(Graph, &changed);
-		kmer_graph_get_seqs(Graph, &seqArray);
-		*/
 		if (Task->Alternate1Length > 0 && Task->Alternate2Length > 0) {
 			for (size_t i = 0; i < sizeof(alternateLens) / sizeof(size_t); ++i) {
 				boolean found = FALSE;
@@ -515,7 +513,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 			res = erSuccess;
 		}
 	} else printf("ERROR: kmer_graph_get_seqs(): %u\n", ret);
-	
+
 	if (Task->Name != NULL && (Graph->TypedEdgeCount[kmetRead] > 0 ||
 		Graph->TypedEdgeCount[kmetVariant] > 0)) {
 		FILE *f = NULL;
@@ -550,6 +548,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 		unlink(vcfName);
 		if (Options->VCFFileHandle != NULL) 
 		{
+			kmer_graph_delete_1to1_vertices(Graph);
 			ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
 			if (ret == ERR_SUCCESS) {
 				kmer_graph_print(f, Graph);
@@ -565,7 +564,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 			}
 		}
 
-		if (pointer_array_size(&seqArray) <= 10 && Options->VCFFileHandle != NULL) {
+		if (pointer_array_size(&seqArray) <= Options->MaxPaths && Options->VCFFileHandle != NULL) {
 			PFOUND_SEQUENCE *pseq = seqArray.Data;
 			PGEN_ARRAY_VARIANT_CALL vcArray = Options->VCSubArrays + omp_get_thread_num();
 
@@ -576,7 +575,7 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 			}
 		}
 	}
-	
+
 	for (size_t j = 0; j < pointer_array_size(&seqArray); ++j)
 		found_sequence_free(*pointer_array_item_FOUND_SEQUENCE(&seqArray, j));
 
@@ -642,10 +641,10 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 								
 							if (Options->ParseOptions.MergeBubbles) {
 								boolean changed = FALSE;
-
+								
 								do {
 									changed = FALSE;
-									ret = kmer_graph_detect_uncertainities(g, &changed);
+									ret = kmer_graph_detect_uncertainities(g, Task->Reference, &changed);
 								} while (ret == ERR_SUCCESS && changed);
 							}
 
