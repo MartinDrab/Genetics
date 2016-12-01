@@ -548,7 +548,6 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 		unlink(vcfName);
 		if (Options->VCFFileHandle != NULL) 
 		{
-			kmer_graph_delete_1to1_vertices(Graph);
 			ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
 			if (ret == ERR_SUCCESS) {
 				kmer_graph_print(f, Graph);
@@ -636,8 +635,8 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 						size_t changeCount = 0;
 						ret = kmer_graph_connect_reads_by_pairs(g, Options->Threshold, &ep, &changeCount);
 						if (ret == ERR_SUCCESS) {
-//							if (Options->ParseOptions.LinearShrink)
-//								kmer_graph_delete_1to1_vertices(g);
+							if (Options->ParseOptions.LinearShrink)
+								kmer_graph_delete_1to1_vertices(g);
 								
 							if (Options->ParseOptions.MergeBubbles) {
 								boolean changed = FALSE;

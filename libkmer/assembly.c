@@ -479,12 +479,6 @@ static ERR_VALUE _create_long_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertic
 						p.V = Edges[i];
 						p.ConnectingEdge = connectingEdge;
 						p.ReadDistance = seqIndex - readGapSeqStart - 1;
-						if (longEdgeType == kmetReference) {
-							assert(p.U->Dest->Type == kmvtRefSeqMiddle);
-							assert(p.V->Source->Type == kmvtRefSeqMiddle);
-							p.ConnectingEdge->RefSeqPosition = p.U->Dest->RefSeqPosition;
-						}
-
 						if (!_edge_pair_exists(PairArray, &p)) {
 							p.EdgeCount = i - readGapStart - 1;
 							ret = utils_calloc(p.EdgeCount, sizeof(PKMER_EDGE), &p.Edges);
@@ -507,7 +501,6 @@ static ERR_VALUE _create_long_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertic
 				readGapStart = i;
 				readGapSeqStart = seqIndex;
 				gapStartE = Edges[i];
-//				longEdgeType = (LongFlags[i] & READ_EDGE_FLAG_LONG_REFSEQ) ? kmetReference : kmetRead;
 				longEdgeType = kmetRead;
 			}
 
@@ -886,6 +879,16 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_
 							} while (ret == ERR_SUCCESS && gen_array_size(&fixedReads) > 0);
 
 							dym_array_finit_size_t(&fixedReads);
+							{
+								PKMER_EDGE e = NULL;
+								void *iter = NULL;
+
+								if (kmer_edge_table_first(Graph->EdgeTable, &iter, (void **)&e) == ERR_SUCCESS) {
+									do {
+										read_info_sort(&e->ReadInfo);
+									} while (kmer_edge_table_next(Graph->EdgeTable, iter, &iter, (void **)&e) == ERR_SUCCESS);
+								}
+							}
 						}
 
 						currentRead = Reads;

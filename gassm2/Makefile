@@ -17,8 +17,8 @@ OBJ=\
 	$(SHAREDOBJDIR)/general-queue.o \
 	$(SHAREDOBJDIR)/input-file.o \
 	$(SHAREDOBJDIR)/reads.o \
-	$(SHAREDOBJDIR)/ssw.o \
 	$(OBJDIR)/gassm2.o \
+	$(LIBKMEROBJDIR)/ssw.o \
 	$(LIBKMEROBJDIR)/paired-reads.o \
 	$(LIBKMEROBJDIR)/assembly.o \
 	$(LIBKMEROBJDIR)/found-sequence.o \
@@ -29,7 +29,7 @@ OBJ=\
 	$(LIBKMEROBJDIR)/kmer.o \
 
 
-INCLUDE= -I./ -I./../include -I./$(SHAREDDIR) -I-
+INCLUDE= -I./ -I./../include -I./$(SHAREDDIR) -I../libkmer -I-
 
 SHAREDINCLUDE= -I./../icnlude -I./$(SHAREDDIR) -I-
 

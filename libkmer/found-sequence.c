@@ -232,8 +232,8 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 				weight = read_info_weight(&e->ReadInfo);
 				switch (rsEdge->Type) {
 					case kmetReference:
-						rsWeight = read_info_weight(&rsEdge->ReadInfo);
-						break;
+//						rsWeight = read_info_weight(&rsEdge->ReadInfo);
+//						break;
 					case kmetVariant:
 						rsWeight = rsEdge->Seq1Weight;
 						break;
@@ -273,34 +273,6 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 
 				rs_storage_reset(&seqStorage);
 				startIndex = (size_t)-1;
-			}
-		} else if (e->Type == kmetReference && startIndex != (size_t)-1) {
-			FOUND_SEQUENCE_VARIANT var;
-
-			assert(e->Source->Type == kmvtRead);
-			assert(e->Dest->Type == kmvtRead);
-			var.RefSeqStart = refseqStart;
-			var.RefSeqEnd = e->Source->RefSeqPosition;
-			if (var.RefSeqStart < var.RefSeqEnd) {
-				var.Seq1Type = kmetRead;
-				ret = rs_storage_create_string(&seqStorage, &var.Seq1);
-				if (ret == ERR_SUCCESS) {
-					var.Seq1Len = strlen(var.Seq1);
-					var.Seq1Weight = weight;
-					var.Seq2Type = kmetNone;
-					var.Seq2 = NULL;
-					var.Seq2Len = 0;
-					var.Seq2Weight = rsWeight;
-					ret = dym_array_push_back_FOUND_SEQUENCE_VARIANT(&FS->ReadVariants, var);
-					if (ret != ERR_SUCCESS)
-						utils_free(var.Seq1);
-				}
-			}
-
-			if (ret == ERR_SUCCESS) {
-				startIndex = e->Source->RefSeqPosition + 1 + e->SeqLen;
-				rs_storage_reset(&seqStorage);
-				ret = rs_storage_add_vertex(&seqStorage, e->Dest);
 			}
 		}
 
@@ -452,7 +424,7 @@ void vc_array_print(FILE *Stream, const GEN_ARRAY_VARIANT_CALL *Array)
 	fprintf(Stream, "##FORMAT=<ID=HQ,Number=2,Type=Integer,Description=\"Haplotype Quality\">\n");
 	fprintf(Stream, "#CHROM\tPOS\tID\tREF ALT\tQUAL\tFILTER\tINFO\n");
 	for (size_t i = 0; i < gen_array_size(Array); ++i) {
-		fprintf(Stream, "%s\t%I64u\t%s\t%s\t%s\t60\tPASS\t\"%Iu %Iu\"\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, tmp->RefWeight, tmp->AltWeight);
+		fprintf(Stream, "%s\t%I64u\t%s\t%s\t%s\t60\tPASS\t\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt);
 		++tmp;
 	}
 
