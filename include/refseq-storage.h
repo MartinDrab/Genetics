@@ -100,6 +100,7 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_edge(PREFSEQ_STORAGE Storage, const KME
 	switch (Edge->Type) {
 		case kmetReference:
 		case kmetRead:
+		case kmetVariant:
 			ret = rs_storage_add_seq(Storage, Edge->Seq, Edge->SeqLen);
 			break;
 	}

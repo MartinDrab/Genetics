@@ -337,14 +337,7 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 	char *altSeq = NULL;
 	const char *refSeq = Task->Reference + RefSeqStart;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	/*
-	if (altLen > 0) {
-		while (rsLen > 0 && altLen > 0 && refSeq[rsLen - 1] == AltSeq[altLen - 1]) {
-			--rsLen;
-			--altLen;
-		}
-	}
-	*/
+	
 	ret = utils_calloc(altLen + 2, sizeof(char), &altSeq);
 	if (ret == ERR_SUCCESS) {
 		altSeqStart = altSeq;
@@ -394,9 +387,9 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 
 							nothing = TRUE;
 						} else {
-							rsPos += (tmpRS - refSeq);
-							refSeq = tmpRS;
-							altSeq = tmpAltS;
+							rsPos++;
+							refSeq++;
+							altSeq++;
 						}
 
 						++tmpRS;
@@ -563,13 +556,15 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 			}
 		}
 
-		if (pointer_array_size(&seqArray) <= Options->MaxPaths && Options->VCFFileHandle != NULL) {
+		if (Options->VCFFileHandle != NULL) {
 			PFOUND_SEQUENCE *pseq = seqArray.Data;
 			PGEN_ARRAY_VARIANT_CALL vcArray = Options->VCSubArrays + omp_get_thread_num();
 
 			for (size_t i = 0; i < pointer_array_size(&seqArray); ++i) {
 				_process_variant_calls(vcArray, Task, &(*pseq)->Variants, Options->Threshold);
-				_process_variant_calls(vcArray, Task, &(*pseq)->ReadVariants, Options->Threshold);
+				if (pointer_array_size(&seqArray) <= Options->MaxPaths)
+					_process_variant_calls(vcArray, Task, &(*pseq)->ReadVariants, Options->Threshold);
+				
 				++pseq;
 			}
 		}
@@ -1306,16 +1301,16 @@ ERR_VALUE process_active_region(PROGRAM_OPTIONS *Options, const uint64_t RegionS
 			char taskName[128];
 			ASSEMBLY_TASK task;
 			PROGRAM_STATISTICS tmpstats;
-			/*
+			
 			size_t coverage = 0;
 			{
 				const ONE_READ *fr = FilteredReads->Data;
 				size_t baseCount = 0;
 
 				omp_set_lock(&_readCoverageLock);
-				_totalRegionLength += Options->RegionLength;
+//				_totalRegionLength += Options->RegionLength;
 				for (size_t i = 0; i < gen_array_size(FilteredReads); ++i) {
-					_readBaseCount += fr->Part.ReadSequenceLength;
+//					_readBaseCount += fr->Part.ReadSequenceLength;
 					baseCount += fr->Part.ReadSequenceLength;
 					++fr;
 				}
@@ -1324,12 +1319,12 @@ ERR_VALUE process_active_region(PROGRAM_OPTIONS *Options, const uint64_t RegionS
 				coverage = baseCount / Options->RegionLength;
 //				printf("%Iu\n", coverage);
 			}
-			*/
+			
 			sprintf(taskName, "%08" PRIu64 " r%Iu", (uint64_t)RegionStart, gen_array_size(FilteredReads));
 			assembly_task_init(&task, RefSeq, Options->RegionLength, NULL, 0, NULL, 0, FilteredReads->Data, gen_array_size(FilteredReads));
 			assembly_task_set_name(&task, taskName);
 			task.RegionStart = RegionStart;
-			Options->ParseOptions.ReadThreshold = Options->Threshold;
+			Options->ParseOptions.ReadThreshold = (coverage > Options->Threshold*4) ? coverage / 4 : Options->Threshold;
 			ret = _compute_graph(Options, &task, &tmpstats);
 			assembly_task_finit(&task);
 		}

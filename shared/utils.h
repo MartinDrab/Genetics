@@ -104,9 +104,7 @@ ERR_VALUE _utils_calloc_debug(const size_t Count, const size_t Size, void **Addr
 void _utils_free_debug(void *Address);
 void utils_allocator_check(void);
 
-#ifdef _DEBUG
-#define USE_DEBUG_ALLOCATOR
-#endif
+// #define USE_DEBUG_ALLOCATOR
 
 #ifdef USE_DEBUG_ALLOCATOR
 
