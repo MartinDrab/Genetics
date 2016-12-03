@@ -40,6 +40,7 @@ void input_free_refseq(char *RefSeq, const size_t RefSeqLen);
 ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ *Reads, size_t *ReadCount);
 ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, const size_t SourceCount, const uint64_t RegionStart, const size_t RegionLength, PGEN_ARRAY_ONE_READ NewReads);
 ERR_VALUE input_filter_bad_reads(const ONE_READ *Source, const size_t SourceCount, const uint8_t MinQuality, PONE_READ *NewReadSet, uint32_t *NewReadCount);
+void input_sort_reads(PONE_READ Reads, const size_t Count);
 void input_free_reads(PONE_READ Reads, const size_t Count);
 ERR_VALUE input_refseq_to_regions(const char *RefSeq, const size_t RefSeqLen, PACTIVE_REGION *Regions, size_t *Count);
 ERR_VALUE input_get_region_by_offset(const PACTIVE_REGION Regions, const size_t Count, const uint64_t Offset, size_t *Index, uint64_t *RegionOffset);

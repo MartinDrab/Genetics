@@ -742,7 +742,7 @@ static void _remove_read_from_graph(PKMER_GRAPH Graph, const size_t ReadIndex, P
 /*                      PUBLIC FUNCTIONS                                */
 /************************************************************************/
 
-ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, const size_t RefSeqLen, const uint32_t Threshold)
+ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, const size_t RefSeqLen)
 {
 	PKMER sourceKMer = NULL;
 	PKMER destKMer = NULL;
@@ -842,55 +842,7 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_
 						++currentRead;
 					}
 
-					if (ret == ERR_SUCCESS) {
-						if (Options->FixReads) {
-							GEN_ARRAY_size_t fixedReads;
-
-							dym_array_init_size_t(&fixedReads, 140);
-							do {
-								if (gen_array_size(&fixedReads) > 0) {
-									const size_t *preadIndex = dym_array_const_item_size_t(&fixedReads, 0);
-
-									for (size_t i = 0; i < gen_array_size(&fixedReads); ++i) {
-										_remove_read_from_graph(Graph, *preadIndex, paths[*preadIndex], pathLengths[*preadIndex], edgePaths[*preadIndex]);
-										paths[*preadIndex] = NULL;
-										edgePaths[*preadIndex] = NULL;
-										ret = _kmer_graph_parse_read_v2(Options, Graph, Reads + *preadIndex, *preadIndex, paths + *preadIndex, pathLengths + *preadIndex, edgePaths + *preadIndex);
-										++preadIndex;
-										if (ret != ERR_SUCCESS)
-											break;
-									}
-								}
-
-								dym_array_clear_size_t(&fixedReads);
-								currentRead = Reads;
-								for (size_t i = 0; i < ReadCount; ++i) {
-									boolean fixed = FALSE;
-
-									_fix_read(Graph, currentRead, paths[i], pathLengths[i], i, edgePaths[i], Options, &fixed);
-									if (fixed) {
-										ret = dym_array_push_back_size_t(&fixedReads, i);
-										if (ret != ERR_SUCCESS)
-											break;
-									}
-
-									++currentRead;
-								}
-							} while (ret == ERR_SUCCESS && gen_array_size(&fixedReads) > 0);
-
-							dym_array_finit_size_t(&fixedReads);
-							{
-								PKMER_EDGE e = NULL;
-								void *iter = NULL;
-
-								if (kmer_edge_table_first(Graph->EdgeTable, &iter, (void **)&e) == ERR_SUCCESS) {
-									do {
-										read_info_sort(&e->ReadInfo);
-									} while (kmer_edge_table_next(Graph->EdgeTable, iter, &iter, (void **)&e) == ERR_SUCCESS);
-								}
-							}
-						}
-
+					if (ret == ERR_SUCCESS) {						
 						currentRead = Reads;
 						for (size_t i = 0; i < ReadCount; ++i) {
 							if (Options->HelperVertices)
@@ -942,6 +894,99 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_
 		}
 
 		utils_free(paths);
+	}
+
+	return ret;
+}
+
+
+ERR_VALUE assembly_repair_reads(const uint32_t KMerSize, PONE_READ Reads, const size_t ReadCount, const char*RefSeq, const size_t RefSeqLen, const PARSE_OPTIONS *ParseOptions)
+{
+	PKMER_GRAPH g = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	PONE_READ currentRead = NULL;
+	PKMER_VERTEX **paths = NULL;
+	PKMER_EDGE **edgePaths = NULL;
+	size_t *pathLengths = 0;
+
+	ret = kmer_graph_create(KMerSize, 2500, 6000, &g);
+	if (ret == ERR_SUCCESS) {
+		ret = kmer_graph_parse_ref_sequence(g, RefSeq, RefSeqLen);
+		if (ret == ERR_SUCCESS) {
+			ret = utils_calloc(ReadCount, sizeof(PKMER_VERTEX *), &paths);
+			if (ret == ERR_SUCCESS) {
+				ret = utils_calloc(ReadCount, sizeof(size_t), &pathLengths);
+				if (ret == ERR_SUCCESS) {
+					ret = utils_calloc(ReadCount, sizeof(PKMER_EDGE *), &edgePaths);
+					if (ret == ERR_SUCCESS) {
+						currentRead = Reads;
+						for (size_t i = 0; i < ReadCount; ++i) {
+							ret = _kmer_graph_parse_read_v2(ParseOptions, g, currentRead, i, paths + i, pathLengths + i, edgePaths + i);
+							if (ret != ERR_SUCCESS)
+								break;
+
+							++currentRead;
+						}
+
+						if (ret == ERR_SUCCESS) {
+							GEN_ARRAY_size_t fixedReads;
+
+							dym_array_init_size_t(&fixedReads, 140);
+							do {
+								if (gen_array_size(&fixedReads) > 0) {
+									const size_t *preadIndex = dym_array_const_item_size_t(&fixedReads, 0);
+
+									for (size_t i = 0; i < gen_array_size(&fixedReads); ++i) {
+										_remove_read_from_graph(g, *preadIndex, paths[*preadIndex], pathLengths[*preadIndex], edgePaths[*preadIndex]);
+										paths[*preadIndex] = NULL;
+										edgePaths[*preadIndex] = NULL;
+										ret = _kmer_graph_parse_read_v2(ParseOptions, g, Reads + *preadIndex, *preadIndex, paths + *preadIndex, pathLengths + *preadIndex, edgePaths + *preadIndex);
+										++preadIndex;
+										if (ret != ERR_SUCCESS)
+											break;
+									}
+								}
+
+								dym_array_clear_size_t(&fixedReads);
+								currentRead = Reads;
+								for (size_t i = 0; i < ReadCount; ++i) {
+									boolean fixed = FALSE;
+
+									_fix_read(g, currentRead, paths[i], pathLengths[i], i, edgePaths[i], ParseOptions, &fixed);
+									if (fixed) {
+										ret = dym_array_push_back_size_t(&fixedReads, i);
+										if (ret != ERR_SUCCESS)
+											break;
+									}
+
+									++currentRead;
+								}
+							} while (ret == ERR_SUCCESS && gen_array_size(&fixedReads) > 0);
+
+							dym_array_finit_size_t(&fixedReads);
+						}
+
+						for (size_t i = 0; i < ReadCount; ++i) {
+							if (edgePaths[i] != NULL)
+								utils_free(edgePaths[i]);
+						}
+
+						utils_free(edgePaths);
+					}
+
+					utils_free(pathLengths);
+				}
+
+				for (size_t i = 0; i < ReadCount; ++i) {
+					if (paths[i] != NULL)
+						utils_free(paths[i]);
+				}
+
+				utils_free(paths);
+			}
+		}
+
+		kmer_graph_destroy(g);
 	}
 
 	return ret;

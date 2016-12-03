@@ -266,9 +266,16 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 			PONE_READ readSet = NULL;
 			size_t readCount = 0;
 			
+			fprintf(stderr, "Loading reads from %s...\n", readFile);
 			ret = input_get_reads(readFile, "sam", &readSet, &readCount);
 			if (ret == ERR_SUCCESS) {
+				fprintf(stderr, "Filtering out reads with MAPQ less than %u...\n", Options->ReadPosQuality);
 				ret = input_filter_bad_reads(readSet, readCount, Options->ReadPosQuality, &Options->Reads, &Options->ReadCount);
+				if (ret == ERR_SUCCESS) {
+					fprintf(stderr, "Sorting reads...\n");
+					input_sort_reads(Options->Reads, Options->ReadCount);
+				}
+
 				read_set_destroy(readSet, readCount);
 			}
 		}
@@ -603,7 +610,7 @@ static void _on_delete_edge(const KMER_GRAPH *Graph, const KMER_EDGE *Edge, void
 	return;
 }
 
-static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
+static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const PARSE_OPTIONS *ParseOptions, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
 {
 	EExperimentResult res = erNotTried;
 	PKMER_GRAPH g = NULL;
@@ -612,12 +619,12 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 
 		ret = kmer_graph_create(Options->KMerSize, 2500, 6000, &g);
 		if (ret == ERR_SUCCESS) {
-			ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength, Options->Threshold);
+			ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength);
 			if (ret == ERR_SUCCESS) {
 				GEN_ARRAY_KMER_EDGE_PAIR ep;
 				
 				dym_array_init_KMER_EDGE_PAIR(&ep, 140);
-				ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount, Options->Threshold, &Options->ParseOptions, &ep);
+				ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount, Options->Threshold, ParseOptions, &ep);
 				if (ret == ERR_SUCCESS) {
 					size_t deletedThings = 0;
 
@@ -630,10 +637,10 @@ static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const AS
 						size_t changeCount = 0;
 						ret = kmer_graph_connect_reads_by_pairs(g, Options->Threshold, &ep, &changeCount);
 						if (ret == ERR_SUCCESS) {
-							if (Options->ParseOptions.LinearShrink)
+							if (ParseOptions->LinearShrink)
 								kmer_graph_delete_1to1_vertices(g);
 								
-							if (Options->ParseOptions.MergeBubbles) {
+							if (ParseOptions->MergeBubbles) {
 								boolean changed = FALSE;
 								
 								do {
@@ -883,7 +890,7 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 											++_taskNumber;
 											unlink(taskFileName);
 											assembly_task_save_file(taskFileName, &task);
-											switch (_compute_graph(Options, &task, &stats)) {
+											switch (_compute_graph(Options, &Options->ParseOptions, &task, &stats)) {
 												case erSuccess:
 													unlink(succTaskFileName);
 													rename(taskFileName, succTaskFileName);
@@ -936,7 +943,7 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 		}
 	} else {
 		assembly_task_init(&task, RefSeq, Options->RegionLength, RefSeq, Options->RegionLength, RefSeq, Options->RegionLength, NULL, 0);
-		_compute_graph(Options, &task, Statistics);
+		_compute_graph(Options, &Options->ParseOptions, &task, Statistics);
 		assembly_task_finit(&task);
 	}
 
@@ -1291,7 +1298,7 @@ static size_t _totalRegionLength = 0;
 static omp_lock_t _readCoverageLock;
 
 
-ERR_VALUE process_active_region(PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads)
+ERR_VALUE process_active_region(const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	
@@ -1308,24 +1315,26 @@ ERR_VALUE process_active_region(PROGRAM_OPTIONS *Options, const uint64_t RegionS
 				size_t baseCount = 0;
 
 				omp_set_lock(&_readCoverageLock);
-//				_totalRegionLength += Options->RegionLength;
+				_totalRegionLength += Options->RegionLength;
 				for (size_t i = 0; i < gen_array_size(FilteredReads); ++i) {
-//					_readBaseCount += fr->Part.ReadSequenceLength;
+					_readBaseCount += fr->Part.ReadSequenceLength;
 					baseCount += fr->Part.ReadSequenceLength;
 					++fr;
 				}
 
 				omp_unset_lock(&_readCoverageLock);
 				coverage = baseCount / Options->RegionLength;
-//				printf("%Iu\n", coverage);
 			}
 			
 			sprintf(taskName, "%08" PRIu64 " r%Iu", (uint64_t)RegionStart, gen_array_size(FilteredReads));
 			assembly_task_init(&task, RefSeq, Options->RegionLength, NULL, 0, NULL, 0, FilteredReads->Data, gen_array_size(FilteredReads));
 			assembly_task_set_name(&task, taskName);
 			task.RegionStart = RegionStart;
-			Options->ParseOptions.ReadThreshold = (coverage > Options->Threshold*4) ? coverage / 4 : Options->Threshold;
-			ret = _compute_graph(Options, &task, &tmpstats);
+
+			PARSE_OPTIONS po = Options->ParseOptions;
+			po.ReadThreshold = (coverage > Options->Threshold * 3) ? coverage / 3 : Options->Threshold;
+//			po.ReadThreshold = Options->Threshold;
+			ret = _compute_graph(Options, &po, &task, &tmpstats);
 			assembly_task_finit(&task);
 		}
 	}
@@ -1333,6 +1342,74 @@ ERR_VALUE process_active_region(PROGRAM_OPTIONS *Options, const uint64_t RegionS
 	dym_array_clear_ONE_READ(FilteredReads);
 	
 	return ret;
+}
+
+
+ERR_VALUE process_repair_reads(const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, FilteredReads);
+	if (ret == ERR_SUCCESS) {
+		if (gen_array_size(FilteredReads) > 0) {
+			size_t coverage = 0;
+			{
+				const ONE_READ *fr = FilteredReads->Data;
+				size_t baseCount = 0;
+
+				omp_set_lock(&_readCoverageLock);
+				for (size_t i = 0; i < gen_array_size(FilteredReads); ++i) {
+					baseCount += fr->Part.ReadSequenceLength;
+					++fr;
+				}
+
+				omp_unset_lock(&_readCoverageLock);
+				coverage = baseCount / Options->RegionLength;
+			}
+
+			PARSE_OPTIONS po = Options->ParseOptions;
+
+			po.ReadThreshold = (coverage > Options->Threshold * 4) ? coverage / 4 : Options->Threshold;
+			ret = assembly_repair_reads(Options->KMerSize, FilteredReads->Data, gen_array_size(FilteredReads), RefSeq, Options->RegionLength, &po);
+		}
+	}
+
+	dym_array_clear_ONE_READ(FilteredReads);
+
+	return ret;
+}
+
+
+static void process_active_region_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_OPTIONS *Options)
+{
+	int j = 0;
+#pragma omp parallel for shared(Options, Contig)
+	for (j = 0; j < Contig->Length - Options->RegionLength; j += (int)Options->TestStep)
+		process_active_region(Options, Contig->Offset + j, Contig->Sequence + j, Options->ReadSubArrays + omp_get_thread_num());
+
+	process_active_region(Options, Contig->Offset + Contig->Length - Options->RegionLength, Contig->Sequence + Contig->Length - Options->RegionLength, Options->ReadSubArrays);
+
+	return;
+}
+
+
+static void repair_reads_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_OPTIONS *Options)
+{
+	const uint32_t realStep = ((Options->RegionLength + Options->TestStep - 1) / Options->TestStep)*Options->TestStep;
+
+	for (size_t it = 0; it < 2; ++it) {
+		for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
+			int j = 0;
+#pragma omp parallel for shared(Options, Contig, realStep, k)
+			for (j = k; j < Contig->Length - Options->RegionLength; j += (int)realStep)
+				process_repair_reads(Options, Contig->Offset + j, Contig->Sequence + j, Options->ReadSubArrays + omp_get_thread_num());
+		}
+
+		for (uint32_t k = 0; k < realStep; k += Options->TestStep)
+			process_repair_reads(Options, Contig->Offset + Contig->Length - Options->RegionLength - k, Contig->Sequence + Contig->Length - Options->RegionLength - k, Options->ReadSubArrays);
+	}
+
+	return;
 }
 
 
@@ -1493,7 +1570,7 @@ int main(int argc, char *argv[])
 
 							assembly_task_set_name(&task, taskName);
 							memset(&stats, 0, sizeof(stats));
-							_compute_graph(&po, &task, &stats);
+							_compute_graph(&po, &po.ParseOptions, &task, &stats);
 							assembly_task_finit(&task);
 						} else {
 							tinydir_dir dir;
@@ -1524,7 +1601,7 @@ int main(int argc, char *argv[])
 
 												assembly_task_set_name(&task, taskName);
 												task.RegionStart = 0;
-												_compute_graph(&po, &task, stats + omp_get_thread_num());
+												_compute_graph(&po, &po.ParseOptions, &task, stats + omp_get_thread_num());
 												assembly_task_finit(&task);
 											}
 
@@ -1603,12 +1680,10 @@ int main(int argc, char *argv[])
 															const ACTIVE_REGION *pa = regions + i;
 
 															if (pa->Type == artValid && pa->Length >= po.RegionLength) {
-																int j = 0;
-#pragma omp parallel for shared(po, pa)
-																for (j = 0; j < pa->Length - po.RegionLength; j += po.TestStep)
-																	process_active_region(&po, pa->Offset + j, pa->Sequence + j, po.ReadSubArrays + omp_get_thread_num());
-
-																process_active_region(&po, pa->Offset + pa->Length - po.RegionLength, pa->Sequence + pa->Length - po.RegionLength, po.ReadSubArrays);
+																if (po.ParseOptions.FixReads)
+																	repair_reads_in_parallel(pa, &po);
+																
+																process_active_region_in_parallel(pa, &po);
 															}
 
 															++pa;

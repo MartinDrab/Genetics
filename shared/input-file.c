@@ -264,38 +264,60 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 }
 
 
+
 ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, const size_t SourceCount, const uint64_t RegionStart, const size_t RegionLength, PGEN_ARRAY_ONE_READ NewReads)
 {
-	boolean tmpIndels = FALSE;
-	size_t tmpNewReadCount = 0;
 	const ONE_READ *r = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	size_t firstIndex = (size_t)-1;
+	size_t lastIndex = (size_t)-1;
 
-	r = Source;
-	for (size_t i = 0; i < SourceCount; ++i) {
-		if (in_range(RegionStart, RegionLength, r->Pos) || in_range(RegionStart, RegionLength, r->Pos + r->ReadSequenceLen))
-			++tmpNewReadCount;
+	int leftBorder = 0;
+	int rightBorder = SourceCount - 1;
+	int currIndex = SourceCount / 2;
 
-//		for (size_t j = 0; j < r->QualityLen; ++j)
-//			r->Quality[j] = min(r->Quality[j], r->PosQuality);
+	while (leftBorder <= rightBorder) {
+		r = Source + currIndex;
+		if (in_range(RegionStart, RegionLength, r->Pos) || in_range(RegionStart, RegionLength, r->Pos + r->ReadSequenceLen)) {
+			while (r != Source && (in_range(RegionStart, RegionLength, r->Pos) || in_range(RegionStart, RegionLength, r->Pos + r->ReadSequenceLen)))
+				--r;
 
-		++r;
+			firstIndex = r - Source;
+			if (!in_range(RegionStart, RegionLength, r->Pos) && !in_range(RegionStart, RegionLength, r->Pos + r->ReadSequenceLen))
+				++firstIndex;
+
+			lastIndex = currIndex;
+			r = Source + currIndex;
+			while (lastIndex < SourceCount - 1 && (in_range(RegionStart, RegionLength, r->Pos) || in_range(RegionStart, RegionLength, r->Pos + r->ReadSequenceLen))) {
+				++r;
+				++lastIndex;
+			}
+
+			if (!in_range(RegionStart, RegionLength, r->Pos) && !in_range(RegionStart, RegionLength, r->Pos + r->ReadSequenceLen))
+				--lastIndex;
+
+			break;
+		} else if (r->Pos >= RegionStart + RegionLength)
+			rightBorder = currIndex - 1;
+		else leftBorder = currIndex + 1;
+
+		currIndex = leftBorder + (rightBorder - leftBorder + 1) / 2;
 	}
 
-	ret = dym_array_reserve_ONE_READ(NewReads, tmpNewReadCount);
-	if (ret == ERR_SUCCESS) {		
-		r = Source;
-		for (size_t i = 0; i < SourceCount; ++i) {
-			if (in_range(RegionStart, RegionLength, r->Pos) || in_range(RegionStart, RegionLength, r->Pos + r->ReadSequenceLen)) {
+	if (firstIndex != (size_t)-1 && lastIndex != (size_t)-1) {
+		ret = dym_array_reserve_ONE_READ(NewReads, lastIndex - firstIndex + 1);
+		if (ret == ERR_SUCCESS) {
+			r = Source + firstIndex;
+			for (size_t i = firstIndex; i <= lastIndex; ++i) {
 				ONE_READ tmp = *r;
-				
+
 				read_split(&tmp);
 				read_adjust(&tmp, RegionStart, RegionLength);
 				if (tmp.Part.ReadSequenceLength > KMerSize)
 					dym_array_push_back_no_alloc_ONE_READ(NewReads, tmp);
-			}
 
-			++r;
+				++r;
+			}
 		}
 	}
 
@@ -308,7 +330,12 @@ static int _read_comparator(const void *A, const void *B)
 	const ONE_READ *rA = (const ONE_READ *)A;
 	const ONE_READ *rB = (const ONE_READ *)B;
 
-	return (int)((int64_t)(rA->Pos - rB->Pos));
+	if (rA->Pos < rB->Pos)
+		return -1;
+	else if (rA->Pos > rB->Pos)
+		return 1;
+
+	return 0;
 }
 
 
@@ -336,7 +363,6 @@ ERR_VALUE input_filter_bad_reads(const ONE_READ *Source, const size_t SourceCoun
 		}
 
 		if (ret == ERR_SUCCESS) {
-			qsort(tmpNewReadSet, tmpNewReadCount, sizeof(ONE_READ), _read_comparator);
 			*NewReadSet = tmpNewReadSet;
 			*NewReadCount = tmpNewReadCount;
 		}
@@ -346,6 +372,13 @@ ERR_VALUE input_filter_bad_reads(const ONE_READ *Source, const size_t SourceCoun
 	}
 
 	return ret;
+}
+
+void input_sort_reads(PONE_READ Reads, const size_t Count)
+{
+	qsort(Reads, Count, sizeof(ONE_READ), _read_comparator);
+
+	return;
 }
 
 
