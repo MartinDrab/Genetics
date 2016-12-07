@@ -32,15 +32,52 @@ static UTILS_TYPED_MALLOC_FUNCTION(KMER_EDGE)
 /*                        VERTEX BASIC ROUTINES                         */
 /************************************************************************/
 
-static ERR_VALUE _vertex_create(const KMER *KMer, const EKMerVertexType Type, PKMER_VERTEX *Result)
+static PKMER_VERTEX _default_vertex_allocator(struct _KMER_GRAPH *Graph, void *Context)
+{
+	PKMER_VERTEX ret = NULL;
+
+	utils_malloc(sizeof(KMER_VERTEX) + kmer_graph_get_kmer_size(Graph)*sizeof(char), &ret);
+
+	return ret;
+}
+
+
+static void _default_vertex_freer(struct _KMER_GRAPH *Graph, PKMER_VERTEX Vertex, void *Context)
+{
+	utils_free(Vertex);
+
+	return;
+}
+
+
+static PKMER_EDGE _default_edge_allocator(struct _KMER_GRAPH *Graph, void *Context)
+{
+	PKMER_EDGE ret = NULL;
+
+	utils_malloc(sizeof(KMER_EDGE), &ret);
+
+	return ret;
+}
+
+
+static void _default_edge_freer(struct _KMER_GRAPH *Graph, PKMER_EDGE Edge, void *Context)
+{
+	utils_free(Edge);
+
+	return;
+}
+
+
+static ERR_VALUE _vertex_create(PKMER_GRAPH Graph, const KMER *KMer, const EKMerVertexType Type, PKMER_VERTEX *Result)
 {
 	PKMER_VERTEX tmp = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_malloc(sizeof(KMER_VERTEX) + kmer_get_size(KMer)*sizeof(char), &tmp);
-	if (ret == ERR_SUCCESS) {
+	tmp = Graph->Allocator.VertexAllocator(Graph, Graph->Allocator.VertexAllocatorContext);
+	if (tmp != NULL) {
 		kmer_init_from_kmer(&tmp->KMer, KMer);;
 		tmp->Type = Type;
+		tmp->LongEdgeAllowed = FALSE;
 		pointer_array_init_KMER_EDGE(&tmp->Successors, 140);
 		pointer_array_init_KMER_EDGE(&tmp->Predecessors, 140);
 		tmp->RefSeqPosition = 0;
@@ -48,13 +85,14 @@ static ERR_VALUE _vertex_create(const KMER *KMer, const EKMerVertexType Type, PK
 		tmp->Lists.Next = NULL;
 		tmp->Lists.Graph = NULL;
 		*Result = tmp;
-	}
+		ret = ERR_SUCCESS;
+	} else ret = ERR_OUT_OF_MEMORY;
 
 	return ret;
 }
 
 
-static void _vertex_destroy(PKMER_VERTEX Vertex)
+static void _vertex_destroy(PKMER_GRAPH Graph, PKMER_VERTEX Vertex)
 {
 	PKMER_GRAPH g = Vertex->Lists.Graph;
 
@@ -63,18 +101,18 @@ static void _vertex_destroy(PKMER_VERTEX Vertex)
 	if (g != NULL) {
 		Vertex->Lists.Next = g->VerticesToDeleteList;
 		g->VerticesToDeleteList = Vertex;
-	} else utils_free(Vertex);
+	} else Graph->Allocator.VertexFreer(Graph, Vertex, Graph->Allocator.VertexAllocatorContext);
 
 	return;
 }
 
 
-static ERR_VALUE _vertex_copy(const KMER_VERTEX *Vertex, PKMER_VERTEX *Result)
+static ERR_VALUE _vertex_copy(PKMER_GRAPH Graph, const KMER_VERTEX *Vertex, PKMER_VERTEX *Result)
 {
 	PKMER_VERTEX tmp = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = _vertex_create(&Vertex->KMer, Vertex->Type, &tmp);
+	ret = _vertex_create(Graph, &Vertex->KMer, Vertex->Type, &tmp);
 	if (ret == ERR_SUCCESS) {
 		tmp->Helper = Vertex->Helper;
 		tmp->Order = Vertex->Order;
@@ -89,7 +127,7 @@ static ERR_VALUE _vertex_copy(const KMER_VERTEX *Vertex, PKMER_VERTEX *Result)
 		}
 
 		if (ret != ERR_SUCCESS)
-			_vertex_destroy(tmp);
+			_vertex_destroy(Graph, tmp);
 	}
 
 	return ret;
@@ -99,13 +137,13 @@ static ERR_VALUE _vertex_copy(const KMER_VERTEX *Vertex, PKMER_VERTEX *Result)
 /*                        EDGE BASIC ROUTINES                         */
 /************************************************************************/
 
-static ERR_VALUE _edge_create(PKMER_VERTEX Source, PKMER_VERTEX Dest, const EKMerEdgeType Type, PKMER_EDGE *Edge)
+static ERR_VALUE _edge_create(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_VERTEX Dest, const EKMerEdgeType Type, PKMER_EDGE *Edge)
 {
 	PKMER_EDGE tmp = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_malloc_KMER_EDGE(&tmp);
-	if (ret == ERR_SUCCESS) {
+	tmp = Graph->Allocator.EdgeAllocator(Graph, Graph->Allocator.EdgeAllocatorContext);
+	if (tmp != NULL) {
 		tmp->Source = Source;
 		tmp->Dest = Dest;
 		tmp->Type = Type;
@@ -118,16 +156,16 @@ static ERR_VALUE _edge_create(PKMER_VERTEX Source, PKMER_VERTEX Dest, const EKMe
 		tmp->MarkedForDelete = FALSE;
 		dym_array_init_size_t(&tmp->Paths, 140);
 		tmp->Finished = FALSE;
-		tmp->RefSeqPosition = 0;
 		dym_array_init_FOUND_SEQUENCE_VARIANT(&tmp->Variants, 140);
 		*Edge = tmp;
-	}
+		ret = ERR_SUCCESS;
+	} else ret = ERR_OUT_OF_MEMORY;
 
 	return ret;
 }
 
 
-static void _edge_destroy(PKMER_EDGE Edge)
+static void _edge_destroy(PKMER_GRAPH Graph, PKMER_EDGE Edge)
 {
 	found_sequence_variant_array_free(Edge->Variants.Data, gen_array_size(&Edge->Variants));
 	dym_array_finit_FOUND_SEQUENCE_VARIANT(&Edge->Variants);
@@ -136,18 +174,18 @@ static void _edge_destroy(PKMER_EDGE Edge)
 	if (Edge->SeqLen > 0)
 		utils_free(Edge->Seq);
 
-	utils_free(Edge);
+	Graph->Allocator.EdgeFreer(Graph, Edge, Graph->Allocator.EdgeAllocatorContext);
 
 	return;
 }
 
 
-static ERR_VALUE _edge_copy(const KMER_EDGE *Edge, PKMER_EDGE *Result)
+static ERR_VALUE _edge_copy(PKMER_GRAPH Graph, const KMER_EDGE *Edge, PKMER_EDGE *Result)
 {
 	PKMER_EDGE tmp = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = _edge_create(Edge->Source, Edge->Dest, Edge->Type, &tmp);
+	ret = _edge_create(Graph, Edge->Source, Edge->Dest, Edge->Type, &tmp);
 	if (ret == ERR_SUCCESS) {
 		tmp->MarkedForDelete = Edge->MarkedForDelete;
 		if (Edge->SeqLen > 0)
@@ -171,7 +209,7 @@ static ERR_VALUE _edge_copy(const KMER_EDGE *Edge, PKMER_EDGE *Result)
 		}
 
 		if (ret != ERR_SUCCESS)
-			_edge_destroy(tmp);
+			_edge_destroy(Graph, tmp);
 	}
 
 	return ret;
@@ -192,17 +230,23 @@ static void _vertex_table_on_insert(struct _KMER_TABLE *Table, void *ItemData, c
 	return;
 }
 
-static void _vertex_table_on_delete(struct _KMER_TABLE *Table, void *ItemData)
+static void _vertex_table_on_delete(struct _KMER_TABLE *Table, void *ItemData, void *Context)
 {
-	_vertex_destroy((PKMER_VERTEX)ItemData);
+	PKMER_GRAPH g = (PKMER_GRAPH)Context;
+	PKMER_VERTEX v = (PKMER_VERTEX)ItemData;
+
+	_vertex_destroy(g, v);
 
 	return;
 }
 
 
-static ERR_VALUE _vertex_table_on_copy(struct _KMER_TABLE *Table, void *ItemData, void **Copy)
+static ERR_VALUE _vertex_table_on_copy(struct _KMER_TABLE *Table, void *ItemData, void **Copy, void *Context)
 {
-	return _vertex_copy((PKMER_VERTEX)ItemData, (PKMER_VERTEX *)Copy);
+	PKMER_GRAPH g = (PKMER_GRAPH)Context;
+	PKMER_VERTEX v = (PKMER_VERTEX)ItemData;
+
+	return _vertex_copy(g, v, (PKMER_VERTEX *)Copy);
 }
 
 
@@ -211,13 +255,31 @@ static void _vertex_table_on_print(struct _KMER_TABLE *Table, void *ItemData, FI
 	char *colors[] = {"yellow", "lightgreen", "blue", "red", "white"};
 	PKMER_VERTEX v = (PKMER_VERTEX)ItemData;
 
-
 	fprintf(Stream, "\t");
 	kmer_print(Stream, &v->KMer);
 	fprintf(Stream, "[label=\"");
 	kmer_print(Stream, &v->KMer);
 	fprintf(Stream, "\\nIN=%u; OUT=%u; O=%u\",style=filled,color=%s]", kmer_vertex_in_degree(v), kmer_vertex_out_degree(v), v->Order, colors[v->Type]);
 	fprintf(Stream, ";\n");
+
+	return;
+}
+
+/************************************************************************/
+/*                KMER LIST TABLE                                       */
+/************************************************************************/
+
+static void _kmerlist_table_on_insert(struct _KMER_TABLE *Table, void *ItemData, const uint32_t Order)
+{
+	return;
+}
+
+static void _kmerlist_table_on_delete(struct _KMER_TABLE *Table, void *ItemData, void *Context)
+{
+	PKMER_LIST l = (PKMER_LIST)ItemData;
+
+	pointer_array_finit_KMER_VERTEX(&l->Vertices);
+	utils_free(l);
 
 	return;
 }
@@ -237,23 +299,30 @@ static void _edge_table_on_insert(struct _KMER_EDGE_TABLE *Table, void *ItemData
 	return;
 }
 
-static void _edge_table_on_delete(struct _KMER_EDGE_TABLE *Table, void *ItemData)
+static void _edge_table_on_delete(struct _KMER_EDGE_TABLE *Table, void *ItemData, void *Context)
 {
-	_edge_destroy((PKMER_EDGE)ItemData);
+	PKMER_GRAPH g = (PKMER_GRAPH)Context;
+	PKMER_EDGE e = (PKMER_EDGE)ItemData;
+
+	_edge_destroy(g, e);
 
 	return;
 }
 
 
-static ERR_VALUE _edge_table_on_copy(struct _KMER_EDGE_TABLE *Table, void *ItemData, void **Copy)
+static ERR_VALUE _edge_table_on_copy(struct _KMER_EDGE_TABLE *Table, void *ItemData, void **Copy, void *Context)
 {
-	return _edge_copy((PKMER_EDGE)ItemData, (PKMER_EDGE *)Copy);
+	PKMER_GRAPH g = (PKMER_GRAPH)Context;
+	PKMER_EDGE e = (PKMER_EDGE)ItemData;
+
+	return _edge_copy(g, e, (PKMER_EDGE *)Copy);
 }
 
 
-static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData, FILE *Stream)
+static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData, void *Context, FILE *Stream)
 {
 	PKMER_EDGE e = (PKMER_EDGE)ItemData;
+	const KMER_GRAPH *g = (const KMER_GRAPH *)Context;
 
 	fprintf(Stream, "\t");
 	kmer_print(Stream, &e->Source->KMer);
@@ -263,11 +332,11 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 	switch (e->Type) {
 		case kmetReference:
 			fprintf(Stream, "green");
-			fprintf(Stream, ",label=\"W: %Iu (%Iu); L: %Iu; P: %Iu\";", read_info_weight(&e->ReadInfo), read_info_get_count(&e->ReadInfo), e->SeqLen, gen_array_size(&e->Paths));
+			fprintf(Stream, ",label=\"W: %Iu (%Iu); L: %Iu; P: %Iu\";", read_info_weight(&e->ReadInfo, g->QualityTable), read_info_get_count(&e->ReadInfo), e->SeqLen, gen_array_size(&e->Paths));
 			break;
 		case kmetRead:
 			fprintf(Stream, "red");
-			fprintf(Stream, ",label=\"W: %Iu (%Iu); L: %Iu; P:%Iu\"", read_info_weight(&e->ReadInfo), read_info_get_count(&e->ReadInfo),  e->SeqLen, gen_array_size(&e->Paths));
+			fprintf(Stream, ",label=\"W: %Iu (%Iu); L: %Iu; P:%Iu\"", read_info_weight(&e->ReadInfo, g->QualityTable), read_info_get_count(&e->ReadInfo),  e->SeqLen, gen_array_size(&e->Paths));
 			break;
 		case kmetVariant:
 			fprintf(Stream, "blue");
@@ -337,6 +406,17 @@ static boolean _has_outgoing_read_edges(const KMER_VERTEX *Vertex)
 }
 
 
+static void _init_quality_table(uint8_t *Table)
+{
+	memset(Table, 100, 256 * sizeof(uint8_t));
+	Table[0] = 0;
+	memset(Table + 1, 25, 9 * sizeof(char));
+	memset(Table + 10, 50, 10 * sizeof(char));
+	memset(Table + 20, 75, 10 * sizeof(char));
+
+	return;
+}
+
 /************************************************************************/
 /*                     PUBLIC FUNCTIONS                                 */
 /************************************************************************/
@@ -381,22 +461,32 @@ ERR_VALUE kmer_graph_create(const uint32_t KMerSize, const size_t VerticesHint, 
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	KMER_TABLE_CALLBACKS vCallbacks;
 	KMER_EDGE_TABLE_CALLBACKS eCallbacks;
+	KMER_TABLE_CALLBACKS lCallbacks;
 
 	ret = utils_malloc_KMER_GRAPH(&tmpGraph);
 	if (ret == ERR_SUCCESS) {
 		memset(tmpGraph, 0, sizeof(KMER_GRAPH));
+		_init_quality_table(tmpGraph->QualityTable);
+		tmpGraph->Allocator.VertexAllocator = _default_vertex_allocator;
+		tmpGraph->Allocator.VertexFreer = _default_vertex_freer;
+		tmpGraph->Allocator.EdgeAllocator = _default_edge_allocator;
+		tmpGraph->Allocator.EdgeFreer = _default_edge_freer;
+		tmpGraph->Allocator.VertexAllocatorContext = NULL;
+		tmpGraph->Allocator.EdgeAllocatorContext = NULL;
 		tmpGraph->NumberOfEdges = 0;
 		tmpGraph->NumberOfVertices = 0;
 		tmpGraph->KMerSize = KMerSize;
 		tmpGraph->StartingVertex = NULL;
 		tmpGraph->EndingVertex = NULL;
 		tmpGraph->VerticesToDeleteList = NULL;
+		vCallbacks.Context = tmpGraph;
 		vCallbacks.OnCopy = _vertex_table_on_copy;
 		vCallbacks.OnDelete = _vertex_table_on_delete;
 		vCallbacks.OnInsert = _vertex_table_on_insert;
 		vCallbacks.OnPrint = _vertex_table_on_print;
 		ret = kmer_table_create(KMerSize, utils_next_prime(VerticesHint), &vCallbacks, &tmpGraph->VertexTable);
 		if (ret == ERR_SUCCESS) {
+			eCallbacks.Context = tmpGraph;
 			eCallbacks.OnCopy = _edge_table_on_copy;
 			eCallbacks.OnDelete = _edge_table_on_delete;
 			eCallbacks.OnInsert = _edge_table_on_insert;
@@ -404,9 +494,20 @@ ERR_VALUE kmer_graph_create(const uint32_t KMerSize, const size_t VerticesHint, 
 			ret = kmer_edge_table_create(KMerSize, 4096, &eCallbacks, &tmpGraph->EdgeTable);
 			if (ret == ERR_SUCCESS) {
 				ret = kmer_edge_table_create(KMerSize, 47, NULL, &tmpGraph->DummyVertices);
-				if (ret == ERR_SUCCESS)
-					*Graph = tmpGraph;
-				
+				if (ret == ERR_SUCCESS) {
+					lCallbacks.Context = Graph;
+					lCallbacks.OnCopy = NULL;
+					lCallbacks.OnDelete = _kmerlist_table_on_delete;
+					lCallbacks.OnInsert = _kmerlist_table_on_insert;
+					lCallbacks.OnPrint = NULL;
+					ret = kmer_table_create(KMerSize, 37, &lCallbacks, &tmpGraph->KmerListTable);
+					if (ret == ERR_SUCCESS)
+						*Graph = tmpGraph;
+
+					if (ret != ERR_SUCCESS)
+						kmer_edge_table_destroy(tmpGraph->DummyVertices);
+				}
+
 				if (ret != ERR_SUCCESS)
 					kmer_edge_table_destroy(tmpGraph->EdgeTable);
 			}
@@ -425,6 +526,7 @@ ERR_VALUE kmer_graph_create(const uint32_t KMerSize, const size_t VerticesHint, 
 
 void kmer_graph_destroy(PKMER_GRAPH Graph)
 {
+	kmer_table_destroy(Graph->KmerListTable);
 	kmer_edge_table_destroy(Graph->DummyVertices);
 	kmer_edge_table_destroy(Graph->EdgeTable);
 	kmer_table_destroy(Graph->VertexTable);
@@ -435,7 +537,7 @@ void kmer_graph_destroy(PKMER_GRAPH Graph)
 	while (del != NULL) {
 		old = del;
 		del = del->Lists.Next;
-		utils_free(old);
+		_vertex_destroy(Graph, old);
 	}
 
 	utils_free(Graph);
@@ -453,7 +555,7 @@ void kmer_graph_print(FILE *Stream, const KMER_GRAPH *Graph)
 	fprintf(Stream, "\t/* number of read edges: %u */\n", Graph->TypedEdgeCount[kmetRead]);
 	fprintf(Stream, "\t/* number of variant edges: %u */\n", Graph->TypedEdgeCount[kmetVariant]);
 	kmer_table_print(Stream, Graph->VertexTable);
-	kmer_edge_table_print(Stream, Graph->EdgeTable);
+	kmer_edge_table_print(Stream, Graph->EdgeTable, Graph);
 	fprintf(Stream, "}\n");
 	fflush(Stream);
 
@@ -624,17 +726,41 @@ ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EK
 
 	v = (PKMER_VERTEX)kmer_table_get(Graph->VertexTable, KMer);
 	if (v == NULL) {
-		ret = _vertex_create(KMer, Type, &v);
+		ret = _vertex_create(Graph, KMer, Type, &v);
 		if (ret == ERR_SUCCESS) {
 			ret = kmer_table_insert(Graph->VertexTable, &v->KMer, v);
 			if (ret == ERR_SUCCESS) {
-				Graph->NumberOfVertices++;
-				v->Lists.Graph = Graph;
-				*Vertex = v;
+				PKMER_LIST list;
+				PKMER lk = NULL;
+
+				KMER_STACK_ALLOC(lk, 0, kmer_get_size(KMer), KMer->Bases);
+				list = (PKMER_LIST)kmer_table_get(Graph->KmerListTable, lk);
+				if (list == NULL) {
+					ret = utils_malloc(sizeof(KMER_LIST) + kmer_get_size(lk)*sizeof(char), &list);
+					if (ret == ERR_SUCCESS) {
+						pointer_array_init_KMER_VERTEX(&list->Vertices, 140);
+						kmer_init_from_kmer(&list->Kmer, lk);
+						ret = kmer_table_insert(Graph->KmerListTable, &list->Kmer, list);
+						if (ret != ERR_SUCCESS)
+							utils_free(list);
+					}
+				}
+				
+				if (ret == ERR_SUCCESS)
+					ret = pointer_array_push_back_KMER_VERTEX(&list->Vertices, v);
+				
+				if (ret == ERR_SUCCESS) {
+					Graph->NumberOfVertices++;
+					v->Lists.Graph = Graph;
+					*Vertex = v;
+				}
+
+				if (ret != ERR_SUCCESS)
+					kmer_table_delete(Graph->VertexTable, KMer);
 			}
 
 			if (ret != ERR_SUCCESS)
-				_vertex_destroy(v);
+				_vertex_destroy(Graph, v);
 		}
 	} else {
 		*Vertex = v;
@@ -690,7 +816,7 @@ ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_V
 
 	edge = (PKMER_EDGE)kmer_edge_table_get(Graph->EdgeTable, &Source->KMer, &Dest->KMer);
 	if (edge == NULL) {
-		ret = _edge_create(Source, Dest, Type, &edge);
+		ret = _edge_create(Graph, Source, Dest, Type, &edge);
 		if (ret == ERR_SUCCESS) {
 			ret = kmer_edge_table_insert(Graph->EdgeTable, &Source->KMer, &Dest->KMer, edge);
 			if (ret == ERR_SUCCESS) {
@@ -708,7 +834,7 @@ ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_V
 			}
 
 			if (ret != ERR_SUCCESS)
-				_edge_destroy(edge);
+				_edge_destroy(Graph, edge);
 		}
 	} else {
 		*Edge = edge;
@@ -731,26 +857,20 @@ PKMER_VERTEX kmer_graph_get_vertex(const struct _KMER_GRAPH *Graph, const struct
 }
 
 
-ERR_VALUE kmer_graph_get_vertices(const KMER_GRAPH *Graph, const KMER *KMer, PPOINTER_ARRAY_KMER_VERTEX VertexArray)
+ERR_VALUE kmer_graph_get_vertices(const KMER_GRAPH *Graph, const KMER *KMer, PPOINTER_ARRAY_KMER_VERTEX *VertexArray)
 {
-	DYM_ARRAY tmp;
+	PKMER lk = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	const KMER_LIST *l = NULL;
 
-	dym_array_create(&tmp, 140);
-	ret = dym_array_reserve(&tmp, 20);
-	if (ret == ERR_SUCCESS) {
-		ret = kmer_table_get_multiple(Graph->VertexTable, KMer, &tmp);
-		if (ret == ERR_SUCCESS) {
-			ret = pointer_array_reserve_KMER_VERTEX(VertexArray, dym_array_size(&tmp));
-			if (ret == ERR_SUCCESS) {
-				for (size_t i = 0; i < dym_array_size(&tmp); ++i) {
-					pointer_array_push_back_no_alloc_KMER_VERTEX(VertexArray, (PKMER_VERTEX)dym_array_get(&tmp, i));
-				}
-			}
-		}
+	ret = ERR_NOT_FOUND;
+	KMER_STACK_ALLOC(lk, 0, kmer_get_size(KMer), KMer->Bases);
+	l = (PKMER_LIST)kmer_table_get(Graph->KmerListTable, lk);
+	if (l != NULL) {
+		*VertexArray = &l->Vertices;
+		ret = ERR_SUCCESS;
 	}
 
-	dym_array_destroy(&tmp);
 
 	return ret;
 }
@@ -788,6 +908,14 @@ ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex)
 			} else ret = ERR_SUCCESS;
 
 			if (ret == ERR_SUCCESS) {
+				PKMER_LIST list = NULL;
+				PKMER lk = NULL;
+
+				KMER_STACK_ALLOC(lk, 0, kmer_get_size(&Vertex->KMer), Vertex->KMer.Bases);
+				list = kmer_table_get(Graph->KmerListTable, lk);
+				if (list != NULL)
+					pointer_array_remove_KMER_VERTEX(&list->Vertices, Vertex);
+
 				ret = kmer_table_delete(Graph->VertexTable, &Vertex->KMer);
 				--Graph->NumberOfVertices;
 			}
@@ -979,7 +1107,7 @@ ERR_VALUE kmer_graph_split_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge, PKMER_EDGE *
 }
 
 
-ERR_VALUE kmer_graph_get_seqs(PKMER_GRAPH Graph, const char *RefSeq, PPOINTER_ARRAY_FOUND_SEQUENCE SeqArray)
+ERR_VALUE kmer_graph_get_seqs(PKMER_GRAPH Graph, const char *RefSeq, const uint32_t MaxPaths, PPOINTER_ARRAY_FOUND_SEQUENCE SeqArray)
 {
 	REFSEQ_STORAGE rsStorage;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -1046,7 +1174,7 @@ ERR_VALUE kmer_graph_get_seqs(PKMER_GRAPH Graph, const char *RefSeq, PPOINTER_AR
 									break;
 							}
 
-							ret = found_sequence_build_read_variants(fs, &edges);
+							ret = found_sequence_build_read_variants(Graph, fs, &edges);
 							if (ret == ERR_SUCCESS) {
 								for (size_t i = 0; i < pointer_array_size(&edges); ++i) {
 									ret = dym_array_push_back_size_t(&(edges.Data[i]->Paths), (size_t)fs);
@@ -1062,7 +1190,7 @@ ERR_VALUE kmer_graph_get_seqs(PKMER_GRAPH Graph, const char *RefSeq, PPOINTER_AR
 											edge->Finished = FALSE;
 											rs_storage_remove_edge(&rsStorage, edge);
 											++edgeIndex;
-											if (pointer_array_size(SeqArray) >= 1000)
+											if (pointer_array_size(SeqArray) > MaxPaths)
 												break;
 										}
 
@@ -1296,9 +1424,13 @@ ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Thre
 				KMER_EDGE_PAIR pair = *dym_array_item_KMER_EDGE_PAIR(PairArray, h);
 				PKMER_EDGE eIn = pair.U;
 				PKMER_EDGE eOut = pair.V;
+				boolean allowed = TRUE;
 
 				if (eIn == eOut)
 					continue;
+
+//				if (eIn->Dest->Type == kmvtRefSeqMiddle && !eIn->Source->LongEdgeAllowed)
+//					allowed = FALSE;
 
 				rsLastEdge = _get_in_refseq_edge(eIn->Dest);
 				rsNextEdge = _get_refseq_edge(eOut->Source);
@@ -1309,7 +1441,7 @@ ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Thre
 					continue;
 
 					ret = read_info_intersection(&eIn->ReadInfo, &eOut->ReadInfo, &intersection, eIn->SeqLen + (!eIn->Dest->Helper ? 1 : 0) + pair.ReadDistance);
-					if (ret == ERR_SUCCESS && gen_array_size(&intersection) > Threshold) {
+					if (ret == ERR_SUCCESS && gen_array_size(&intersection) > Threshold && allowed) {
 						if (kmer_equal(&eIn->Source->KMer, &eOut->Dest->KMer))
 							ret = ERR_ALREADY_EXISTS;
 
@@ -1431,8 +1563,8 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 				path2Start = tmp;
 			}
 
-			weight1 = read_info_weight(&path1Start->ReadInfo);
-			weight2 = read_info_weight(&path2Start->ReadInfo);
+			weight1 = read_info_weight(&path1Start->ReadInfo, Graph->QualityTable);
+			weight2 = read_info_weight(&path2Start->ReadInfo, Graph->QualityTable);
 			
 			memset(&oneVariant, 0, sizeof(oneVariant));
 			oneVariant.RefSeqStart = v->RefSeqPosition + 1;
@@ -1575,6 +1707,28 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 	rs_storage_finit(&s1);
 	kmer_graph_delete_trailing_things(Graph, &dummy);
 	kmer_graph_delete_1to1_vertices(Graph);
+
+	return ret;
+}
+
+
+ERR_VALUE kmer_graph_get_variants(const KMER_GRAPH *Graph, PGEN_ARRAY_FOUND_SEQUENCE_VARIANT Variants)
+{
+	void *iter = NULL;
+	const KMER_EDGE *e = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = kmer_edge_table_first(Graph->EdgeTable, &iter, (void **)&e);
+	while (ret == ERR_SUCCESS) {
+		if (e->Type == kmetVariant)
+			ret = dym_array_push_back_array_FOUND_SEQUENCE_VARIANT(Variants, &e->Variants);
+
+		if (ret == ERR_SUCCESS)
+			ret = kmer_edge_table_next(Graph->EdgeTable, iter, &iter, (void **)&e);
+	}
+
+	if (ret == ERR_NO_MORE_ENTRIES)
+		ret = ERR_SUCCESS;
 
 	return ret;
 }

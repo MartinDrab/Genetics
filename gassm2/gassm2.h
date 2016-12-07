@@ -50,7 +50,7 @@
 #define PROGRAM_OPTION_MISSING_EDGE_PENALTY				"missing-edge-penalty"
 #define PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY			"backward-refseq-penalty"
 #define PROGRAM_OPTION_MAX_PATHS						"max-paths"
-
+#define PROGRAM_OPTION_READ_MAX_ERROR_RATE				"max-error-rate"
 
 /************************************************************************/
 /*                  OPTION DESCRIPTION                                  */

@@ -43,13 +43,13 @@ static void _on_insert_dummy_callback(struct _KMER_TABLE *Table, void *ItemData,
 }
 
 
-static void _on_delete_dummy_callback(struct _KMER_TABLE *Table, void *ItemData)
+static void _on_delete_dummy_callback(struct _KMER_TABLE *Table, void *ItemData, void *Context)
 {
 	return;
 }
 
 
-static ERR_VALUE _on_copy_dummy_callback(struct _KMER_TABLE *Table, void *ItemData, void **Copy)
+static ERR_VALUE _on_copy_dummy_callback(struct _KMER_TABLE *Table, void *ItemData, void **Copy, void *Context)
 {
 	*Copy = ItemData;
 
@@ -79,6 +79,7 @@ ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t Size, const KMER
 			tmpTable->LastOrder = 0;
 			tmpTable->KMerSize = KMerSize;
 			if (Callbacks == NULL) {
+				tmpTable->Callbacks.Context = NULL;
 				tmpTable->Callbacks.OnInsert = _on_insert_dummy_callback;
 				tmpTable->Callbacks.OnDelete = _on_delete_dummy_callback;
 				tmpTable->Callbacks.OnCopy = _on_copy_dummy_callback;
@@ -101,7 +102,7 @@ void kmer_table_destroy(PKMER_TABLE Table)
 {
 	for (khiter_t it = kh_begin(Table->KHashTable); it != kh_end(Table->KHashTable); ++it) {
 		if (kh_exist(Table->KHashTable, it))
-			Table->Callbacks.OnDelete(Table, kh_val(Table->KHashTable, it));
+			Table->Callbacks.OnDelete(Table, kh_val(Table->KHashTable, it), Table->Callbacks.Context);
 	}
 
 	kh_destroy(vertexTable, Table->KHashTable);
@@ -158,7 +159,7 @@ ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const PKMER KMer)
 
 	it = kh_get(vertexTable, Table->KHashTable, KMer);
 	if (it != kh_end(Table->KHashTable)) {
-		Table->Callbacks.OnDelete(Table, kh_val(Table->KHashTable, it));
+		Table->Callbacks.OnDelete(Table, kh_val(Table->KHashTable, it), Table->Callbacks.Context);
 		kh_del(vertexTable, Table->KHashTable, it);
 		ret = ERR_SUCCESS;
 	} else ret = ERR_NOT_FOUND;
@@ -210,36 +211,6 @@ ERR_VALUE kmer_table_next(const PKMER_TABLE Table, const void *Current, void **N
 			ret = ERR_SUCCESS;
 			break;
 		}
-	}
-
-	return ret;
-}
-
-
-ERR_VALUE kmer_table_get_multiple(const KMER_TABLE *Table, const KMER *KMer, PDYM_ARRAY DataArray)
-{
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	const khash_t(vertexTable) *kht = Table->KHashTable;
-
-	ret = ERR_SUCCESS;
-	if (kht->n_buckets > 0) {
-		khint_t k, i, last, mask, step = 0;
-		
-		mask = kht->n_buckets - 1;									
-		k = _kmer_hash(KMer); 
-		i = k & mask;
-		last = i;
-		while (!__ac_isempty(kht->flags, i) || __ac_isdel(kht->flags, i)) {
-			if (kmer_seq_equal(KMer, kht->keys[i])) {
-				ret = dym_array_push_back(DataArray, kht->vals[i]);
-				if (ret != ERR_SUCCESS)
-					break;
-			}
-			
-			i = (i + (++step)) & mask;
-			if (i == last)
-				break;
-		}															
 	}
 
 	return ret;

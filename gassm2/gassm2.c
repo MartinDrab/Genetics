@@ -8,12 +8,20 @@
 #include "tinydir.h"
 #include "err.h"
 #include "utils.h"
+#include "utils-lookaside.h"
+#include "file-utils.h"
 #include "options.h"
 #include "libkmer.h"
 #include "input-file.h"
 #include "reads.h"
 #include "pointer_array.h"
 #include "gassm2.h"
+
+
+
+
+static PUTILS_LOOKASIDE *_vertexLAs;
+static PUTILS_LOOKASIDE *_edgeLAs;
 
 
 
@@ -120,6 +128,9 @@ static ERR_VALUE _init_default_values()
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(PROGRAM_OPTION_MAX_PATHS, 10);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_add_UInt32(PROGRAM_OPTION_READ_MAX_ERROR_RATE, 20);
 
 	option_set_description_const(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQUENCE, PROGRAM_OPTION_SEQUENCE_DESC);
@@ -305,6 +316,7 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 	option_get_UInt32(PROGRAM_OPTION_MISSING_EDGE_PENALTY, &Options->ParseOptions.MissingEdgePenalty);
 	option_get_UInt32(PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY, &Options->ParseOptions.BackwardRefseqPenalty);
 	option_get_UInt32(PROGRAM_OPTION_MAX_PATHS, &Options->MaxPaths);
+	option_get_UInt32(PROGRAM_OPTION_READ_MAX_ERROR_RATE, &Options->ParseOptions.ReadMaxErrorRate);
 
 	return ret;
 }
@@ -334,7 +346,7 @@ typedef enum _EExperimentResult {
 
 
 
-static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t RefSeqStart, const size_t RefSeqEnd, const char *AltSeq, size_t AltSeqLen, const size_t RSWeight, const size_t ReadWeight, PGEN_ARRAY_VARIANT_CALL VCArray)
+static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t RefSeqStart, const size_t RefSeqEnd, const char *AltSeq, const size_t AltSeqLen, const size_t RSWeight, const size_t ReadWeight, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	VARIANT_CALL vc;
 	char *altSeqStart = NULL;
@@ -344,7 +356,7 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 	char *altSeq = NULL;
 	const char *refSeq = Task->Reference + RefSeqStart;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	
+
 	ret = utils_calloc(altLen + 2, sizeof(char), &altSeq);
 	if (ret == ERR_SUCCESS) {
 		altSeqStart = altSeq;
@@ -380,9 +392,6 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 								vc.AltWeight = ReadWeight;
 								ret = vc_array_add(VCArray, &vc);
 								if (ret == ERR_SUCCESS) {
-									rsPos += (tmpRS - refSeq);
-									refSeq = tmpRS;
-									altSeq = tmpAltS;
 								}
 
 								if (ret != ERR_SUCCESS) {
@@ -390,6 +399,10 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 									if (ret == ERR_ALREADY_EXISTS)
 										ret = ERR_SUCCESS;
 								}
+
+								rsPos += (tmpRS - refSeq);
+								refSeq = tmpRS;
+								altSeq = tmpAltS;
 							}
 
 							nothing = TRUE;
@@ -472,57 +485,62 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 	const char *alternates[2];
 	EExperimentResult res = erNotTried;
 	size_t alternateLens[2];
+	GEN_ARRAY_FOUND_SEQUENCE_VARIANT variants;
 
-	alternates[0] = Task->Alternate1;
-	alternates[1] = Task->Alternate2;
-	alternateLens[0] = Task->Alternate1Length;
-	alternateLens[1] = Task->Alternate2Length;
-	pointer_array_init_FOUND_SEQUENCE(&seqArray, 140);
-	ret = kmer_graph_get_seqs(Graph, Task->Reference, &seqArray);
+	dym_array_init_FOUND_SEQUENCE_VARIANT(&variants, 140);
+	ret = kmer_graph_get_variants(Graph, &variants);
 	if (ret == ERR_SUCCESS) {
-		if (Task->Alternate1Length > 0 && Task->Alternate2Length > 0) {
-			for (size_t i = 0; i < sizeof(alternateLens) / sizeof(size_t); ++i) {
-				boolean found = FALSE;
+		alternates[0] = Task->Alternate1;
+		alternates[1] = Task->Alternate2;
+		alternateLens[0] = Task->Alternate1Length;
+		alternateLens[1] = Task->Alternate2Length;
+		pointer_array_init_FOUND_SEQUENCE(&seqArray, 140);
+		ret = kmer_graph_get_seqs(Graph, Task->Reference, Options->MaxPaths, &seqArray);
+		if (ret == ERR_SUCCESS) {
+			if (Task->Alternate1Length > 0 && Task->Alternate2Length > 0) {
+				for (size_t i = 0; i < sizeof(alternateLens) / sizeof(size_t); ++i) {
+					boolean found = FALSE;
 
-				for (size_t j = 0; j < gen_array_size(&seqArray); ++j) {
-					const FOUND_SEQUENCE *fs = *pointer_array_item_FOUND_SEQUENCE(&seqArray, j);
+					for (size_t j = 0; j < gen_array_size(&seqArray); ++j) {
+						const FOUND_SEQUENCE *fs = *pointer_array_item_FOUND_SEQUENCE(&seqArray, j);
 
-					found = found_sequence_match(fs, alternates[i], alternateLens[i]);
-					if (found)
+						found = found_sequence_match(fs, alternates[i], alternateLens[i]);
+						if (found)
+							break;
+					}
+
+					if (!found) {
+						notFound = TRUE;
+						//				fprintf(stderr, "RS:   %s\n", Task->Reference);
+						//				fprintf(stderr, "ALT1: %s\n", Task->Alternate1);
+						//				fprintf(stderr, "ALT2: %s\n", Task->Alternate2);
+						//				kmer_graph_print(stderr, Graph);
+						//				_write_differences(Task->Reference, Task->Alternate1, Task->Alternate2, Task->ReferenceLength);
+						//				exit(0);
 						break;
-				}
-
-				if (!found) {
-					notFound = TRUE;
-					//				fprintf(stderr, "RS:   %s\n", Task->Reference);
-					//				fprintf(stderr, "ALT1: %s\n", Task->Alternate1);
-					//				fprintf(stderr, "ALT2: %s\n", Task->Alternate2);
-					//				kmer_graph_print(stderr, Graph);
-					//				_write_differences(Task->Reference, Task->Alternate1, Task->Alternate2, Task->ReferenceLength);
-					//				exit(0);
-					break;
+					}
 				}
 			}
-		}
 
-		if (ret != ERR_SUCCESS || notFound) {
-			++Statistics->FailureCount;
-			res = erFailure;
-		} else {
-			++Statistics->SuccessCount;
-			res = erSuccess;
-		}
-	} else printf("ERROR: kmer_graph_get_seqs(): %u\n", ret);
+			if (ret != ERR_SUCCESS || notFound) {
+				++Statistics->FailureCount;
+				res = erFailure;
+			}
+			else {
+				++Statistics->SuccessCount;
+				res = erSuccess;
+			}
+		} else printf("ERROR: kmer_graph_get_seqs(): %u\n", ret);
 
-	if (Task->Name != NULL && (Graph->TypedEdgeCount[kmetRead] > 0 ||
-		Graph->TypedEdgeCount[kmetVariant] > 0)) {
-		FILE *f = NULL;
-		char *directory = NULL;
-		char graphName[128];
-		char diffName[128];
-		char vcfName[128];
+		if (Task->Name != NULL && (Graph->TypedEdgeCount[kmetRead] > 0 ||
+			Graph->TypedEdgeCount[kmetVariant] > 0)) {
+			FILE *f = NULL;
+			char *directory = NULL;
+			char graphName[128];
+			char diffName[128];
+			char vcfName[128];
 
-		switch (res) {
+			switch (res) {
 			case erSuccess:
 				directory = "succ";
 				break;
@@ -535,52 +553,55 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 			default:
 				assert(FALSE);
 				break;
-		}
-
-#pragma warning (disable : 4996)											
-		sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-%Iu.graph", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
-		unlink(graphName);
-#pragma warning (disable : 4996)											
-		sprintf(diffName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-%Iu.diff", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
-		unlink(diffName);
-#pragma warning (disable : 4996)											
-		sprintf(vcfName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-%Iu.vcf", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
-		unlink(vcfName);
-		if (Options->VCFFileHandle != NULL) 
-		{
-			ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
-			if (ret == ERR_SUCCESS) {
-				kmer_graph_print(f, Graph);
-				utils_fclose(f);
 			}
 
-			if (Task->Alternate1Length > 0 && Task->Alternate2Length > 0) {
-				ret = utils_fopen(diffName, FOPEN_MODE_WRITE, &f);
+#pragma warning (disable : 4996)											
+			sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-%Iu.graph", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
+			unlink(graphName);
+#pragma warning (disable : 4996)											
+			sprintf(diffName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-%Iu.diff", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
+			unlink(diffName);
+#pragma warning (disable : 4996)											
+			sprintf(vcfName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-%Iu.vcf", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
+			unlink(vcfName);
+			if (Options->VCFFileHandle != NULL)
+			{
+				ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
 				if (ret == ERR_SUCCESS) {
-					_write_differences(f, Task->Reference, Task->Alternate1, Task->Alternate2, Task->ReferenceLength);
+					kmer_graph_print(f, Graph);
 					utils_fclose(f);
+				}
+
+				if (Task->Alternate1Length > 0 && Task->Alternate2Length > 0) {
+					ret = utils_fopen(diffName, FOPEN_MODE_WRITE, &f);
+					if (ret == ERR_SUCCESS) {
+						_write_differences(f, Task->Reference, Task->Alternate1, Task->Alternate2, Task->ReferenceLength);
+						utils_fclose(f);
+					}
+				}
+			}
+
+			if (Options->VCFFileHandle != NULL) {
+				PFOUND_SEQUENCE *pseq = seqArray.Data;
+				PGEN_ARRAY_VARIANT_CALL vcArray = Options->VCSubArrays + omp_get_thread_num();
+
+				_process_variant_calls(vcArray, Task, &variants, Options->Threshold);
+				if (pointer_array_size(&seqArray) <= Options->MaxPaths) {
+					for (size_t i = 0; i < pointer_array_size(&seqArray); ++i) {
+						_process_variant_calls(vcArray, Task, &(*pseq)->ReadVariants, Options->Threshold);
+						++pseq;
+					}
 				}
 			}
 		}
 
-		if (Options->VCFFileHandle != NULL) {
-			PFOUND_SEQUENCE *pseq = seqArray.Data;
-			PGEN_ARRAY_VARIANT_CALL vcArray = Options->VCSubArrays + omp_get_thread_num();
+		for (size_t j = 0; j < pointer_array_size(&seqArray); ++j)
+			found_sequence_free(*pointer_array_item_FOUND_SEQUENCE(&seqArray, j));
 
-			for (size_t i = 0; i < pointer_array_size(&seqArray); ++i) {
-				_process_variant_calls(vcArray, Task, &(*pseq)->Variants, Options->Threshold);
-				if (pointer_array_size(&seqArray) <= Options->MaxPaths)
-					_process_variant_calls(vcArray, Task, &(*pseq)->ReadVariants, Options->Threshold);
-				
-				++pseq;
-			}
-		}
+		pointer_array_finit_FOUND_SEQUENCE(&seqArray);
 	}
 
-	for (size_t j = 0; j < pointer_array_size(&seqArray); ++j)
-		found_sequence_free(*pointer_array_item_FOUND_SEQUENCE(&seqArray, j));
-
-	pointer_array_finit_FOUND_SEQUENCE(&seqArray);
+	dym_array_finit_FOUND_SEQUENCE_VARIANT(&variants);
 
 	return res;
 }
@@ -610,15 +631,16 @@ static void _on_delete_edge(const KMER_GRAPH *Graph, const KMER_EDGE *Edge, void
 	return;
 }
 
-static EExperimentResult _compute_graph(const PROGRAM_OPTIONS *Options, const PARSE_OPTIONS *ParseOptions, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
+static EExperimentResult _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const PARSE_OPTIONS *ParseOptions, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
 {
 	EExperimentResult res = erNotTried;
 	PKMER_GRAPH g = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-
-		ret = kmer_graph_create(Options->KMerSize, 2500, 6000, &g);
-		if (ret == ERR_SUCCESS) {
+	ret = kmer_graph_create(Options->KMerSize, 2500, 6000, &g);	
+	if (ret == ERR_SUCCESS) {
+		if (Allocator != NULL)
+			g->Allocator = *Allocator;
 			ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength);
 			if (ret == ERR_SUCCESS) {
 				GEN_ARRAY_KMER_EDGE_PAIR ep;
@@ -890,7 +912,7 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 											++_taskNumber;
 											unlink(taskFileName);
 											assembly_task_save_file(taskFileName, &task);
-											switch (_compute_graph(Options, &Options->ParseOptions, &task, &stats)) {
+											switch (_compute_graph(NULL, Options, &Options->ParseOptions, &task, &stats)) {
 												case erSuccess:
 													unlink(succTaskFileName);
 													rename(taskFileName, succTaskFileName);
@@ -943,7 +965,7 @@ static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, 
 		}
 	} else {
 		assembly_task_init(&task, RefSeq, Options->RegionLength, RefSeq, Options->RegionLength, RefSeq, Options->RegionLength, NULL, 0);
-		_compute_graph(Options, &Options->ParseOptions, &task, Statistics);
+		_compute_graph(NULL, Options, &Options->ParseOptions, &task, Statistics);
 		assembly_task_finit(&task);
 	}
 
@@ -993,7 +1015,7 @@ static ERR_VALUE _obtain_files(PPOINTER_ARRAY_char Array, const size_t MaxCount,
 
 KHASH_MAP_INIT_STR(kc, size_t)
 
-ERR_VALUE kmer_freq_distribution(const uint32_t KMerSize, const ONE_READ *Reads, const size_t ReadCount, const char *FileName)
+ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t KMerSize, const ONE_READ *Reads, const size_t ReadCount, const char *FileName)
 {
 	int err;
 	size_t maxValue = 0;
@@ -1011,16 +1033,17 @@ ERR_VALUE kmer_freq_distribution(const uint32_t KMerSize, const ONE_READ *Reads,
 		for (size_t i = 0; i < ReadCount; ++i) {
 			const READ_PART *p = &r->Part;
 			
-			read_split(r);
-			if (p->ReadSequenceLength >= KMerSize) {
-				for (size_t j = 0; j < p->ReadSequenceLength - KMerSize + 1; ++j) {
-					char *s = NULL;
-					
-					memcpy(kmerString, p->ReadSequence + j, KMerSize*sizeof(char));
-					ret = utils_copy_string(kmerString, &s);
-					if (ret == ERR_SUCCESS) {
-						it = kh_put(kc, table, s, &err);
-						switch (err) {
+			if (r->NumberOfFixes * 100 / r->ReadSequenceLen < Options->ParseOptions.ReadMaxErrorRate) {
+				read_split(r);
+				if (p->ReadSequenceLength >= KMerSize) {
+					for (size_t j = 0; j < p->ReadSequenceLength - KMerSize + 1; ++j) {
+						char *s = NULL;
+
+						memcpy(kmerString, p->ReadSequence + j, KMerSize*sizeof(char));
+						ret = utils_copy_string(kmerString, &s);
+						if (ret == ERR_SUCCESS) {
+							it = kh_put(kc, table, s, &err);
+							switch (err) {
 							case 0:
 								kh_value(table, it) += 1;
 								if (kh_value(table, it) > maxValue)
@@ -1035,15 +1058,16 @@ ERR_VALUE kmer_freq_distribution(const uint32_t KMerSize, const ONE_READ *Reads,
 							default:
 								ret = ERR_OUT_OF_MEMORY;
 								break;
+							}
+
+							++kmerCount;
+							if (ret != ERR_SUCCESS)
+								utils_free(s);
 						}
 
-						++kmerCount;
 						if (ret != ERR_SUCCESS)
-							utils_free(s);
+							break;
 					}
-
-					if (ret != ERR_SUCCESS)
-						break;
 				}
 			}
 
@@ -1298,11 +1322,11 @@ static size_t _totalRegionLength = 0;
 static omp_lock_t _readCoverageLock;
 
 
-ERR_VALUE process_active_region(const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads)
+ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	
-	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, FilteredReads);
+	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, Options->ParseOptions.ReadMaxErrorRate, FilteredReads);
 	if (ret == ERR_SUCCESS) {
 		if (gen_array_size(FilteredReads) > 0) {
 			char taskName[128];
@@ -1332,46 +1356,46 @@ ERR_VALUE process_active_region(const PROGRAM_OPTIONS *Options, const uint64_t R
 			task.RegionStart = RegionStart;
 
 			PARSE_OPTIONS po = Options->ParseOptions;
-			po.ReadThreshold = (coverage > Options->Threshold * 3) ? coverage / 3 : Options->Threshold;
-//			po.ReadThreshold = Options->Threshold;
-			ret = _compute_graph(Options, &po, &task, &tmpstats);
+//			po.ReadThreshold = (coverage > Options->Threshold * 3) ? coverage / 3 : Options->Threshold;
+			po.ReadThreshold = Options->Threshold;
+			ret = _compute_graph(Allocator, Options, &po, &task, &tmpstats);
 			assembly_task_finit(&task);
 		}
+
+		input_back_reads(FilteredReads);
 	}
 
 	dym_array_clear_ONE_READ(FilteredReads);
-	
+
 	return ret;
 }
 
 
-ERR_VALUE process_repair_reads(const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads)
+static ERR_VALUE process_repair_reads(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, FilteredReads);
+	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, Options->ParseOptions.ReadMaxErrorRate, FilteredReads);
 	if (ret == ERR_SUCCESS) {
 		if (gen_array_size(FilteredReads) > 0) {
 			size_t coverage = 0;
-			{
-				const ONE_READ *fr = FilteredReads->Data;
-				size_t baseCount = 0;
+			const ONE_READ *fr = FilteredReads->Data;
+			size_t baseCount = 0;
 
-				omp_set_lock(&_readCoverageLock);
-				for (size_t i = 0; i < gen_array_size(FilteredReads); ++i) {
-					baseCount += fr->Part.ReadSequenceLength;
-					++fr;
-				}
-
-				omp_unset_lock(&_readCoverageLock);
-				coverage = baseCount / Options->RegionLength;
+			for (size_t i = 0; i < gen_array_size(FilteredReads); ++i) {
+				baseCount += fr->Part.ReadSequenceLength;
+				++fr;
 			}
+
+			coverage = baseCount / Options->RegionLength;
 
 			PARSE_OPTIONS po = Options->ParseOptions;
 
-			po.ReadThreshold = (coverage > Options->Threshold * 4) ? coverage / 4 : Options->Threshold;
-			ret = assembly_repair_reads(Options->KMerSize, FilteredReads->Data, gen_array_size(FilteredReads), RefSeq, Options->RegionLength, &po);
+			po.ReadThreshold = (coverage >= Options->Threshold * 4) ? coverage / 4 : Options->Threshold;
+			ret = assembly_repair_reads(Allocator, Options->KMerSize, FilteredReads->Data, gen_array_size(FilteredReads), RefSeq, Options->RegionLength, &po);
 		}
+
+		input_back_reads(FilteredReads);
 	}
 
 	dym_array_clear_ONE_READ(FilteredReads);
@@ -1379,15 +1403,123 @@ ERR_VALUE process_repair_reads(const PROGRAM_OPTIONS *Options, const uint64_t Re
 	return ret;
 }
 
+
+static long _activeRegionCount = 0;
+static volatile long _activeRegionProcessed = 0;
+
+
+static ERR_VALUE _init_lookasides(const uint32_t KmerSize, PUTILS_LOOKASIDE *VA, PUTILS_LOOKASIDE *EA)
+{
+	ERR_VALUE ret = ERR_SUCCESS;
+	int threadIndex = omp_get_thread_num();
+
+	if (_vertexLAs[threadIndex] == NULL) {
+		ret = utils_malloc(sizeof(UTILS_LOOKASIDE), _vertexLAs + threadIndex);
+		if (ret == ERR_SUCCESS) {
+			ret = utils_lookaside_init(_vertexLAs[threadIndex], sizeof(KMER_VERTEX) + KmerSize, 3000);
+			if (ret != ERR_SUCCESS) {
+				utils_free(_vertexLAs[threadIndex]);
+				_vertexLAs[threadIndex] = NULL;
+			}
+		}
+	}
+
+	if (ret == ERR_SUCCESS) {
+		*VA = _vertexLAs[threadIndex];
+		if (_edgeLAs[threadIndex] == NULL) {
+			ret = utils_malloc(sizeof(UTILS_LOOKASIDE), _edgeLAs + threadIndex);
+			if (ret == ERR_SUCCESS) {
+				ret = utils_lookaside_init(_edgeLAs[threadIndex], sizeof(KMER_EDGE), 5000);
+				if (ret != ERR_SUCCESS) {
+					utils_free(_edgeLAs[threadIndex]);
+					_edgeLAs[threadIndex] = NULL;
+				}
+			}
+		}
+
+		if (ret == ERR_SUCCESS)
+			*EA = _edgeLAs[threadIndex];
+	}
+
+	return ret;
+}
+
+
+static PKMER_VERTEX _lookaside_vertex_alloc(struct _KMER_GRAPH *Graph, void *Context)
+{
+	PKMER_VERTEX ret = NULL;
+	PUTILS_LOOKASIDE ll = (PUTILS_LOOKASIDE)Context;
+
+	utils_lookaside_alloc(ll, &ret);
+
+	return ret;
+}
+
+static void _lookaside_vertex_free(struct _KMER_GRAPH *Graph, PKMER_VERTEX Vertex, void *Context)
+{
+	PUTILS_LOOKASIDE ll = (PUTILS_LOOKASIDE)Context;
+
+	utils_lookaside_free(ll, Vertex);
+
+	return;
+}
+
+
+static PKMER_EDGE _lookaside_edge_alloc(struct _KMER_GRAPH *Graph, void *Context)
+{
+	PKMER_EDGE ret = NULL;
+	PUTILS_LOOKASIDE ll = (PUTILS_LOOKASIDE)Context;
+
+	utils_lookaside_alloc(ll, &ret);
+
+	return ret;
+}
+
+static void _lookaside_edge_free(struct _KMER_GRAPH *Graph, PKMER_EDGE Edge, void *Context)
+{
+	PUTILS_LOOKASIDE ll = (PUTILS_LOOKASIDE)Context;
+
+	utils_lookaside_free(ll, Edge);
+
+	return;
+}
 
 static void process_active_region_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_OPTIONS *Options)
 {
 	int j = 0;
-#pragma omp parallel for shared(Options, Contig)
-	for (j = 0; j < Contig->Length - Options->RegionLength; j += (int)Options->TestStep)
-		process_active_region(Options, Contig->Offset + j, Contig->Sequence + j, Options->ReadSubArrays + omp_get_thread_num());
+	long done = 0;
+	PUTILS_LOOKASIDE el = NULL;
+	PUTILS_LOOKASIDE vl = NULL;
 
-	process_active_region(Options, Contig->Offset + Contig->Length - Options->RegionLength, Contig->Sequence + Contig->Length - Options->RegionLength, Options->ReadSubArrays);
+	_init_lookasides(Options->KMerSize, &vl, &el);
+#pragma omp parallel for shared(Options, Contig, _activeRegionProcessed), private(vl, el)
+	for (j = 0; j < Contig->Length - Options->RegionLength; j += (int)Options->TestStep) {
+		int threadIndex = omp_get_thread_num();
+		KMER_GRAPH_ALLOCATOR ga;
+
+		_init_lookasides(Options->KMerSize, &vl, &el);
+		ga.VertexAllocatorContext = vl;
+		ga.VertexAllocator = _lookaside_vertex_alloc;
+		ga.VertexFreer = _lookaside_vertex_free;
+		ga.EdgeAllocatorContext = el;
+		ga.EdgeAllocator = _lookaside_edge_alloc;
+		ga.EdgeFreer = _lookaside_edge_free;
+		process_active_region(&ga, Options, Contig->Offset + j, Contig->Sequence + j, Options->ReadSubArrays + omp_get_thread_num());
+		done = utils_atomic_increment(&_activeRegionProcessed);
+		if (done % (_activeRegionCount / 100) == 0)
+			fprintf(stderr, "%u %%\r", done*100 / _activeRegionCount);
+	}
+
+	KMER_GRAPH_ALLOCATOR ga;
+
+	_init_lookasides(Options->KMerSize, &vl, &el);
+	ga.VertexAllocatorContext = vl;
+	ga.VertexAllocator = _lookaside_vertex_alloc;
+	ga.VertexFreer = _lookaside_vertex_free;
+	ga.EdgeAllocatorContext = el;
+	ga.EdgeAllocator = _lookaside_edge_alloc;
+	ga.EdgeFreer = _lookaside_edge_free;
+	process_active_region(&ga, Options, Contig->Offset + Contig->Length - Options->RegionLength, Contig->Sequence + Contig->Length - Options->RegionLength, Options->ReadSubArrays);
 
 	return;
 }
@@ -1395,18 +1527,52 @@ static void process_active_region_in_parallel(const ACTIVE_REGION *Contig, const
 
 static void repair_reads_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_OPTIONS *Options)
 {
+	const size_t iterations = 2;
+	const long count = _activeRegionCount*iterations;
 	const uint32_t realStep = ((Options->RegionLength + Options->TestStep - 1) / Options->TestStep)*Options->TestStep;
+	long done;
+	int threadIndex = omp_get_thread_num();
+	ERR_VALUE ret = ERR_SUCCESS;
+	PUTILS_LOOKASIDE el = NULL;
+	PUTILS_LOOKASIDE vl = NULL;
 
-	for (size_t it = 0; it < 2; ++it) {
+	_init_lookasides(Options->KMerSize, &vl, &el);
+	for (size_t it = 0; it < iterations; ++it) {
 		for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
 			int j = 0;
-#pragma omp parallel for shared(Options, Contig, realStep, k)
-			for (j = k; j < Contig->Length - Options->RegionLength; j += (int)realStep)
-				process_repair_reads(Options, Contig->Offset + j, Contig->Sequence + j, Options->ReadSubArrays + omp_get_thread_num());
+#pragma omp parallel for shared(Options, Contig, k, _activeRegionProcessed), private(vl, el)
+			for (j = k; j < Contig->Length - Options->RegionLength; j += (int)realStep) {
+				KMER_GRAPH_ALLOCATOR ga;
+				
+				_init_lookasides(Options->KMerSize, &vl, &el);
+				ga.VertexAllocatorContext = vl;
+				ga.VertexAllocator = _lookaside_vertex_alloc;
+				ga.VertexFreer = _lookaside_vertex_free;
+				ga.EdgeAllocatorContext = el;
+				ga.EdgeAllocator = _lookaside_edge_alloc;
+				ga.EdgeFreer = _lookaside_edge_free;
+				process_repair_reads(&ga, Options, Contig->Offset + j, Contig->Sequence + j, Options->ReadSubArrays + omp_get_thread_num());
+				done = utils_atomic_increment(&_activeRegionProcessed);
+				if (done % (count / 100) == 0)
+					fprintf(stderr, "%u %%\r", done * 100 / count);
+			}
 		}
 
-		for (uint32_t k = 0; k < realStep; k += Options->TestStep)
-			process_repair_reads(Options, Contig->Offset + Contig->Length - Options->RegionLength - k, Contig->Sequence + Contig->Length - Options->RegionLength - k, Options->ReadSubArrays);
+		KMER_GRAPH_ALLOCATOR ga;
+
+		_init_lookasides(Options->KMerSize, &vl, &el);
+		ga.VertexAllocatorContext = vl;
+		ga.VertexAllocator = _lookaside_vertex_alloc;
+		ga.VertexFreer = _lookaside_vertex_free;
+		ga.EdgeAllocatorContext = el;
+		ga.EdgeAllocator = _lookaside_edge_alloc;
+		ga.EdgeFreer = _lookaside_edge_free;
+		for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
+			process_repair_reads(&ga, Options, Contig->Offset + Contig->Length - Options->RegionLength - k, Contig->Sequence + Contig->Length - Options->RegionLength - k, Options->ReadSubArrays);
+			done = utils_atomic_increment(&_activeRegionProcessed);
+			if (done % (count / 100) == 0)
+				fprintf(stderr, "%u %%\r", done * 100 / count);
+		}
 	}
 
 	return;
@@ -1433,11 +1599,11 @@ int main(int argc, char *argv[])
 				memset(&st, 0, sizeof(st));
 				ret = _capture_program_options(&po);
 				if (ret == ERR_SUCCESS) {
-#ifdef _DEBUG
-					omp_set_num_threads(1);
-#else
+//#ifdef _DEBUG
+//					omp_set_num_threads(1);
+//#else
 					omp_set_num_threads(po.OMPThreads);
-#endif
+//#endif
 					if (po.Help) {
 						options_print_help();
 					} else if (po.Test) {
@@ -1570,7 +1736,7 @@ int main(int argc, char *argv[])
 
 							assembly_task_set_name(&task, taskName);
 							memset(&stats, 0, sizeof(stats));
-							_compute_graph(&po, &po.ParseOptions, &task, &stats);
+							_compute_graph(NULL, &po, &po.ParseOptions, &task, &stats);
 							assembly_task_finit(&task);
 						} else {
 							tinydir_dir dir;
@@ -1601,7 +1767,7 @@ int main(int argc, char *argv[])
 
 												assembly_task_set_name(&task, taskName);
 												task.RegionStart = 0;
-												_compute_graph(&po, &po.ParseOptions, &task, stats + omp_get_thread_num());
+												_compute_graph(NULL, &po, &po.ParseOptions, &task, stats + omp_get_thread_num());
 												assembly_task_finit(&task);
 											}
 
@@ -1660,6 +1826,10 @@ int main(int argc, char *argv[])
 									}
 
 									if (ret == ERR_SUCCESS) {
+										ret = utils_calloc(omp_get_num_procs(), sizeof(PUTILS_LOOKASIDE), &_vertexLAs);
+										if (ret == ERR_SUCCESS)
+											ret = utils_calloc(omp_get_num_procs(), sizeof(PUTILS_LOOKASIDE), &_edgeLAs);
+										
 										ret = utils_calloc(omp_get_num_procs(), sizeof(GEN_ARRAY_VARIANT_CALL), &po.VCSubArrays);
 										if (ret == ERR_SUCCESS) {
 											ret = utils_calloc(omp_get_num_procs(), sizeof(GEN_ARRAY_ONE_READ), &po.ReadSubArrays);
@@ -1668,38 +1838,51 @@ int main(int argc, char *argv[])
 												for (size_t i = 0; i < numThreads; ++i) {
 													dym_array_init_VARIANT_CALL(po.VCSubArrays + i, 140);
 													dym_array_init_ONE_READ(po.ReadSubArrays + i, 140);
+													_vertexLAs[i] = NULL;
+													_edgeLAs[i] = NULL;
 												}
 
-												do {
-													size_t regionCount = 0;
-													PACTIVE_REGION regions = NULL;
+												size_t regionCount = 0;
+												PACTIVE_REGION regions = NULL;
 
-													ret = input_refseq_to_regions(po.ReferenceSequence, refSeqLen, &regions, &regionCount);
-													if (ret == ERR_SUCCESS) {
+												ret = input_refseq_to_regions(po.ReferenceSequence, refSeqLen, &regions, &regionCount);
+												if (ret == ERR_SUCCESS) {
+													const ACTIVE_REGION *pa = NULL;
+
+													pa = regions;
+													for (size_t i = 0; i < regionCount; ++i) {
+														if (pa->Type == artValid && pa->Length >= po.RegionLength)
+															_activeRegionCount += (pa->Length / po.TestStep);
+
+														++pa;
+													}
+
+													if (po.ParseOptions.FixReads) {
+														printf("Repairing reads...\n");
+														_activeRegionProcessed = 0;
+														pa = regions;
 														for (size_t i = 0; i < regionCount; ++i) {
-															const ACTIVE_REGION *pa = regions + i;
-
-															if (pa->Type == artValid && pa->Length >= po.RegionLength) {
-																if (po.ParseOptions.FixReads)
-																	repair_reads_in_parallel(pa, &po);
-																
-																process_active_region_in_parallel(pa, &po);
-															}
+															if (pa->Type == artValid && pa->Length >= po.RegionLength)
+																repair_reads_in_parallel(pa, &po);
 
 															++pa;
 														}
-
-														input_free_regions(regions, regionCount);
 													}
+														
+													printf("Calling variants...\n");
+													_activeRegionProcessed = 0;
+													pa = regions;
+													for (size_t i = 0; i < regionCount; ++i) {
+														if (pa->Type == artValid && pa->Length >= po.RegionLength)
+															process_active_region_in_parallel(pa, &po);
+														
+														++pa;
+													}
+														
+													input_free_regions(regions, regionCount);
+												}
 
-													utils_free(rsFasta);
-													ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
-													po.ReferenceSequence = rsFasta;
-												} while (ret == ERR_SUCCESS);
-
-												if (ret == ERR_NO_MORE_ENTRIES)
-													ret = ERR_SUCCESS;
-
+												utils_free(rsFasta);
 												ret = vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
 												for (size_t i = 0; i < numThreads; ++i) {
 													dym_array_finit_ONE_READ(po.ReadSubArrays + i);
@@ -1711,6 +1894,9 @@ int main(int argc, char *argv[])
 
 											utils_free(po.VCSubArrays);
 										}
+
+										utils_free(_edgeLAs);
+										utils_free(_vertexLAs);
 
 										if (po.VCFFileHandle != NULL) {
 											if (ret == ERR_SUCCESS)
@@ -1728,7 +1914,7 @@ int main(int argc, char *argv[])
 
 							printf("Computing k-mer frequency distribution...\n");
 							printf("Read coverage: %lf\n", _readBaseCount / _totalRegionLength );
-							kmer_freq_distribution(po.KMerSize, po.Reads, po.ReadCount, "kmer-dist2.csv");
+							kmer_freq_distribution(&po, po.KMerSize, po.Reads, po.ReadCount, "kmer-dist2.csv");
 
 							paired_reads_finit();
 						}

@@ -18,11 +18,12 @@ typedef struct _KMER_EDGE_TABLE_KEY {
 typedef struct _KMER_EDGE_TABLE;
 
 typedef void(KMER_EDGE_TABLE_ON_INSERT_CALLBACK)(struct _KMER_EDGE_TABLE *Table, void *ItemData, const uint32_t Order);
-typedef void(KMER_EDGE_TABLE_ON_DELETE_CALLBACK)(struct _KMER_EDGE_TABLE *Table, void *ItemData);
-typedef ERR_VALUE(KMER_EDGE_TABLE_ON_COPY_CALLBACK)(struct _KMER_EDGE_TABLE *Table, void *ItemData, void **Copy);
-typedef void(KMER_EDGE_TABLE_ON_PRINT_CALLBACK)(struct _KMER_EDGE_TABLE *Table, void *ItemData, FILE *Stream);
+typedef void(KMER_EDGE_TABLE_ON_DELETE_CALLBACK)(struct _KMER_EDGE_TABLE *Table, void *ItemData, void *Context);
+typedef ERR_VALUE(KMER_EDGE_TABLE_ON_COPY_CALLBACK)(struct _KMER_EDGE_TABLE *Table, void *ItemData, void **Copy, void *Context);
+typedef void(KMER_EDGE_TABLE_ON_PRINT_CALLBACK)(struct _KMER_EDGE_TABLE *Table, void *ItemData, void *Context, FILE *Stream);
 
 typedef struct _KMER_EDGE_TABLE_CALLBACKS {
+	void *Context;
 	KMER_EDGE_TABLE_ON_INSERT_CALLBACK *OnInsert;
 	KMER_EDGE_TABLE_ON_DELETE_CALLBACK *OnDelete;
 	KMER_EDGE_TABLE_ON_COPY_CALLBACK *OnCopy;
@@ -52,7 +53,7 @@ void *kmer_edge_table_get(const struct _KMER_EDGE_TABLE *Table, const struct _KM
 ERR_VALUE kmer_edge_table_first(const PKMER_EDGE_TABLE Table, void **Slot, void **Data);
 ERR_VALUE kmer_edge_table_next(const PKMER_EDGE_TABLE Table, const void *Current, void **Next, void **Data);
 
-void kmer_edge_table_print(FILE *Stream, const PKMER_EDGE_TABLE Table);
+void kmer_edge_table_print(FILE *Stream, const PKMER_EDGE_TABLE Table, void *Context);
 
 
 

@@ -20,7 +20,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\shared\dym-array.c" />
+    <ClCompile Include="..\shared\file-utils.c" />
     <ClCompile Include="..\shared\general-queue.c" />
+    <ClCompile Include="..\shared\utils-lookaside.c" />
     <ClCompile Include="..\shared\utils.c" />
     <ClCompile Include="assembly.c" />
     <ClCompile Include="found-sequence.c" />
@@ -49,7 +51,9 @@
     <ClInclude Include="..\include\refseq-storage.h" />
     <ClInclude Include="..\shared\dym-array.h" />
     <ClInclude Include="..\shared\err.h" />
+    <ClInclude Include="..\shared\file-utils.h" />
     <ClInclude Include="..\shared\general-queue.h" />
+    <ClInclude Include="..\shared\utils-lookaside.h" />
     <ClInclude Include="..\shared\utils.h" />
     <ClInclude Include="found-sequence-types.h" />
     <ClInclude Include="graph-reads.h" />

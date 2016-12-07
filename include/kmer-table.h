@@ -14,11 +14,12 @@ __KHASH_TYPE(vertexTable, const KMER *, void *)
 typedef struct _KMER_TABLE;
 
 typedef void(KMER_TABLE_ON_INSERT_CALLBACK)(struct _KMER_TABLE *Table, void *ItemData, const uint32_t Order);
-typedef void(KMER_TABLE_ON_DELETE_CALLBACK)(struct _KMER_TABLE *Table, void *ItemData);
-typedef ERR_VALUE (KMER_TABLE_ON_COPY_CALLBACK)(struct _KMER_TABLE *Table, void *ItemData, void **Copy);
+typedef void(KMER_TABLE_ON_DELETE_CALLBACK)(struct _KMER_TABLE *Table, void *ItemData, void *Context);
+typedef ERR_VALUE (KMER_TABLE_ON_COPY_CALLBACK)(struct _KMER_TABLE *Table, void *ItemData, void **Copy, void *Context);
 typedef void(KMER_TABLE_ON_PRINT_CALLBACK)(struct _KMER_TABLE *Table, void *ItemData, FILE *Stream);
 
 typedef struct _KMER_TABLE_CALLBACKS {
+	void *Context;
 	KMER_TABLE_ON_INSERT_CALLBACK *OnInsert;
 	KMER_TABLE_ON_DELETE_CALLBACK *OnDelete;
 	KMER_TABLE_ON_COPY_CALLBACK *OnCopy;
@@ -41,7 +42,6 @@ void kmer_table_print(FILE *Stream, const PKMER_TABLE Table);
 ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const PKMER KMer);
 ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const KMER *KMer, void *Data);
 void *kmer_table_get(const struct _KMER_TABLE *Table, const struct _KMER *KMer);
-ERR_VALUE kmer_table_get_multiple(const KMER_TABLE *Table, const KMER *KMer, PDYM_ARRAY DataArray);
 
 ERR_VALUE kmer_table_first(const PKMER_TABLE Table, void **Slot, void **Data);
 ERR_VALUE kmer_table_next(const PKMER_TABLE Table, const void *Current, void **Next, void **Data);

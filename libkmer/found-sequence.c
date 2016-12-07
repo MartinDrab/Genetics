@@ -207,7 +207,7 @@ boolean found_sequence_match(const FOUND_SEQUENCE *FS, const char *Seq, const si
 }
 
 
-ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_ARRAY_KMER_EDGE *PathEdges)
+ERR_VALUE found_sequence_build_read_variants(const KMER_GRAPH *Graph, PFOUND_SEQUENCE FS, const POINTER_ARRAY_KMER_EDGE *PathEdges)
 {
 	uint32_t refseqStart = 0;
 	uint32_t refseqEnd = 0;
@@ -229,7 +229,7 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 				refseqStart = e->Source->RefSeqPosition + 1;
 				startIndex = i;
 				rs_storage_reset(&seqStorage);
-				weight = read_info_weight(&e->ReadInfo);
+				weight = read_info_weight(&e->ReadInfo, Graph->QualityTable);
 				switch (rsEdge->Type) {
 					case kmetReference:
 //						rsWeight = read_info_weight(&rsEdge->ReadInfo);
@@ -286,10 +286,18 @@ ERR_VALUE found_sequence_build_read_variants(PFOUND_SEQUENCE FS, const POINTER_A
 }
 
 
-ERR_VALUE variant_call_init(const char *Chrom, const uint64_t Pos, const char *ID, const char *Ref, size_t RefLen, const char *Alt, size_t AltLen, const uint8_t Qual, PVARIANT_CALL VC)
+ERR_VALUE variant_call_init(const char *Chrom, uint64_t Pos, const char *ID, const char *Ref, size_t RefLen, const char *Alt, size_t AltLen, const uint8_t Qual, PVARIANT_CALL VC)
 {
 	char *tmp = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	while (RefLen > 1 && AltLen > 1 && *Ref == *Alt) {
+		++Pos;
+		++Ref;
+		++Alt;
+		--RefLen;
+		--AltLen;
+	}
 
 	ret = utils_copy_string(Chrom, &tmp);
 	if (ret == ERR_SUCCESS) {

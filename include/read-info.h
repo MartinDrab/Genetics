@@ -25,7 +25,7 @@ typedef struct _READ_INFO {
 
 
 void read_info_sort(PREAD_INFO ReadInfo);
-size_t read_info_weight(const READ_INFO *Info);
+size_t read_info_weight(const READ_INFO *Info, const uint8_t *QualityTable);
 void read_info_init(PREAD_INFO Info);
 ERR_VALUE read_info_assign(PREAD_INFO Info, const GEN_ARRAY_READ_INFO_ENTRY *Array);
 void read_info_finit(PREAD_INFO Info);

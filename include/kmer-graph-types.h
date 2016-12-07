@@ -32,10 +32,6 @@ typedef struct _KMER_EDGE {
 	boolean MarkedForDelete;
 	boolean Finished;
 	GEN_ARRAY_size_t Paths;
-
-	uint32_t RefSeqPosition;
-	uint32_t RefseqWeight;
-	uint32_t ReadWeight;
 	GEN_ARRAY_FOUND_SEQUENCE_VARIANT Variants;
 } KMER_EDGE, *PKMER_EDGE;
 
@@ -45,6 +41,7 @@ POINTER_ARRAY_IMPLEMENTATION(KMER_EDGE)
 typedef struct _KMER_VERTEX {
 	uint32_t Order;
 	boolean Helper;
+	boolean LongEdgeAllowed;
 	EKMerVertexType Type;
 	POINTER_ARRAY_KMER_EDGE Successors;
 	POINTER_ARRAY_KMER_EDGE Predecessors;
@@ -89,6 +86,27 @@ GEN_ARRAY_IMPLEMENTATION(KMER_EDGE_PAIR)
 typedef struct _KMER_GRAPH;
 typedef void (GRAPH_ON_DELETE_EDGE_CALLBACK)(const struct _KMER_GRAPH *Graph, const KMER_EDGE *Edge, void *Context);
 
+typedef struct _KMER_GRAPH;
+typedef PKMER_VERTEX (KMER_GRAPH_VERTEX_ALLOCATOR)(struct _KMER_GRAPH *Graph, void *Context);
+typedef PKMER_EDGE (KMER_GRAPH_EDGE_ALLOCATOR)(struct _KMER_GRAPH *Graph, void *Context);
+typedef void(KMER_GRAPH_VERTEX_FREER)(struct _KMER_GRAPH *Graph, PKMER_VERTEX Vertex, void *Context);
+typedef void(KMER_GRAPH_EDGE_FREER)(struct _KMER_GRAPH *Graph, PKMER_EDGE Edge, void *Context);
+
+
+typedef struct _KMER_GRAPH_ALLOCATOR {
+	KMER_GRAPH_VERTEX_ALLOCATOR *VertexAllocator;
+	KMER_GRAPH_VERTEX_FREER *VertexFreer;
+	void *VertexAllocatorContext;
+	KMER_GRAPH_EDGE_ALLOCATOR *EdgeAllocator;
+	KMER_GRAPH_EDGE_FREER *EdgeFreer;
+	void *EdgeAllocatorContext;
+} KMER_GRAPH_ALLOCATOR, *PKMER_GRAPH_ALLOCATOR;
+
+typedef struct _KMER_LIST {
+	POINTER_ARRAY_KMER_VERTEX Vertices;
+	KMER Kmer;
+} KMER_LIST, *PKMER_LIST;
+
 typedef struct _KMER_GRAPH {
 	uint32_t KMerSize;
 	uint32_t NumberOfVertices;
@@ -102,6 +120,9 @@ typedef struct _KMER_GRAPH {
 	GRAPH_ON_DELETE_EDGE_CALLBACK *DeleteEdgeCallback;
 	void *DeleteEdgeCallbackContext;
 	PKMER_VERTEX VerticesToDeleteList;
+	PKMER_TABLE KmerListTable;
+	uint8_t QualityTable[256];
+	KMER_GRAPH_ALLOCATOR Allocator;
 } KMER_GRAPH, *PKMER_GRAPH;
 
 

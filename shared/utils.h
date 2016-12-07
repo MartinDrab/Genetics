@@ -15,6 +15,8 @@
 
 #ifdef _MSC_VER
 
+#include <windows.h>
+
 #define strcasecmp				_stricmp
 #define off_t					long long
 #define INLINE_FUNCTION			__inline
@@ -65,18 +67,6 @@ boolean utils_is_prime(const size_t Number);
 size_t utils_next_prime(const size_t Number);
 ERR_VALUE utils_mul_inverse(const size_t Number, const size_t Modulus, size_t *Result);
 size_t utils_pow_mod(const size_t Base, const size_t Power, const size_t Modulus);
-
-#define FOPEN_MODE_READ				1
-#define FOPEN_MODE_WRITE			2
-#define FOPEN_MODE_APPEND			4
-
-ERR_VALUE utils_file_read(const char *FileName, char **Data, size_t *DataLength);
-
-ERR_VALUE utils_fopen(const char *FileName, const uint32_t Mode, FILE **Stream);
-ERR_VALUE utils_fread(void *Buffer, const size_t Size, const size_t Count, FILE *Stream);
-ERR_VALUE utils_fwrite(const void *Buffer, const size_t Size, const size_t Count, FILE *Stream);
-ERR_VALUE utils_fclose(FILE *Stream);
-
 
 ERR_VALUE _utils_malloc(const size_t Size, void **Address);
 ERR_VALUE _utils_calloc(const size_t Count, const size_t Size, void **Address);
@@ -135,6 +125,27 @@ void _utils_alloc_diff(void *Mark);
 		return utils_calloc(Count, sizeof(aType), (void **)aResult);		\
 	} \
 
+
+
+
+INLINE_FUNCTION long utils_atomic_increment(long volatile *Data)
+{
+#ifdef _MSC_VER
+	return InterlockedIncrement(Data);
+#else
+	return __sync_add_and_fetch(Data, 1);
+#endif
+}
+
+
+INLINE_FUNCTION long utils_atomic_decrement(long volatile *Data)
+{
+#ifdef _MSC_VER
+	return InterlockedDecrement(Data);
+#else
+	return __sync_sub_and_fetch(Data, 1);
+#endif
+}
 
 
 

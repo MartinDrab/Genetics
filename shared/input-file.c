@@ -4,6 +4,7 @@
 #include <assert.h>
 #include "err.h"
 #include "utils.h"
+#include "file-utils.h"
 #include "options.h"
 #include "dym-array.h"
 #include "gen_dym_array.h"
@@ -210,17 +211,17 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 	ret = utils_file_read(Filename, &data, &dataLength);
 	if (ret == ERR_SUCCESS) {
 		const char *line = data;
-		PONE_READ oneRead = NULL;
+		ONE_READ oneRead;
 		const char *lineEnd = _read_line(line);
-		DYM_ARRAY readArray;
+		GEN_ARRAY_ONE_READ readArray;
 
-		dym_array_create(&readArray, 140);
+		dym_array_init_ONE_READ(&readArray, 140);
 		while (ret == ERR_SUCCESS && line != lineEnd) {
 			ret = read_create_from_sam_line(line, &oneRead);
 			if (ret == ERR_SUCCESS) {
-				ret = dym_array_push_back(&readArray, oneRead);
+				ret = dym_array_push_back_ONE_READ(&readArray, oneRead);
 				if (ret != ERR_SUCCESS)
-					read_destroy(oneRead);
+					_read_destroy_structure(&oneRead);
 				
 				if (ret == ERR_NOT_IN_REGION)
 					ret = ERR_SUCCESS;
@@ -236,16 +237,9 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 
 			ret = utils_calloc(tmpReadCount, sizeof(ONE_READ), &tmpReads);
 			if (ret == ERR_SUCCESS) {
-				PONE_READ tmp = tmpReads;
-					
-				for (size_t i = 0; i < tmpReadCount; ++i) {
-					memcpy(tmp, dym_array_get(&readArray, i), sizeof(ONE_READ));
-					utils_free(dym_array_get(&readArray, i));
-					++tmp;
-				}
-					
+				memcpy(tmpReads, readArray.Data, gen_array_size(&readArray)*sizeof(ONE_READ));
 				*Reads = tmpReads;
-				*ReadCount = dym_array_size(&readArray);
+				*ReadCount = gen_array_size(&readArray);
 			}
 		}
 
@@ -253,10 +247,10 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 			size_t len = dym_array_size(&readArray);
 
 			for (size_t i = 0; i < len; ++i)
-				read_destroy((PONE_READ)dym_array_get(&readArray, i));
+				_read_destroy_structure((PONE_READ)dym_array_item_ONE_READ(&readArray, i));
 		}
 
-		dym_array_destroy(&readArray);
+		dym_array_finit_ONE_READ(&readArray);
 		utils_free(data);
 	}
 	
@@ -265,7 +259,7 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 
 
 
-ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, const size_t SourceCount, const uint64_t RegionStart, const size_t RegionLength, PGEN_ARRAY_ONE_READ NewReads)
+ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, const size_t SourceCount, const uint64_t RegionStart, const size_t RegionLength, const uint32_t FixupThreshold, PGEN_ARRAY_ONE_READ NewReads)
 {
 	const ONE_READ *r = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -309,12 +303,22 @@ ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, co
 		if (ret == ERR_SUCCESS) {
 			r = Source + firstIndex;
 			for (size_t i = firstIndex; i <= lastIndex; ++i) {
-				ONE_READ tmp = *r;
+				ONE_READ tmp;
 
-				read_split(&tmp);
-				read_adjust(&tmp, RegionStart, RegionLength);
-				if (tmp.Part.ReadSequenceLength > KMerSize)
-					dym_array_push_back_no_alloc_ONE_READ(NewReads, tmp);
+				if (r->NumberOfFixes * 100 / r->ReadSequenceLen < FixupThreshold) {
+					ret = read_copy(&tmp, r);
+					if (ret == ERR_SUCCESS) {
+						tmp.Parent = r;
+						read_split(&tmp);
+						read_adjust(&tmp, RegionStart, RegionLength);
+						if (tmp.Part.ReadSequenceLength > KMerSize)
+							dym_array_push_back_no_alloc_ONE_READ(NewReads, tmp);
+						else _read_destroy_structure(&tmp);
+					}
+				}
+
+				if (ret != ERR_SUCCESS)
+					break;
 
 				++r;
 			}
@@ -322,6 +326,19 @@ ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, co
 	}
 
 	return ret;
+}
+
+
+void input_back_reads(const GEN_ARRAY_ONE_READ *Reads)
+{
+	const ONE_READ *r = Reads->Data;
+
+	for (size_t i = 0; i < gen_array_size(Reads); ++i) {
+		read_copy_direct(r->Parent, r);
+		++r;
+	}
+
+	return;
 }
 
 
@@ -352,8 +369,10 @@ ERR_VALUE input_filter_bad_reads(const ONE_READ *Source, const size_t SourceCoun
 		for (size_t i = 0; i < SourceCount; ++i) {
 			if (r->PosQuality >= MinQuality && r->Pos != (uint64_t)-1) {
 				ret = read_copy(tmpNewReadSet + tmpNewReadCount, r);
-				if (ret == ERR_SUCCESS)
+				if (ret == ERR_SUCCESS) {
+					(tmpNewReadSet + tmpNewReadCount)->NumberOfFixes = 0;
 					++tmpNewReadCount;
+				}
 
 				if (ret != ERR_SUCCESS)
 					break;

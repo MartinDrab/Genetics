@@ -12,6 +12,8 @@ LIBS= -lm -fopenmp
 
 OBJ=\
 	$(SHAREDOBJDIR)/utils.o \
+	$(SHAREDOBJDIR)/utils-lookaside.o \
+	$(SHAREDOBJDIR)/file-utils.o \
 	$(SHAREDOBJDIR)/options.o \
 	$(SHAREDOBJDIR)/dym-array.o \
 	$(SHAREDOBJDIR)/general-queue.o \

@@ -5,7 +5,7 @@
 #include "read-info.h"
 
 
-size_t read_info_weight(const READ_INFO *Info)
+size_t read_info_weight(const READ_INFO *Info, const uint8_t *QualityTable)
 {
 	size_t ret = 0;
 	size_t readIndex = (size_t)-1;
@@ -17,16 +17,7 @@ size_t read_info_weight(const READ_INFO *Info)
 			continue;
 		}
 
-		if (entry->Quality == 0)
-			ret += 0;
-		else if (entry->Quality < 20)
-			ret += 50;
-		else if (entry->Quality < 30)
-			ret += 75;
-		else if (entry->Quality < 40)
-			ret += 100;
-		else ret += 100;
-
+		ret += QualityTable[entry->Quality];
 		readIndex = entry->ReadIndex;
 		++entry;
 	}

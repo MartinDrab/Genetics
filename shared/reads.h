@@ -38,6 +38,8 @@ typedef struct _ONE_READ {
 	char *TemplateName;
 	size_t TemplateNameLen;
 	boolean Indels;
+	uint32_t NumberOfFixes;
+	struct _ONE_READ *Parent;
 	READ_PART Part;
 } ONE_READ, *PONE_READ;
 
@@ -62,11 +64,13 @@ POINTER_ARRAY_IMPLEMENTATION(ONE_READ)
 
 
 ERR_VALUE read_create_from_test_line(const char *Line, const size_t Length, PONE_READ *Read);
-ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ *Read);
+ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read);
 ERR_VALUE read_create_from_fasta_seq(const char *Seq, const size_t SeqLen, const char *SeqName, const size_t SeqNameLen, PONE_READ *Read);
 ERR_VALUE read_generate_from_sequence(const char *Seq, const size_t SeqLen, const uint32_t ReadLength, PONE_READ *Read);
+void read_copy_direct(PONE_READ Dest, const ONE_READ *Source);
 ERR_VALUE read_copy(PONE_READ Dest, const ONE_READ *Source);
 void read_destroy(PONE_READ Read);
+void _read_destroy_structure(PONE_READ Read);
 
 ERR_VALUE read_set_generate_from_sequence(const char *Seq, const size_t SeqLen, const uint32_t ReadLength, const size_t ReadCount, PONE_READ *ReadSet);
 void read_set_destroy(PONE_READ ReadSet, const size_t Count);

@@ -56,13 +56,13 @@ static void _on_insert_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *Item
 }
 
 
-static void _on_delete_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData)
+static void _on_delete_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData, void *Context)
 {
 	return;
 }
 
 
-static ERR_VALUE _on_copy_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData, void **Copy)
+static ERR_VALUE _on_copy_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData, void **Copy, void *Context)
 {
 	*Copy = ItemData;
 
@@ -91,6 +91,7 @@ ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t Size, const
 		tmpTable->KHashTable = kh_init(edgeTable);
 		tmpTable->KMerSize = KMerSize;
 		if (Callbacks == NULL) {
+			tmpTable->Callbacks.Context = NULL;
 			tmpTable->Callbacks.OnInsert = _on_insert_dummy_callback;
 			tmpTable->Callbacks.OnDelete = _on_delete_dummy_callback;
 			tmpTable->Callbacks.OnCopy = _on_copy_dummy_callback;
@@ -110,7 +111,7 @@ void kmer_edge_table_destroy(PKMER_EDGE_TABLE Table)
 {	
 	for (khiter_t it = kh_begin(Table->KHashTable); it != kh_end(Table->KHashTable); ++it) {
 		if (kh_exist(Table->KHashTable, it))
-			Table->Callbacks.OnDelete(Table, kh_val(Table->KHashTable, it));
+			Table->Callbacks.OnDelete(Table, kh_val(Table->KHashTable, it), Table->Callbacks.Context);
 	}
 
 	kh_destroy(edgeTable, Table->KHashTable);
@@ -146,7 +147,7 @@ ERR_VALUE kmer_edge_table_delete(PKMER_EDGE_TABLE Table, const PKMER Source, con
 	key.Dest = Dest;
 	it = kh_get(edgeTable, Table->KHashTable, key);
 	if (it != kh_end(Table->KHashTable)) {
-		Table->Callbacks.OnDelete(Table, kh_val(Table->KHashTable, it));
+		Table->Callbacks.OnDelete(Table, kh_val(Table->KHashTable, it), Table->Callbacks.Context);
 		kh_del(edgeTable, Table->KHashTable, it);
 		ret = ERR_SUCCESS;
 	} else ret = ERR_NOT_FOUND;
@@ -188,11 +189,11 @@ ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const KMER *Source, con
 }
 
 
-void kmer_edge_table_print(FILE *Stream, const PKMER_EDGE_TABLE Table)
+void kmer_edge_table_print(FILE *Stream, const PKMER_EDGE_TABLE Table, void *Context)
 {
 	for (khiter_t it = kh_begin(Table->KHashTable); it != kh_end(Table->KHashTable); ++it) {
 		if (kh_exist(Table->KHashTable, it))
-			Table->Callbacks.OnPrint(Table, kh_val(Table->KHashTable, it), Stream);
+			Table->Callbacks.OnPrint(Table, kh_val(Table->KHashTable, it), Context, Stream);
 	}
 
 	return;
@@ -209,6 +210,7 @@ ERR_VALUE kmer_edge_table_first(const PKMER_EDGE_TABLE Table, void **Slot, void 
 			*Slot = (void *)it;
 			*Data = kh_val(Table->KHashTable, it);
 			ret = ERR_SUCCESS;
+			break;
 		}
 	}
 
@@ -226,6 +228,7 @@ ERR_VALUE kmer_edge_table_next(const PKMER_EDGE_TABLE Table, const void *Current
 			*Next = (void *)it;
 			*Data = kh_val(Table->KHashTable, it);
 			ret = ERR_SUCCESS;
+			break;
 		}
 	}
 
