@@ -147,6 +147,35 @@ INLINE_FUNCTION long utils_atomic_decrement(long volatile *Data)
 #endif
 }
 
+INLINE_FUNCTION long utils_atomic_exchange(long volatile *Data, long Value)
+{
+#ifdef _MSC_VER
+	return InterlockedExchange(Data, Value);
+#else
+	return __sync_lock_test_and_set(Data, Value);
+#endif
+}
+
+INLINE_FUNCTION void utils_atomic_release(long volatile *Lock)
+{
+#ifdef _MSC_VER
+	InterlockedExchange(Lock, 0);
+#else
+	__sync_lock_release(Lock);
+#endif
+}
+
+#ifdef WIN32
+
+
+
+
+double erand48(unsigned short xseed[3]);
+double drand48();
+void srand48(long seed);
+
+
+#endif
 
 
 #endif

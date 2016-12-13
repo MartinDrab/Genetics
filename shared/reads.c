@@ -1,5 +1,6 @@
 
 #include <stdlib.h>
+#include <inttypes.h>
 #include "err.h"
 #include "utils.h"
 #include "file-utils.h"
@@ -98,8 +99,14 @@ void _read_destroy_structure(PONE_READ Read)
 	if (Read->ReadSequence != NULL)
 		utils_free(Read->ReadSequence);
 
+	if (Read->RNext != NULL)
+		utils_free(Read->RNext);
+
 	if (Read->CIGAR != NULL)
 		utils_free(Read->CIGAR);
+
+	if (Read->RName != NULL)
+		utils_free(Read->RName);
 
 	if (Read->TemplateName != NULL)
 		utils_free(Read->TemplateName);
@@ -174,10 +181,18 @@ ERR_VALUE read_copy(PONE_READ Dest, const ONE_READ *Source)
 
 			if (ret == ERR_SUCCESS) {
 				if (Dest->QualityLen > 0) {
-					ret = utils_calloc(Dest->QualityLen, sizeof(uint8_t), &Dest->Quality);
-					if (ret == ERR_SUCCESS)
+					ret = utils_calloc(Dest->QualityLen + 1, sizeof(uint8_t), &Dest->Quality);
+					if (ret == ERR_SUCCESS) {
 						memcpy(Dest->Quality, Source->Quality, Dest->QualityLen);;
+						Dest->Quality[Dest->QualityLen] = 0;
+					}
 				}
+
+				if (ret == ERR_SUCCESS && Source->RNameLen > 0)
+					ret = utils_copy_string(Source->RName, &Dest->RName);
+
+				if (ret == ERR_SUCCESS && Source->RNextLen > 0)
+					ret = utils_copy_string(Source->RNext, &Dest->RNext);
 
 				if (ret != ERR_SUCCESS) {
 					if (Dest->ReadSequenceLen > 0)
@@ -201,6 +216,32 @@ ERR_VALUE read_copy(PONE_READ Dest, const ONE_READ *Source)
 }
 
 
+void read_quality_encode(PONE_READ Read)
+{
+	for (size_t i = 0; i < Read->QualityLen; ++i)
+		Read->Quality[i] += 33;
+
+	return;
+}
+
+
+void read_quality_decode(PONE_READ Read)
+{
+	for (size_t i = 0; i < Read->QualityLen; ++i)
+		Read->Quality[i] -= 33;
+
+	return;
+}
+
+
+void read_write_sam(FILE *Stream, const ONE_READ *Read)
+{
+	fprintf(Stream, "%s\t%u\t%s\t%" PRId64 "\t%u\t%s\t%s\t%" PRId64 "\t%i\t%s\t%s\n", Read->TemplateName, Read->Flags, Read->RName, Read->Pos + 1, Read->PosQuality, Read->CIGAR, Read->RNext, Read->PNext, Read->TLen, Read->ReadSequence, Read->Quality);
+
+	return;
+}
+
+
 ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read)
 {
 	uint32_t tmp32;
@@ -209,103 +250,110 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read)
 	ret = ERR_SUCCESS;
 	memset(Read, 0, sizeof(ONE_READ));
 	Line = _sam_read_string_field(Line, &Read->TemplateName, &Read->TemplateNameLen);
+	if (Line != NULL && *Line == '\t')
+		++Line;
+	else ret = ERR_SAM_INVALID_RNAME;
+
+	if (ret == ERR_SUCCESS) {
+		Line = _sam_read_uint_field(Line, &tmp32);
+		if (Line != NULL && *Line == '\t') {
+			++Line;
+			Read->Flags = tmp32;
+		} else ret = ERR_SAM_INVALID_FLAG;
+	}
+
+	if (ret == ERR_SUCCESS) {
+		Line = _sam_read_string_field(Line, &Read->RName, &Read->RNameLen);
 		if (Line != NULL && *Line == '\t')
 			++Line;
 		else ret = ERR_SAM_INVALID_RNAME;
+	}
 
-		if (ret == ERR_SUCCESS) {
-			Line = _sam_read_uint_field(Line, &tmp32);
-			if (Line != NULL && *Line == '\t') {
-				++Line;
-				Read->Flags = tmp32;
-			} else ret = ERR_SAM_INVALID_FLAG;
-		}
+	if (ret == ERR_SUCCESS) {
+		Line = _sam_read_uint_field(Line, &tmp32);
+		if (Line != NULL && *Line == '\t') {
+			++Line;
+			Read->Pos = tmp32;
+			Read->Pos--;
+		} else ret = ERR_SAM_INVALID_POS;
+	}
 
-		if (ret == ERR_SUCCESS) {
-			Line = _sam_read_string_field(Line, NULL, NULL);
-			if (Line != NULL && *Line == '\t')
-				++Line;
-			else ret = ERR_SAM_INVALID_RNAME;
-		}
+	if (ret == ERR_SUCCESS) {
+		Line = _sam_read_uint_field(Line, &tmp32);
+		if (Line != NULL && *Line == '\t') {
+			++Line;
+			Read->PosQuality = (uint8_t)tmp32;
+		} else ret = ERR_SAM_INVALID_MAPQ;
+	}
 
-		if (ret == ERR_SUCCESS) {
-			Line = _sam_read_uint_field(Line, &tmp32);
-			if (Line != NULL && *Line == '\t') {
-				++Line;
-				Read->Pos = tmp32;
-				Read->Pos--;
-			} else ret = ERR_SAM_INVALID_POS;
-		}
+	if (ret == ERR_SUCCESS) {
+		Line = _sam_read_string_field(Line, &Read->CIGAR, &Read->CIGARLen);
+		if (Line != NULL && *Line == '\t')
+			++Line;
+		else ret = ERR_SAM_INVALID_CIGAR;
+	}
 
-		if (ret == ERR_SUCCESS) {
-			Line = _sam_read_uint_field(Line, &tmp32);
-			if (Line != NULL && *Line == '\t') {
-				++Line;
-				Read->PosQuality = (uint8_t)tmp32;
-			} else ret = ERR_SAM_INVALID_MAPQ;
-		}
+	if (ret == ERR_SUCCESS) {
+		Line = _sam_read_string_field(Line, &Read->RNext, &Read->RNextLen);
+		if (Line != NULL && *Line == '\t')
+			++Line;
+		else ret = ERR_SAM_INVALID_RNEXT;
+	}
 
-		if (ret == ERR_SUCCESS) {
-			Line = _sam_read_string_field(Line, &Read->CIGAR, &Read->CIGARLen);
-			if (Line != NULL && *Line == '\t')
-				++Line;
-			else ret = ERR_SAM_INVALID_CIGAR;
-		}
+	if (ret == ERR_SUCCESS) {
+		Line = _sam_read_uint_field(Line, &tmp32);
+		if (Line != NULL && *Line == '\t') {
+			++Line;
+			Read->PNext = tmp32;
+		} else ret = ERR_SAM_INVALID_PNEXT;
+	}
 
-		if (ret == ERR_SUCCESS) {
-			Line = _sam_read_string_field(Line, NULL, NULL);
-			if (Line != NULL && *Line == '\t')
-				++Line;
-			else ret = ERR_SAM_INVALID_RNEXT;
-		}
+	if (ret == ERR_SUCCESS) {
+		Line = _sam_read_int_field(Line, &tmp32);
+		if (Line != NULL && *Line == '\t') {
+			++Line;
+			Read->TLen = tmp32;
+		} else ret = ERR_SAM_INVALID_TLEN;
+	}
 
-		if (ret == ERR_SUCCESS) {
-			Line = _sam_read_uint_field(Line, NULL);
-			if (Line != NULL && *Line == '\t')
-				++Line;
-			else ret = ERR_SAM_INVALID_PNEXT;
-		}
+	if (ret == ERR_SUCCESS) {
+		Line = _sam_read_string_field(Line, &Read->ReadSequence, &Read->ReadSequenceLen);
+		if (Line != NULL && *Line == '\t')
+			++Line;
+		else ret = ERR_SAM_INVALID_SEQ;
+	}
 
-		if (ret == ERR_SUCCESS) {
-			Line = _sam_read_int_field(Line, NULL);
-			if (Line != NULL && *Line == '\t')
-				++Line;
-			else ret = ERR_SAM_INVALID_TLEN;
-		}
+	if (ret == ERR_SUCCESS) {
+		Line = _sam_read_string_field(Line, (char **)&Read->Quality, &Read->QualityLen);
+		if (Line == NULL)
+			ret = ERR_SAM_INVALID_QUAL;
+	}
 
-		if (ret == ERR_SUCCESS) {
-			Line = _sam_read_string_field(Line, &Read->ReadSequence, &Read->ReadSequenceLen);
-			if (Line != NULL && *Line == '\t')
-				++Line;
-			else ret = ERR_SAM_INVALID_SEQ;
-		}
+	if (ret == ERR_SUCCESS) {
+		if (Read->ReadSequenceLen == Read->QualityLen)
+			read_quality_decode(Read);
+		else ret = ERR_SAM_SEQ_QUAL_LEN_MISMATCH;
+	}
 
-		if (ret == ERR_SUCCESS) {
-			Line = _sam_read_string_field(Line, (char **)&Read->Quality, &Read->QualityLen);
-			if (Line == NULL)
-				ret = ERR_SAM_INVALID_QUAL;
-		}
+	if (ret != ERR_SUCCESS) {
+		if (Read->Quality != NULL)
+			utils_free(Read->Quality);
 
-		if (ret == ERR_SUCCESS) {
-			if (Read->ReadSequenceLen == Read->QualityLen) {
-				for (size_t i = 0; i < Read->QualityLen; ++i)
-					Read->Quality[i] -= 33;
-			} else ret = ERR_SAM_SEQ_QUAL_LEN_MISMATCH;
-		}
+		if (Read->ReadSequence != NULL)
+			utils_free(Read->ReadSequence);
 
-		if (ret != ERR_SUCCESS) {
-			if (Read->Quality != NULL)
-				utils_free(Read->Quality);
-
-			if (Read->ReadSequence != NULL)
-				utils_free(Read->ReadSequence);
-
-			if (Read->CIGAR != NULL)
-				utils_free(Read->CIGAR);
+		if (Read->RNext != NULL)
+			utils_free(Read->RNext);
+		
+		if (Read->CIGAR != NULL)
+			utils_free(Read->CIGAR);
 			
-			if (Read->TemplateName != NULL)
-				utils_free(Read->TemplateName);
-		}
+		if (Read->RName != NULL)
+			utils_free(Read->RName);
+
+		if (Read->TemplateName != NULL)
+			utils_free(Read->TemplateName);
+	}
 
 	return ret;
 }

@@ -33,6 +33,12 @@ typedef struct _ONE_READ {
 	size_t QualityLen;
 	char *CIGAR;
 	size_t CIGARLen;
+	char *RName;
+	size_t RNameLen;
+	char *RNext;
+	size_t RNextLen;
+	int32_t TLen;
+	uint64_t PNext;
 	uint64_t Pos;
 	uint8_t PosQuality;
 	char *TemplateName;
@@ -63,6 +69,10 @@ POINTER_ARRAY_TYPEDEF(ONE_READ);
 POINTER_ARRAY_IMPLEMENTATION(ONE_READ)
 
 
+
+void read_quality_decode(PONE_READ Read);
+void read_quality_encode(PONE_READ Read);
+void read_write_sam(FILE *Stream, const ONE_READ *Read);
 ERR_VALUE read_create_from_test_line(const char *Line, const size_t Length, PONE_READ *Read);
 ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read);
 ERR_VALUE read_create_from_fasta_seq(const char *Seq, const size_t SeqLen, const char *SeqName, const size_t SeqNameLen, PONE_READ *Read);

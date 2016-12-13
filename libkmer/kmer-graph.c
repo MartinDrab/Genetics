@@ -1429,8 +1429,8 @@ ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Thre
 				if (eIn == eOut)
 					continue;
 
-//				if (eIn->Dest->Type == kmvtRefSeqMiddle && !eIn->Source->LongEdgeAllowed)
-//					allowed = FALSE;
+				if (eIn->Dest->Type == kmvtRefSeqMiddle && !eIn->Source->LongEdgeAllowed)
+					allowed = FALSE;
 
 				rsLastEdge = _get_in_refseq_edge(eIn->Dest);
 				rsNextEdge = _get_refseq_edge(eOut->Source);
