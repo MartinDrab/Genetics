@@ -96,12 +96,14 @@ static void _vertex_destroy(PKMER_GRAPH Graph, PKMER_VERTEX Vertex)
 {
 	PKMER_GRAPH g = Vertex->Lists.Graph;
 
-	pointer_array_finit_KMER_EDGE(&Vertex->Predecessors);
-	pointer_array_finit_KMER_EDGE(&Vertex->Successors);
 	if (g != NULL) {
 		Vertex->Lists.Next = g->VerticesToDeleteList;
 		g->VerticesToDeleteList = Vertex;
-	} else Graph->Allocator.VertexFreer(Graph, Vertex, Graph->Allocator.VertexAllocatorContext);
+	} else {
+		pointer_array_finit_KMER_EDGE(&Vertex->Predecessors);
+		pointer_array_finit_KMER_EDGE(&Vertex->Successors);
+		Graph->Allocator.VertexFreer(Graph, Vertex, Graph->Allocator.VertexAllocatorContext);
+	}
 
 	return;
 }
@@ -536,6 +538,7 @@ void kmer_graph_destroy(PKMER_GRAPH Graph)
 
 	while (del != NULL) {
 		old = del;
+		old->Lists.Graph = NULL;
 		del = del->Lists.Next;
 		_vertex_destroy(Graph, old);
 	}

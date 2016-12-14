@@ -72,6 +72,7 @@ int bfc_ch_insert(bfc_ch_t *ch, const uint64_t x[2], int is_high, int forced)
 				while (h->lock); // lock
 		else return -1;
 	}
+
 	k = kh_put(cnt, h, key, &absent);
 	if (absent) {
 		if (is_high) kh_key(h, k) |= 1<<8;

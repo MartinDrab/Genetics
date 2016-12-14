@@ -29,7 +29,7 @@
 #define min(a, b)				((a) < (b) ? (a) : (b))
 #undef max
 #define max(a, b)				((a) > (b) ? (a) : (b))
-#define INLINE_FUNCTION			static
+#define INLINE_FUNCTION			inline
 #define PATH_SEPARATOR			"/"
 
 #endif
@@ -75,6 +75,10 @@ void _utils_free(void *Address);
 #define ALLOCATOR_HEADER_SIGNATURE					0xbadf00d
 #define ALLOCATOR_FOOTER_SIGNATURE					0xf00df00d
 
+typedef struct _ALLOCATOR_FOOTER {
+	uint32_t Signature;
+} ALLOCATOR_FOOTER, *PALLOCATOR_FOOTER;
+
 typedef struct _ALLOCATOR_HEADER {
 	struct _ALLOCATOR_HEADER *Prev;
 	struct _ALLOCATOR_HEADER *Next;
@@ -82,36 +86,26 @@ typedef struct _ALLOCATOR_HEADER {
 	const char *Function;
 	uint32_t Line;
 	size_t BodySize;
+	const ALLOCATOR_FOOTER *Footer;
+	int ThreadId;
 	uint32_t Signature2;
 } ALLOCATOR_HEADER, *PALLOCATOR_HEADER;
 
-typedef struct _ALLOCATOR_FOOTER {
-	uint32_t Signature;
-} ALLOCATOR_FOOTER, *PALLOCATOR_FOOTER;
 
-ERR_VALUE _utils_malloc_debug(const size_t Size, void **Address, const char *Function, const uint32_t Line);
-ERR_VALUE _utils_calloc_debug(const size_t Count, const size_t Size, void **Address, const char *Function, const uint32_t Line);
-void _utils_free_debug(void *Address);
+ERR_VALUE utils_allocator_malloc(const size_t Size, void **Address, const char *Function, const uint32_t Line);
+ERR_VALUE utils_allocator_calloc(const size_t Count, const size_t Size, void **Address, const char *Function, const uint32_t Line);
+void utils_allocator_free(void *Address);
 void utils_allocator_check(void);
 
 // #define USE_DEBUG_ALLOCATOR
 
-#ifdef USE_DEBUG_ALLOCATOR
 
-#define utils_malloc(aSize, aAddress)					_utils_malloc_debug((aSize), (aAddress), __FUNCTION__, __LINE__)
-#define utils_calloc(aCount, aSize, aAddress)			_utils_calloc_debug((aCount), (aSize), (aAddress), __FUNCTION__, __LINE__)
-#define utils_free(aAddress)							_utils_free_debug((aAddress));
+#define utils_malloc(aSize, aAddress)					utils_allocator_malloc((aSize), (aAddress), __FUNCTION__, __LINE__)
+#define utils_calloc(aCount, aSize, aAddress)			utils_allocator_calloc((aCount), (aSize), (aAddress), __FUNCTION__, __LINE__)
+#define utils_free(aAddress)							utils_allocator_free((aAddress));
 void *_utils_alloc_mark(void);
 void _utils_alloc_diff(void *Mark);
-
-
-#else
-
-#define utils_malloc(aSize, aAddress)					_utils_malloc((aSize), (aAddress))
-#define utils_calloc(aCount, aSize, aAddress)			_utils_calloc((aCount), (aSize), (aAddress))
-#define utils_free(aAddress)							_utils_free((aAddress));
-
-#endif
+ERR_VALUE utils_allocator_init(const size_t NumberOfThreads);
 
 #define UTILS_TYPED_MALLOC_FUNCTION(aType)	\
 	ERR_VALUE utils_malloc_##aType(aType ** aResult)						\

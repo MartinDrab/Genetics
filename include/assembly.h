@@ -11,7 +11,6 @@ typedef struct _PARSE_OPTIONS {
 	boolean ConnectRefSeq;
 	boolean ConnectReads;
 	boolean MergeBubbles;
-	boolean FixReads;
 	boolean LinearShrink;
 	boolean HelperVertices;
 	uint32_t MissingEdgePenalty;

@@ -172,6 +172,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\gen_dym_array.h" />
+    <ClInclude Include="..\include\khash.h" />
     <ClInclude Include="..\include\pointer_array.h" />
     <ClInclude Include="..\shared\err.h" />
     <ClInclude Include="..\shared\input-file.h" />
@@ -180,8 +181,7 @@
     <ClInclude Include="fml.h" />
     <ClInclude Include="htab.h" />
     <ClInclude Include="internal.h" />
-    <ClInclude Include="khash.h" />
-    <ClInclude Include="kmer.h" />
+    <ClInclude Include="fermi-kmer.h" />
     <ClInclude Include="kseq.h" />
     <ClInclude Include="ksort.h" />
     <ClInclude Include="kvec.h" />

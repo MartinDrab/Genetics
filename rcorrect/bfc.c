@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include "utils.h"
 #include "htab.h"
-#include "kmer.h"
+#include "fermi-kmer.h"
 #include "internal.h"
 #include "fml.h"
 

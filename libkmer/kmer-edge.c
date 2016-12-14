@@ -70,7 +70,7 @@ static ERR_VALUE _on_copy_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *I
 }
 
 
-static void _on_print_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData, FILE *Stream)
+static void _on_print_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemData, void * Context, FILE *Stream)
 {
 	return;
 }

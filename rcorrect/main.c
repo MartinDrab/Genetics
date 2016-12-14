@@ -8,13 +8,23 @@
 #include "fml.h"
 
 
+static char *_copy_string(const char *str, const size_t len)
+{
+	char *ret = NULL;
 
+	ret = malloc((len + 1)*sizeof(char));
+	if (ret != NULL) {
+		memcpy(ret, str, len*sizeof(char));
+		ret[len] = '\0';
+	}
+
+	return ret;
+}
 
 
 
 int main(int argc, char **argv)
 {
-	float coverage = 0.0;
 	fml_opt_t options;
 	bseq1_t *seqs = NULL;
 	PONE_READ reads = NULL;
@@ -22,30 +32,38 @@ int main(int argc, char **argv)
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	fml_opt_init(&options);
-	options.n_threads = omp_get_num_threads();
-	printf("Loading reads from %s...\n", argv[1]);
+	options.n_threads = omp_get_num_procs();
+	options.ec_k = 31;
+	utils_allocator_init(options.n_threads);
+	fprintf(stderr, "Loading reads from %s...\n", argv[1]);
 	ret = input_get_reads(argv[1], "sam", &reads, &readCount);
 	if (ret == ERR_SUCCESS) {
-		printf("Converting to fermi-lite format...\n");
+		fprintf(stderr, "Converting to fermi-lite format...\n");
 		ret = utils_calloc(readCount, sizeof(bseq1_t), &seqs);
 		if (ret == ERR_SUCCESS) {
 			for (size_t i = 0; i < readCount; ++i) {
+				memset(seqs + i, 0, sizeof(seqs[i]));
 				seqs[i].l_seq = reads[i].ReadSequenceLen;
 				read_quality_encode(reads + i);
-				ret = utils_copy_string(reads[i].ReadSequence, &seqs[i].seq);
-				if (ret == ERR_SUCCESS && reads[i].Quality != NULL)
-					ret = utils_copy_string(reads[i].Quality, &seqs[i].qual);
+				seqs[i].seq = _copy_string(reads[i].ReadSequence, reads[i].ReadSequenceLen);
+				if (reads[i].Quality != NULL)
+					seqs[i].qual = _copy_string(reads[i].Quality, reads[i].QualityLen);
 
 				read_quality_decode(reads + i);
 			}
 
 			fml_opt_adjust(&options, readCount, seqs);
-			printf("Correcting...\n");
+			fprintf(stderr, "Correcting...\n");
 			fml_correct(&options, readCount, seqs);
-			printf("Fitting unique k-mers...\n");
-			coverage = fml_fltuniq(&options, readCount, seqs);
-			printf("Converting back to our format...\n");
+			fprintf(stderr, "Fitting unique k-mers...\n");
+			fml_fltuniq(&options, readCount, seqs);
+			fprintf(stderr, "Converting back to our format...\n");
 			for (size_t i = 0; i < readCount; ++i) {
+				if (reads[i].ReadSequenceLen != seqs[i].l_seq) {
+					utils_copy_string("*", &reads[i].CIGAR);
+					reads[i].CIGARLen = 1;
+				}
+
 				reads[i].ReadSequenceLen = seqs[i].l_seq;
 				reads[i].QualityLen = seqs[i].l_seq;
 				ret = utils_copy_string(seqs[i].seq, &reads[i].ReadSequence);
@@ -61,11 +79,11 @@ int main(int argc, char **argv)
 				read_quality_decode(reads + i);
 			}
 				
-			printf("Freeing fermi-lite resources...\n");
+			fprintf(stderr, "Freeing fermi-lite resources...\n");
 			utils_free(seqs);
 		}
 		
-		printf("Freeing our reads...\n");
+		fprintf(stderr, "Freeing our reads...\n");
 		read_set_destroy(reads, readCount);
 	}
 

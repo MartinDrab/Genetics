@@ -31,9 +31,6 @@ static ERR_VALUE _init_default_values()
 
 	ret = option_add_UInt32(PROGRAM_OPTION_KMERSIZE, 5);
 	if (ret == ERR_SUCCESS)
-		ret = option_add_String(PROGRAM_OPTION_SEQUENCE, "\0");
-
-	if (ret == ERR_SUCCESS)
 		ret = option_add_String(PROGRAM_OPTION_SEQFILE, "\0");
 
 	if (ret == ERR_SUCCESS)
@@ -42,26 +39,6 @@ static ERR_VALUE _init_default_values()
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(PROGRAM_OPTION_SEQLEN, 100);
 
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_TEST, FALSE);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_TEST_COUNT, 256);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_HELP, FALSE);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_PRINT_RESULTS, FALSE);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_READ_COUNT, 0);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_READ_LENGTH, 0);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_TEST_READ_CYCLES, 20);
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(PROGRAM_OPTION_TEST_STEP, 1500);
@@ -73,24 +50,6 @@ static ERR_VALUE _init_default_values()
 		ret = option_add_String(PROGRAM_OPTION_READFILE, "\0");
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_Double(PROGRAM_OPTION_SNP_RATIO, 0);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Double(PROGRAM_OPTION_INSERT_RATIO, 0);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Double(PROGRAM_OPTION_DELETE_RATIO, 0);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_String(PROGRAM_OPTION_ALT1_SEQ, "\0");
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_String(PROGRAM_OPTION_ALT2_SEQ, "\0");
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_String(PROGRAM_OPTION_TESTFILE, "\0");
-
-	if (ret == ERR_SUCCESS)
 		ret = option_add_String(PROGRAM_OPTION_OUTPUT_DIRECTORY, ".");
 
 	if (ret == ERR_SUCCESS)
@@ -100,7 +59,7 @@ static ERR_VALUE _init_default_values()
 		ret = option_add_Int32(PROGRAM_OPTION_OMP_THREADS, omp_get_num_procs());
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt8(PROGRAM_OPTION_READ_POS_QUALITY, 20);
+		ret = option_add_UInt8(PROGRAM_OPTION_READ_POS_QUALITY, 10);
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_Boolean(PROGRAM_OPTION_NO_CONNECT_REFSEQ, FALSE);
@@ -111,9 +70,6 @@ static ERR_VALUE _init_default_values()
 	if (ret == ERR_SUCCESS)
 		ret = option_add_Boolean(PROGRAM_OPTION_NO_BUBBLE_MERGING, FALSE);
 	
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_NO_READ_FIXING, FALSE);
-
 	if (ret == ERR_SUCCESS)
 		ret = option_add_Boolean(PROGRAM_OPTION_NO_LINEAR_SHRINK, FALSE);
 
@@ -133,50 +89,22 @@ static ERR_VALUE _init_default_values()
 		ret = option_add_UInt32(PROGRAM_OPTION_READ_MAX_ERROR_RATE, 20);
 
 	option_set_description_const(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC);
-	option_set_description_const(PROGRAM_OPTION_SEQUENCE, PROGRAM_OPTION_SEQUENCE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQFILE, PROGRAM_OPTION_SEQFILE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQSTART, PROGRAM_OPTION_SEQSTART_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQLEN, PROGRAM_OPTION_SEQLEN_DESC);
-	option_set_description_const(PROGRAM_OPTION_TEST, PROGRAM_OPTION_TEST_DESC);
-	option_set_description_const(PROGRAM_OPTION_TEST_COUNT, PROGRAM_OPTION_TEST_COUNT_DESC);
-	option_set_description_const(PROGRAM_OPTION_HELP, PROGRAM_OPTION_HELP_DESC);
-	option_set_description_const(PROGRAM_OPTION_PRINT_RESULTS, PROGRAM_OPTION_PRINT_RESULTS_DESC);
-	option_set_description_const(PROGRAM_OPTION_READ_COUNT, PROGRAM_OPTION_READ_COUNT_DESC);
-	option_set_description_const(PROGRAM_OPTION_READ_LENGTH, PROGRAM_OPTION_READ_LENGTH_DESC);
-	option_set_description_const(PROGRAM_OPTION_TEST_READ_CYCLES, PROGRAM_OPTION_TEST_READ_CYCLES_DESC);
 	option_set_description_const(PROGRAM_OPTION_TEST_STEP, PROGRAM_OPTION_TEST_STEP_DESC);
 	option_set_description_const(PROGRAM_OPTION_THRESHOLD, PROGRAM_OPTION_THRESHOLD_DESC);
 	option_set_description_const(PROGRAM_OPTION_READFILE, PROGRAM_OPTION_READFILE_DESC);
-	option_set_description_const(PROGRAM_OPTION_SNP_RATIO, PROGRAM_OPTION_SNP_RATIO_DESC);
-	option_set_description_const(PROGRAM_OPTION_INSERT_RATIO, PROGRAM_OPTION_INSERT_RATIO_DESC);
-	option_set_description_const(PROGRAM_OPTION_DELETE_RATIO, PROGRAM_OPTION_DELETE_RATIO_DESC);
-	option_set_description_const(PROGRAM_OPTION_ALT1_SEQ, PROGRAM_OPTION_ALT1_SEQ_DESC);
-	option_set_description_const(PROGRAM_OPTION_ALT2_SEQ, PROGRAM_OPTION_ALT2_SEQ_DESC);
-	option_set_description_const(PROGRAM_OPTION_TESTFILE, PROGRAM_OPTION_TESTFILE_DESC);
 	option_set_description_const(PROGRAM_OPTION_OUTPUT_DIRECTORY, PROGRAM_OPTION_OUTPUT_DIRECTORY_DESC);
 	option_set_description_const(PROGRAM_OPTION_VCFFILE, PROGRAM_OPTION_VCFFILE_DESC);
 
 	option_set_shortcut(PROGRAM_OPTION_KMERSIZE, 'k');
-	option_set_shortcut(PROGRAM_OPTION_SEQUENCE, 's');
 	option_set_shortcut(PROGRAM_OPTION_SEQFILE, 'f');
 	option_set_shortcut(PROGRAM_OPTION_SEQSTART, 'S');
 	option_set_shortcut(PROGRAM_OPTION_SEQLEN, 'l');
-	option_set_shortcut(PROGRAM_OPTION_TEST, 't');
-	option_set_shortcut(PROGRAM_OPTION_TEST_COUNT, 'c');
-	option_set_shortcut(PROGRAM_OPTION_READ_LENGTH, 'L');
-	option_set_shortcut(PROGRAM_OPTION_READ_COUNT, 'C');
-	option_set_shortcut(PROGRAM_OPTION_TEST_READ_CYCLES, 'T');
-	option_set_shortcut(PROGRAM_OPTION_HELP, 'h');
-	option_set_shortcut(PROGRAM_OPTION_PRINT_RESULTS, 'p');
 	option_set_shortcut(PROGRAM_OPTION_TEST_STEP, 'e');
 	option_set_shortcut(PROGRAM_OPTION_THRESHOLD, 'w');
 	option_set_shortcut(PROGRAM_OPTION_READFILE, 'F');
-	option_set_shortcut(PROGRAM_OPTION_ALT1_SEQ, 'a');
-	option_set_shortcut(PROGRAM_OPTION_ALT2_SEQ, 'A');
-	option_set_shortcut(PROGRAM_OPTION_SNP_RATIO, 'r');
-	option_set_shortcut(PROGRAM_OPTION_INSERT_RATIO, 'i');
-	option_set_shortcut(PROGRAM_OPTION_DELETE_RATIO, 'd');
-	option_set_shortcut(PROGRAM_OPTION_TESTFILE, 'g');
 	option_set_shortcut(PROGRAM_OPTION_OUTPUT_DIRECTORY, 'o');
 	option_set_shortcut(PROGRAM_OPTION_VCFFILE, 'v');
 
@@ -226,48 +154,13 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 		ret = option_get_UInt32(PROGRAM_OPTION_SEQLEN, &Options->RegionLength);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_get_Boolean(PROGRAM_OPTION_HELP, &Options->Help);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_Boolean(PROGRAM_OPTION_TEST, &Options->Test);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_Boolean(PROGRAM_OPTION_PRINT_RESULTS, &Options->PrintResults);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_UInt32(PROGRAM_OPTION_TEST_COUNT, &Options->TestCount);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_UInt32(PROGRAM_OPTION_READ_COUNT, &Options->ReadCount);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_UInt32(PROGRAM_OPTION_READ_LENGTH, &Options->ReadLength);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_UInt32(PROGRAM_OPTION_TEST_READ_CYCLES, &Options->TestReadCycles);
-
-	if (ret == ERR_SUCCESS)
 		ret = option_get_UInt32(PROGRAM_OPTION_TEST_STEP, &Options->TestStep);
 
 	if (ret == ERR_SUCCESS)
 		ret = option_get_UInt32(PROGRAM_OPTION_THRESHOLD, &Options->Threshold);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_get_Double(PROGRAM_OPTION_SNP_RATIO, &Options->SNPRatio);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_Double(PROGRAM_OPTION_INSERT_RATIO, &Options->InsertRatio);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_Double(PROGRAM_OPTION_DELETE_RATIO, &Options->DeleteRatio);
-
-	if (ret == ERR_SUCCESS) {
-		char *rs = NULL;
-		ret = option_get_String(PROGRAM_OPTION_SEQUENCE, &rs);
-		Options->ReferenceSequence = rs;
-		if (ret == ERR_SUCCESS && *Options->ReferenceSequence == '\0')
-			ret = option_get_String(PROGRAM_OPTION_SEQFILE, &Options->RefSeqFile);
-	}
+		ret = option_get_String(PROGRAM_OPTION_SEQFILE, &Options->RefSeqFile);
 
 	if (ret == ERR_SUCCESS) {
 		char *readFile = NULL;
@@ -292,23 +185,12 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 		}
 	}
 
-	if (ret == ERR_SUCCESS)
-		ret = option_get_String(PROGRAM_OPTION_ALT1_SEQ, &Options->AltenrateSequence1);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_String(PROGRAM_OPTION_ALT2_SEQ, &Options->AlternateSequence2);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_String(PROGRAM_OPTION_TESTFILE, &Options->TestFile);
-
 	option_get_Boolean(PROGRAM_OPTION_NO_CONNECT_REFSEQ, &b);
 	Options->ParseOptions.ConnectRefSeq = !b;
 	option_get_Boolean(PROGRAM_OPTION_NO_CONNECT_READS, &b);
 	Options->ParseOptions.ConnectReads = !b;
 	option_get_Boolean(PROGRAM_OPTION_NO_BUBBLE_MERGING, &b);
 	Options->ParseOptions.MergeBubbles = !b;
-	option_get_Boolean(PROGRAM_OPTION_NO_READ_FIXING, &b);
-	Options->ParseOptions.FixReads = !b;
 	option_get_Boolean(PROGRAM_OPTION_NO_LINEAR_SHRINK, &b);
 	Options->ParseOptions.LinearShrink = !b;
 	option_get_Boolean(PROGRAM_OPTION_NO_HELPER_VERTICES, &b);
@@ -702,109 +584,6 @@ static EExperimentResult _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, c
 }
 
 
-static char _rand_nucleotide(void)
-{
-	char ret;
-
-	switch (rand() % 4) {
-		case 0: ret = 'A'; break;
-		case 1: ret = 'C'; break;
-		case 2: ret = 'G'; break;
-		case 3: ret = 'T'; break;
-		default: assert(0); break;
-	}
-
-	return ret;
-}
-
-
-static ERR_VALUE _create_alternatce_sequence(const PROGRAM_OPTIONS *Options, const char *RefSeq, const size_t RefSeqLen, char **Alternate, size_t *AlternateLen)
-{
-	size_t tmpAlternateLen = RefSeqLen*2;
-	char *rsCopy = NULL;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = utils_calloc(tmpAlternateLen + 1, sizeof(char), &rsCopy);
-	if (ret == ERR_SUCCESS) {
-		tmpAlternateLen /= 2;
-		memcpy(rsCopy, RefSeq, RefSeqLen*sizeof(char));
-		if (Options->SNPRatio > 0 || Options->InsertRatio > 0 || Options->DeleteRatio > 0) {
-			size_t spmBorder = ceil(Options->SNPRatio*RefSeqLen);
-			size_t insertBorder = ceil(Options->InsertRatio*RefSeqLen);
-			size_t deleteBorder = ceil(Options->DeleteRatio*RefSeqLen);
-			DYM_ARRAY insertPositions;
-			DYM_ARRAY deletePositions;
-			
-			dym_array_create(&insertPositions, 140);
-			dym_array_create(&deletePositions, 140);
-			for (size_t i = Options->KMerSize; i < RefSeqLen - Options->KMerSize; ++i) {
-				if (utils_ranged_rand(0, RefSeqLen) < spmBorder) {
-					char old = rsCopy[i];
-
-					rsCopy[i] = _rand_nucleotide();
-					if (rsCopy[i] != old)
-						putchar('M');
-				}
-
-				if (utils_ranged_rand(0, RefSeqLen) < insertBorder) {
-					ret = dym_array_push_back(&insertPositions, (void *)i);
-					putchar('I');
-				}
-
-				if (ret == ERR_SUCCESS) {
-					if (utils_ranged_rand(0, RefSeqLen) < deleteBorder) {
-						ret = dym_array_push_back(&deletePositions, (void *)i);
-						putchar('D');
-					}
-				}
-
-				if (ret != ERR_SUCCESS)
-					break;
-			}
-
-			if (ret == ERR_SUCCESS) {
-				tmpAlternateLen = RefSeqLen + dym_array_size(&insertPositions) - dym_array_size(&deletePositions);
-				for (size_t i = 0; i < dym_array_size(&insertPositions); ++i) {
-					size_t pos = (size_t)dym_array_get(&insertPositions, i) - i;
-
-					memmove(rsCopy + pos + 1, rsCopy + pos, RefSeqLen - pos + 1);
-					rsCopy[pos] = _rand_nucleotide();
-					for (size_t j = 0; j < dym_array_size(&deletePositions); ++j) {
-						size_t *ppos = (size_t *)(dym_array_data(&deletePositions) + j);
-
-						if (*ppos >= pos)
-							*ppos++;
-					}
-				}
-
-				for (size_t i = 0; i < dym_array_size(&deletePositions); ++i) {
-					size_t pos = (size_t)dym_array_get(&deletePositions, i) + i;
-
-					memmove(rsCopy + pos, rsCopy + pos + 1, RefSeqLen - pos);
-				}
-			}
-
-			dym_array_destroy(&deletePositions);
-			dym_array_destroy(&insertPositions);
-		}
-		
-		if (Options->SNPRatio > 0)
-			printf("\n");
-
-		if (ret == ERR_SUCCESS) {
-			rsCopy[tmpAlternateLen] = '\0';
-			*Alternate = rsCopy;
-			*AlternateLen = tmpAlternateLen;
-		}
-
-		if (ret != ERR_SUCCESS)
-			utils_free(rsCopy);
-	}
-
-	return ret;
-}
-
-
 static ERR_VALUE _examine_read_coverage(const ONE_READ *Reads, const size_t ReadCount, const char *RefSeq, const size_t RefSeqLen, const char *Alternate)
 {
 	uint32_t *c = NULL;
@@ -838,142 +617,6 @@ static ERR_VALUE _examine_read_coverage(const ONE_READ *Reads, const size_t Read
 
 
 static unsigned int _taskNumber = 0;
-
-static ERR_VALUE _test_with_reads(PPROGRAM_OPTIONS Options, const char *RefSeq, PPROGRAM_STATISTICS Statistics)
-{
-	ASSEMBLY_TASK task;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = ERR_SUCCESS;
-	memset(Statistics, 0, sizeof(PROGRAM_STATISTICS));
-	if (Options->ReadCount > 0 && Options->TestReadCycles > 0) {
-		for (size_t j = 0; j < Options->TestReadCycles; ++j) {
-			char *alternate = NULL;
-			size_t alternateLen = 0;
-
-			ret = ERR_SUCCESS;
-			if (*Options->AltenrateSequence1 != '\0') {
-				alternate = Options->AltenrateSequence1;
-				alternateLen = strlen(Options->AltenrateSequence1);
-			} else ret = _create_alternatce_sequence(Options, RefSeq, Options->RegionLength, &alternate, &alternateLen);
-			
-			if (ret == ERR_SUCCESS) {
-				PONE_READ reads1 = NULL;
-
-				ret = read_set_generate_from_sequence(alternate, alternateLen, Options->ReadLength, Options->ReadCount / 2, &reads1);
-				if (ret == ERR_SUCCESS) {
-					ret = _examine_read_coverage(reads1, Options->ReadCount / 2, RefSeq, Options->RegionLength, alternate);
-					if (ret == ERR_SUCCESS) {
-						char *alternate2 = NULL;
-						size_t alternateLen2 = 0;
-						
-						if (*Options->AlternateSequence2 != '\0') {
-							alternate2 = Options->AlternateSequence2;
-							alternateLen2 = strlen(alternate2);
-						} else ret = _create_alternatce_sequence(Options, RefSeq, Options->RegionLength, &alternate2, &alternateLen2);
-
-						if (ret == ERR_SUCCESS) {
-							PONE_READ reads2 = NULL;
-
-							ret = read_set_generate_from_sequence(alternate2, alternateLen2, Options->ReadLength, Options->ReadCount / 2, &reads2);
-							if (ret == ERR_SUCCESS) {
-								ret = _examine_read_coverage(reads2, Options->ReadCount / 2, RefSeq, Options->RegionLength, alternate2);
-								if (ret == ERR_SUCCESS) {
-									PONE_READ finalReadSet = reads1;
-
-									ret = read_set_merge(&finalReadSet, Options->ReadCount / 2, reads2, Options->ReadCount / 2);
-									if (ret == ERR_SUCCESS) {
-										char *rs = NULL;
-										PROGRAM_STATISTICS stats;
-
-										reads1 = NULL;
-										reads2 = NULL;
-										for (size_t i = 0; i < Options->ReadCount; ++i)
-											read_split(finalReadSet + i);
-										
-										ret = utils_calloc(Options->RegionLength + 1, sizeof(char), &rs);
-										if (ret == ERR_SUCCESS) {
-											char taskFileName[128];
-											char succTaskFileName[128];
-											char failedTaskFileName[128];
-											char notTriedTaskFileName[128];
-
-											memcpy(rs, RefSeq, Options->RegionLength*sizeof(char));
-											rs[Options->RegionLength] = '\0';
-											assembly_task_init(&task, rs, Options->RegionLength, alternate, alternateLen, alternate2, alternateLen2, finalReadSet, Options->ReadCount);
-#pragma warning (disable : 4996)											
-											sprintf(taskFileName, "%s" PATH_SEPARATOR "tmp" PATH_SEPARATOR "%09u.task", Options->OutputDirectoryBase, _taskNumber);
-#pragma warning (disable : 4996)											
-											sprintf(succTaskFileName, "%s" PATH_SEPARATOR "succ" PATH_SEPARATOR "%09u.task", Options->OutputDirectoryBase, _taskNumber);
-#pragma warning (disable : 4996)											
-											sprintf(notTriedTaskFileName, "%s" PATH_SEPARATOR "nottried" PATH_SEPARATOR "%09u.task", Options->OutputDirectoryBase, _taskNumber);
-#pragma warning (disable : 4996)						
-											sprintf(failedTaskFileName, "%s" PATH_SEPARATOR "fail" PATH_SEPARATOR "%09u.task", Options->OutputDirectoryBase, _taskNumber);
-											++_taskNumber;
-											unlink(taskFileName);
-											assembly_task_save_file(taskFileName, &task);
-											switch (_compute_graph(NULL, Options, &Options->ParseOptions, &task, &stats)) {
-												case erSuccess:
-													unlink(succTaskFileName);
-													rename(taskFileName, succTaskFileName);
-													break;
-												case erFailure:
-													unlink(failedTaskFileName);
-													rename(taskFileName, failedTaskFileName);
-													break;
-												case erNotTried:
-													unlink(notTriedTaskFileName);
-													rename(taskFileName, notTriedTaskFileName);
-													break;
-												default:
-													assert(FALSE);
-													break;
-											}
-
-											assembly_task_finit(&task);
-											Statistics->FailureCount += stats.FailureCount;
-											Statistics->SuccessCount += stats.SuccessCount;
-											Statistics->CannotSucceed += stats.CannotSucceed;
-											utils_free(rs);
-										}
-
-										read_set_destroy(finalReadSet, Options->ReadCount);
-									}
-								}
-								else Statistics->CannotSucceed++;
-
-
-								if (reads2 != NULL)
-									read_set_destroy(reads2, Options->ReadCount / 2);
-							}
-
-							if (*Options->AlternateSequence2 == '\0')
-								utils_free(alternate2);
-						}
-					} else Statistics->CannotSucceed++;
-
-					if (reads1 != NULL)
-						read_set_destroy(reads1, Options->ReadCount / 2);
-				}
-
-				if (*Options->AltenrateSequence1 == '\0')
-					utils_free(alternate);
-			}
-
-			if (ret != ERR_SUCCESS)
-				break;
-		}
-	} else {
-		assembly_task_init(&task, RefSeq, Options->RegionLength, RefSeq, Options->RegionLength, RefSeq, Options->RegionLength, NULL, 0);
-		_compute_graph(NULL, Options, &Options->ParseOptions, &task, Statistics);
-		assembly_task_finit(&task);
-	}
-
-	return ret;
-}
-
-
-
 
 
 static ERR_VALUE _obtain_files(PPOINTER_ARRAY_char Array, const size_t MaxCount, tinydir_dir *Dir)
@@ -1015,7 +658,7 @@ static ERR_VALUE _obtain_files(PPOINTER_ARRAY_char Array, const size_t MaxCount,
 
 KHASH_MAP_INIT_STR(kc, size_t)
 
-ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t KMerSize, const ONE_READ *Reads, const size_t ReadCount, const char *FileName)
+ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t KMerSize, const ONE_READ *Reads, const size_t ReadCount)
 {
 	int err;
 	size_t maxValue = 0;
@@ -1033,7 +676,6 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 		for (size_t i = 0; i < ReadCount; ++i) {
 			const READ_PART *p = &r->Part;
 			
-			if (r->NumberOfFixes * 100 / r->ReadSequenceLen < Options->ParseOptions.ReadMaxErrorRate) {
 				read_split(r);
 				if (p->ReadSequenceLength >= KMerSize) {
 					for (size_t j = 0; j < p->ReadSequenceLength - KMerSize + 1; ++j) {
@@ -1069,7 +711,6 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 							break;
 					}
 				}
-			}
 
 			if (ret != ERR_SUCCESS)
 				break;
@@ -1089,21 +730,9 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 						++freqArray[kh_value(table, it)];
 				}
 
-				FILE *f = stdout;
-				if (FileName != NULL && *FileName != '\0') {
-					unlink(FileName);
-					ret = utils_fopen(FileName, FOPEN_MODE_WRITE, &f);
-				}
-
-				if (ret == ERR_SUCCESS) {
-					fprintf(f, "# Total: %Iu, unique: %u (%lf %%)\n", kmerCount, table->n_occupied, 100*(double)table->n_occupied / (double)kmerCount);
-					for (size_t i = 0; i < maxValue; ++i) {
-						if (freqArray[i] > 0)
-							fprintf(f, "%Iu, %Iu, %lf\n", i, freqArray[i], (double)freqArray[i]*100/ (double)kmerCount);
-					}
-
-					if (f != stdout)
-						utils_fclose(f);
+				for (size_t i = 0; i < maxValue; ++i) {
+					if (freqArray[i] > 0)
+						fprintf(stdout, "%Iu, %Iu, %lf\n", i, freqArray[i], (double)freqArray[i]*100/ (double)kmerCount);
 				}
 
 				utils_free(freqArray);
@@ -1113,205 +742,12 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 		utils_free(kmerString);
 	}
 
-	int i = 0;
-#pragma omp parallel for shared(table)
-	for (i = (int)kh_begin(table); i < (int)kh_end(table); ++i) {
+	for (size_t i = kh_begin(table); i < kh_end(table); ++i) {
 		if (kh_exist(table, i))
 			utils_free(kh_key(table, i));
 	}
 
 	kh_destroy(kc, table);
-
-	return ret;
-}
-
-
-typedef struct _BQ_PAIR {
-	char Base;
-	uint8_t Quality;
-	char *Pointer;
-	size_t ReadIndex;
-} BQ_PAIR, *PBQ_PAIR;
-
-GEN_ARRAY_TYPEDEF(BQ_PAIR);
-GEN_ARRAY_IMPLEMENTATION(BQ_PAIR)
-
-typedef struct _JUNK_BASE {
-	uint32_t ReadIndex;
-	uint8_t Quality;
-	char Base;
-	char *Pointer;
-	/** Zero-based */
-	uint64_t Pos;
-	GEN_ARRAY_BQ_PAIR Pairs;
-} JUNK_BASE, *PJUNK_BASE;
-
-KHASH_MAP_INIT_INT64(jb, JUNK_BASE)
-
-
-ERR_VALUE fix_reads(PONE_READ Reads, const uint32_t ReadCount, const uint8_t QualityThreshold, const uint32_t CountMultiplier)
-{
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	khiter_t it;
-	PONE_READ r = Reads;
-	khash_t(jb) *table = kh_init(jb);
-
-	ret = ERR_SUCCESS;
-	for (uint32_t i = 0; i < ReadCount; ++i) {
-		const READ_PART *part = NULL;
-/*
-		if (r->PosQuality < 60) {
-			++r;
-			continue;
-		}
-*/
-			read_split(r);
-			part = &r->Part;
-			for (size_t k = 0; k < part->ReadSequenceLength; ++k) {
-				if (part->Quality[k] <= QualityThreshold) {
-					JUNK_BASE junkBase;
-					int err;
-
-					junkBase.Base = part->ReadSequence[k];
-					junkBase.Pos = part->Position + k;
-					junkBase.Quality = part->Quality[k];
-					junkBase.ReadIndex = i;
-					junkBase.Pointer = part->ReadSequence + k;
-					it = kh_put(jb, table, junkBase.Pos, &err);
-					switch (err) {
-					case 0:
-						break;
-					case 1:
-					case 2:
-						kh_value(table, it) = junkBase;
-						break;
-					case -1:
-						ret = ERR_OUT_OF_MEMORY;
-						break;
-					default:
-						printf("Error %i\n", err);
-						fflush(stdout);
-						break;
-					}
-				}
-
-				if (ret != ERR_SUCCESS)
-					break;
-			}
-
-			if (ret != ERR_SUCCESS)
-				break;
-
-		++r;
-	}
-
-	if (ret == ERR_SUCCESS) {
-		for (it = kh_begin(table); it != kh_end(table); ++it) {
-			if (kh_exist(table, it)) {
-				PJUNK_BASE junkBase = &kh_value(table, it);
-
-				dym_array_init_BQ_PAIR(&junkBase->Pairs, 140);
-			}
-		}
-
-		r = Reads;
-		for (uint32_t i = 0; i < ReadCount; ++i) {
-			PREAD_PART part = NULL;
-
-			part = &r->Part;
-			uint64_t pos = part->Position;
-
-			for (size_t k = 0; k < part->ReadSequenceLength; ++k) {
-				/*
-				if (r->PosQuality < 60) {
-					++r;
-					continue;
-				}
-				*/
-				it = kh_get(jb, table, pos);
-				if (kh_exist(table, it)) {
-					PJUNK_BASE junkBase = &kh_value(table, it);
-
-					if (junkBase->ReadIndex != i) {
-						BQ_PAIR p;
-
-						p.Base = part->ReadSequence[k];
-						p.Quality = part->Quality[k];
-						p.Pointer = part->ReadSequence + k;
-						p.ReadIndex = i;
-						ret = dym_array_push_back_BQ_PAIR(&junkBase->Pairs, p);
-						if (ret != ERR_SUCCESS)
-							break;
-					}
-				}
-
-				++pos;
-			}
-
-			if (ret != ERR_SUCCESS)
-				break;
-
-			++r;
-		}
-
-		for (it = kh_begin(table); it != kh_end(table); ++it) {
-			if (kh_exist(table, it)) {
-				PJUNK_BASE junkBase = &kh_value(table, it);
-				PBQ_PAIR p = junkBase->Pairs.Data;
-				uint32_t totalQualities[] = { 0, 0, 0, 0 };
-				char bases[] = { 'A', 'C', 'G', 'T' };
-				uint32_t counts[] = { 0, 0, 0, 0 };
-
-				for (size_t k = 0; k < gen_array_size(&junkBase->Pairs); ++k) {
-					if (p->Quality > QualityThreshold) {
-						switch (p->Base) {
-							case 'A': totalQualities[0] += p->Quality; ++counts[0]; break;
-							case 'C': totalQualities[1] += p->Quality; ++counts[1]; break;
-							case 'G': totalQualities[2] += p->Quality; ++counts[2]; break;
-							case 'T': totalQualities[3] += p->Quality; ++counts[3]; break;
-						}
-					}
-
-					++p;
-				}
-
-				uint32_t maxIndex = 0;
-				uint32_t maxValue = counts[0];
-				for (size_t j = 1; j < sizeof(counts) / sizeof(counts[0]); ++j) {
-					if (counts[j] > maxValue) {
-						maxValue = counts[j];
-						maxIndex = j;
-					}
-				}
-
-				boolean canRepair = TRUE;
-				for (size_t j = 0; j < sizeof(counts) / sizeof(counts[0]); ++j) {
-					if (maxIndex == j)
-						continue;
-
-					canRepair &= (counts[j] * CountMultiplier <= maxValue);
-				}
-
-				if (canRepair) {
-					char b = bases[maxIndex];
-					if (junkBase->Base != b)
-						*junkBase->Pointer = b;
-
-					PBQ_PAIR p = junkBase->Pairs.Data;
-					for (size_t k = 0; k < gen_array_size(&junkBase->Pairs); ++k) {
-						if (p->Base != b)
-							*p->Pointer = b;
-
-						++p;
-					}
-				}
-
-				dym_array_finit_BQ_PAIR(&junkBase->Pairs);
-			}
-		}
-	}
-
-	kh_destroy(jb, table);
 
 	return ret;
 }
@@ -1583,6 +1019,7 @@ int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
+	utils_allocator_init(omp_get_num_procs());
 	omp_init_lock(&_readCoverageLock);
 #ifdef _MSC_VER
 	uint64_t startTime = GetTickCount64();
@@ -1591,7 +1028,7 @@ int main(int argc, char *argv[])
 	if (ret == ERR_SUCCESS) {
 		ret = _init_default_values();
 		if (ret == ERR_SUCCESS) {
-			ret = options_parse_command_line(argc - 1, argv + 1);
+			ret = options_parse_command_line(argc - 2, argv + 2);
 			if (ret == ERR_SUCCESS) {
 				PROGRAM_OPTIONS po;
 				PROGRAM_STATISTICS st;
@@ -1599,211 +1036,103 @@ int main(int argc, char *argv[])
 				memset(&st, 0, sizeof(st));
 				ret = _capture_program_options(&po);
 				if (ret == ERR_SUCCESS) {
-//#ifdef _DEBUG
-//					omp_set_num_threads(1);
-//#else
 					omp_set_num_threads(po.OMPThreads);
-//#endif
-					if (po.Help) {
+					const char *cmd = argv[1];
+					if (strncmp(cmd, "help", sizeof("help")) == 0) {
 						options_print_help();
-					} else if (po.Test) {
-						printf("kmer size: %u\n", po.KMerSize);
-						if (*po.ReferenceSequence == '\0' && *po.RefSeqFile == '\0') {
-							char *rs = NULL;
+					} else if (strncmp(cmd, "repair", sizeof("repair")) == 0) {
+						size_t refSeqLen = 0;
+						FASTA_FILE seqFile;
+						char *rsFasta = NULL;
 
-							ret = utils_calloc(po.RegionLength + 1, sizeof(char), (char **)&rs);
+						ret = fasta_load(po.RefSeqFile, &seqFile);
+						if (ret == ERR_SUCCESS) {
+							ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
+							po.ReferenceSequence = rsFasta;
+							if (ret != ERR_SUCCESS)
+								fasta_free(&seqFile);
+						}
+
+						if (ret == ERR_SUCCESS) {
+							ret = utils_calloc(omp_get_num_procs(), sizeof(PUTILS_LOOKASIDE), &_vertexLAs);
+							if (ret == ERR_SUCCESS)
+								ret = utils_calloc(omp_get_num_procs(), sizeof(PUTILS_LOOKASIDE), &_edgeLAs);
+
 							if (ret == ERR_SUCCESS) {
-								printf("kmer size: %u\n", po.KMerSize);
-								printf("Testing with %u random sequences of length %u...\n", po.TestCount, po.RegionLength);
-								printf("%u test read cycles with %u reads of length %u...\n", po.TestReadCycles, po.ReadCount, po.ReadLength);
-								for (uint32_t i = 0; i < po.TestCount; ++i) {									
-									PROGRAM_STATISTICS tmpStats;
-									
-									memset(rs, 0, po.RegionLength*sizeof(char));
-									for (uint32_t j = 0; j < po.RegionLength; ++j)
-										rs[j] = _rand_nucleotide();
-
-									po.ReferenceSequence = rs;
-									ret = _test_with_reads(&po, rs, &tmpStats);
-									if (ret == ERR_SUCCESS) {
-										st.FailureCount += tmpStats.FailureCount;
-										st.SuccessCount += tmpStats.SuccessCount;
-										st.CannotSucceed += tmpStats.CannotSucceed;
-									} else printf("_test_with_reads(): %u", ret);
-								}
-
-								if (ret == ERR_SUCCESS)
-									printf("Success: (%" PRIu64 "), Failures: (%" PRIu64 "), Not tried: (%" PRIu64 "), Percentage: (%" PRIu64 ")\n", st.SuccessCount, st.FailureCount, st.CannotSucceed, (uint64_t)(st.SuccessCount * 100 / (st.SuccessCount + st.FailureCount + st.CannotSucceed)));
-
-								utils_free(rs);
-							}
-						} else {
-							size_t refSeqLen = 0;
-							boolean explicitSequence = (*po.ReferenceSequence != '\0');
-							FASTA_FILE seqFile;
-							char *rsFasta = NULL;
-
-							if (!explicitSequence) {
-								ret = fasta_load(po.RefSeqFile, &seqFile);
+								ret = utils_calloc(omp_get_num_procs(), sizeof(GEN_ARRAY_ONE_READ), &po.ReadSubArrays);
 								if (ret == ERR_SUCCESS) {
-									ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
-									po.ReferenceSequence = rsFasta;
-									if (ret != ERR_SUCCESS)
-										fasta_free(&seqFile);
-								}
-							} else refSeqLen = strlen(po.ReferenceSequence);
+									const size_t numThreads = omp_get_num_procs();
+									for (size_t i = 0; i < numThreads; ++i) {
+										dym_array_init_ONE_READ(po.ReadSubArrays + i, 140);
+										_vertexLAs[i] = NULL;
+										_edgeLAs[i] = NULL;
+									}
 
-							if (ret == ERR_SUCCESS) {
-								uint64_t numberOfAttempts = 0;
-
-								do {
 									size_t regionCount = 0;
 									PACTIVE_REGION regions = NULL;
-									
+
 									ret = input_refseq_to_regions(po.ReferenceSequence, refSeqLen, &regions, &regionCount);
 									if (ret == ERR_SUCCESS) {
-										printf("Going through a reference sequence of length %" PRIu64 " MBases with %u regions...\n", (uint64_t)refSeqLen / 1000000, regionCount);
-										printf("%u test read cycles with %u reads of length %u...\n", po.TestReadCycles, po.ReadCount, po.ReadLength);
+										const ACTIVE_REGION *pa = NULL;
+
+										pa = regions;
 										for (size_t i = 0; i < regionCount; ++i) {
-											PACTIVE_REGION pa = regions + i;
+											if (pa->Type == artValid && pa->Length >= po.RegionLength)
+												_activeRegionCount += (pa->Length / po.TestStep);
 
-											printf("Region #%u: Offset: %" PRIu64 " MBases, Length %" PRIu64 " Mbases\n", i, pa->Offset / 1000000, pa->Length / 1000000);
-											if (pa->Type == artValid && pa->Length >= po.RegionLength) {
-												int j = 0;
-												
-												po.ReferenceSequence = pa->Sequence;
-#pragma omp parallel for shared(po, st, numberOfAttempts)	
-												for (j = 0; j < (int)(pa->Length - po.RegionLength); j += (int)po.RegionLength) {
-													const char *refSeq = pa->Sequence + j;
-													PROGRAM_STATISTICS tmpstats;
+											++pa;
+										}
 
-													ret = _test_with_reads(&po, refSeq, &tmpstats);
-													if (ret == ERR_SUCCESS) {
-														++numberOfAttempts;
-														st.FailureCount += tmpstats.FailureCount;
-														st.SuccessCount += tmpstats.SuccessCount;
-														st.CannotSucceed += tmpstats.CannotSucceed;
-													}
-												}
-
-												if (pa->Length == po.RegionLength) {
-													const char *refSeq = pa->Sequence;
-													PROGRAM_STATISTICS tmpstats;
-
-													ret = _test_with_reads(&po, refSeq, &tmpstats);
-													if (ret == ERR_SUCCESS) {
-														++numberOfAttempts;
-														st.FailureCount += tmpstats.FailureCount;
-														st.SuccessCount += tmpstats.SuccessCount;
-														st.CannotSucceed += tmpstats.CannotSucceed;
-													}
-												}
-											}
-
+										_activeRegionProcessed = 0;
+										pa = regions;
+										for (size_t i = 0; i < regionCount; ++i) {
+											if (pa->Type == artValid && pa->Length >= po.RegionLength)
+												repair_reads_in_parallel(pa, &po);
+													
 											++pa;
 										}
 
 										input_free_regions(regions, regionCount);
 									}
 
-									if (!explicitSequence) {
-										utils_free(rsFasta);
-										ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
-										po.ReferenceSequence = rsFasta;
-									}
-								} while (ret == ERR_SUCCESS && !explicitSequence);
-
-								if (ret == ERR_NO_MORE_ENTRIES)
-									ret = ERR_SUCCESS;
-
-								if (ret == ERR_SUCCESS)
-									printf("Success: (%" PRIu64 "), Failures: (%" PRIu64 "), Not tried: (%" PRIu64 "), Percentage: (%" PRIu64 ")\n", st.SuccessCount, st.FailureCount, st.CannotSucceed, (uint64_t)(st.SuccessCount * 100 / (st.SuccessCount + st.FailureCount + st.CannotSucceed)));
-
-								if (!explicitSequence)
-									fasta_free(&seqFile);
-							}
-						}
-					} else if (*po.TestFile != '\0') {
-						ASSEMBLY_TASK task;
-						ret = assembly_task_load_file(po.TestFile, &task);
-						if (ret == ERR_SUCCESS) {							
-							PROGRAM_STATISTICS stats;
-							char *taskName = strchr(po.TestFile, '/');
-
-							if (taskName == NULL)
-								taskName = po.TestFile;
-							else taskName++;
-
-							assembly_task_set_name(&task, taskName);
-							memset(&stats, 0, sizeof(stats));
-							_compute_graph(NULL, &po, &po.ParseOptions, &task, &stats);
-							assembly_task_finit(&task);
-						} else {
-							tinydir_dir dir;
-							PROGRAM_STATISTICS stats[128];
-
-							memset(&stats, 0, sizeof(stats));
-							if (tinydir_open(&dir, po.TestFile) == ERR_SUCCESS) {
-								POINTER_ARRAY_char fileNameArray;
-								
-								pointer_array_init_char(&fileNameArray, 140);
-								ret = pointer_array_reserve_char(&fileNameArray, 16384);
-								if (ret == ERR_SUCCESS) {
-									do {
-										_obtain_files(&fileNameArray, 16384, &dir);
-										int i = 0;
-#pragma omp parallel for shared(po, stats, fileNameArray)	
-										for (i = 0; i < (int)pointer_array_size(&fileNameArray); ++i) {
-											char *fileName = *pointer_array_item_char(&fileNameArray, i);
-											ASSEMBLY_TASK task;
-
-											ret = assembly_task_load_file(fileName, &task);
-											if (ret == ERR_SUCCESS) {
-												char *taskName = strchr(fileName, '/');
-
-												if (taskName == NULL)
-													taskName = fileName;
-												else taskName++;
-
-												assembly_task_set_name(&task, taskName);
-												task.RegionStart = 0;
-												_compute_graph(NULL, &po, &po.ParseOptions, &task, stats + omp_get_thread_num());
-												assembly_task_finit(&task);
-											}
-
-											utils_free(fileName);
+									PONE_READ r = po.Reads;
+									for (size_t i = 0; i < po.ReadCount; ++i) {
+										if (r->NumberOfFixes * 100 / r->ReadSequenceLen <= po.ParseOptions.ReadMaxErrorRate) {
+											read_quality_encode(r);
+											read_write_sam(stdout, r);
+											read_quality_decode(r);
 										}
-									} while (dir.has_next);
+
+										++r;
+									}
+
+									utils_free(rsFasta);
+									int i = 0;
+#pragma omp parallel for shared (po)
+									for (i = 0; i < numThreads; ++i)
+										dym_array_finit_ONE_READ(po.ReadSubArrays + i);
+
+									utils_free(po.ReadSubArrays);
 								}
-
-								pointer_array_finit_char(&fileNameArray);
-								tinydir_close(&dir);
 							}
 
-							PROGRAM_STATISTICS st;
-
-							memset(&st, 0, sizeof(st));
-							for (size_t i = 0; i < sizeof(stats) / sizeof(stats[0]); ++i) {
-								st.CannotSucceed += stats[i].CannotSucceed;
-								st.FailureCount += stats[i].FailureCount;
-								st.SuccessCount += stats[i].SuccessCount;
-							}
-
-							printf("%" PRIu64 " %" PRIu64 " me=%u,br=%u\n", st.SuccessCount, st.FailureCount, po.ParseOptions.MissingEdgePenalty, po.ParseOptions.BackwardRefseqPenalty);
+							utils_free(_edgeLAs);
+							utils_free(_vertexLAs);
+							fasta_free(&seqFile);
 						}
-					} else if (*po.RefSeqFile != '\0') {
-						printf("K-mer size:                 %u\n", po.KMerSize);
-						printf("Active region length:       %u\n", po.RegionLength);
-						printf("Reference:                  %s\n", po.RefSeqFile);
-						printf("Reads:                      %u\n", po.ReadCount);
-						printf("Read coverage threshold:    %u\n", po.Threshold);
-						printf("Min. read position quality: %u\n", po.ReadPosQuality);
-						printf("OpenMP thread count:        %i\n", po.OMPThreads);
-						printf("Output VCF file:            %s\n", po.VCFFile);
+					} else if (strncmp(cmd, "rfreq", sizeof("rfreq")) == 0) {
+						kmer_freq_distribution(&po, po.KMerSize, po.Reads, po.ReadCount);
+					} else if (strncmp(cmd, "call", sizeof("call")) == 0) {
+						fprintf(stderr, "K-mer size:                 %u\n", po.KMerSize);
+						fprintf(stderr, "Active region length:       %u\n", po.RegionLength);
+						fprintf(stderr, "Reference:                  %s\n", po.RefSeqFile);
+						fprintf(stderr, "Reads:                      %u\n", po.ReadCount);
+						fprintf(stderr, "Read coverage threshold:    %u\n", po.Threshold);
+						fprintf(stderr, "Min. read position quality: %u\n", po.ReadPosQuality);
+						fprintf(stderr, "OpenMP thread count:        %i\n", po.OMPThreads);
+						fprintf(stderr, "Output VCF file:            %s\n", po.VCFFile);
 						ret = paired_reads_init();
 						if (ret == ERR_SUCCESS) {
-//							printf("Computing k-mer frequency distribution...\n");
-//							kmer_freq_distribution(po.KMerSize, po.Reads, po.ReadCount, "kmer-dist1.csv");
 							if (ret == ERR_SUCCESS) {
 								size_t refSeqLen = 0;
 								FASTA_FILE seqFile;
@@ -1856,20 +1185,7 @@ int main(int argc, char *argv[])
 
 														++pa;
 													}
-
-													if (po.ParseOptions.FixReads) {
-														printf("Repairing reads...\n");
-														_activeRegionProcessed = 0;
-														pa = regions;
-														for (size_t i = 0; i < regionCount; ++i) {
-															if (pa->Type == artValid && pa->Length >= po.RegionLength)
-																repair_reads_in_parallel(pa, &po);
-
-															++pa;
-														}
-													}
 														
-													printf("Calling variants...\n");
 													_activeRegionProcessed = 0;
 													pa = regions;
 													for (size_t i = 0; i < regionCount; ++i) {
@@ -1884,7 +1200,9 @@ int main(int argc, char *argv[])
 
 												utils_free(rsFasta);
 												ret = vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
-												for (size_t i = 0; i < numThreads; ++i) {
+												int i = 0;
+#pragma omp parallel for shared(po)
+												for (i = 0; i <(int) numThreads; ++i) {
 													dym_array_finit_ONE_READ(po.ReadSubArrays + i);
 													vc_array_finit(po.VCSubArrays + i);
 												}
@@ -1912,10 +1230,7 @@ int main(int argc, char *argv[])
 								}
 							} else printf("fix_reads(): %u\n", ret);
 
-							printf("Computing k-mer frequency distribution...\n");
 							printf("Read coverage: %lf\n", _readBaseCount / _totalRegionLength );
-							kmer_freq_distribution(&po, po.KMerSize, po.Reads, po.ReadCount, "kmer-dist2.csv");
-
 							paired_reads_finit();
 						}
 					}
@@ -1928,7 +1243,7 @@ int main(int argc, char *argv[])
 
 #ifdef _MSC_VER
 	uint64_t endTime = GetTickCount64();
-	printf("Time: %I64u s\n", (endTime - startTime) / 1000);
+	fprintf(stderr, "Time: %I64u s\n", (endTime - startTime) / 1000);
 #endif
 	omp_destroy_lock(&_readCoverageLock);
 

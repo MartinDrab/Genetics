@@ -2,7 +2,7 @@
 #define BFC_HTAB_H
 
 #include <stdint.h>
-#include "kmer.h"
+#include "fermi-kmer.h"
 
 #define BFC_CH_KEYBITS 50
 #define BFC_CH_MAXPRE  20

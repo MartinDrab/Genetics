@@ -217,14 +217,16 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 
 		dym_array_init_ONE_READ(&readArray, 140);
 		while (ret == ERR_SUCCESS && line != lineEnd) {
-			ret = read_create_from_sam_line(line, &oneRead);
-			if (ret == ERR_SUCCESS) {
-				ret = dym_array_push_back_ONE_READ(&readArray, oneRead);
-				if (ret != ERR_SUCCESS)
-					_read_destroy_structure(&oneRead);
-				
-				if (ret == ERR_NOT_IN_REGION)
-					ret = ERR_SUCCESS;
+			if (*line != '@') {
+				ret = read_create_from_sam_line(line, &oneRead);
+				if (ret == ERR_SUCCESS) {
+					ret = dym_array_push_back_ONE_READ(&readArray, oneRead);
+					if (ret != ERR_SUCCESS)
+						_read_destroy_structure(&oneRead);
+
+					if (ret == ERR_NOT_IN_REGION)
+						ret = ERR_SUCCESS;
+				}
 			}
 
 			line = _advance_to_next_line(lineEnd);

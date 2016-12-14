@@ -38,7 +38,7 @@
 #ifdef _MSC_VER
 #define INLINE_FUNCTION			__inline
 #else 
-#define INLINE_FUNCTION			static
+#define INLINE_FUNCTION			inline
 #endif
 #endif
 

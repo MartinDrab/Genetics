@@ -1,0 +1,2 @@
+ * pouzit fermi(kit, lite) na generovani VCF
+ * Generovat vice informaci do VCF (genotypicka, alelicka)

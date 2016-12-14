@@ -56,12 +56,6 @@
     <ClInclude Include="internal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="khash.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="kmer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="kvec.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -87,6 +81,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\pointer_array.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fermi-kmer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\khash.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
