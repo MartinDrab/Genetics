@@ -1120,8 +1120,18 @@ int main(int argc, char *argv[])
 							utils_free(_vertexLAs);
 							fasta_free(&seqFile);
 						}
-					} else if (strncmp(cmd, "rfreq", sizeof("rfreq")) == 0) {
+					}
+					else if (strncmp(cmd, "rfreq", sizeof("rfreq")) == 0) {
 						kmer_freq_distribution(&po, po.KMerSize, po.Reads, po.ReadCount);
+					} else if (strncmp(cmd, "paired", sizeof("paired")) == 0) {
+						ret = paired_reads_init();
+						if (ret == ERR_SUCCESS) {
+							ret = paired_reads_insert_array(po.Reads, po.ReadCount);
+							if (ret == ERR_SUCCESS)
+								paired_reads_print(stdout);
+
+							paired_reads_finit();
+						}
 					} else if (strncmp(cmd, "call", sizeof("call")) == 0) {
 						fprintf(stderr, "K-mer size:                 %u\n", po.KMerSize);
 						fprintf(stderr, "Active region length:       %u\n", po.RegionLength);

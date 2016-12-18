@@ -1,4 +1,5 @@
 
+#include <stdio.h>
 #include "err.h"
 #include "utils.h"
 #include "khash.h"
@@ -62,7 +63,7 @@ ERR_VALUE paired_reads_insert(const ONE_READ *Read)
 
 				pointer_array_init_ONE_READ(pairedReads, 140);
 				it = kh_put(RP, _table, Read->TemplateName, &tmp);
-				switch (ret) {
+				switch (tmp) {
 					case -1: ret = ERR_OUT_OF_MEMORY;  break;
 					case 0: ret = ERR_ALREADY_EXISTS; break;
 					case 2: ret = ERR_NOT_FOUND; break;
@@ -81,21 +82,36 @@ ERR_VALUE paired_reads_insert(const ONE_READ *Read)
 }
 
 
+ERR_VALUE paired_reads_insert_array(const ONE_READ *Reads, const size_t Count)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	const ONE_READ *r = Reads;
+
+	ret = ERR_SUCCESS;
+	for (size_t i = 0; i < Count; ++i) {
+		ret = paired_reads_insert(r);
+		if (ret != ERR_SUCCESS)
+			break;
+
+		++r;
+	}
+
+	return ret;
+}
+
 ERR_VALUE paired_reads_first(khiter_t *Iterator, PPOINTER_ARRAY_ONE_READ *Reads)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	khiter_t it = kh_begin(_table);
 
-	for (; it != kh_end(_table); ++it) {
-		if (kh_exist(_table, it))
+	ret = ERR_NO_MORE_ENTRIES;
+	for (khiter_t it = kh_begin(_table); it != kh_end(_table); ++it) {
+		if (kh_exist(_table, it)) {
+			*Iterator = it;
+			*Reads = kh_value(_table, it);
+			ret = ERR_SUCCESS;
 			break;
+		}
 	}
-
-	if (it != kh_end(_table)) {
-		*Iterator = it;
-		*Reads = kh_value(_table, it);
-		ret = ERR_SUCCESS;
-	} else ret = ERR_NO_MORE_ENTRIES;
 
 	return ret;
 }
@@ -105,16 +121,35 @@ ERR_VALUE paired_reads_next(khiter_t Iterator, khiter_t *NewIt, PPOINTER_ARRAY_O
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	for (; Iterator != kh_end(_table); ++Iterator) {
-		if (kh_exist(_table, Iterator))
+	ret = ERR_NO_MORE_ENTRIES;
+	for (khiter_t it = Iterator + 1; it != kh_end(_table); ++it) {
+		if (kh_exist(_table, it)) {
+			*NewIt = it;
+			*Reads = kh_value(_table, it);
+			ret = ERR_SUCCESS;
 			break;
+		}
 	}
 
-	if (Iterator != kh_end(_table)) {
-		*NewIt = Iterator;
-		*Reads = kh_value(_table, Iterator);
-		ret = ERR_SUCCESS;
-	} else ret = ERR_NO_MORE_ENTRIES;
-
 	return ret;
+}
+
+
+void paired_reads_print(FILE *Stream)
+{
+	khiter_t it;
+	PPOINTER_ARRAY_ONE_READ reads = NULL;
+	ERR_VALUE err = ERR_INTERNAL_ERROR;
+	size_t totalCount = 0;
+
+	err = paired_reads_first(&it, &reads);
+	while (err == ERR_SUCCESS) {
+		totalCount += pointer_array_size(reads);
+		fprintf(Stream, "%s\t --> %Iu reads\n", reads->Data[0]->TemplateName, pointer_array_size(reads));
+		err = paired_reads_next(it, &it, &reads);
+	}
+
+	fprintf(Stream, "%Iu reads, %u groups\n", totalCount, _table->n_occupied);
+
+	return;
 }

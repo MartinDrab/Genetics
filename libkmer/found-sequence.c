@@ -10,6 +10,8 @@
 
 void found_sequence_variant_free(const FOUND_SEQUENCE_VARIANT *FSV)
 {
+	dym_array_finit_size_t(&FSV->RefReadIndices);
+	dym_array_finit_size_t(&FSV->ReadIndices);
 	if (FSV->Seq1 != NULL)
 		utils_free(FSV->Seq1);
 
@@ -35,6 +37,22 @@ ERR_VALUE found_sequence_variant_copy(PFOUND_SEQUENCE_VARIANT Target, const FOUN
 	ret = utils_copy_string(Source->Seq1, &Target->Seq1);
 	if (ret == ERR_SUCCESS) {
 		ret = utils_copy_string(Source->Seq2, &Target->Seq2);
+		if (ret == ERR_SUCCESS) {
+			dym_array_init_size_t(&Target->ReadIndices, 140);
+			ret = dym_array_push_back_array_size_t(&Target->ReadIndices, &Source->ReadIndices);
+			if (ret == ERR_SUCCESS) {
+				dym_array_init_size_t(&Target->RefReadIndices, 140);
+				ret = dym_array_push_back_array_size_t(&Target->RefReadIndices, &Source->RefReadIndices);
+				if (ret != ERR_SUCCESS)
+					dym_array_finit_size_t(&Target->ReadIndices);
+			}
+
+			if (ret != ERR_SUCCESS) {
+				utils_free(Target->Seq2);
+				Target->Seq2 = NULL;
+			}
+		}
+
 		if (ret != ERR_SUCCESS) {
 			utils_free(Target->Seq1);
 			Target->Seq1 = NULL;

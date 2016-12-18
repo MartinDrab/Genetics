@@ -277,6 +277,28 @@ ERR_VALUE read_info_union(PREAD_INFO Target, const GEN_ARRAY_READ_INFO_ENTRY *So
 }
 
 
+ERR_VALUE read_info_to_indices(const READ_INFO *Info, PGEN_ARRAY_size_t Indices)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	const READ_INFO_ENTRY *entry = Info->Array.Data;
+
+	ret = ERR_SUCCESS;
+	for (size_t i = 0; i < read_info_get_count(Info); ++i) {
+		if (!dym_array_contains_size_t(Indices, entry->ReadIndex)) {
+			ret = dym_array_push_back_size_t(Indices, entry->ReadIndex);
+			if (ret != ERR_SUCCESS)
+				break;
+		}
+
+
+		++entry;
+	}
+
+
+	return ret;
+}
+
+
 void read_info_sort(PREAD_INFO ReadInfo)
 {
 	qsort(ReadInfo->Array.Data, gen_array_size(&ReadInfo->Array), sizeof(READ_INFO_ENTRY), _read_info_entry_compare);
