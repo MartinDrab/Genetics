@@ -33,6 +33,7 @@
     <ClCompile Include="paired-reads.c" />
     <ClCompile Include="read-info.c" />
     <ClCompile Include="ssw.c" />
+    <ClCompile Include="variant-graph.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\assembly.h" />
@@ -59,6 +60,7 @@
     <ClInclude Include="graph-reads.h" />
     <ClInclude Include="kmer-graph-base-types.h" />
     <ClInclude Include="ssw.h" />
+    <ClInclude Include="variant-graph.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}</ProjectGuid>

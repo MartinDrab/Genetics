@@ -53,6 +53,9 @@ typedef struct _VARIANT_CALL {
 	uint8_t Qual;
 	size_t RefWeight;
 	size_t AltWeight;
+	GEN_ARRAY_size_t RefReads;
+	GEN_ARRAY_size_t AltReads;
+	boolean Valid;
 } VARIANT_CALL, *PVARIANT_CALL;
 
 GEN_ARRAY_TYPEDEF(VARIANT_CALL);

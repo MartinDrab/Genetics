@@ -63,7 +63,7 @@ typedef struct _PROGRAM_OPTIONS {
 	uint32_t RegionLength;
 	uint32_t TestStep;
 	uint32_t Threshold;
-	uint32_t ReadCount;
+	size_t ReadCount;
 	PONE_READ Reads;
 	const char *VCFFile;
 	int32_t OMPThreads;

@@ -58,5 +58,7 @@ typedef int ERR_VALUE;
 #define ERR_BAD_READ_COVERAGE					51
 #define ERR_TWO_READ_SEQUENCES					52
 
+#define ERR_CANNOT_COLOR						53
+
 
 #endif 

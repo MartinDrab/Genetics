@@ -358,41 +358,32 @@ static int _read_comparator(const void *A, const void *B)
 }
 
 
-ERR_VALUE input_filter_bad_reads(const ONE_READ *Source, const size_t SourceCount, const uint8_t MinQuality, PONE_READ *NewReadSet, uint32_t *NewReadCount)
+void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQuality)
 {
-	size_t tmpNewReadCount = 0;
-	const ONE_READ *r = NULL;
-	PONE_READ tmpNewReadSet = NULL;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	ONE_READ *r = NULL;
+	const size_t inputSetSize = *Count;
+	size_t readSetSize = inputSetSize;
 
-	ret = utils_calloc(SourceCount, sizeof(ONE_READ), &tmpNewReadSet);
-	if (ret == ERR_SUCCESS) {
-		r = Source;
-		for (size_t i = 0; i < SourceCount; ++i) {
-			if (r->PosQuality >= MinQuality && r->Pos != (uint64_t)-1) {
-				ret = read_copy(tmpNewReadSet + tmpNewReadCount, r);
-				if (ret == ERR_SUCCESS) {
-					(tmpNewReadSet + tmpNewReadCount)->NumberOfFixes = 0;
-					++tmpNewReadCount;
-				}
-
-				if (ret != ERR_SUCCESS)
-					break;
-			}
-
+	r = Reads;
+	for (size_t i = 0; i < inputSetSize - 1; ++i) {
+		if (r->PosQuality < MinQuality || r->Pos == (uint64_t)-1) {
+			_read_destroy_structure(r);
+			*r = Reads[readSetSize - 1];
+			--readSetSize;
+		} else {
+			r->ReadIndex = r - Reads;
 			++r;
 		}
-
-		if (ret == ERR_SUCCESS) {
-			*NewReadSet = tmpNewReadSet;
-			*NewReadCount = tmpNewReadCount;
-		}
-
-		if (ret != ERR_SUCCESS)
-			read_set_destroy(tmpNewReadSet, tmpNewReadCount);
 	}
 
-	return ret;
+	if (r->PosQuality < MinQuality || r->Pos == (uint64_t)-1) {
+		_read_destroy_structure(r);
+		--readSetSize;
+	} else r->ReadIndex = readSetSize - 1;
+
+	*Count = readSetSize;
+
+	return;
 }
 
 void input_sort_reads(PONE_READ Reads, const size_t Count)

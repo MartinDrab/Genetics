@@ -306,6 +306,7 @@ void read_info_sort(PREAD_INFO ReadInfo)
 	return;
 }
 
+
 ERR_VALUE read_info_merge(PREAD_INFO Dest, const READ_INFO *Info1, const READ_INFO *Info2)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -368,4 +369,12 @@ ERR_VALUE read_info_merge(PREAD_INFO Dest, const READ_INFO *Info1, const READ_IN
 	}
 
 	return ret;
+}
+
+
+void read_info_clear(PREAD_INFO Info)
+{
+	dym_array_clear_READ_INFO_ENTRY(&Info->Array);
+
+	return;
 }

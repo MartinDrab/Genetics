@@ -8,6 +8,8 @@
 #include "utils.h"
 
 
+#define GEN_ARRAY_STATIC_ALLOC							10
+
 #define GEN_ARRAY_TYPE(aDataType)						GEN_ARRAY_##aDataType
 #define GEN_ARRAY_PTYPE(aDataType)						PGEN_ARRAY_##aDataType
 
@@ -17,7 +19,7 @@
 		size_t AllocLength;								\
 		aDataType *Data;								\
 		size_t Ratio;									\
-		aDataType Storage[10];							\
+		aDataType Storage[GEN_ARRAY_STATIC_ALLOC];							\
 	} GEN_ARRAY_TYPE(aDataType), *PGEN_ARRAY_##aDataType	\
 
 

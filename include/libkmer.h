@@ -13,7 +13,7 @@
 #include "refseq-storage.h"
 #include "paired-reads.h"
 #include "ssw.h"
-
+#include "variant-graph.h"
 
 
 #endif 

@@ -166,21 +166,14 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 		char *readFile = NULL;
 
 		ret = option_get_String(PROGRAM_OPTION_READFILE, &readFile);
-		if (ret == ERR_SUCCESS && *readFile != '\0') {
-			PONE_READ readSet = NULL;
-			size_t readCount = 0;
-			
+		if (ret == ERR_SUCCESS && *readFile != '\0') {			
 			fprintf(stderr, "Loading reads from %s...\n", readFile);
-			ret = input_get_reads(readFile, "sam", &readSet, &readCount);
+			ret = input_get_reads(readFile, "sam", &Options->Reads, &Options->ReadCount);
 			if (ret == ERR_SUCCESS) {
 				fprintf(stderr, "Filtering out reads with MAPQ less than %u...\n", Options->ReadPosQuality);
-				ret = input_filter_bad_reads(readSet, readCount, Options->ReadPosQuality, &Options->Reads, &Options->ReadCount);
-				if (ret == ERR_SUCCESS) {
-					fprintf(stderr, "Sorting reads...\n");
-					input_sort_reads(Options->Reads, Options->ReadCount);
-				}
-
-				read_set_destroy(readSet, readCount);
+				input_filter_bad_reads(Options->Reads, &Options->ReadCount, Options->ReadPosQuality);
+				fprintf(stderr, "Sorting reads...\n");
+				input_sort_reads(Options->Reads, Options->ReadCount);
 			}
 		}
 	}
@@ -228,7 +221,7 @@ typedef enum _EExperimentResult {
 
 
 
-static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t RefSeqStart, const size_t RefSeqEnd, const char *AltSeq, const size_t AltSeqLen, const size_t RSWeight, const size_t ReadWeight, PGEN_ARRAY_VARIANT_CALL VCArray)
+static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t RefSeqStart, const size_t RefSeqEnd, const char *AltSeq, const size_t AltSeqLen, const size_t RSWeight, const size_t ReadWeight, const GEN_ARRAY_size_t *RefIndices, const GEN_ARRAY_size_t *AltIndices, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	VARIANT_CALL vc;
 	char *altSeqStart = NULL;
@@ -268,7 +261,7 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 								--altSeq;
 							}
 
-							ret = variant_call_init("1", rsPos, ".", refSeq, tmpRS - refSeq, altSeq, tmpAltS - altSeq, 60, &vc);
+							ret = variant_call_init("1", rsPos, ".", refSeq, tmpRS - refSeq, altSeq, tmpAltS - altSeq, 60, RefIndices, AltIndices, &vc);
 							if (ret == ERR_SUCCESS) {
 								vc.RefWeight = RSWeight;
 								vc.AltWeight = ReadWeight;
@@ -344,10 +337,10 @@ static ERR_VALUE _process_variant_calls(PGEN_ARRAY_VARIANT_CALL VCArray, const A
 
 		if (var->RefSeqStart < var->RefSeqEnd) {
 			if (var->Seq1Weight > realThreshold && var->Seq1Type == kmetRead)
-				ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, var->Seq2Weight, var->Seq1Weight, VCArray);
+				ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, var->Seq2Weight, var->Seq1Weight, &var->RefReadIndices, &var->ReadIndices, VCArray);
 
 			if (var->Seq2Weight > realThreshold && var->Seq2Type == kmetRead)
-				ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq2, var->Seq2Len, var->Seq1Weight, var->Seq2Weight, VCArray);
+				ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq2, var->Seq2Len, var->Seq1Weight, var->Seq2Weight, &var->RefReadIndices, &var->ReadIndices, VCArray);
 		} else {
 			printf("VAR-BACK: %u->%u, %s\n", var->RefSeqStart, var->RefSeqEnd, var->Seq1);
 		}
@@ -359,13 +352,13 @@ static ERR_VALUE _process_variant_calls(PGEN_ARRAY_VARIANT_CALL VCArray, const A
 }
 
 
-static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER_GRAPH Graph, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
+static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER_GRAPH Graph, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
 {
 	boolean notFound = FALSE;
 	POINTER_ARRAY_FOUND_SEQUENCE seqArray;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	const char *alternates[2];
-	EExperimentResult res = erNotTried;
+	size_t res = 0;
 	size_t alternateLens[2];
 	GEN_ARRAY_FOUND_SEQUENCE_VARIANT variants;
 
@@ -378,74 +371,20 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 		alternateLens[1] = Task->Alternate2Length;
 		pointer_array_init_FOUND_SEQUENCE(&seqArray, 140);
 		ret = kmer_graph_get_seqs(Graph, Task->Reference, Options->MaxPaths, &seqArray);
-		if (ret == ERR_SUCCESS) {
-			if (Task->Alternate1Length > 0 && Task->Alternate2Length > 0) {
-				for (size_t i = 0; i < sizeof(alternateLens) / sizeof(size_t); ++i) {
-					boolean found = FALSE;
+		if (ret == ERR_SUCCESS)
+			res = pointer_array_size(&seqArray);
 
-					for (size_t j = 0; j < gen_array_size(&seqArray); ++j) {
-						const FOUND_SEQUENCE *fs = *pointer_array_item_FOUND_SEQUENCE(&seqArray, j);
-
-						found = found_sequence_match(fs, alternates[i], alternateLens[i]);
-						if (found)
-							break;
-					}
-
-					if (!found) {
-						notFound = TRUE;
-						//				fprintf(stderr, "RS:   %s\n", Task->Reference);
-						//				fprintf(stderr, "ALT1: %s\n", Task->Alternate1);
-						//				fprintf(stderr, "ALT2: %s\n", Task->Alternate2);
-						//				kmer_graph_print(stderr, Graph);
-						//				_write_differences(Task->Reference, Task->Alternate1, Task->Alternate2, Task->ReferenceLength);
-						//				exit(0);
-						break;
-					}
-				}
-			}
-
-			if (ret != ERR_SUCCESS || notFound) {
-				++Statistics->FailureCount;
-				res = erFailure;
-			}
-			else {
-				++Statistics->SuccessCount;
-				res = erSuccess;
-			}
-		} else printf("ERROR: kmer_graph_get_seqs(): %u\n", ret);
-
-		if (Task->Name != NULL && (Graph->TypedEdgeCount[kmetRead] > 0 ||
-			Graph->TypedEdgeCount[kmetVariant] > 0)) {
+		if (Task->Name != NULL && (Graph->TypedEdgeCount[kmetRead] > 0 || Graph->TypedEdgeCount[kmetVariant] > 0)) {
 			FILE *f = NULL;
 			char *directory = NULL;
 			char graphName[128];
 			char diffName[128];
 			char vcfName[128];
 
-			switch (res) {
-			case erSuccess:
-				directory = "succ";
-				break;
-			case erFailure:
-				directory = "fail";
-				break;
-			case erNotTried:
-				directory = "nottried";
-				break;
-			default:
-				assert(FALSE);
-				break;
-			}
-
+			directory = "succ";
 #pragma warning (disable : 4996)											
-			sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-%Iu.graph", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
+			sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-k%u-p%Iu.graph", Options->OutputDirectoryBase, directory, Task->Name, kmer_graph_get_kmer_size(Graph), gen_array_size(&seqArray));
 			unlink(graphName);
-#pragma warning (disable : 4996)											
-			sprintf(diffName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-%Iu.diff", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
-			unlink(diffName);
-#pragma warning (disable : 4996)											
-			sprintf(vcfName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-%Iu.vcf", Options->OutputDirectoryBase, directory, Task->Name, gen_array_size(&seqArray));
-			unlink(vcfName);
 			if (Options->VCFFileHandle != NULL)
 			{
 				ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
@@ -453,22 +392,14 @@ static EExperimentResult _compare_alternate_sequences(const PROGRAM_OPTIONS *Opt
 					kmer_graph_print(f, Graph);
 					utils_fclose(f);
 				}
-
-				if (Task->Alternate1Length > 0 && Task->Alternate2Length > 0) {
-					ret = utils_fopen(diffName, FOPEN_MODE_WRITE, &f);
-					if (ret == ERR_SUCCESS) {
-						_write_differences(f, Task->Reference, Task->Alternate1, Task->Alternate2, Task->ReferenceLength);
-						utils_fclose(f);
-					}
-				}
 			}
 
 			if (Options->VCFFileHandle != NULL) {
 				PFOUND_SEQUENCE *pseq = seqArray.Data;
 				PGEN_ARRAY_VARIANT_CALL vcArray = Options->VCSubArrays + omp_get_thread_num();
 
-				_process_variant_calls(vcArray, Task, &variants, Options->Threshold);
 				if (pointer_array_size(&seqArray) <= Options->MaxPaths) {
+					_process_variant_calls(vcArray, Task, &variants, Options->Threshold);
 					for (size_t i = 0; i < pointer_array_size(&seqArray); ++i) {
 						_process_variant_calls(vcArray, Task, &(*pseq)->ReadVariants, Options->Threshold);
 						++pseq;
@@ -513,20 +444,22 @@ static void _on_delete_edge(const KMER_GRAPH *Graph, const KMER_EDGE *Edge, void
 	return;
 }
 
-static EExperimentResult _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const PARSE_OPTIONS *ParseOptions, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
+static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const PARSE_OPTIONS *ParseOptions, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
 {
-	EExperimentResult res = erNotTried;
 	PKMER_GRAPH g = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	uint32_t kmerSize = Options->KMerSize;
+	size_t pathCount = 0;
 
-	ret = kmer_graph_create(Options->KMerSize, 2500, 6000, &g);	
-	if (ret == ERR_SUCCESS) {
-		if (Allocator != NULL)
-			g->Allocator = *Allocator;
-			ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength);
+	for (uint32_t i = 0; i < 8; ++i) {
+		ret = kmer_graph_create(kmerSize, 2500, 6000, &g);
+		if (ret == ERR_SUCCESS) {
+			if (Allocator != NULL)
+//			g->Allocator = *Allocator;
+				ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength);
 			if (ret == ERR_SUCCESS) {
 				GEN_ARRAY_KMER_EDGE_PAIR ep;
-				
+
 				dym_array_init_KMER_EDGE_PAIR(&ep, 140);
 				ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount, Options->Threshold, ParseOptions, &ep);
 				if (ret == ERR_SUCCESS) {
@@ -543,10 +476,10 @@ static EExperimentResult _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, c
 						if (ret == ERR_SUCCESS) {
 							if (ParseOptions->LinearShrink)
 								kmer_graph_delete_1to1_vertices(g);
-								
+
 							if (ParseOptions->MergeBubbles) {
 								boolean changed = FALSE;
-								
+
 								do {
 									changed = FALSE;
 									ret = kmer_graph_detect_uncertainities(g, Task->Reference, &changed);
@@ -554,12 +487,15 @@ static EExperimentResult _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, c
 							}
 
 							if (ret == ERR_SUCCESS)
-								res = _compare_alternate_sequences(Options, g, Task, Statistics);
+								pathCount = _compare_alternate_sequences(Options, g, Task, Statistics);
 							else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
-						} else printf("kmer_graph_connect_reads_by_pairs(): %u\n", ret);
-					} else ++Statistics->CannotSucceed;
-				} else printf("kmer_graph_parse_reads(): %u\n", ret);
-			
+						}
+						else printf("kmer_graph_connect_reads_by_pairs(): %u\n", ret);
+					}
+					else ++Statistics->CannotSucceed;
+				}
+				else printf("kmer_graph_parse_reads(): %u\n", ret);
+
 				PKMER_EDGE_PAIR p = ep.Data;
 
 				for (size_t i = 0; i < gen_array_size(&ep); ++i) {
@@ -570,17 +506,25 @@ static EExperimentResult _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, c
 				}
 
 				dym_array_finit_KMER_EDGE_PAIR(&ep);
-			} else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
+			}
+			else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
 
 			kmer_graph_destroy(g);
-		} else printf("kmer_graph_create(): %u\n", ret);
-
-		if (ret != ERR_SUCCESS) {
-			++Statistics->FailureCount;
-			printf("FAILD: %u\n", ret);
 		}
+		else printf("kmer_graph_create(): %u\n", ret);
 
-	return res;
+		if (ret != ERR_SUCCESS || pathCount <= Options->MaxPaths)
+			break;
+
+		kmerSize += 10;
+	}
+
+	if (ret != ERR_SUCCESS) {
+		++Statistics->FailureCount;
+		printf("FAILD: %u\n", ret);
+	}
+
+	return ret;
 }
 
 
@@ -1127,8 +1071,10 @@ int main(int argc, char *argv[])
 						ret = paired_reads_init();
 						if (ret == ERR_SUCCESS) {
 							ret = paired_reads_insert_array(po.Reads, po.ReadCount);
-							if (ret == ERR_SUCCESS)
+							if (ret == ERR_SUCCESS) {
+								paired_reads_connect();
 								paired_reads_print(stdout);
+							}
 
 							paired_reads_finit();
 						}
@@ -1142,7 +1088,11 @@ int main(int argc, char *argv[])
 						fprintf(stderr, "OpenMP thread count:        %i\n", po.OMPThreads);
 						fprintf(stderr, "Output VCF file:            %s\n", po.VCFFile);
 						ret = paired_reads_init();
+						if (ret == ERR_SUCCESS)
+							ret = paired_reads_insert_array(po.Reads, po.ReadCount);
+
 						if (ret == ERR_SUCCESS) {
+							paired_reads_connect();
 							if (ret == ERR_SUCCESS) {
 								size_t refSeqLen = 0;
 								FASTA_FILE seqFile;
@@ -1227,8 +1177,25 @@ int main(int argc, char *argv[])
 										utils_free(_vertexLAs);
 
 										if (po.VCFFileHandle != NULL) {
-											if (ret == ERR_SUCCESS)
+											if (ret == ERR_SUCCESS) {
+												VARIANT_GRAPH vg;
+
+												fprintf(stderr, "Creating variant graph...\n");
+												ret = vg_graph_init(po.VCArray.Data, gen_array_size(&po.VCArray), &vg);
+												if (ret == ERR_SUCCESS) {
+													ret = vg_graph_add_paired(&vg);
+													if (ret == ERR_SUCCESS) {
+														vg_graph_color(&vg);
+														vg_graph_print(stdout, &vg);
+														vg_graph_filter(&vg);
+														vc_array_print(po.VCFFileHandle, &po.VCArray);
+													}
+
+													vg_graph_finit(&vg);
+												}
+
 												vc_array_print(po.VCFFileHandle, &po.VCArray);
+											}
 
 											vc_array_finit(&po.VCArray);
 											utils_fclose(po.VCFFileHandle);

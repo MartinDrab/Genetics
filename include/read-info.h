@@ -39,6 +39,8 @@ ERR_VALUE read_info_intersection(PREAD_INFO Info1, PREAD_INFO Info2, GEN_ARRAY_P
 void read_info_subtract(PREAD_INFO Info, const GEN_ARRAY_TYPE(READ_INFO_ENTRY) *Subtrahend, const size_t Distance);
 ERR_VALUE read_info_union(PREAD_INFO Target, const GEN_ARRAY_READ_INFO_ENTRY *Source);
 ERR_VALUE read_info_merge(PREAD_INFO Dest, const READ_INFO *Info1, const READ_INFO *Info2);
+void read_info_clear(PREAD_INFO Info);
+
 #define	read_info_get_count(aInfo)								gen_array_size(&(aInfo)->Array)
 #define read_info_get_entry(aInfo, aIndex)						dym_array_item_READ_INFO_ENTRY((&(aInfo)->Array), (aIndex))
 

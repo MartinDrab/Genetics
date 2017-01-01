@@ -8,7 +8,7 @@
 
 
 
-void found_sequence_variant_free(const FOUND_SEQUENCE_VARIANT *FSV)
+void found_sequence_variant_free(PFOUND_SEQUENCE_VARIANT FSV)
 {
 	dym_array_finit_size_t(&FSV->RefReadIndices);
 	dym_array_finit_size_t(&FSV->ReadIndices);
@@ -38,15 +38,7 @@ ERR_VALUE found_sequence_variant_copy(PFOUND_SEQUENCE_VARIANT Target, const FOUN
 	if (ret == ERR_SUCCESS) {
 		ret = utils_copy_string(Source->Seq2, &Target->Seq2);
 		if (ret == ERR_SUCCESS) {
-			dym_array_init_size_t(&Target->ReadIndices, 140);
-			ret = dym_array_push_back_array_size_t(&Target->ReadIndices, &Source->ReadIndices);
-			if (ret == ERR_SUCCESS) {
-				dym_array_init_size_t(&Target->RefReadIndices, 140);
-				ret = dym_array_push_back_array_size_t(&Target->RefReadIndices, &Source->RefReadIndices);
-				if (ret != ERR_SUCCESS)
-					dym_array_finit_size_t(&Target->ReadIndices);
-			}
-
+			ret = found_sequence_variant_init_indices(Target, &Source->RefReadIndices, &Source->ReadIndices);
 			if (ret != ERR_SUCCESS) {
 				utils_free(Target->Seq2);
 				Target->Seq2 = NULL;
@@ -130,6 +122,34 @@ void found_sequence_free(PFOUND_SEQUENCE FS)
 }
 
 
+ERR_VALUE found_sequence_variant_init_indices(PFOUND_SEQUENCE_VARIANT Variant, const GEN_ARRAY_size_t *RefIndices, const GEN_ARRAY_size_t *ReadIndices)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	dym_array_init_size_t(&Variant->RefReadIndices, 140);
+	ret = dym_array_reserve_size_t(&Variant->RefReadIndices, GEN_ARRAY_STATIC_ALLOC + 1);
+	if (ret == ERR_SUCCESS) {
+		dym_array_init_size_t(&Variant->ReadIndices, 140);
+		ret = dym_array_reserve_size_t(&Variant->ReadIndices, GEN_ARRAY_STATIC_ALLOC + 1);
+		if (ret == ERR_SUCCESS) {
+			if (RefIndices != NULL)
+				ret = dym_array_push_back_array_size_t(&Variant->RefReadIndices, RefIndices);
+			
+			if (ret == ERR_SUCCESS && ReadIndices != NULL)
+				ret = dym_array_push_back_array_size_t(&Variant->ReadIndices, ReadIndices);
+		
+			if (ret != ERR_SUCCESS)
+				dym_array_finit_size_t(&Variant->ReadIndices);
+		}
+
+		if (ret != ERR_SUCCESS)
+			dym_array_finit_size_t(&Variant->RefReadIndices);
+	}
+
+	return ret;
+}
+
+
 ERR_VALUE found_sequence_set_variant(PFOUND_SEQUENCE FS, const size_t Index, PFOUND_SEQUENCE_VARIANT Variant)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -147,7 +167,12 @@ ERR_VALUE found_sequence_set_variant(PFOUND_SEQUENCE FS, const size_t Index, PFO
 			tmp.Seq2Type = Variant->Seq2Type;
 			tmp.Seq1Weight = Variant->Seq1Weight;
 			tmp.Seq2Weight = Variant->Seq2Weight;
-			dym_array_push_back_no_alloc_FOUND_SEQUENCE_VARIANT(&FS->Variants, tmp);
+			ret = found_sequence_variant_init_indices(&tmp, &Variant->RefReadIndices, &Variant->ReadIndices);
+			if (ret == ERR_SUCCESS)
+				dym_array_push_back_no_alloc_FOUND_SEQUENCE_VARIANT(&FS->Variants, tmp);
+		
+			if (ret != ERR_SUCCESS)
+				utils_free(tmp.Seq2);
 		}
 
 		if (ret != ERR_SUCCESS)
@@ -235,8 +260,12 @@ ERR_VALUE found_sequence_build_read_variants(const KMER_GRAPH *Graph, PFOUND_SEQ
 	REFSEQ_STORAGE seqStorage;
 	size_t weight = 0;
 	size_t rsWeight = 0;
+	GEN_ARRAY_size_t refIndices;
+	GEN_ARRAY_size_t readIndices;
 
 	ret = ERR_SUCCESS;
+	dym_array_init_size_t(&refIndices, 140);
+	dym_array_init_size_t(&readIndices, 140);
 	rs_storage_init(&seqStorage);
 	for (size_t i = 0; i < pointer_array_size(PathEdges); ++i) {
 		e = *pointer_array_const_item_KMER_EDGE(PathEdges, i);
@@ -256,10 +285,18 @@ ERR_VALUE found_sequence_build_read_variants(const KMER_GRAPH *Graph, PFOUND_SEQ
 						rsWeight = rsEdge->Seq1Weight;
 						break;
 				}
+
+				ret = read_info_to_indices(&rsEdge->ReadInfo, &refIndices);
+				if (ret != ERR_SUCCESS)
+					break;
 			}
 
 			if (startIndex != (size_t)-1) {
 				ret = rs_storage_add_edge(&seqStorage, e);
+				if (ret != ERR_SUCCESS)
+					break;
+
+				ret = read_info_to_indices(&e->ReadInfo, &readIndices);
 				if (ret != ERR_SUCCESS)
 					break;
 			}
@@ -283,12 +320,17 @@ ERR_VALUE found_sequence_build_read_variants(const KMER_GRAPH *Graph, PFOUND_SEQ
 						var.Seq2 = NULL;
 						var.Seq2Len = 0;
 						var.Seq2Weight = rsWeight;
-						ret = dym_array_push_back_FOUND_SEQUENCE_VARIANT(&FS->ReadVariants, var);
+						ret = found_sequence_variant_init_indices(&var, &refIndices, &readIndices);
+						if (ret == ERR_SUCCESS)
+							ret = dym_array_push_back_FOUND_SEQUENCE_VARIANT(&FS->ReadVariants, var);
+
 						if (ret != ERR_SUCCESS)
 							utils_free(var.Seq1);
 					}
 				}
 
+				dym_array_clear_size_t(&refIndices);
+				dym_array_clear_size_t(&readIndices);
 				rs_storage_reset(&seqStorage);
 				startIndex = (size_t)-1;
 			}
@@ -299,12 +341,14 @@ ERR_VALUE found_sequence_build_read_variants(const KMER_GRAPH *Graph, PFOUND_SEQ
 	}
 
 	rs_storage_finit(&seqStorage);
+	dym_array_finit_size_t(&readIndices);
+	dym_array_finit_size_t(&refIndices);
 
 	return ret;
 }
 
 
-ERR_VALUE variant_call_init(const char *Chrom, uint64_t Pos, const char *ID, const char *Ref, size_t RefLen, const char *Alt, size_t AltLen, const uint8_t Qual, PVARIANT_CALL VC)
+ERR_VALUE variant_call_init(const char *Chrom, uint64_t Pos, const char *ID, const char *Ref, size_t RefLen, const char *Alt, size_t AltLen, const uint8_t Qual, const GEN_ARRAY_size_t *RefReads, const GEN_ARRAY_size_t *AltReads, PVARIANT_CALL VC)
 {
 	char *tmp = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -317,6 +361,7 @@ ERR_VALUE variant_call_init(const char *Chrom, uint64_t Pos, const char *ID, con
 		--AltLen;
 	}
 
+	VC->Valid = TRUE;
 	ret = utils_copy_string(Chrom, &tmp);
 	if (ret == ERR_SUCCESS) {
 		VC->Chrom = tmp;
@@ -335,14 +380,23 @@ ERR_VALUE variant_call_init(const char *Chrom, uint64_t Pos, const char *ID, con
 					memcpy(tmp, Alt, AltLen*sizeof(char));
 					tmp[AltLen] = '\0';
 					VC->Alt = tmp;
-					/*
-					while (RefLen > 1 && altLen > 1 && VC->Alt[altLen - 1] == VC->Ref[RefLen - 1]) {
-						--RefLen;
-						VC->Ref[RefLen] = '\0';
-						--altLen;
-						VC->Alt[altLen] = '\0';
+					dym_array_init_size_t(&VC->RefReads, 140);
+					dym_array_init_size_t(&VC->AltReads, 140);
+					ret = dym_array_reserve_size_t(&VC->RefReads, GEN_ARRAY_STATIC_ALLOC + 1);
+					if (ret == ERR_SUCCESS)
+						ret = dym_array_reserve_size_t(&VC->AltReads, GEN_ARRAY_STATIC_ALLOC + 1);
+
+					if (ret == ERR_SUCCESS && RefReads != NULL)
+						ret = dym_array_push_back_array_size_t(&VC->RefReads, RefReads);
+
+					if (ret == ERR_SUCCESS && AltReads != NULL)
+						dym_array_push_back_array_size_t(&VC->AltReads, AltReads);
+						
+					if (ret != ERR_SUCCESS) {
+						dym_array_finit_size_t(&VC->AltReads);
+						dym_array_finit_size_t(&VC->RefReads);
+						utils_free(VC->Alt);
 					}
-					*/
 				}
 				
 				if (ret != ERR_SUCCESS)
@@ -363,6 +417,8 @@ ERR_VALUE variant_call_init(const char *Chrom, uint64_t Pos, const char *ID, con
 
 void variant_call_finit(PVARIANT_CALL VC)
 {
+	dym_array_finit_size_t(&VC->AltReads);
+	dym_array_finit_size_t(&VC->RefReads);
 	if (VC->Alt != NULL)
 		utils_free(VC->Alt);
 	
@@ -450,7 +506,9 @@ void vc_array_print(FILE *Stream, const GEN_ARRAY_VARIANT_CALL *Array)
 	fprintf(Stream, "##FORMAT=<ID=HQ,Number=2,Type=Integer,Description=\"Haplotype Quality\">\n");
 	fprintf(Stream, "#CHROM\tPOS\tID\tREF ALT\tQUAL\tFILTER\tINFO\n");
 	for (size_t i = 0; i < gen_array_size(Array); ++i) {
-		fprintf(Stream, "%s\t%I64u\t%s\t%s\t%s\t60\tPASS\t\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt);
+		if (tmp->Valid)
+			fprintf(Stream, "%s\t%I64u\t%s\t%s\t%s\t60\tPASS\t\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt);
+		
 		++tmp;
 	}
 
@@ -469,10 +527,28 @@ static int _vc_comparator(const VARIANT_CALL *VC1, const VARIANT_CALL *VC2)
 	return 0;
 }
 
+static int _size_t_comparer(const size_t *A, const size_t *B)
+{
+	if (*A < *B)
+		return -1;
+
+	if (*A > *B)
+		return 1;
+
+	return 0;
+}
+
 
 void vc_array_sort(PGEN_ARRAY_VARIANT_CALL Array)
 {
+	PVARIANT_CALL vc = Array->Data;
+
 	qsort(Array->Data, gen_array_size(Array), sizeof(VARIANT_CALL), _vc_comparator);
+	for (size_t i = 0; i < gen_array_size(Array); ++i) {
+		qsort(vc->RefReads.Data, gen_array_size(&vc->RefReads), sizeof(size_t), _size_t_comparer);
+		qsort(vc->AltReads.Data, gen_array_size(&vc->AltReads), sizeof(size_t), _size_t_comparer);
+		++vc;
+	}
 
 	return;
 }

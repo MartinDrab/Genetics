@@ -24,6 +24,11 @@ typedef struct _READ_PART {
 GEN_ARRAY_TYPEDEF(READ_PART);
 GEN_ARRAY_IMPLEMENTATION(READ_PART)
 
+typedef struct _ONE_READ;
+
+typedef struct _ONE_READ_PAIRED_LIST {
+	struct _ONE_READ *Next;
+} ONE_READ_PAIRED_LIST, *PONE_READ_PAIRED_LIST;
 
 typedef struct _ONE_READ {
 	uint16_t Flags;
@@ -45,7 +50,9 @@ typedef struct _ONE_READ {
 	size_t TemplateNameLen;
 	boolean Indels;
 	uint32_t NumberOfFixes;
+	size_t ReadIndex;
 	struct _ONE_READ *Parent;
+	ONE_READ_PAIRED_LIST Paired;
 	READ_PART Part;
 } ONE_READ, *PONE_READ;
 
@@ -73,16 +80,12 @@ POINTER_ARRAY_IMPLEMENTATION(ONE_READ)
 void read_quality_decode(PONE_READ Read);
 void read_quality_encode(PONE_READ Read);
 void read_write_sam(FILE *Stream, const ONE_READ *Read);
-ERR_VALUE read_create_from_test_line(const char *Line, const size_t Length, PONE_READ *Read);
 ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read);
-ERR_VALUE read_create_from_fasta_seq(const char *Seq, const size_t SeqLen, const char *SeqName, const size_t SeqNameLen, PONE_READ *Read);
-ERR_VALUE read_generate_from_sequence(const char *Seq, const size_t SeqLen, const uint32_t ReadLength, PONE_READ *Read);
 void read_copy_direct(PONE_READ Dest, const ONE_READ *Source);
 ERR_VALUE read_copy(PONE_READ Dest, const ONE_READ *Source);
 void read_destroy(PONE_READ Read);
 void _read_destroy_structure(PONE_READ Read);
 
-ERR_VALUE read_set_generate_from_sequence(const char *Seq, const size_t SeqLen, const uint32_t ReadLength, const size_t ReadCount, PONE_READ *ReadSet);
 void read_set_destroy(PONE_READ ReadSet, const size_t Count);
 ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ONE_READ *Source, const size_t SourceCount);
 void read_split(PONE_READ Read);

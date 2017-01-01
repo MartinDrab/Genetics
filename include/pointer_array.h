@@ -7,6 +7,7 @@
 #include "err.h"
 #include "utils.h"
 
+#define POINTER_ARRAY_STATIC_ALLOC							4
 
 #define POINTER_ARRAY_TYPE(aDataType)						POINTER_ARRAY_##aDataType
 #define POINTER_ARRAY_PTYPE(aDataType)						PPOINTER_ARRAY_##aDataType
@@ -17,7 +18,7 @@
 		size_t AllocLength;								\
 		aDataType **Data;								\
 		size_t Ratio;									\
-		aDataType *Storage[4];							\
+		aDataType *Storage[POINTER_ARRAY_STATIC_ALLOC];							\
 	} POINTER_ARRAY_TYPE(aDataType), *PPOINTER_ARRAY_##aDataType	\
 
 

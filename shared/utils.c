@@ -174,7 +174,7 @@ void utils_allocator_free(void *Address)
 	PALLOCATOR_HEADER h = (PALLOCATOR_HEADER)Address - 1;
 	const ALLOCATOR_FOOTER *f = h->Footer;
 
-	assert(h->ThreadId == omp_get_thread_num());
+//	assert(h->ThreadId == omp_get_thread_num());
 	assert(h->Signature == ALLOCATOR_HEADER_SIGNATURE);
 	assert(h->Signature2 == ALLOCATOR_HEADER_SIGNATURE);
 	assert(f->Signature == ALLOCATOR_FOOTER_SIGNATURE);

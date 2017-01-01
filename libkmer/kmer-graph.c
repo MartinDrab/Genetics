@@ -1546,8 +1546,10 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 	FOUND_SEQUENCE_VARIANT oneVariant;
 	GEN_ARRAY_size_t readIndices;
 	GEN_ARRAY_size_t refReadIndices;
+	READ_INFO ri;
 
 	ret = ERR_SUCCESS;
+	read_info_init(&ri);
 	dym_array_init_size_t(&readIndices, 140);
 	dym_array_init_size_t(&refReadIndices, 140);
 	rs_storage_init(&s1);
@@ -1581,7 +1583,10 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 
 			rs_storage_reset(&s1);
 			rs_storage_add_edge(&s1, path1Start);
-			ret = read_info_to_indices(&path1Start->ReadInfo, &refReadIndices);
+			ret = read_info_assign(&ri, &path1Start->ReadInfo.Array);
+			if (ret == ERR_SUCCESS)
+				ret = read_info_to_indices(&path1Start->ReadInfo, &refReadIndices);
+			
 			while (ret == ERR_SUCCESS && kmer_vertex_in_degree(path1Vertex) == 1 && kmer_vertex_out_degree(path1Vertex) == 1 && path1Vertex->Type == kmvtRefSeqMiddle) {
 				PKMER_EDGE e = NULL;
 
@@ -1602,8 +1607,15 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 				}
 
 				ret = read_info_to_indices(&e->ReadInfo, &refReadIndices);
-				if (ret != ERR_SUCCESS)
-					break;
+				if (ret == ERR_SUCCESS) {
+					READ_INFO tmp;
+
+					read_info_init(&tmp);
+					read_info_sort(&ri);
+					ret = read_info_merge(&tmp, &ri, &e->ReadInfo);
+					if (ret == ERR_SUCCESS)
+						ret = read_info_assign(&ri, &tmp);
+				}
 
 				path1Vertex = e->Dest;
 				rs_storage_add_edge(&s1, e);
@@ -1658,7 +1670,10 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 						ret = rs_storage_create_string(&s2, &oneVariant.Seq1);
 						if (ret == ERR_SUCCESS) {
 							oneVariant.Seq1Len = strlen(oneVariant.Seq1);
-							ret = dym_array_push_back_FOUND_SEQUENCE_VARIANT(&variants, oneVariant);
+							ret = found_sequence_variant_init_indices(&oneVariant, &refReadIndices, &readIndices);
+							if (ret == ERR_SUCCESS)
+								ret = dym_array_push_back_FOUND_SEQUENCE_VARIANT(&variants, oneVariant);
+							
 							if (ret != ERR_SUCCESS)
 								utils_free(oneVariant.Seq1);
 						}
@@ -1689,7 +1704,10 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 						if (ret == ERR_SUCCESS) {
 							kmer_edge_add_seq(e, kmetReference, tmpSeq, s1.ValidLength);
 							e->Seq1Weight = weight1;
-							ret = dym_array_push_back_array_FOUND_SEQUENCE_VARIANT(&e->Variants, &variants);
+							ret = read_info_assign(&e->ReadInfo, &ri.Array);
+							if (ret == ERR_SUCCESS)
+								ret = dym_array_push_back_array_FOUND_SEQUENCE_VARIANT(&e->Variants, &variants);
+							
 							if (ret == ERR_SUCCESS)
 								dym_array_clear_FOUND_SEQUENCE_VARIANT(&variants);
 						}
@@ -1712,6 +1730,7 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 		if (!edgeCreated)
 			v = _get_refseq_or_variant_edge(v)->Dest;
 
+		read_info_clear(&ri);
 		dym_array_clear_size_t(&refReadIndices);
 		dym_array_clear_size_t(&readIndices);
 		dym_array_clear_FOUND_SEQUENCE_VARIANT(&variants);
@@ -1724,6 +1743,7 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 	rs_storage_finit(&s1);
 	dym_array_finit_size_t(&refReadIndices);
 	dym_array_finit_size_t(&readIndices);
+	read_info_finit(&ri);
 	kmer_graph_delete_trailing_things(Graph, &dummy);
 	kmer_graph_delete_1to1_vertices(Graph);
 
