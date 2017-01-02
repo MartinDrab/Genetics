@@ -366,6 +366,22 @@ private:
 	std::size_t Replaces_;
 	std::size_t SNPs_;
 	std::vector<CVCFRecord> vcfRecords_;
+	void insertRecord(const CVCFRecord & aRecord)
+	{
+		bool insert = false;
+
+		insert = vcfRecords_.empty();
+		if (!insert) {
+			const CVCFRecord & last = vcfRecords_.back();
+
+			insert = (aRecord.Pos != last.Pos || aRecord.Ref != last.Ref || aRecord.Alt != last.Alt);
+		}
+
+		if (insert)
+			vcfRecords_.push_back(aRecord);
+
+		return;
+	}
 	void ParseLine(const std::string & aLine)
 	{
 		size_t index = aLine.find('\t');
@@ -392,13 +408,13 @@ private:
 		index = altString.find(',');
 		if (index != std::string::npos) {
 			while (index != std::string::npos) {
-				vcfRecords_.push_back(CVCFRecord(refName, ref, altString.substr(0, index), pos));
+				insertRecord(CVCFRecord(refName, ref, altString.substr(0, index), pos));
 				altString = altString.substr(index + 1);
 				index = altString.find(',');
 			}
 
-			vcfRecords_.push_back(CVCFRecord(refName, ref, altString, pos));
-		} else vcfRecords_.push_back(CVCFRecord(refName, ref, altString, pos));
+			insertRecord(CVCFRecord(refName, ref, altString, pos));
+		} else insertRecord(CVCFRecord(refName, ref, altString, pos));
 
 		return;
 	}

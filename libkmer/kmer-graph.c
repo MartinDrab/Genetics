@@ -612,10 +612,11 @@ void kmer_graph_delete_edges_under_threshold(PKMER_GRAPH Graph, const size_t Thr
 	PKMER_EDGE e = NULL;
 	void *iter = NULL;
 	ERR_VALUE err = ERR_INTERNAL_ERROR;
+	const size_t realThreshold = Threshold * 100;
 
 	err = kmer_edge_table_first(Graph->EdgeTable, &iter, (void **)&e);
 	while (err == ERR_SUCCESS) {
-		if (e->Type == kmetRead && read_info_get_count(&e->ReadInfo) == 0)
+		if (e->Type == kmetRead && read_info_get_count(&e->ReadInfo) <= Threshold)
 			kmer_graph_delete_edge(Graph, e);
 
 		err = kmer_edge_table_next(Graph->EdgeTable, iter, &iter, (void **)&e);

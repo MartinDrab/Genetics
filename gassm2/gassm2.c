@@ -467,7 +467,7 @@ static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 
 					g->DeleteEdgeCallback = _on_delete_edge;
 					g->DeleteEdgeCallbackContext = &ep;
-					kmer_graph_delete_edges_under_threshold(g, Options->Threshold);
+					kmer_graph_delete_edges_under_threshold(g, 0);
 					kmer_graph_delete_trailing_things(g, &deletedThings);
 					g->DeleteEdgeCallback = NULL;
 					if (g->TypedEdgeCount[kmetRead] > 0) {
@@ -477,6 +477,8 @@ static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 							if (ParseOptions->LinearShrink)
 								kmer_graph_delete_1to1_vertices(g);
 
+							kmer_graph_delete_edges_under_threshold(g, Options->Threshold);
+							kmer_graph_delete_trailing_things(g, &deletedThings);
 							if (ParseOptions->MergeBubbles) {
 								boolean changed = FALSE;
 
@@ -1181,13 +1183,13 @@ int main(int argc, char *argv[])
 												VARIANT_GRAPH vg;
 
 												fprintf(stderr, "Creating variant graph...\n");
-												ret = vg_graph_init(po.VCArray.Data, gen_array_size(&po.VCArray), &vg);
+												ret = vg_graph_init(po.VCArray.Data, 50/*gen_array_size(&po.VCArray)*/, &vg);
 												if (ret == ERR_SUCCESS) {
 													ret = vg_graph_add_paired(&vg);
 													if (ret == ERR_SUCCESS) {
 														vg_graph_color(&vg);
 														vg_graph_print(stdout, &vg);
-														vg_graph_filter(&vg);
+														vg_graph_finalize(&vg);
 														vc_array_print(po.VCFFileHandle, &po.VCArray);
 													}
 

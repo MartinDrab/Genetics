@@ -44,6 +44,17 @@ GEN_ARRAY_IMPLEMENTATION(FOUND_SEQUENCE)
 POINTER_ARRAY_TYPEDEF(FOUND_SEQUENCE);
 POINTER_ARRAY_IMPLEMENTATION(FOUND_SEQUENCE)
 
+typedef enum _EVariantCallPhaseType {
+	vcptNone,
+	vcptZeroOne,
+	vcptZeroTwo,
+	vcptOneTwo,
+	vcptTwoOne,
+	// Transforms to zero-one and zero-two
+	vcptBothAlt,
+	vcptMax
+} EVariantCallPhaseType, *PEVariantCallPhaseType;
+
 typedef struct _VARIANT_CALL {
 	char *Chrom;
 	uint64_t Pos;
@@ -56,6 +67,8 @@ typedef struct _VARIANT_CALL {
 	GEN_ARRAY_size_t RefReads;
 	GEN_ARRAY_size_t AltReads;
 	boolean Valid;
+	uint64_t PhasedPos;
+	EVariantCallPhaseType PhaseType;
 } VARIANT_CALL, *PVARIANT_CALL;
 
 GEN_ARRAY_TYPEDEF(VARIANT_CALL);

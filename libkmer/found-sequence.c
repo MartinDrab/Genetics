@@ -1,4 +1,5 @@
 
+#include <inttypes.h>
 #include "err.h"
 #include "utils.h"
 #include "refseq-storage.h"
@@ -362,6 +363,8 @@ ERR_VALUE variant_call_init(const char *Chrom, uint64_t Pos, const char *ID, con
 	}
 
 	VC->Valid = TRUE;
+	VC->PhasedPos = 0;
+	VC->PhaseType = vcptNone;
 	ret = utils_copy_string(Chrom, &tmp);
 	if (ret == ERR_SUCCESS) {
 		VC->Chrom = tmp;
@@ -504,11 +507,25 @@ void vc_array_print(FILE *Stream, const GEN_ARRAY_VARIANT_CALL *Array)
 	fprintf(Stream, "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">\n");
 	fprintf(Stream, "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read Depth\">\n");
 	fprintf(Stream, "##FORMAT=<ID=HQ,Number=2,Type=Integer,Description=\"Haplotype Quality\">\n");
-	fprintf(Stream, "#CHROM\tPOS\tID\tREF ALT\tQUAL\tFILTER\tINFO\n");
+	fprintf(Stream, "#CHROM\tPOS\tID\tREF ALT\tQUAL\tFILTER\tINFO\tFORMAT\t\n");
 	for (size_t i = 0; i < gen_array_size(Array); ++i) {
-		if (tmp->Valid)
-			fprintf(Stream, "%s\t%I64u\t%s\t%s\t%s\t60\tPASS\t\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt);
-		
+		if (tmp->Valid) {
+			const char *genotype = NULL;
+			
+			switch (tmp->PhaseType) {
+			case vcptNone: genotype = "0|0"; break;
+			case vcptOneTwo: genotype = "1|2"; break;
+			case vcptTwoOne: genotype = "2|1"; break;
+			case vcptBothAlt: genotype = ""; break;
+			default: assert(FALSE); break;
+			}
+
+			if (tmp->PhaseType == vcptBothAlt) {
+				fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\t\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, "0|1", tmp->PhasedPos);
+				fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\t\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, "0|2", tmp->PhasedPos);
+			} else fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\t\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, genotype, tmp->PhasedPos);
+		}
+
 		++tmp;
 	}
 
