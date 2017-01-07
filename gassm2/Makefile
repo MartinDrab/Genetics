@@ -29,6 +29,8 @@ OBJ=\
 	$(LIBKMEROBJDIR)/kmer-graph.o \
 	$(LIBKMEROBJDIR)/kmer-table.o \
 	$(LIBKMEROBJDIR)/kmer.o \
+	$(LIBKMEROBJDIR)/variant-graph.o \
+
 
 
 INCLUDE= -I./ -I./../include -I./$(SHAREDDIR) -I../libkmer -I-

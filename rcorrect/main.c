@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <ctype.h>
 #include <omp.h>
 #include "err.h"
 #include "utils.h"

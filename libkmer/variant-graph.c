@@ -910,8 +910,12 @@ ERR_VALUE vg_graph_add_paired(PVARIANT_GRAPH Graph)
 						for (size_t l = 0; l < pointer_array_size(readVertices[j]); ++l) {
 							PVARIANT_GRAPH_VERTEX v = readVertices[j]->Data[l];
 							
-							if (!_vg_vertex_exists(Graph, v, threshold) || u->Index == v->Index)
+							if (!_vg_vertex_exists(Graph, v, threshold))
 								continue;
+
+							if (u->Index == v->Index) {
+
+							}
 
 							PVARIANT_GRAPH_PAIRED_EDGE tmp = NULL;
 							boolean exists = FALSE;
@@ -987,7 +991,7 @@ void vg_graph_finalize(PVARIANT_GRAPH Graph)
 	const size_t threshold = 2;
 
 	for (size_t i = 0; i < Graph->VerticesArraySize; ++i) {
-		if (!_vg_vertex_exists(Graph, v, threshold))
+		if (!_vg_vertex_exists(Graph, v, threshold) || v->Color == vgvcNone)
 			v->Variant->Valid = FALSE;
 
 		++v;

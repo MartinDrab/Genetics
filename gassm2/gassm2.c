@@ -1111,7 +1111,8 @@ int main(int argc, char *argv[])
 								if (ret == ERR_SUCCESS) {
 									po.VCFFileHandle = NULL;
 									if (*po.VCFFile != '\0') {
-										ret = utils_fopen(po.VCFFile, FOPEN_MODE_WRITE, &po.VCFFileHandle);
+										po.VCFFileHandle = fopen(po.VCFFile, "w");
+										ret = (po.VCFFileHandle != NULL) ? ERR_SUCCESS : ERR_NOT_FOUND;
 										if (ret == ERR_SUCCESS)
 											dym_array_init_VARIANT_CALL(&po.VCArray, 140);
 									}
@@ -1183,14 +1184,13 @@ int main(int argc, char *argv[])
 												VARIANT_GRAPH vg;
 
 												fprintf(stderr, "Creating variant graph...\n");
-												ret = vg_graph_init(po.VCArray.Data, 50/*gen_array_size(&po.VCArray)*/, &vg);
+												ret = vg_graph_init(po.VCArray.Data, gen_array_size(&po.VCArray), &vg);
 												if (ret == ERR_SUCCESS) {
 													ret = vg_graph_add_paired(&vg);
 													if (ret == ERR_SUCCESS) {
 														vg_graph_color(&vg);
 														vg_graph_print(stdout, &vg);
 														vg_graph_finalize(&vg);
-														vc_array_print(po.VCFFileHandle, &po.VCArray);
 													}
 
 													vg_graph_finit(&vg);
@@ -1200,7 +1200,7 @@ int main(int argc, char *argv[])
 											}
 
 											vc_array_finit(&po.VCArray);
-											utils_fclose(po.VCFFileHandle);
+											fclose(po.VCFFileHandle);
 										}
 
 									}
