@@ -30,12 +30,16 @@ GEN_ARRAY_TYPEDEF(DISTANCE_RECORD);
 GEN_ARRAY_IMPLEMENTATION(DISTANCE_RECORD)
 
 
+UTILS_TYPED_CALLOC_FUNCTION(PPOINTER_ARRAY_KMER_VERTEX)
+UTILS_TYPED_CALLOC_FUNCTION(GEN_ARRAY_DISTANCE_RECORD)
+
+
 static ERR_VALUE _init_distance_arrays(PPOINTER_ARRAY_KMER_VERTEX *Vertices, const size_t NumberOfVertices, const size_t NumberOfRSVertices, PGEN_ARRAY_DISTANCE_RECORD *Distances)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	PGEN_ARRAY_DISTANCE_RECORD tmpDistances = NULL;
 
-	ret = utils_calloc(NumberOfRSVertices, sizeof(GEN_ARRAY_DISTANCE_RECORD), &tmpDistances);
+	ret = utils_calloc_GEN_ARRAY_DISTANCE_RECORD(NumberOfRSVertices, &tmpDistances);
 	if (ret == ERR_SUCCESS) {
 		PGEN_ARRAY_DISTANCE_RECORD currentD = tmpDistances;
 		PPOINTER_ARRAY_KMER_VERTEX currentV = Vertices[0];
@@ -210,7 +214,7 @@ static ERR_VALUE _find_best_path(const PARSE_OPTIONS *Options, PKMER_GRAPH Graph
 			PKMER_VERTEX *tmpResult = NULL;
 
 			_build_distance_graph(Options, Graph, distances, rsVertexCount, Vertices, NumberOfVertices);
-			ret = utils_calloc(NumberOfVertices, sizeof(PKMER_VERTEX), &tmpResult);
+			ret = utils_calloc_PKMER_VERTEX(NumberOfVertices, &tmpResult);
 			if (ret == ERR_SUCCESS) {
 				_shortest_path(Vertices, NumberOfVertices, distances, rsVertexCount, tmpResult);
 				*Result = tmpResult;
@@ -222,7 +226,7 @@ static ERR_VALUE _find_best_path(const PARSE_OPTIONS *Options, PKMER_GRAPH Graph
 	} else {
 		PKMER_VERTEX *tmpResult = NULL;
 
-		ret = utils_calloc(NumberOfVertices, sizeof(PKMER_VERTEX), &tmpResult);
+		ret = utils_calloc_PKMER_VERTEX(NumberOfVertices, &tmpResult);
 		if (ret == ERR_SUCCESS) {
 			for (size_t i = 0; i < NumberOfVertices; ++i)
 				tmpResult[i] = Vertices[i]->Data[0];
@@ -302,7 +306,7 @@ static ERR_VALUE _create_long_edge(PKMER_GRAPH Graph, PKMER_VERTEX U, PKMER_VERT
 	if (ret == ERR_SUCCESS) {
 		char *rs = NULL;
 
-		ret = utils_calloc(rsLen + 1, sizeof(char), &rs);
+		ret = utils_calloc_char(rsLen + 1, &rs);
 		if (ret == ERR_SUCCESS) {
 			memcpy(rs, ReadPart->ReadSequence + StartIndex, rsLen*sizeof(char));
 			rs[rsLen] = '\0';
@@ -336,7 +340,7 @@ static ERR_VALUE _create_short_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Verti
 
 	ret = ERR_SUCCESS;
 	if (NumberOfVertices > 1) {
-		ret = utils_calloc(NumberOfVertices - 1, sizeof(PKMER_EDGE), &tmpEdgePath);
+		ret = utils_calloc_PKMER_EDGE(NumberOfVertices - 1, &tmpEdgePath);
 		if (ret == ERR_SUCCESS) {
 			for (size_t i = 0; i < NumberOfVertices - 1; ++i) {
 				PKMER_VERTEX v = Vertices[i];
@@ -390,7 +394,7 @@ static ERR_VALUE _mark_long_edge_flags(const PARSE_OPTIONS *Options, const PKMER
 
 	ret = ERR_SUCCESS;
 	if (NumberOfVertices >= 2) {
-		ret = utils_calloc(NumberOfVertices, sizeof(uint8_t), &tmpFlags);
+		ret = utils_calloc_uint8_t(NumberOfVertices, &tmpFlags);
 		if (ret == ERR_SUCCESS) {
 			memset(tmpFlags, 0, NumberOfVertices*sizeof(uint8_t));
 			for (size_t i = 0; i < NumberOfVertices - 1; ++i) {
@@ -488,7 +492,7 @@ static ERR_VALUE _create_long_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertic
 						p.ReadDistance = seqIndex - readGapSeqStart - 1;
 						if (!_edge_pair_exists(PairArray, &p)) {
 							p.EdgeCount = i - readGapStart - 1;
-							ret = utils_calloc(p.EdgeCount, sizeof(PKMER_EDGE), &p.Edges);
+							ret = utils_calloc_PKMER_EDGE(p.EdgeCount, &p.Edges);
 							if (ret == ERR_SUCCESS) {
 								memcpy(p.Edges, Edges + readGapStart, p.EdgeCount*sizeof(PKMER_EDGE));
 								ret = dym_array_push_back_KMER_EDGE_PAIR(PairArray, p);
@@ -631,7 +635,7 @@ static ERR_VALUE _produce_single_path(const PARSE_OPTIONS *Options, PKMER_GRAPH 
 	PPOINTER_ARRAY_KMER_VERTEX *vertices = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_calloc(MaxNumberOfSets, sizeof(PPOINTER_ARRAY_KMER_VERTEX), &vertices);
+	ret = utils_calloc_PPOINTER_ARRAY_KMER_VERTEX(MaxNumberOfSets, &vertices);
 	if (ret == ERR_SUCCESS) {
 //		for (size_t i = 0; i < MaxNumberOfSets; ++i)
 //			pointer_array_init_KMER_VERTEX(vertices + i, 140);
@@ -866,9 +870,9 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_
 	if (ret == ERR_SUCCESS) {
 		ret = utils_calloc(ReadCount, sizeof(size_t), &pathLengths);
 		if (ret == ERR_SUCCESS) {
-			ret = utils_calloc(ReadCount, sizeof(PKMER_EDGE *), &edgePaths);
+			ret = utils_calloc_PPKMER_EDGE(ReadCount, &edgePaths);
 			if (ret == ERR_SUCCESS) {
-				ret = utils_calloc(ReadCount, sizeof(uint8_t *), &flagPaths);
+				ret = utils_calloc_puint8_t(ReadCount, &flagPaths);
 				if (ret == ERR_SUCCESS) {
 					for (size_t i = 0; i < ReadCount; ++i) {
 						paths[i] = NULL;
@@ -960,11 +964,11 @@ ERR_VALUE assembly_repair_reads(const KMER_GRAPH_ALLOCATOR *GraphAllocator, cons
 
 		ret = kmer_graph_parse_ref_sequence(g, RefSeq, RefSeqLen);
 		if (ret == ERR_SUCCESS) {
-			ret = utils_calloc(ReadCount, sizeof(PKMER_VERTEX *), &paths);
+			ret = utils_calloc_PPKMER_VERTEX(ReadCount, &paths);
 			if (ret == ERR_SUCCESS) {
-				ret = utils_calloc(ReadCount, sizeof(size_t), &pathLengths);
+				ret = utils_calloc_size_t(ReadCount, &pathLengths);
 				if (ret == ERR_SUCCESS) {
-					ret = utils_calloc(ReadCount, sizeof(PKMER_EDGE *), &edgePaths);
+					ret = utils_calloc_PPKMER_EDGE(ReadCount, &edgePaths);
 					if (ret == ERR_SUCCESS) {
 						currentRead = Reads;
 						for (size_t i = 0; i < ReadCount; ++i) {

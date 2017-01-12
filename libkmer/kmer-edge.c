@@ -18,7 +18,7 @@
 /*                        HELPER FUNCTIONS                              */
 /************************************************************************/
 
-static UTILS_TYPED_MALLOC_FUNCTION(KMER_EDGE_TABLE)
+UTILS_TYPED_MALLOC_FUNCTION(KMER_EDGE_TABLE)
 
 
 INLINE_FUNCTION boolean _kmer_edge_key_equal(const KMER_EDGE_TABLE_KEY Key1, const KMER_EDGE_TABLE_KEY Key2)

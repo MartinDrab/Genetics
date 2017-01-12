@@ -18,14 +18,18 @@
 /*                       HELPER FUNCTIONS                               */
 /************************************************************************/
 
-#define _vg_vertex_exists(aGraph, aVertex, aThreshold)	\
-	((aVertex)->ReadCount > (aThreshold))
+
+UTILS_TYPED_CALLOC_FUNCTION(PPOINTER_ARRAY_VARIANT_GRAPH_VERTEX)
+
+
+#define _vg_vertex_exists(aGraph, aVertex)	\
+	((aVertex)->ReadCount > ((aGraph)->Thresholds.Read))
 
 #define _vg_vertex_index(aGraph, aVertex)	\
 	(((aVertex)->Type == vgvtReference) ? ((aVertex) - (aGraph)->Vertices.ByType.Reference) : ((aVertex) - (aGraph)->Vertices.ByType.Alternative))
 
-#define _vg_read_edge_exists(aGraph, aSourceType, aDestType, aSourceIndex, aThreshold)	\
-	((aGraph)->ReadEdges.All[((aSourceType) << 1) + (aDestType)][(aSourceIndex)] > (aThreshold))
+#define _vg_read_edge_exists(aGraph, aSourceType, aDestType, aSourceIndex)	\
+	((aGraph)->ReadEdges.All[((aSourceType) << 1) + (aDestType)][(aSourceIndex)] > (aGraph)->Thresholds.Read)
 
 #define _vg_vertex_get(aGraph, aType, aIndex)	\
 	((aGraph)->Vertices.All[(aType)] + (aIndex))
@@ -127,6 +131,7 @@ static void _vg_vertex_init(PVARIANT_CALL Variant, const size_t Index, const EVa
 	Vertex->Paired = NULL;
 	Vertex->PairedCount = 0;
 	Vertex->Color = vgvcNone;
+	Vertex->Uncolorable = FALSE;
 	Vertex->ComponentIndex = 0;
 
 	return;
@@ -156,9 +161,7 @@ static int _pvg_vertex_comparator(const PVARIANT_GRAPH_VERTEX *PV1, const PVARIA
 		if (v1->Type < v2->Type)
 			ret = -1;
 		else if (v2->Type < v1->Type)
-			ret = 1;
-	
-		assert(FALSE);
+			ret = 1;	
 	}
 
 	return ret;
@@ -167,7 +170,6 @@ static int _pvg_vertex_comparator(const PVARIANT_GRAPH_VERTEX *PV1, const PVARIA
 static ERR_VALUE _compute_components(PVARIANT_GRAPH Graph)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	const size_t threshold = 2;
 	PVARIANT_GRAPH_VERTEX v = NULL;
 	PVARIANT_GRAPH_VERTEX var = NULL;
 	size_t currentComponent = 1;
@@ -181,7 +183,7 @@ static ERR_VALUE _compute_components(PVARIANT_GRAPH Graph)
 	if (ret == ERR_SUCCESS) {
 		for (size_t i = 0; i < Graph->VerticesArraySize * 2; ++i) {
 			v = Graph->Vertices.OneArray + i;
-			if (_vg_vertex_exists(Graph, v, threshold) && v->ComponentIndex == 0) {
+			if (_vg_vertex_exists(Graph, v) && v->ComponentIndex == 0) {
 				ret = dym_array_push_back_size_t(&Graph->ComponentIndices, pointer_array_size(&Graph->Components));
 				if (ret == ERR_SUCCESS)
 					ret = pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, v);
@@ -189,14 +191,14 @@ static ERR_VALUE _compute_components(PVARIANT_GRAPH Graph)
 				while (pointer_array_size(&propagationStack) > 0) {
 					v = *pointer_array_pop_back_VARIANT_GRAPH_VERTEX(&propagationStack);
 					assert(v->ComponentIndex == 0 || v->ComponentIndex == currentComponent);
-					if (_vg_vertex_exists(Graph, v, threshold) && v->ComponentIndex == 0) {
+					if (_vg_vertex_exists(Graph, v) && v->ComponentIndex == 0) {
 						v->ComponentIndex = currentComponent;
 						pointer_array_push_back_no_alloc_VARIANT_GRAPH_VERTEX(&Graph->Components, v);
 
 						//Variant edge
 						var = _vg_vertex_get_variant(Graph, v);
 						assert(var->ComponentIndex == 0 || var->ComponentIndex == currentComponent);
-						if (_vg_vertex_exists(Graph, var, threshold) && var->ComponentIndex == 0)
+						if (_vg_vertex_exists(Graph, var) && var->ComponentIndex == 0)
 							ret = pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, var);
 
 						// Read edges
@@ -206,13 +208,13 @@ static ERR_VALUE _compute_components(PVARIANT_GRAPH Graph)
 							PVARIANT_GRAPH_VERTEX nextRef = _vg_vertex_get(Graph, vgvtReference, vIndex + 1);
 							PVARIANT_GRAPH_VERTEX nextAlt = _vg_vertex_get(Graph, vgvtAlternative, vIndex + 1);
 
-							if (_vg_read_edge_exists(Graph, v->Type, nextRef->Type, vIndex, threshold) && _vg_vertex_exists(Graph, nextRef, threshold)) {
+							if (_vg_read_edge_exists(Graph, v->Type, nextRef->Type, vIndex) && _vg_vertex_exists(Graph, nextRef)) {
 								assert(nextRef->ComponentIndex == 0 || nextRef->ComponentIndex == currentComponent);
 								if (nextRef->ComponentIndex == 0)
 									ret = pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, nextRef);
 							}
 
-							if (_vg_read_edge_exists(Graph, v->Type, nextAlt->Type, vIndex, threshold) && _vg_vertex_exists(Graph, nextAlt, threshold)) {
+							if (_vg_read_edge_exists(Graph, v->Type, nextAlt->Type, vIndex) && _vg_vertex_exists(Graph, nextAlt)) {
 								assert(nextAlt->ComponentIndex == 0 || nextAlt->ComponentIndex == currentComponent);
 								if (nextAlt->ComponentIndex == 0)
 									ret = pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, nextAlt);
@@ -223,13 +225,13 @@ static ERR_VALUE _compute_components(PVARIANT_GRAPH Graph)
 							PVARIANT_GRAPH_VERTEX prevRef = _vg_vertex_get(Graph, vgvtReference, vIndex - 1);
 							PVARIANT_GRAPH_VERTEX prevAlt = _vg_vertex_get(Graph, vgvtAlternative, vIndex - 1);
 
-							if (_vg_read_edge_exists(Graph, prevRef->Type, v->Type, vIndex - 1, threshold) && _vg_vertex_exists(Graph, prevRef, threshold)) {
+							if (_vg_read_edge_exists(Graph, prevRef->Type, v->Type, vIndex - 1) && _vg_vertex_exists(Graph, prevRef)) {
 								assert(prevRef->ComponentIndex == 0 || prevRef->ComponentIndex == currentComponent);
 								if (prevRef->ComponentIndex == 0)
 									ret = pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, prevRef);
 							}
 
-							if (_vg_read_edge_exists(Graph, prevAlt->Type, v->Type, vIndex - 1, threshold) && _vg_vertex_exists(Graph, prevAlt, threshold)) {
+							if (_vg_read_edge_exists(Graph, prevAlt->Type, v->Type, vIndex - 1) && _vg_vertex_exists(Graph, prevAlt)) {
 								assert(prevAlt->ComponentIndex == 0 || prevAlt->ComponentIndex == currentComponent);
 								if (prevAlt->ComponentIndex == 0)
 									ret = pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, prevAlt);
@@ -240,7 +242,7 @@ static ERR_VALUE _compute_components(PVARIANT_GRAPH Graph)
 						for (size_t j = 0; j < v->PairedCount; ++j) {
 							PVARIANT_GRAPH_VERTEX p = v->Paired[j].Target;
 
-							if (_vg_vertex_exists(Graph, p, threshold)) {
+							if (_vg_vertex_exists(Graph, p)) {
 								assert(p->ComponentIndex == 0 || p->ComponentIndex == currentComponent);
 								if (p->ComponentIndex == 0)
 									ret = pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, p);
@@ -297,7 +299,6 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 {
 	size_t index = Start;
 	GEN_ARRAY_COLOR_DECISION stack;
-	const size_t threshold = 2;
 	const size_t totalVertices = End - Start;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	PVARIANT_GRAPH_VERTEX v = NULL;
@@ -324,7 +325,7 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 					else v = NULL;
 				}
 
-				if (v != NULL && _vg_vertex_exists(Graph, v, threshold) && v->Color == vgvcNone) {
+				if (v != NULL && _vg_vertex_exists(Graph, v) && v->Color == vgvcNone) {
 					memset(colors, FALSE, sizeof(colors));
 					colors[vgvcNone] = TRUE;
 					colors[vgvcBoth] = TRUE;
@@ -335,7 +336,7 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 					for (size_t i = 0; i < v->PairedCount; ++i) {
 						PVARIANT_GRAPH_VERTEX p = v->Paired[i].Target;
 
-						if (_vg_vertex_exists(Graph, p, threshold)) {
+						if (_vg_vertex_exists(Graph, p)) {
 							assert(p->ComponentIndex == v->ComponentIndex);
 							switch (p->Color) {
 								case vgvcSequence1:
@@ -343,7 +344,8 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 									colors[_vg_opposite_color(p->Color)] = TRUE;
 									break;
 								case vgvcNone:
-									pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, p);
+									if (!p->Uncolorable)
+										pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, p);
 									break;
 							}
 						}
@@ -354,9 +356,9 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 						const size_t baseIndex = _vg_vertex_index(Graph, v) - 1;
 						const VARIANT_GRAPH_VERTEX *tmp = NULL;
 
-						if (_vg_read_edge_exists(Graph, vgvtReference, v->Type, baseIndex, threshold)) {
+						if (_vg_read_edge_exists(Graph, vgvtReference, v->Type, baseIndex)) {
 							tmp = _vg_vertex_get(Graph, vgvtReference, baseIndex);
-							if (_vg_vertex_exists(Graph, tmp, threshold)) {
+							if (_vg_vertex_exists(Graph, tmp)) {
 								assert(tmp->ComponentIndex == v->ComponentIndex);
 								switch (tmp->Color) {
 									case vgvcSequence1:
@@ -364,15 +366,16 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 										colors[_vg_opposite_color(tmp->Color)] = TRUE;
 										break;
 									case vgvcNone:
-										pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, tmp);
+										if (!tmp->Uncolorable)
+											pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, tmp);
 										break;
 								}
 							}
 						}
 
-						if (_vg_read_edge_exists(Graph, vgvtAlternative, v->Type, baseIndex, threshold)) {
+						if (_vg_read_edge_exists(Graph, vgvtAlternative, v->Type, baseIndex)) {
 							tmp = _vg_vertex_get(Graph, vgvtAlternative, baseIndex);
-							if (_vg_vertex_exists(Graph, tmp, threshold)) {
+							if (_vg_vertex_exists(Graph, tmp)) {
 								assert(tmp->ComponentIndex == v->ComponentIndex);
 								switch (tmp->Color) {
 									case vgvcSequence1:
@@ -380,7 +383,8 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 										colors[_vg_opposite_color(tmp->Color)] = TRUE;
 										break;
 									case vgvcNone:
-										pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, tmp);
+										if (!tmp->Uncolorable)
+											pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, tmp);
 										break;
 								}
 							}
@@ -393,9 +397,9 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 						const size_t baseIndex = _vg_vertex_index(Graph, v);
 						const VARIANT_GRAPH_VERTEX *tmp = NULL;
 
-						if (_vg_read_edge_exists(Graph, vgvtReference, v->Type, baseIndex, threshold)) {
+						if (_vg_read_edge_exists(Graph, vgvtReference, v->Type, baseIndex)) {
 							tmp = _vg_vertex_get(Graph, vgvtReference, baseIndex + 1);
-							if (_vg_vertex_exists(Graph, tmp, threshold)) {
+							if (_vg_vertex_exists(Graph, tmp)) {
 								assert(tmp->ComponentIndex == v->ComponentIndex);
 								switch (tmp->Color) {
 									case vgvcSequence1:
@@ -403,15 +407,16 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 										colors[_vg_opposite_color(tmp->Color)] = TRUE;
 										break;
 									case vgvcNone:
-										pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, tmp);
+										if (!tmp->Uncolorable)
+											pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, tmp);
 										break;
 								}
 							}
 						}
 
-						if (_vg_read_edge_exists(Graph, vgvtAlternative, v->Type, baseIndex, threshold)) {
+						if (_vg_read_edge_exists(Graph, vgvtAlternative, v->Type, baseIndex)) {
 							tmp = _vg_vertex_get(Graph, vgvtAlternative, baseIndex + 1);
-							if (_vg_vertex_exists(Graph, tmp, threshold)) {
+							if (_vg_vertex_exists(Graph, tmp)) {
 								assert(tmp->ComponentIndex == v->ComponentIndex);
 								switch (tmp->Color) {
 									case vgvcSequence1:
@@ -419,7 +424,8 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 										colors[_vg_opposite_color(tmp->Color)] = TRUE;
 										break;
 									case vgvcNone:
-										pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, tmp);
+										if (!tmp->Uncolorable)
+											pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, tmp);
 										break;
 								}
 							}
@@ -428,7 +434,7 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 
 					// Variant edge
 					var = _vg_vertex_get_variant(Graph, v);
-					if (_vg_vertex_exists(Graph, var, threshold)) {
+					if (_vg_vertex_exists(Graph, var)) {
 						assert(var->ComponentIndex == v->ComponentIndex);
 						switch (var->Color) {
 							case vgvcSequence1:
@@ -436,7 +442,8 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 								colors[var->Color] = TRUE;
 								break;
 							case vgvcNone:
-								pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, var);
+								if (!var->Uncolorable)
+									pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, var);
 								break;
 						}
 					}
@@ -457,8 +464,8 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 						assert(gen_array_size(&stack) <= totalVertices);
 						color = vgvcNone;
 					} else {
+						v->Uncolorable = TRUE;
 						ret = ERR_CANNOT_COLOR;
-						break;
 						/*
 						do {
 							--decision;
@@ -538,12 +545,11 @@ static boolean vg_graph_remove_paired_colisions(PVARIANT_GRAPH Graph, const size
 	PVARIANT_GRAPH_VERTEX p = NULL;
 	PVARIANT_GRAPH_VERTEX var = NULL;
 	PVARIANT_GRAPH_VERTEX *pv = Graph->Components.Data + Start;
-	const size_t threshold = 2;
 	boolean ret = FALSE;
 
 	for (size_t i = Start; i < End; ++i) {
 		v = *pv;
-		if (_vg_vertex_exists(Graph, v, threshold) && v->Color == vgvcNone && v->Type == vgvtAlternative) {
+		if (_vg_vertex_exists(Graph, v) && v->Color == vgvcNone && v->Type == vgvtAlternative) {
 			boolean pairedSeq1 = FALSE;
 			boolean pairedSeq2 = FALSE;
 			
@@ -555,7 +561,7 @@ static boolean vg_graph_remove_paired_colisions(PVARIANT_GRAPH Graph, const size
 
 			if (pairedSeq1 && pairedSeq2) {
 				var = _vg_vertex_get_variant(Graph, v);
-				if (_vg_vertex_exists(Graph, var, threshold)) {
+				if (_vg_vertex_exists(Graph, var)) {
 					pairedSeq1 = FALSE;
 					pairedSeq2 = FALSE;
 					for (size_t j = 0; j < v->PairedCount; ++j) {
@@ -613,25 +619,24 @@ static void _optimize_both_paths(PVARIANT_GRAPH Graph)
 {
 	PVARIANT_GRAPH_VERTEX v = NULL;
 	PVARIANT_GRAPH_VERTEX var = NULL;
-	const size_t threshold = 2;
 
 	for (EVariangGraphVertexType type = vgvtReference; type < vgvtMax; ++type) {
 		for (size_t i = 0; i < Graph->VerticesArraySize; ++i) {
 			v = _vg_vertex_get(Graph, type, i);
-			if (_vg_vertex_exists(Graph, v, threshold)) {
-				boolean refExists = _vg_read_edge_exists(Graph, v->Type, vgvtReference, i, threshold);
-				boolean altExists = _vg_read_edge_exists(Graph, v->Type, vgvtAlternative, i, threshold);
+			if (_vg_vertex_exists(Graph, v)) {
+				boolean refExists = _vg_read_edge_exists(Graph, v->Type, vgvtReference, i);
+				boolean altExists = _vg_read_edge_exists(Graph, v->Type, vgvtAlternative, i);
 				boolean varExists = FALSE;
 
 				var = _vg_vertex_get_variant(Graph, v);
-				varExists = _vg_vertex_exists(Graph, var, threshold);
+				varExists = _vg_vertex_exists(Graph, var);
 				if (!varExists || (refExists && altExists)) {
 					v->Color = vgvcBoth;
 					if (varExists)
 						_delete_vertex(Graph, var);
 
-					if (v->Type == vgvtReference)
-						_delete_vertex(Graph, v);
+//					if (v->Type == vgvtReference)
+//						_delete_vertex(Graph, v);
 				}
 			}
 		}
@@ -646,12 +651,13 @@ static void _optimize_both_paths(PVARIANT_GRAPH Graph)
 /************************************************************************/
 
 
-ERR_VALUE vg_graph_init(const VARIANT_CALL *Variants, const size_t VariantCount, PVARIANT_GRAPH Graph)
+ERR_VALUE vg_graph_init(PVARIANT_CALL Variants, const size_t VariantCount, PVARIANT_GRAPH Graph)
 {
 	int i = 0;
-	const size_t threshold = 2;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
+	Graph->Thresholds.Paired = 2;
+	Graph->Thresholds.Read = 2;
 	Graph->ReadMap = kh_init(ReadToVertex);
 	if (Graph->ReadMap != NULL) {
 		Graph->VerticesArraySize = VariantCount;
@@ -724,7 +730,6 @@ ERR_VALUE vg_graph_init(const VARIANT_CALL *Variants, const size_t VariantCount,
 
 void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 {
-	const size_t threshold = 2;
 	const VARIANT_CALL *vc = NULL;
 	const char *colors[] = {
 		"yellow",
@@ -745,7 +750,7 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 	for (size_t i = 0; i < pointer_array_size(&Graph->Components); ++i) {
 		const VARIANT_GRAPH_VERTEX *v = Graph->Components.Data[i];
 
-		if (_vg_vertex_exists(Graph, v, threshold)) {
+		if (_vg_vertex_exists(Graph, v)) {
 			++vertexCounts[v->Color];
 			++typeCounts[v->Type];
 			++totalVertexCount;
@@ -765,29 +770,29 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 			
 		vc = Graph->Vertices.ByType.Reference[i].Variant;
 		v = Graph->Vertices.ByType.Reference + i;
-		if (_vg_vertex_exists(Graph, v, threshold))
+		if (_vg_vertex_exists(Graph, v))
 			fprintf(Stream, "\tV%Iu_1[label=\"Pos: %" PRId64 "\\nCount: %Iu\\nType: %s\",style=filled,color=%s];\n", i, vc->Pos, v->ReadCount, typeNames[v->Type], colors[v->Color]);
 
 		v = Graph->Vertices.ByType.Alternative + i;
-		if (_vg_vertex_exists(Graph, v, threshold))
+		if (_vg_vertex_exists(Graph, v))
 			fprintf(Stream, "\tV%Iu_2[label=\"Pos: %" PRId64 "\\nCount: %Iu\\nType: %s\",style=filled,color=%s];\n", i, vc->Pos, v->ReadCount, typeNames[v->Type], colors[v->Color]);
 
-		if (_vg_vertex_exists(Graph, Graph->Vertices.ByType.Reference + i, threshold) && 
-			_vg_vertex_exists(Graph, Graph->Vertices.ByType.Alternative + i, threshold))
+		if (_vg_vertex_exists(Graph, Graph->Vertices.ByType.Reference + i) && 
+			_vg_vertex_exists(Graph, Graph->Vertices.ByType.Alternative + i))
 			fprintf(Stream, "\tV%Iu_1 -> V%Iu_2 [arrowhead=none,color=blue];\n", i, i);
 	}
 
 	for (size_t i = 0; i < Graph->VerticesArraySize - 1; ++i) {
-		if (_vg_read_edge_exists(Graph, vgvtReference, vgvtReference, i, threshold))
+		if (_vg_read_edge_exists(Graph, vgvtReference, vgvtReference, i))
 			fprintf(Stream, "\tV%Iu_1 -> V%Iu_1[label=\"%Iu\",color=green];\n", i, i + 1, Graph->ReadEdges.ByTypes.RefToRef[i]);
 
-		if (_vg_read_edge_exists(Graph, vgvtReference, vgvtAlternative, i, threshold))
+		if (_vg_read_edge_exists(Graph, vgvtReference, vgvtAlternative, i))
 			fprintf(Stream, "\tV%Iu_1 -> V%Iu_2[label=\"%Iu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.RefToAlt[i]);
 
-		if (_vg_read_edge_exists(Graph, vgvtAlternative, vgvtReference, i, threshold))
+		if (_vg_read_edge_exists(Graph, vgvtAlternative, vgvtReference, i))
 			fprintf(Stream, "\tV%Iu_2 -> V%Iu_1[label=\"%Iu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.AltToRef[i]);
 
-		if (_vg_read_edge_exists(Graph, vgvtAlternative, vgvtAlternative, i, threshold))
+		if (_vg_read_edge_exists(Graph, vgvtAlternative, vgvtAlternative, i))
 			fprintf(Stream, "\tV%Iu_2 -> V%Iu_2[label=\"%Iu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.AltToAlt[i]);
 	}
 
@@ -801,7 +806,7 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 			c = v->Paired[j].Count;
 			p = v->Paired[j].Target;
 			pindex = _vg_vertex_index(Graph, p);
-			if (_vg_vertex_exists(Graph, p, threshold)) {
+			if (_vg_vertex_exists(Graph, p)) {
 				switch (p->Type) {
 					case vgvtReference:
 				 		if (pindex > i || (pindex == i && p->Type != v->Type))
@@ -820,7 +825,7 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 			c = v->Paired[j].Count;
 			p = v->Paired[j].Target;
 			pindex = _vg_vertex_index(Graph, p);
-			if (_vg_vertex_exists(Graph, p, threshold)) {
+			if (_vg_vertex_exists(Graph, p)) {
 				switch (p->Type) {
 				case vgvtReference:
 					if (pindex > i)
@@ -872,13 +877,12 @@ ERR_VALUE vg_graph_add_paired(PVARIANT_GRAPH Graph)
 	khiter_t pairedIter;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	PPOINTER_ARRAY_ONE_READ pairedReads = NULL;
-	const size_t threshold = 2;
 
 	ret = paired_reads_first(&pairedIter, &pairedReads);
 	while (ret == ERR_SUCCESS) {
 		const size_t prCount = pointer_array_size(pairedReads);
 		
-		ret = utils_calloc(prCount, sizeof(PPOINTER_ARRAY_VARIANT_GRAPH_VERTEX), &readVertices);
+		ret = utils_calloc_PPOINTER_ARRAY_VARIANT_GRAPH_VERTEX(prCount, &readVertices);
 		if (ret == ERR_SUCCESS) {
 			for (size_t i = 0; i < prCount; ++i) {
 				khiter_t mapIt;
@@ -904,13 +908,13 @@ ERR_VALUE vg_graph_add_paired(PVARIANT_GRAPH Graph)
 					for (size_t k = 0; k < pointer_array_size(readVertices[i]); ++k) {
 						PVARIANT_GRAPH_VERTEX u = readVertices[i]->Data[k];
 						
-						if (!_vg_vertex_exists(Graph, u, threshold))
+						if (!_vg_vertex_exists(Graph, u))
 							continue;
 						
 						for (size_t l = 0; l < pointer_array_size(readVertices[j]); ++l) {
 							PVARIANT_GRAPH_VERTEX v = readVertices[j]->Data[l];
 							
-							if (!_vg_vertex_exists(Graph, v, threshold))
+							if (!_vg_vertex_exists(Graph, v))
 								continue;
 
 							if (u->Index == v->Index) {
@@ -991,7 +995,7 @@ void vg_graph_finalize(PVARIANT_GRAPH Graph)
 	const size_t threshold = 2;
 
 	for (size_t i = 0; i < Graph->VerticesArraySize; ++i) {
-		if (!_vg_vertex_exists(Graph, v, threshold) || v->Color == vgvcNone)
+		if (!_vg_vertex_exists(Graph, v))
 			v->Variant->Valid = FALSE;
 
 		++v;
@@ -1006,7 +1010,7 @@ void vg_graph_finalize(PVARIANT_GRAPH Graph)
 			PVARIANT_GRAPH_VERTEX v = Graph->Components.Data[j];
 			PVARIANT_GRAPH_VERTEX var = _vg_vertex_get_variant(Graph, v);
 
-			if (_vg_vertex_exists(Graph, v, threshold) && 
+			if (_vg_vertex_exists(Graph, v) && 
 				v->Color != vgvcNone &&
 				v->Type == vgvtAlternative &&
 				v->Variant->PhasedPos == 0) {

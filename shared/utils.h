@@ -108,18 +108,28 @@ void _utils_alloc_diff(void *Mark);
 ERR_VALUE utils_allocator_init(const size_t NumberOfThreads);
 
 #define UTILS_TYPED_MALLOC_FUNCTION(aType)	\
-	ERR_VALUE utils_malloc_##aType(aType ** aResult)						\
+	static ERR_VALUE utils_malloc_##aType(aType ** aResult)						\
 	{																		\
 		return utils_malloc(sizeof(aType), (void **)aResult);				\
 	}																		\
 
 #define UTILS_TYPED_CALLOC_FUNCTION(aType)									\
-	ERR_VALUE utils_calloc_##aType(const size_t Count, aType ** aResult)	\
+	INLINE_FUNCTION ERR_VALUE utils_calloc_##aType(const size_t Count, aType ** aResult)	\
+	{																		\
+		return utils_calloc(Count, sizeof(aType), (void **)aResult);		\
+	} \
+
+#define UTILS_NAMED_CALLOC_FUNCTION(aName, aType)									\
+	INLINE_FUNCTION ERR_VALUE utils_calloc_##aName(const size_t Count, aType ** aResult)	\
 	{																		\
 		return utils_calloc(Count, sizeof(aType), (void **)aResult);		\
 	} \
 
 
+UTILS_TYPED_CALLOC_FUNCTION(uint8_t)
+UTILS_TYPED_CALLOC_FUNCTION(char)
+UTILS_TYPED_CALLOC_FUNCTION(size_t)
+UTILS_NAMED_CALLOC_FUNCTION(puint8_t, uint8_t *)
 
 
 INLINE_FUNCTION long utils_atomic_increment(long volatile *Data)

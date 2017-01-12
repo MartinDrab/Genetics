@@ -24,9 +24,9 @@
 /************************************************************************/
 
 
-static UTILS_TYPED_MALLOC_FUNCTION(KMER_GRAPH)
-static UTILS_TYPED_MALLOC_FUNCTION(KMER_VERTEX)
-static UTILS_TYPED_MALLOC_FUNCTION(KMER_EDGE)
+UTILS_TYPED_MALLOC_FUNCTION(KMER_GRAPH)
+UTILS_TYPED_MALLOC_FUNCTION(KMER_VERTEX)
+UTILS_TYPED_MALLOC_FUNCTION(KMER_EDGE)
 
 /************************************************************************/
 /*                        VERTEX BASIC ROUTINES                         */
@@ -1615,7 +1615,7 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 					read_info_sort(&ri);
 					ret = read_info_merge(&tmp, &ri, &e->ReadInfo);
 					if (ret == ERR_SUCCESS)
-						ret = read_info_assign(&ri, &tmp);
+						ret = read_info_assign(&ri, &tmp.Array);
 				}
 
 				path1Vertex = e->Dest;

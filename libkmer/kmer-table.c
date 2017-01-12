@@ -19,7 +19,7 @@
 /************************************************************************/
 
 
-static UTILS_TYPED_MALLOC_FUNCTION(KMER_TABLE)
+UTILS_TYPED_MALLOC_FUNCTION(KMER_TABLE)
 
 
 INLINE_FUNCTION size_t _kmer_hash(const struct _KMER *KMer)

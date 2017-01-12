@@ -307,11 +307,10 @@ ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, co
 			for (size_t i = firstIndex; i <= lastIndex; ++i) {
 				ONE_READ tmp;
 
-				if (r->NumberOfFixes * 100 / r->ReadSequenceLen < FixupThreshold) {
+				if (r->ReadSequenceLen > KMerSize && r->NumberOfFixes * 100 / r->ReadSequenceLen < FixupThreshold) {
 					ret = read_copy(&tmp, r);
 					if (ret == ERR_SUCCESS) {
 						tmp.Parent = r;
-						read_split(&tmp);
 						read_adjust(&tmp, RegionStart, RegionLength);
 						if (tmp.Part.ReadSequenceLength > KMerSize)
 							dym_array_push_back_no_alloc_ONE_READ(NewReads, tmp);
@@ -380,6 +379,12 @@ void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQua
 		_read_destroy_structure(r);
 		--readSetSize;
 	} else r->ReadIndex = readSetSize - 1;
+
+	r = Reads;
+	for (size_t i = 0; i < readSetSize; ++i) {
+		read_split(r);
+		++r;
+	}
 
 	*Count = readSetSize;
 

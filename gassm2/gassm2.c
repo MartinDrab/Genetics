@@ -20,6 +20,11 @@
 
 
 
+
+UTILS_TYPED_CALLOC_FUNCTION(GEN_ARRAY_ONE_READ)
+UTILS_TYPED_CALLOC_FUNCTION(GEN_ARRAY_VARIANT_CALL)
+
+
 static PUTILS_LOOKASIDE *_vertexLAs;
 static PUTILS_LOOKASIDE *_edgeLAs;
 
@@ -760,7 +765,7 @@ static ERR_VALUE process_repair_reads(const KMER_GRAPH_ALLOCATOR *Allocator, con
 	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, Options->ParseOptions.ReadMaxErrorRate, FilteredReads);
 	if (ret == ERR_SUCCESS) {
 		if (gen_array_size(FilteredReads) > 0) {
-			size_t coverage = 0;
+			uint32_t coverage = 0;
 			const ONE_READ *fr = FilteredReads->Data;
 			size_t baseCount = 0;
 
@@ -769,7 +774,7 @@ static ERR_VALUE process_repair_reads(const KMER_GRAPH_ALLOCATOR *Allocator, con
 				++fr;
 			}
 
-			coverage = baseCount / Options->RegionLength;
+			coverage = (uint32_t)(baseCount / Options->RegionLength);
 
 			PARSE_OPTIONS po = Options->ParseOptions;
 
@@ -909,7 +914,7 @@ static void process_active_region_in_parallel(const ACTIVE_REGION *Contig, const
 
 static void repair_reads_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_OPTIONS *Options)
 {
-	const size_t iterations = 2;
+	const long iterations = 2;
 	const long count = _activeRegionCount*iterations;
 	const uint32_t realStep = ((Options->RegionLength + Options->TestStep - 1) / Options->TestStep)*Options->TestStep;
 	long done;
@@ -1000,12 +1005,12 @@ int main(int argc, char *argv[])
 						}
 
 						if (ret == ERR_SUCCESS) {
-							ret = utils_calloc(omp_get_num_procs(), sizeof(PUTILS_LOOKASIDE), &_vertexLAs);
+							ret = utils_calloc_PUTILS_LOOKASIDE(omp_get_num_procs(), &_vertexLAs);
 							if (ret == ERR_SUCCESS)
-								ret = utils_calloc(omp_get_num_procs(), sizeof(PUTILS_LOOKASIDE), &_edgeLAs);
+								ret = utils_calloc_PUTILS_LOOKASIDE(omp_get_num_procs(), &_edgeLAs);
 
 							if (ret == ERR_SUCCESS) {
-								ret = utils_calloc(omp_get_num_procs(), sizeof(GEN_ARRAY_ONE_READ), &po.ReadSubArrays);
+								ret = utils_calloc_GEN_ARRAY_ONE_READ(omp_get_num_procs(), &po.ReadSubArrays);
 								if (ret == ERR_SUCCESS) {
 									const size_t numThreads = omp_get_num_procs();
 									for (size_t i = 0; i < numThreads; ++i) {
@@ -1024,7 +1029,7 @@ int main(int argc, char *argv[])
 										pa = regions;
 										for (size_t i = 0; i < regionCount; ++i) {
 											if (pa->Type == artValid && pa->Length >= po.RegionLength)
-												_activeRegionCount += (pa->Length / po.TestStep);
+												_activeRegionCount += (long)(pa->Length / po.TestStep);
 
 											++pa;
 										}
@@ -1095,6 +1100,7 @@ int main(int argc, char *argv[])
 
 						if (ret == ERR_SUCCESS) {
 							paired_reads_connect();
+							paired_reads_fix_overlaps();
 							if (ret == ERR_SUCCESS) {
 								size_t refSeqLen = 0;
 								FASTA_FILE seqFile;
@@ -1118,13 +1124,13 @@ int main(int argc, char *argv[])
 									}
 
 									if (ret == ERR_SUCCESS) {
-										ret = utils_calloc(omp_get_num_procs(), sizeof(PUTILS_LOOKASIDE), &_vertexLAs);
+										ret = utils_calloc_PUTILS_LOOKASIDE(omp_get_num_procs(), &_vertexLAs);
 										if (ret == ERR_SUCCESS)
-											ret = utils_calloc(omp_get_num_procs(), sizeof(PUTILS_LOOKASIDE), &_edgeLAs);
+											ret = utils_calloc_PUTILS_LOOKASIDE(omp_get_num_procs(), &_edgeLAs);
 										
-										ret = utils_calloc(omp_get_num_procs(), sizeof(GEN_ARRAY_VARIANT_CALL), &po.VCSubArrays);
+										ret = utils_calloc_GEN_ARRAY_VARIANT_CALL(omp_get_num_procs(), &po.VCSubArrays);
 										if (ret == ERR_SUCCESS) {
-											ret = utils_calloc(omp_get_num_procs(), sizeof(GEN_ARRAY_ONE_READ), &po.ReadSubArrays);
+											ret = utils_calloc_GEN_ARRAY_ONE_READ(omp_get_num_procs(), &po.ReadSubArrays);
 											if (ret == ERR_SUCCESS) {
 												const size_t numThreads = omp_get_num_procs();
 												for (size_t i = 0; i < numThreads; ++i) {
@@ -1144,7 +1150,7 @@ int main(int argc, char *argv[])
 													pa = regions;
 													for (size_t i = 0; i < regionCount; ++i) {
 														if (pa->Type == artValid && pa->Length >= po.RegionLength)
-															_activeRegionCount += (pa->Length / po.TestStep);
+															_activeRegionCount += (long)(pa->Length / po.TestStep);
 
 														++pa;
 													}
@@ -1209,7 +1215,7 @@ int main(int argc, char *argv[])
 								}
 							} else printf("fix_reads(): %u\n", ret);
 
-							printf("Read coverage: %lf\n", _readBaseCount / _totalRegionLength );
+							fprintf(stderr, "Read coverage: %lf\n", _readBaseCount / _totalRegionLength );
 							paired_reads_finit();
 						}
 					}

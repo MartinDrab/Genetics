@@ -118,40 +118,6 @@ void _read_destroy_structure(PONE_READ Read)
 /*                          PUBLIC FUNCTIONS                            */
 /************************************************************************/
 
-ERR_VALUE read_create_from_test_line(const char *Line, const size_t Length, PONE_READ *Read)
-{
-	PONE_READ tmpRead = NULL;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = utils_calloc(1, sizeof(ONE_READ), &tmpRead);
-	if (ret == ERR_SUCCESS) {
-		memset(tmpRead, 0, sizeof(ONE_READ));
-		tmpRead->Pos = (uint64_t)-1;
-		tmpRead->ReadSequenceLen = Length;
-		ret = utils_calloc(Length + 1, sizeof(char), &tmpRead->ReadSequence);
-		if (ret == ERR_SUCCESS) {
-			memcpy(tmpRead->ReadSequence, Line, Length*sizeof(char));
-			tmpRead->ReadSequence[Length] = '\0';
-			*Read = tmpRead;
-		}
-
-		if (ret != ERR_SUCCESS)
-			utils_free(tmpRead);
-	}
-
-	return ret;
-}
-
-
-ERR_VALUE read_generate_from_sequence(const char *Seq, const size_t SeqLen, const uint32_t ReadLength, PONE_READ *Read)
-{
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = read_set_generate_from_sequence(Seq, SeqLen, ReadLength, 1, Read);
-
-	return ret;
-}
-
 
 void read_copy_direct(PONE_READ Dest, const ONE_READ *Source)
 {
@@ -375,58 +341,6 @@ void read_destroy(PONE_READ Read)
 }
 
 
-ERR_VALUE read_set_generate_from_sequence(const char *Seq, const size_t SeqLen, const uint32_t ReadLength, const size_t ReadCount, PONE_READ *ReadSet)
-{
-	PONE_READ r = NULL;
-	PONE_READ tmpReadSet = NULL;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = utils_calloc(ReadCount, sizeof(ONE_READ), &tmpReadSet);
-	if (ret == ERR_SUCCESS) {
-		r = tmpReadSet;
-		for (size_t i = 0; i < ReadCount; ++i) {
-			memset(r, 0, sizeof(ONE_READ));
-			r->Pos = utils_ranged_rand(0, SeqLen - ReadLength + 1);
-
-			r->PosQuality = 254;
-			r->ReadSequenceLen = ReadLength;
-			ret = utils_calloc(r->ReadSequenceLen + 1, sizeof(char), &r->ReadSequence);
-			if (ret == ERR_SUCCESS) {
-				memcpy(r->ReadSequence, Seq + r->Pos, r->ReadSequenceLen*sizeof(char));
-				r->ReadSequence[r->ReadSequenceLen] = '\0';
-				r->QualityLen = r->ReadSequenceLen;
-				ret = utils_calloc(r->QualityLen, sizeof(uint8_t), &r->Quality);
-				if (ret == ERR_SUCCESS)
-					memset(r->Quality, 254, r->QualityLen);
-
-				if (ret != ERR_SUCCESS)
-					utils_free(r->ReadSequence);
-			}
-
-			if (ret != ERR_SUCCESS) {
-				--r;
-				for (size_t j = 0; j < i; ++j) {
-					_read_destroy_structure(r);
-					--r;
-				}
-
-				break;
-			}
-
-			++r;
-		}
-
-		if (ret == ERR_SUCCESS)
-			*ReadSet = tmpReadSet;
-
-		if (ret != ERR_SUCCESS)
-			utils_free(tmpReadSet);
-	}
-
-	return ret;
-}
-
-
 void read_set_destroy(PONE_READ ReadSet, const size_t Count)
 {
 	PONE_READ tmp = ReadSet;
@@ -472,8 +386,13 @@ void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t Region
 	if (Read->Pos + Read->ReadSequenceLen >= RegionStart + RegionLength)
 		endStripped = (size_t)(Read->Pos + Read->ReadSequenceLen - RegionStart - RegionLength);
 
+	part = &Read->Part;
+	part->Offset = 0;
+	part->Position = Read->Pos;
+	part->Quality = Read->Quality;
+	part->ReadSequence = Read->ReadSequence;
+	part->ReadSequenceLength = Read->ReadSequenceLen;
 	if (startStripped > 0) {
-		part = &Read->Part;
 		if (part->ReadSequenceLength >= startStripped) {
 			part->ReadSequenceLength -= startStripped;
 			part->ReadSequence += startStripped;
@@ -486,7 +405,6 @@ void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t Region
 	}
 
 	if (endStripped > 0) {
-		part = &Read->Part;
 		if (part->ReadSequenceLength > endStripped) {
 			part->ReadSequenceLength -= endStripped;
 		} else {
@@ -502,6 +420,7 @@ void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t Region
 void read_split(PONE_READ Read)
 {
 	READ_PART part;
+	boolean end = FALSE;
 
 	Read->Indels = FALSE;
 	if (Read->CIGAR != NULL && *Read->CIGAR != '\0' && *Read->CIGAR != '*') {
@@ -517,63 +436,59 @@ void read_split(PONE_READ Read)
 		while (*c != '\0') {
 			char *tmp;
 
+			assert(!end);
 			count = strtoul(c, &tmp, 10);
 			c = tmp;
 			t = *c;
 			if (t != '\0' && count > 0) {
 				++c;
 				switch (t) {
-					case 'M':
-					case 'I':
-						part.ReadSequenceLength += count;
-						Read->Indels = TRUE;
-						break;
-					case 'D':
-						Read->Indels = TRUE;
-						break;
-					case 'S':
-						if (part.ReadSequenceLength > 0) {
-							part.Offset = (size_t)(part.Position - Read->Pos);
-							Read->Part = part;
-						}
-
+				case 'M':
+				case 'I':
+					part.ReadSequenceLength += count;
+					Read->Indels = TRUE;
+					break;
+				case 'D':
+					Read->Indels = TRUE;
+					break;
+				case 'S':
+					if (part.ReadSequenceLength > 0) {
+						end = TRUE;
+					}
+					else {
+//						part.Position += count;
 						part.ReadSequence += count;
 						part.Quality += count;
-						part.ReadSequenceLength = 0;
-						break;
-					case 'H':
-						if (part.ReadSequenceLength > 0) {
-							part.Offset = (size_t)(part.Position - Read->Pos);
-							Read->Part = part;
-						}
-
-						part.ReadSequenceLength = 0;
-						break;
-					default:
-						Read->Indels = TRUE;
-						part.Offset = 0;
-						part.Position = Read->Pos;
-						part.ReadSequence = Read->ReadSequence;
-						part.ReadSequenceLength = Read->ReadSequenceLen;
-						part.Quality = Read->Quality;
-						Read->Part = part;
-						break;
+					}
+					break;
+				case 'H':
+					if (part.ReadSequenceLength > 0) {
+						end = TRUE;
+					}
+					else {
+//						part.Position += count;
+					}
+					break;
+				default:
+					Read->Indels = TRUE;
+					part.Offset = 0;
+					part.Position = Read->Pos;
+					part.ReadSequence = Read->ReadSequence;
+					part.ReadSequenceLength = Read->ReadSequenceLen;
+					part.Quality = Read->Quality;
+					break;
 				}
 			}
 		}
 
-		if (part.ReadSequenceLength > 0) {
-			part.Offset = (size_t)(part.Position - Read->Pos);
-			Read->Part = part;
+		if (part.ReadSequenceLength > 0 && part.ReadSequenceLength != Read->ReadSequenceLen) {
+			Read->Pos = part.Position;
+			memmove(Read->ReadSequence, part.ReadSequence, part.ReadSequenceLength*sizeof(char));
+			memmove(Read->Quality, part.Quality, part.ReadSequenceLength*sizeof(char));
+			Read->ReadSequenceLen = part.ReadSequenceLength;
+			Read->QualityLen = part.ReadSequenceLength;
+			Read->ReadSequence[Read->ReadSequenceLen] = '\0';
 		}
-	} else {
-		Read->Indels = TRUE;
-		part.Position = Read->Pos;
-		part.ReadSequence = Read->ReadSequence;
-		part.ReadSequenceLength = Read->ReadSequenceLen;
-		part.Offset = 0;
-		part.Quality = Read->Quality;
-		Read->Part = part;
 	}
 
 	return;

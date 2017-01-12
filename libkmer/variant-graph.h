@@ -46,6 +46,7 @@ typedef struct _VARIANT_GRAPH_VERTEX {
 	size_t ComponentIndex;
 	size_t Index;
 	EVariantGraphVertexColo Color;
+	boolean Uncolorable;
 } VARIANT_GRAPH_VERTEX, *PVARIANT_GRAPH_VERTEX;
 
 POINTER_ARRAY_TYPEDEF(VARIANT_GRAPH_VERTEX);
@@ -61,6 +62,11 @@ typedef struct _VARIANG_GRAPH_READ_EDGES {
 } VARIANG_GRAPH_READ_EDGES, *PVARIANG_GRAPH_READ_EDGES;
 
 KHASH_MAP_INIT_INT64(ReadToVertex, PPOINTER_ARRAY_VARIANT_GRAPH_VERTEX)
+
+typedef struct _VARIANT_GRAPH_THRESHOLDS {
+	size_t Read;
+	size_t Paired;
+} VARIANT_GRAPH_THRESHOLDS, *PVARIANT_GRAPH_THRESHOLDS;
 
 typedef struct _VARIANT_GRAPH {
 	union {
@@ -79,11 +85,12 @@ typedef struct _VARIANT_GRAPH {
 	khash_t(ReadToVertex) *ReadMap;
 	GEN_ARRAY_size_t ComponentIndices;
 	POINTER_ARRAY_VARIANT_GRAPH_VERTEX Components;
+	VARIANT_GRAPH_THRESHOLDS Thresholds;
 } VARIANT_GRAPH, *PVARIANT_GRAPH;
 
 
 
-ERR_VALUE vg_graph_init(const VARIANT_CALL *Variants, const size_t VariantCount, PVARIANT_GRAPH Graph);
+ERR_VALUE vg_graph_init(PVARIANT_CALL Variants, const size_t VariantCount, PVARIANT_GRAPH Graph);
 void vg_graph_finit(PVARIANT_GRAPH Graph);
 ERR_VALUE vg_graph_add_paired(PVARIANT_GRAPH Graph);
 ERR_VALUE vg_graph_color(PVARIANT_GRAPH Graph);

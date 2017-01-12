@@ -68,7 +68,7 @@ typedef struct _KMER_EDGE_PAIR {
 	PKMER_EDGE U;
 	PKMER_EDGE V;
 	PKMER_EDGE ConnectingEdge;
-	uint32_t ReadDistance;
+	size_t ReadDistance;
 	PKMER_EDGE *Edges;
 	size_t EdgeCount;
 } KMER_EDGE_PAIR, *PKMER_EDGE_PAIR;

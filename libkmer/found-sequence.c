@@ -514,17 +514,14 @@ void vc_array_print(FILE *Stream, const GEN_ARRAY_VARIANT_CALL *Array)
 			const char *genotype = NULL;
 			
 			switch (tmp->PhaseType) {
-			case vcptNone: genotype = "0|0"; break;
-			case vcptOneTwo: genotype = "1|2"; break;
-			case vcptTwoOne: genotype = "2|1"; break;
-			case vcptBothAlt: genotype = ""; break;
-			default: assert(FALSE); break;
+				case vcptNone: genotype = "0/1"; break;
+				case vcptOneTwo: genotype = "0|1"; break;
+				case vcptTwoOne: genotype = "1|0"; break;
+				case vcptBothAlt: genotype = "1|1"; break;
+				default: assert(FALSE); break;
 			}
 
-			if (tmp->PhaseType == vcptBothAlt) {
-				fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\t.\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, "0|1", tmp->PhasedPos);
-				fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\t.\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, "0|2", tmp->PhasedPos);
-			} else fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\t.\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, genotype, tmp->PhasedPos);
+			fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\t.\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, genotype, tmp->PhasedPos);
 		}
 
 		++tmp;

@@ -19,6 +19,7 @@ typedef struct _UTILS_LOOKASIDE {
 	PUTILS_LOOKASIDE_BLOCK Block;
 } UTILS_LOOKASIDE, *PUTILS_LOOKASIDE;
 
+UTILS_TYPED_CALLOC_FUNCTION(PUTILS_LOOKASIDE)
 
 
 ERR_VALUE utils_lookaside_init(PUTILS_LOOKASIDE Lookaside, const size_t BlockSize, const size_t Count);
