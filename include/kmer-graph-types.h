@@ -13,8 +13,8 @@
 #include "read-info.h"
 #include "found-sequence-types.h"
 
-typedef struct _KMER_VERTEX;
-typedef struct _KMER_GRAPH;
+struct _KMER_VERTEX;
+struct _KMER_GRAPH;
 
 
 /** Represents one edge in a kmer graph. */
@@ -83,10 +83,10 @@ typedef struct _KMER_EDGE_PAIR_KEY {
 GEN_ARRAY_TYPEDEF(KMER_EDGE_PAIR);
 GEN_ARRAY_IMPLEMENTATION(KMER_EDGE_PAIR)
 
-typedef struct _KMER_GRAPH;
+struct _KMER_GRAPH;
 typedef void (GRAPH_ON_DELETE_EDGE_CALLBACK)(const struct _KMER_GRAPH *Graph, const KMER_EDGE *Edge, void *Context);
 
-typedef struct _KMER_GRAPH;
+struct _KMER_GRAPH;
 typedef PKMER_VERTEX (KMER_GRAPH_VERTEX_ALLOCATOR)(struct _KMER_GRAPH *Graph, void *Context);
 typedef PKMER_EDGE (KMER_GRAPH_EDGE_ALLOCATOR)(struct _KMER_GRAPH *Graph, void *Context);
 typedef void(KMER_GRAPH_VERTEX_FREER)(struct _KMER_GRAPH *Graph, PKMER_VERTEX Vertex, void *Context);

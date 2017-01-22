@@ -261,7 +261,7 @@ static void _vertex_table_on_print(struct _KMER_TABLE *Table, void *ItemData, FI
 	kmer_print(Stream, &v->KMer);
 	fprintf(Stream, "[label=\"");
 	kmer_print(Stream, &v->KMer);
-	fprintf(Stream, "\\nIN=%u; OUT=%u; O=%u\",style=filled,color=%s]", kmer_vertex_in_degree(v), kmer_vertex_out_degree(v), v->Order, colors[v->Type]);
+	fprintf(Stream, "\\nIN=%zu; OUT=%zu; O=%u\",style=filled,color=%s]", kmer_vertex_in_degree(v), kmer_vertex_out_degree(v), v->Order, colors[v->Type]);
 	fprintf(Stream, ";\n");
 
 	return;

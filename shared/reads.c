@@ -495,6 +495,19 @@ void read_split(PONE_READ Read)
 }
 
 
+void read_shorten(PONE_READ Read, const size_t Count)
+{
+	if (Read->ReadSequenceLen > 2 * Count) {
+		memmove(Read->Quality, Read->Quality + Count, Read->ReadSequenceLen - Count);
+		memmove(Read->ReadSequence, Read->ReadSequence + Count, Read->ReadSequenceLen - Count);
+		Read->ReadSequenceLen -= Count;
+		Read->Pos += Count;
+	}
+
+	return;
+}
+
+
 ERR_VALUE read_save(FILE *Stream, const ONE_READ *Read)
 {
 	const uint32_t rsLen32 = (uint32_t)Read->ReadSequenceLen;

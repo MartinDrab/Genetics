@@ -26,7 +26,7 @@ UTILS_TYPED_CALLOC_FUNCTION(PPOINTER_ARRAY_VARIANT_GRAPH_VERTEX)
 	((aVertex)->ReadCount > ((aGraph)->Thresholds.Read))
 
 #define _vg_vertex_index(aGraph, aVertex)	\
-	(((aVertex)->Type == vgvtReference) ? ((aVertex) - (aGraph)->Vertices.ByType.Reference) : ((aVertex) - (aGraph)->Vertices.ByType.Alternative))
+	(size_t)(((aVertex)->Type == vgvtReference) ? ((aVertex) - (aGraph)->Vertices.ByType.Reference) : ((aVertex) - (aGraph)->Vertices.ByType.Alternative))
 
 #define _vg_read_edge_exists(aGraph, aSourceType, aDestType, aSourceIndex)	\
 	((aGraph)->ReadEdges.All[((aSourceType) << 1) + (aDestType)][(aSourceIndex)] > (aGraph)->Thresholds.Read)
@@ -147,11 +147,11 @@ static void _vg_vertex_finit(PVARIANT_GRAPH_VERTEX Vertex)
 }
 
 
-static int _pvg_vertex_comparator(const PVARIANT_GRAPH_VERTEX *PV1, const PVARIANT_GRAPH_VERTEX *PV2)
+static int _pvg_vertex_comparator(const void *PV1, const void *PV2)
 {
 	int ret = 0;
-	const VARIANT_GRAPH_VERTEX *v1 = *PV1;
-	const VARIANT_GRAPH_VERTEX *v2 = *PV2;
+	const VARIANT_GRAPH_VERTEX *v1 = *(const PVARIANT_GRAPH_VERTEX *)PV1;
+	const VARIANT_GRAPH_VERTEX *v2 = *(const PVARIANT_GRAPH_VERTEX *)PV2;
 
 	if (v1->Index < v2->Index)
 		ret = -1;

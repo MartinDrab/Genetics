@@ -24,7 +24,7 @@ typedef struct _READ_PART {
 GEN_ARRAY_TYPEDEF(READ_PART);
 GEN_ARRAY_IMPLEMENTATION(READ_PART)
 
-typedef struct _ONE_READ;
+struct _ONE_READ;
 
 typedef struct _ONE_READ_PAIRED_LIST {
 	struct _ONE_READ *Next;
@@ -90,6 +90,7 @@ void read_set_destroy(PONE_READ ReadSet, const size_t Count);
 ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ONE_READ *Source, const size_t SourceCount);
 void read_split(PONE_READ Read);
 void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t RegionLength);
+void read_shorten(PONE_READ Read, const size_t Count);
 
 ERR_VALUE read_save(FILE *Stream, const ONE_READ *Read);
 ERR_VALUE read_load(FILE *Stream, PONE_READ Read);

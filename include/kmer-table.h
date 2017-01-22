@@ -11,7 +11,7 @@
 
 __KHASH_TYPE(vertexTable, const KMER *, void *)
 
-typedef struct _KMER_TABLE;
+struct _KMER_TABLE;
 
 typedef void(KMER_TABLE_ON_INSERT_CALLBACK)(struct _KMER_TABLE *Table, void *ItemData, const uint32_t Order);
 typedef void(KMER_TABLE_ON_DELETE_CALLBACK)(struct _KMER_TABLE *Table, void *ItemData, void *Context);

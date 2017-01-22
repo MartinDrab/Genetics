@@ -15,7 +15,7 @@ typedef struct _KMER_EDGE_TABLE_KEY {
 	const KMER *Dest;
 } KMER_EDGE_TABLE_KEY, *PKMER_EDGE_TABLE_KEY;
 
-typedef struct _KMER_EDGE_TABLE;
+struct _KMER_EDGE_TABLE;
 
 typedef void(KMER_EDGE_TABLE_ON_INSERT_CALLBACK)(struct _KMER_EDGE_TABLE *Table, void *ItemData, const uint32_t Order);
 typedef void(KMER_EDGE_TABLE_ON_DELETE_CALLBACK)(struct _KMER_EDGE_TABLE *Table, void *ItemData, void *Context);

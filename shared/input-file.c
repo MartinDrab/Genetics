@@ -383,6 +383,7 @@ void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQua
 	r = Reads;
 	for (size_t i = 0; i < readSetSize; ++i) {
 		read_split(r);
+		read_shorten(r, 10);
 		++r;
 	}
 

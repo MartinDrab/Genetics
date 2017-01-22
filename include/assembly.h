@@ -17,6 +17,8 @@ typedef struct _PARSE_OPTIONS {
 	uint32_t BackwardRefseqPenalty;
 	uint32_t ReadThreshold;
 	uint32_t ReadMaxErrorRate;
+	uint64_t RegionStart;
+	uint32_t RegionLength;
 } PARSE_OPTIONS, *PPARSE_OPTIONS;
 
 

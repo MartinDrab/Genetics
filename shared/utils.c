@@ -109,7 +109,7 @@ void _utils_alloc_diff(void *Mark)
 
 	item = item->Next;
 	while (item != head) {
-		printf("[LEAK]: %u bytes, function %s, line %u\n", item->BodySize, item->Function, item->Line);
+		printf("[LEAK]: %zu bytes, function %s, line %u\n", item->BodySize, item->Function, item->Line);
 		item = item->Next;
 	}
 

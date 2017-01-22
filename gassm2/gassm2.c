@@ -745,6 +745,8 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 			PARSE_OPTIONS po = Options->ParseOptions;
 //			po.ReadThreshold = (coverage > Options->Threshold * 3) ? coverage / 3 : Options->Threshold;
 			po.ReadThreshold = Options->Threshold;
+			po.RegionStart = RegionStart;
+			po.RegionLength = Options->RegionLength;
 			ret = _compute_graph(Allocator, Options, &po, &task, &tmpstats);
 			assembly_task_finit(&task);
 		}

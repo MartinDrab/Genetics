@@ -240,15 +240,40 @@ static ERR_VALUE _find_best_path(const PARSE_OPTIONS *Options, PKMER_GRAPH Graph
 }
 
 
-static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const char *ReadSequence, PPOINTER_ARRAY_KMER_VERTEX *Vertices, const size_t NumberOfSets, boolean *Linear)
+static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ *Read, PPOINTER_ARRAY_KMER_VERTEX *Vertices, const size_t NumberOfSets, const PARSE_OPTIONS *Options, boolean *Linear)
 {
 	size_t count = 0;
 	PKMER kmer = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	const uint32_t KMerSize = kmer_graph_get_kmer_size(Graph);
 
-	KMER_STACK_ALLOC(kmer, 0, KMerSize, ReadSequence);
-	for (size_t i = 0; i < NumberOfSets; ++i) {
+	KMER_STACK_ALLOC(kmer, 0, KMerSize, Read->Part.ReadSequence);
+	Vertices[0] = NULL;
+	ret = kmer_graph_get_vertices(Graph, kmer, Vertices);
+	if (ret == ERR_SUCCESS) {
+		for (size_t i = 0; i < pointer_array_size(Vertices[0]); ++i) {
+			PKMER_VERTEX v = Vertices[0]->Data[i];
+		
+			if (v->RefSeqPosition > 0 && Read->Pos == Options->RegionStart + v->RefSeqPosition) {
+				pointer_array_clear_KMER_VERTEX(Vertices[0]);
+				pointer_array_push_back_no_alloc_KMER_VERTEX(Vertices[0], v);
+				fprintf(stderr, "MATCH\n");
+			}
+		}
+
+		count += pointer_array_size(Vertices[0]);
+	} else if (ret == ERR_NOT_FOUND) {
+		PKMER_VERTEX v = NULL;
+
+		ret = kmer_graph_add_vertex_ex(Graph, kmer, kmvtRead, &v);
+		if (ret == ERR_SUCCESS) {
+			kmer_graph_get_vertices(Graph, kmer, Vertices);
+			count += 1;
+		}
+	}
+
+	kmer_advance(kmer, Read->Part.ReadSequence[KMerSize]);
+	for (size_t i = 1; i < NumberOfSets; ++i) {
 		Vertices[i] = NULL;
 		ret = kmer_graph_get_vertices(Graph, kmer, Vertices + i);
 		if (ret == ERR_SUCCESS) {
@@ -266,7 +291,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const char *Re
 		if (ret != ERR_SUCCESS)
 			break;
 
-		kmer_advance(kmer, ReadSequence[i + KMerSize]);
+		kmer_advance(kmer, Read->Part.ReadSequence[i + KMerSize]);
 	}
 
 	if (ret == ERR_SUCCESS)
@@ -629,7 +654,7 @@ static ERR_VALUE _add_read_helper_vertices(PKMER_GRAPH Graph, PKMER_VERTEX **pVe
 }
 
 
-static ERR_VALUE _produce_single_path(const PARSE_OPTIONS *Options, PKMER_GRAPH Graph, const char *ReadSequence, const size_t MaxNumberOfSets, const boolean CreateDummyVertices, PKMER_VERTEX **Path, size_t *PathLength)
+static ERR_VALUE _produce_single_path(const PARSE_OPTIONS *Options, PKMER_GRAPH Graph, const ONE_READ *Read, const size_t MaxNumberOfSets, const boolean CreateDummyVertices, PKMER_VERTEX **Path, size_t *PathLength)
 {
 	boolean linear = FALSE;
 	PPOINTER_ARRAY_KMER_VERTEX *vertices = NULL;
@@ -640,7 +665,7 @@ static ERR_VALUE _produce_single_path(const PARSE_OPTIONS *Options, PKMER_GRAPH 
 //		for (size_t i = 0; i < MaxNumberOfSets; ++i)
 //			pointer_array_init_KMER_VERTEX(vertices + i, 140);
 
-		ret = _assign_vertice_sets_to_kmers(Graph, ReadSequence, vertices, MaxNumberOfSets, &linear);
+		ret = _assign_vertice_sets_to_kmers(Graph, Read, vertices, MaxNumberOfSets, Options, &linear);
 		if (ret == ERR_SUCCESS)
 			ret = _find_best_path(Options, Graph, vertices, MaxNumberOfSets, linear, CreateDummyVertices, Path, PathLength);
 	
@@ -670,7 +695,7 @@ static ERR_VALUE _kmer_graph_parse_read_v2(const PARSE_OPTIONS *Options, PKMER_G
 		size_t tmpPathLength = 0;
 		PKMER_VERTEX *tmpPath = NULL;
 
-		ret = _produce_single_path(Options, Graph, part->ReadSequence, maxNumberOfVertices, TRUE, &tmpPath, &tmpPathLength);
+		ret = _produce_single_path(Options, Graph, Read, maxNumberOfVertices, TRUE, &tmpPath, &tmpPathLength);
 		if (ret == ERR_SUCCESS) {
 			ret = _create_short_read_edges(Graph, tmpPath, tmpPathLength, part, ReadIndex, EdgePath);
 			if (ret == ERR_SUCCESS) {
@@ -866,7 +891,7 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_
 	uint8_t **flagPaths = NULL;
 	size_t *pathLengths = 0;
 
-	ret = utils_calloc(ReadCount, sizeof(PKMER_VERTEX *), &paths);
+	ret = utils_calloc_PPKMER_VERTEX(ReadCount, &paths);
 	if (ret == ERR_SUCCESS) {
 		ret = utils_calloc(ReadCount, sizeof(size_t), &pathLengths);
 		if (ret == ERR_SUCCESS) {
