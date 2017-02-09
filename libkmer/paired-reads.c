@@ -55,7 +55,7 @@ ERR_VALUE paired_reads_insert(const ONE_READ *Read)
 	PPOINTER_ARRAY_ONE_READ pairedReads = NULL;
 
 	ret = ERR_SUCCESS;
-	if (Read->TemplateNameLen > 0) {
+	if (Read->TemplateName != NULL && *Read->TemplateName != '\0') {
 		it = kh_get(RP, _table, Read->TemplateName);
 		if (it == kh_end(_table)) {
 			ret = utils_malloc(sizeof(POINTER_ARRAY_ONE_READ), &pairedReads);

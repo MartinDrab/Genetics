@@ -123,7 +123,7 @@ void read_copy_direct(PONE_READ Dest, const ONE_READ *Source)
 {
 	Dest->NumberOfFixes = Source->NumberOfFixes;
 	memcpy(Dest->ReadSequence, Source->ReadSequence, Source->ReadSequenceLen*sizeof(char));
-	memcpy(Dest->Quality, Source->Quality, Source->QualityLen*sizeof(uint8_t));
+	memcpy(Dest->Quality, Source->Quality, Source->ReadSequenceLen*sizeof(uint8_t));
 
 	return;
 }
@@ -134,11 +134,11 @@ ERR_VALUE read_copy(PONE_READ Dest, const ONE_READ *Source)
 
 	ret = ERR_SUCCESS;
 	*Dest = *Source;
-	if (Dest->CIGARLen > 0)
+	if (Dest->CIGAR != NULL)
 		ret = utils_copy_string(Source->CIGAR, &Dest->CIGAR);
 
 	if (ret == ERR_SUCCESS) {
-		if (Dest->TemplateNameLen > 0)
+		if (Dest->TemplateName != NULL)
 			ret = utils_copy_string(Source->TemplateName, &Dest->TemplateName);
 
 		if (ret == ERR_SUCCESS) {
@@ -146,18 +146,18 @@ ERR_VALUE read_copy(PONE_READ Dest, const ONE_READ *Source)
 				ret = utils_copy_string(Source->ReadSequence, &Dest->ReadSequence);
 
 			if (ret == ERR_SUCCESS) {
-				if (Dest->QualityLen > 0) {
-					ret = utils_calloc(Dest->QualityLen + 1, sizeof(uint8_t), &Dest->Quality);
+				if (Dest->Quality != NULL) {
+					ret = utils_calloc(Dest->ReadSequenceLen + 1, sizeof(uint8_t), &Dest->Quality);
 					if (ret == ERR_SUCCESS) {
-						memcpy(Dest->Quality, Source->Quality, Dest->QualityLen);;
-						Dest->Quality[Dest->QualityLen] = 0;
+						memcpy(Dest->Quality, Source->Quality, Dest->ReadSequenceLen);;
+						Dest->Quality[Dest->ReadSequenceLen] = 0;
 					}
 				}
 
-				if (ret == ERR_SUCCESS && Source->RNameLen > 0)
+				if (ret == ERR_SUCCESS && Source->RName != NULL)
 					ret = utils_copy_string(Source->RName, &Dest->RName);
 
-				if (ret == ERR_SUCCESS && Source->RNextLen > 0)
+				if (ret == ERR_SUCCESS && Source->RNext != NULL)
 					ret = utils_copy_string(Source->RNext, &Dest->RNext);
 
 				if (ret != ERR_SUCCESS) {
@@ -167,13 +167,13 @@ ERR_VALUE read_copy(PONE_READ Dest, const ONE_READ *Source)
 			}
 
 			if (ret != ERR_SUCCESS) {
-				if (Dest->TemplateNameLen > 0)
+				if (Dest->TemplateName != NULL)
 					utils_free(Dest->TemplateName);
 			}
 		}
 
 		if (ret != ERR_SUCCESS) {
-			if (Dest->CIGARLen > 0)
+			if (Dest->CIGAR != NULL)
 				utils_free(Dest->CIGAR);
 		}
 	}
@@ -184,7 +184,7 @@ ERR_VALUE read_copy(PONE_READ Dest, const ONE_READ *Source)
 
 void read_quality_encode(PONE_READ Read)
 {
-	for (size_t i = 0; i < Read->QualityLen; ++i)
+	for (size_t i = 0; i < Read->ReadSequenceLen; ++i)
 		Read->Quality[i] += 33;
 
 	return;
@@ -193,7 +193,7 @@ void read_quality_encode(PONE_READ Read)
 
 void read_quality_decode(PONE_READ Read)
 {
-	for (size_t i = 0; i < Read->QualityLen; ++i)
+	for (size_t i = 0; i < Read->ReadSequenceLen; ++i)
 		Read->Quality[i] -= 33;
 
 	return;
@@ -211,11 +211,12 @@ void read_write_sam(FILE *Stream, const ONE_READ *Read)
 ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read)
 {
 	uint32_t tmp32;
+	size_t tmpStringLen = 0;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	ret = ERR_SUCCESS;
 	memset(Read, 0, sizeof(ONE_READ));
-	Line = _sam_read_string_field(Line, &Read->TemplateName, &Read->TemplateNameLen);
+	Line = _sam_read_string_field(Line, &Read->TemplateName, &tmpStringLen);
 	if (Line != NULL && *Line == '\t')
 		++Line;
 	else ret = ERR_SAM_INVALID_RNAME;
@@ -229,7 +230,7 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read)
 	}
 
 	if (ret == ERR_SUCCESS) {
-		Line = _sam_read_string_field(Line, &Read->RName, &Read->RNameLen);
+		Line = _sam_read_string_field(Line, &Read->RName, &tmpStringLen);
 		if (Line != NULL && *Line == '\t')
 			++Line;
 		else ret = ERR_SAM_INVALID_RNAME;
@@ -253,14 +254,14 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read)
 	}
 
 	if (ret == ERR_SUCCESS) {
-		Line = _sam_read_string_field(Line, &Read->CIGAR, &Read->CIGARLen);
+		Line = _sam_read_string_field(Line, &Read->CIGAR, &tmpStringLen);
 		if (Line != NULL && *Line == '\t')
 			++Line;
 		else ret = ERR_SAM_INVALID_CIGAR;
 	}
 
 	if (ret == ERR_SUCCESS) {
-		Line = _sam_read_string_field(Line, &Read->RNext, &Read->RNextLen);
+		Line = _sam_read_string_field(Line, &Read->RNext, &tmpStringLen);
 		if (Line != NULL && *Line == '\t')
 			++Line;
 		else ret = ERR_SAM_INVALID_RNEXT;
@@ -290,13 +291,13 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read)
 	}
 
 	if (ret == ERR_SUCCESS) {
-		Line = _sam_read_string_field(Line, (char **)&Read->Quality, &Read->QualityLen);
+		Line = _sam_read_string_field(Line, (char **)&Read->Quality, &tmpStringLen);
 		if (Line == NULL)
 			ret = ERR_SAM_INVALID_QUAL;
 	}
 
 	if (ret == ERR_SUCCESS) {
-		if (Read->ReadSequenceLen == Read->QualityLen)
+		if (Read->ReadSequenceLen == tmpStringLen)
 			read_quality_decode(Read);
 		else ret = ERR_SAM_SEQ_QUAL_LEN_MISMATCH;
 	}
@@ -376,7 +377,6 @@ ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ON
 
 void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t RegionLength)
 {
-	PREAD_PART part;
 	size_t endStripped = 0;
 	size_t startStripped = 0;
 
@@ -386,31 +386,25 @@ void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t Region
 	if (Read->Pos + Read->ReadSequenceLen >= RegionStart + RegionLength)
 		endStripped = (size_t)(Read->Pos + Read->ReadSequenceLen - RegionStart - RegionLength);
 
-	part = &Read->Part;
-	part->Offset = 0;
-	part->Position = Read->Pos;
-	part->Quality = Read->Quality;
-	part->ReadSequence = Read->ReadSequence;
-	part->ReadSequenceLength = Read->ReadSequenceLen;
-
 	if (startStripped > 0) {
-		if (part->ReadSequenceLength >= startStripped) {
-			part->ReadSequenceLength -= startStripped;
-			part->ReadSequence += startStripped;
-			part->Quality += startStripped;
-			part->Position += startStripped;
+		if (Read->ReadSequenceLen >= startStripped) {
+			Read->ReadSequenceLen -= startStripped;
+			Read->ReadSequence += startStripped;
+			Read->Quality += startStripped;
+			Read->Pos += startStripped;
+			Read->Offset = startStripped;
 		} else {
-			startStripped -= part->ReadSequenceLength;
-			part->ReadSequenceLength = 0;
+			startStripped -= Read->ReadSequenceLen;
+			Read->ReadSequenceLen = 0;
 		}
 	}
 
 	if (endStripped > 0) {
-		if (part->ReadSequenceLength > endStripped) {
-			part->ReadSequenceLength -= endStripped;
+		if (Read->ReadSequenceLen > endStripped) {
+			Read->ReadSequenceLen -= endStripped;
 		} else {
-			endStripped -= part->ReadSequenceLength;
-			part->ReadSequenceLength = 0;
+			endStripped -= Read->ReadSequenceLen;
+			Read->ReadSequenceLen = 0;
 		}
 	}
 
@@ -477,11 +471,10 @@ void read_split(PONE_READ Read)
 			memmove(Read->ReadSequence, part.ReadSequence, part.ReadSequenceLength*sizeof(char));
 			memmove(Read->Quality, part.Quality, part.ReadSequenceLength*sizeof(char));
 			Read->ReadSequenceLen = part.ReadSequenceLength;
-			Read->QualityLen = part.ReadSequenceLength;
 			Read->ReadSequence[Read->ReadSequenceLen] = '\0';
 		}
 
-		if (Read->CIGARLen > 0) {
+		if (Read->CIGAR != NULL) {
 			Read->CIGAR[0] = '*';
 			Read->CIGAR[1] = '\0';
 		}
@@ -517,22 +510,20 @@ ERR_VALUE read_base_insert(PONE_READ Read, const char Base, size_t Index)
 	uint8_t *tmpQualities = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	Index += Read->Part.Offset;
-	assert(Read->QualityLen == Read->ReadSequenceLen);
+	Index += Read->Offset;
 	ret = utils_calloc(Read->ReadSequenceLen + 2, sizeof(char), &tmpBases);
 	if (ret == ERR_SUCCESS) {
-		ret = utils_calloc(Read->QualityLen + 2, sizeof(uint8_t), &tmpQualities);
+		ret = utils_calloc(Read->ReadSequenceLen + 2, sizeof(uint8_t), &tmpQualities);
 		if (ret == ERR_SUCCESS) {
 			memcpy(tmpBases, Read->ReadSequence, Index * sizeof(char));
 			tmpBases[Index] = Base;
 			memcpy(tmpBases + Index + 1, Read->ReadSequence + Index, Read->ReadSequenceLen - Index);
 			tmpBases[Read->ReadSequenceLen + 1] = L'\0';
-			++Read->ReadSequenceLen;
 			memcpy(tmpQualities, Read->Quality, Index * sizeof(char));
 			tmpQualities[Index] = 255;
-			memcpy(tmpQualities + Index + 1, Read->Quality + Index, Read->QualityLen - Index);
-			tmpQualities[Read->QualityLen + 1] = L'\0';
-			++Read->QualityLen;
+			memcpy(tmpQualities + Index + 1, Read->Quality + Index, Read->ReadSequenceLen - Index);
+			tmpQualities[Read->ReadSequenceLen + 1] = L'\0';
+			++Read->ReadSequenceLen;
 			if (Read->ReadSequence != NULL)
 				utils_free(Read->ReadSequence);
 
@@ -555,15 +546,12 @@ ERR_VALUE read_base_insert(PONE_READ Read, const char Base, size_t Index)
 
 void read_base_delete(PONE_READ Read, size_t Index)
 {
-	assert(Read->QualityLen == Read->ReadSequenceLen);
 	assert(Read->ReadSequenceLen >= 0);
-	if (Read->Part.Offset <= Index)
 	
-	Index += Read->Part.Offset;
+	Index += Read->Offset;
 	memmove(Read->ReadSequence + Index, Read->ReadSequence + Index + 1, Read->ReadSequenceLen - Index - 1);
+	memmove(Read->Quality + Index, Read->Quality + Index + 1, Read->ReadSequenceLen - Index - 1);
 	--Read->ReadSequenceLen;
-	memmove(Read->Quality + Index, Read->Quality + Index + 1, Read->QualityLen - Index - 1);
-	--Read->QualityLen;
 
 	return;
 }

@@ -35,25 +35,20 @@ typedef struct _ONE_READ {
 	char *ReadSequence;
 	size_t ReadSequenceLen;
 	uint8_t *Quality;
-	size_t QualityLen;
 	char *CIGAR;
-	size_t CIGARLen;
 	char *RName;
-	size_t RNameLen;
 	char *RNext;
-	size_t RNextLen;
 	int32_t TLen;
 	uint64_t PNext;
 	uint64_t Pos;
 	uint8_t PosQuality;
 	char *TemplateName;
-	size_t TemplateNameLen;
 	uint32_t NumberOfFixes;
 	size_t ReadIndex;
 	struct _ONE_READ *Parent;
+	uint32_t Offset;
 	boolean NoStartStrip;
 	boolean NoEndStrip;
-	READ_PART Part;
 } ONE_READ, *PONE_READ;
 
 typedef struct _ASSEMBLY_TASK {

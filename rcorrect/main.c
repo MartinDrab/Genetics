@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 				read_quality_encode(reads + i);
 				seqs[i].seq = _copy_string(reads[i].ReadSequence, reads[i].ReadSequenceLen);
 				if (reads[i].Quality != NULL)
-					seqs[i].qual = _copy_string(reads[i].Quality, reads[i].QualityLen);
+					seqs[i].qual = _copy_string(reads[i].Quality, reads[i].ReadSequenceLen);
 
 				read_quality_decode(reads + i);
 			}
@@ -62,13 +62,10 @@ int main(int argc, char **argv)
 			fml_fltuniq(&options, readCount, seqs);
 			fprintf(stderr, "Converting back to our format...\n");
 			for (size_t i = 0; i < readCount; ++i) {
-				if (reads[i].ReadSequenceLen != seqs[i].l_seq) {
+				if (reads[i].ReadSequenceLen != seqs[i].l_seq)
 					utils_copy_string("*", &reads[i].CIGAR);
-					reads[i].CIGARLen = 1;
-				}
 
 				reads[i].ReadSequenceLen = seqs[i].l_seq;
-				reads[i].QualityLen = seqs[i].l_seq;
 				ret = utils_copy_string(seqs[i].seq, &reads[i].ReadSequence);
 				if (ret == ERR_SUCCESS)
 					ret = utils_copy_string(seqs[i].qual, &reads[i].Quality);
@@ -76,7 +73,7 @@ int main(int argc, char **argv)
 				for (size_t j = 0; j < reads[i].ReadSequenceLen; ++j)
 					reads[i].ReadSequence[j] = toupper(reads[i].ReadSequence[j]);
 
-				if (reads[i].ReadSequenceLen > 0 && reads[i].QualityLen > 0)
+				if (reads[i].ReadSequenceLen > 0 && reads[i].Quality != NULL)
 					read_write_sam(stdout, reads + i);
 
 				read_quality_decode(reads + i);

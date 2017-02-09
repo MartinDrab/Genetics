@@ -312,7 +312,7 @@ ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, co
 					if (ret == ERR_SUCCESS) {
 						tmp.Parent = r;
 						read_adjust(&tmp, RegionStart, RegionLength);
-						if (tmp.Part.ReadSequenceLength > KMerSize)
+						if (tmp.ReadSequenceLen > KMerSize)
 							dym_array_push_back_no_alloc_ONE_READ(NewReads, tmp);
 						else _read_destroy_structure(&tmp);
 					}

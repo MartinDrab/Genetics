@@ -647,15 +647,13 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 		const ONE_READ *r = Reads;
 		
 		kmerString[KMerSize] = '\0';
-		for (size_t i = 0; i < ReadCount; ++i) {
-			const READ_PART *p = &r->Part;
-			
+		for (size_t i = 0; i < ReadCount; ++i) {			
 				read_split(r);
-				if (p->ReadSequenceLength >= KMerSize) {
-					for (size_t j = 0; j < p->ReadSequenceLength - KMerSize + 1; ++j) {
+				if (r->ReadSequenceLen >= KMerSize) {
+					for (size_t j = 0; j < r->ReadSequenceLen - KMerSize + 1; ++j) {
 						char *s = NULL;
 
-						memcpy(kmerString, p->ReadSequence + j, KMerSize*sizeof(char));
+						memcpy(kmerString, r->ReadSequence + j, KMerSize*sizeof(char));
 						ret = utils_copy_string(kmerString, &s);
 						if (ret == ERR_SUCCESS) {
 							it = kh_put(kc, table, s, &err);
@@ -751,8 +749,8 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 				omp_set_lock(&_readCoverageLock);
 				_totalRegionLength += Options->RegionLength;
 				for (size_t i = 0; i < gen_array_size(FilteredReads); ++i) {
-					_readBaseCount += fr->Part.ReadSequenceLength;
-					baseCount += fr->Part.ReadSequenceLength;
+					_readBaseCount += fr->ReadSequenceLen;
+					baseCount += fr->ReadSequenceLen;
 					++fr;
 				}
 
@@ -794,7 +792,7 @@ static ERR_VALUE process_repair_reads(const KMER_GRAPH_ALLOCATOR *Allocator, con
 			size_t baseCount = 0;
 
 			for (size_t i = 0; i < gen_array_size(FilteredReads); ++i) {
-				baseCount += fr->Part.ReadSequenceLength;
+				baseCount += fr->ReadSequenceLen;
 				++fr;
 			}
 
