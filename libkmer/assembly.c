@@ -257,7 +257,6 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 			if (v->RefSeqPosition > 0 && Read->Pos == Options->RegionStart + v->RefSeqPosition) {
 				pointer_array_clear_KMER_VERTEX(Vertices[0]);
 				pointer_array_push_back_no_alloc_KMER_VERTEX(Vertices[0], v);
-				fprintf(stderr, "MATCH\n");
 			}
 		}
 
@@ -813,7 +812,7 @@ static void _remove_read_from_graph(PKMER_GRAPH Graph, const size_t ReadIndex, P
 /*                      PUBLIC FUNCTIONS                                */
 /************************************************************************/
 
-ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, const size_t RefSeqLen)
+ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, const size_t RefSeqLen, const PARSE_OPTIONS *ParseOptions)
 {
 	PKMER sourceKMer = NULL;
 	PKMER destKMer = NULL;
@@ -846,6 +845,7 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 						PKMER_EDGE edge = NULL;
 
 						destVertex->RefSeqPosition = i;
+						destVertex->AbsPos = ParseOptions->RegionStart + destVertex->RefSeqPosition;
 						ret = kmer_graph_add_edge_ex(Graph, sourceVertex, destVertex, kmetReference, &edge);
 						kmer_advance(sourceKMer, RefSeq[i]);
 						kmer_set_number(sourceKMer, kmer_get_number(destKMer));
@@ -987,7 +987,7 @@ ERR_VALUE assembly_repair_reads(const KMER_GRAPH_ALLOCATOR *GraphAllocator, cons
 		if (GraphAllocator != NULL)
 			g->Allocator = *GraphAllocator;
 
-		ret = kmer_graph_parse_ref_sequence(g, RefSeq, RefSeqLen);
+		ret = kmer_graph_parse_ref_sequence(g, RefSeq, RefSeqLen, ParseOptions);
 		if (ret == ERR_SUCCESS) {
 			ret = utils_calloc_PPKMER_VERTEX(ReadCount, &paths);
 			if (ret == ERR_SUCCESS) {

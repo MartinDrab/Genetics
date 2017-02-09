@@ -35,6 +35,7 @@
 #define PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY			"backward-refseq-penalty"
 #define PROGRAM_OPTION_MAX_PATHS						"max-paths"
 #define PROGRAM_OPTION_READ_MAX_ERROR_RATE				"max-error-rate"
+#define PROGRAM_OPTION_READ_STRIP						"read-strip"
 
 /************************************************************************/
 /*                  OPTION DESCRIPTION                                  */
@@ -73,6 +74,7 @@ typedef struct _PROGRAM_OPTIONS {
 	GEN_ARRAY_ONE_READ *ReadSubArrays;
 	GEN_ARRAY_VARIANT_CALL VCArray;
 	uint32_t MaxPaths;
+	uint32_t ReadStrip;
 	PARSE_OPTIONS ParseOptions;
 } PROGRAM_OPTIONS, *PPROGRAM_OPTIONS;
 

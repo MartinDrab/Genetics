@@ -136,26 +136,7 @@ ERR_VALUE paired_reads_next(khiter_t Iterator, khiter_t *NewIt, PPOINTER_ARRAY_O
 }
 
 
-void paired_reads_connect(void)
-{
-	khiter_t iter;
-	ERR_VALUE err = ERR_INTERNAL_ERROR;
-	PPOINTER_ARRAY_ONE_READ reads = NULL;
-
-	err = paired_reads_first(&iter, &reads);
-	while (err == ERR_SUCCESS) {
-		for (size_t i = 0; i < pointer_array_size(reads) - 1; ++i)
-			reads->Data[i]->Paired.Next = reads->Data[i + 1];
-
-		reads->Data[pointer_array_size(reads) - 1]->Paired.Next = reads->Data[0];
-		err = paired_reads_next(iter, &iter, &reads);
-	}
-
-	return;
-}
-
-
-void paired_reads_fix_overlaps(void)
+void paired_reads_fix_overlaps(boolean Strip)
 {
 	khiter_t iter;
 	ERR_VALUE err = ERR_INTERNAL_ERROR;
@@ -183,12 +164,13 @@ void paired_reads_fix_overlaps(void)
 					const char *or2 = r2->ReadSequence;
 					const uint8_t *oq2 = r2->Quality;
 
+					++totalOverlaps;
 					if (overlapLength > r2->ReadSequenceLen)
 						overlapLength = r2->ReadSequenceLen;
 
-					++totalOverlaps;
 					matches = (strncmp(or1, or2, overlapLength) == 0);
-					fprintf(stderr, "[%Iu:%Iu]: length=%Iu, matches=%u (%u:%u)\n", r1->ReadIndex, r2->ReadIndex, overlapLength, matches, r1->PosQuality, r2->PosQuality);
+					r1->NoEndStrip = matches;
+					r2->NoStartStrip = matches;
 					if (!matches) {
 						++mismatches;
 						for (size_t k = 0; k < overlapLength; ++k) {
@@ -197,43 +179,33 @@ void paired_reads_fix_overlaps(void)
 							}
 						}
 
-						fprintf(stderr, "  Mismatch count: %Iu\n", mismatchCount);
-						fprintf(stderr, "  R1: %s\n", or1);
-						fprintf(stderr, "  R2: %.*s\n", overlapLength, or2);
-						fprintf(stderr, "  Q1: ");
-						for (size_t i = 0; i < overlapLength; ++i)
-							fprintf(stderr, "%u ", oq1[i]);
+						if (Strip) {
+							if (overlapLength < r2->ReadSequenceLen) {
+								size_t r2Move = overlapLength;
+								const char *tmp = r2->ReadSequence + overlapLength;
+								const char *tmp2 = or1 + overlapLength;
 
-						fprintf(stderr, "\n  Q2: ");
-						for (size_t i = 0; i < overlapLength; ++i)
-							fprintf(stderr, "%u ", oq2[i]);
+								while (*tmp == *tmp2) {
+									--r2Move;
+									--tmp;
+									--tmp2;
+								}
 
-						fprintf(stderr, "\n");
-						if (overlapLength < r2->ReadSequenceLen) {
-							size_t r2Move = overlapLength;
-							const char *tmp = r2->ReadSequence + overlapLength;
-							const char *tmp2 = or1 + overlapLength;
-
-							while (*tmp == *tmp2) {
-								--r2Move;
-								--tmp;
-								--tmp2;
+								memmove(r2->ReadSequence, r2->ReadSequence + r2Move, (r2->ReadSequenceLen - r2Move) * sizeof(char));
+								memmove(r2->Quality, r2->Quality + r2Move, (r2->ReadSequenceLen - r2Move) * sizeof(uint8_t));
+								r2->ReadSequenceLen -= r2Move;
+								r2->ReadSequence[r2->ReadSequenceLen] = '\0';
 							}
 
-							memmove(r2->ReadSequence, r2->ReadSequence + r2Move, (r2->ReadSequenceLen - r2Move)*sizeof(char));
-							memmove(r2->Quality, r2->Quality + r2Move, (r2->ReadSequenceLen - r2Move)*sizeof(uint8_t));
-							r2->ReadSequenceLen -= r2Move;
-							r2->ReadSequence[r2->ReadSequenceLen] = '\0';
-						}
+							r1->ReadSequenceLen -= (r1->Pos + r1->ReadSequenceLen - r2->Pos);
+							while (*or1 == *or2) {
+								++or1;
+								++or2;
+								++r1->ReadSequenceLen;
+							}
 
-						r1->ReadSequenceLen -= (r1->Pos + r1->ReadSequenceLen - r2->Pos);
-						while (*or1 == *or2) {
-							++or1;
-							++or2;
-							++r1->ReadSequenceLen;
+							r1->ReadSequence[r1->ReadSequenceLen] = '\0';
 						}
-
-						r1->ReadSequence[r1->ReadSequenceLen] = '\0';
 					}
 				}
 			}

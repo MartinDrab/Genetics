@@ -357,7 +357,7 @@ static int _read_comparator(const void *A, const void *B)
 }
 
 
-void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQuality)
+void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQuality, const size_t ReadStrip)
 {
 	ONE_READ *r = NULL;
 	const size_t inputSetSize = *Count;
@@ -380,12 +380,10 @@ void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQua
 		--readSetSize;
 	} else r->ReadIndex = readSetSize - 1;
 
-	r = Reads;
-	for (size_t i = 0; i < readSetSize; ++i) {
-		read_split(r);
-		read_shorten(r, 10);
-		++r;
-	}
+	int i = 0;
+#pragma omp parallel for shared(Reads)
+	for (i = 0; i < (int)readSetSize; ++i)
+		read_split(Reads + i);
 
 	*Count = readSetSize;
 

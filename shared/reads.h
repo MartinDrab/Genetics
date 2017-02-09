@@ -48,11 +48,11 @@ typedef struct _ONE_READ {
 	uint8_t PosQuality;
 	char *TemplateName;
 	size_t TemplateNameLen;
-	boolean Indels;
 	uint32_t NumberOfFixes;
 	size_t ReadIndex;
 	struct _ONE_READ *Parent;
-	ONE_READ_PAIRED_LIST Paired;
+	boolean NoStartStrip;
+	boolean NoEndStrip;
 	READ_PART Part;
 } ONE_READ, *PONE_READ;
 
@@ -91,21 +91,15 @@ ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ON
 void read_split(PONE_READ Read);
 void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t RegionLength);
 void read_shorten(PONE_READ Read, const size_t Count);
+ERR_VALUE read_base_insert(PONE_READ Read, const char Base, size_t Index);
+void read_base_delete(PONE_READ Read, size_t Index);
 
-ERR_VALUE read_save(FILE *Stream, const ONE_READ *Read);
-ERR_VALUE read_load(FILE *Stream, PONE_READ Read);
-ERR_VALUE read_set_save(FILE *Stream, const ONE_READ *ReadSet, const size_t Count);
-ERR_VALUE read_set_load(FILE *Stream, PONE_READ *ReadSet, size_t *Count);
 ERR_VALUE seq_save(FILE *Stream, const char *RefSeq, const size_t Length);
 ERR_VALUE seq_load(FILE *Stream, char **RefSeq, size_t *Length);
 
 void assembly_task_init(PASSEMBLY_TASK Task, const char *RefSeq, const size_t RefSeqLen, const char *Alternate1, const size_t Alternate1Length, const char *Alternate2, const size_t Alternate2Length, const ONE_READ *ReadSet, const size_t ReadCount);
 void assembly_task_set_name(PASSEMBLY_TASK Task, const char *Name);
 void assembly_task_finit(PASSEMBLY_TASK Task);
-ERR_VALUE assembly_task_save(FILE *Stream, const ASSEMBLY_TASK *Task);
-ERR_VALUE assembly_task_save_file(const char *FileName, const ASSEMBLY_TASK *Task);
-ERR_VALUE assembly_task_load(FILE *Stream, PASSEMBLY_TASK Task);
-ERR_VALUE assembly_task_load_file(const char *FileName, PASSEMBLY_TASK Task);
 
 
 

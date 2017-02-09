@@ -93,6 +93,9 @@ static ERR_VALUE _init_default_values()
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(PROGRAM_OPTION_READ_MAX_ERROR_RATE, 20);
 
+	if (ret == ERR_SUCCESS)
+		ret = option_add_UInt32(PROGRAM_OPTION_READ_STRIP, 5);
+
 	option_set_description_const(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQFILE, PROGRAM_OPTION_SEQFILE_DESC);
 	option_set_description_const(PROGRAM_OPTION_SEQSTART, PROGRAM_OPTION_SEQSTART_DESC);
@@ -167,6 +170,9 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 	if (ret == ERR_SUCCESS)
 		ret = option_get_String(PROGRAM_OPTION_SEQFILE, &Options->RefSeqFile);
 
+	if (ret == ERR_SUCCESS)
+		ret = option_get_UInt32(PROGRAM_OPTION_READ_STRIP, &Options->ReadStrip);
+
 	if (ret == ERR_SUCCESS) {
 		char *readFile = NULL;
 
@@ -175,10 +181,23 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 			fprintf(stderr, "Loading reads from %s...\n", readFile);
 			ret = input_get_reads(readFile, "sam", &Options->Reads, &Options->ReadCount);
 			if (ret == ERR_SUCCESS) {
-				fprintf(stderr, "Filtering out reads with MAPQ less than %u...\n", Options->ReadPosQuality);
-				input_filter_bad_reads(Options->Reads, &Options->ReadCount, Options->ReadPosQuality);
-				fprintf(stderr, "Sorting reads...\n");
-				input_sort_reads(Options->Reads, Options->ReadCount);
+				ret = paired_reads_init();
+				if (ret == ERR_SUCCESS) {
+					fprintf(stderr, "Filtering out reads with MAPQ less than %u and stripping %u bases from read ends...\n", Options->ReadPosQuality, Options->ReadStrip);
+					input_filter_bad_reads(Options->Reads, &Options->ReadCount, Options->ReadPosQuality, Options->ReadStrip);
+					input_sort_reads(Options->Reads, Options->ReadCount);
+					if (ret == ERR_SUCCESS)
+						ret = paired_reads_insert_array(Options->Reads, Options->ReadCount);
+
+					if (ret == ERR_SUCCESS)
+						paired_reads_fix_overlaps(FALSE);
+
+					for (size_t i = 0; i < Options->ReadCount; ++i)
+						read_shorten(Options->Reads + i, Options->ReadStrip);
+
+					if (ret == ERR_SUCCESS)
+						paired_reads_fix_overlaps(TRUE);
+				}
 			}
 		}
 	}
@@ -252,7 +271,6 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 			const char *opIt = opString;
 			const char *tmpRS = refSeq;
 			const char *tmpAltS = altSeq;
-			size_t pos = rsPos;
 			boolean nothing = TRUE;
 
 			while (ret == ERR_SUCCESS) {
@@ -260,13 +278,19 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 					case '\0':
 					case 'M':
 						if (!nothing) {
-							if (altSeq == tmpAltS || refSeq == tmpRS) {
+							size_t rLen = tmpRS - refSeq;
+							size_t aLen = tmpAltS - altSeq;
+							
+							if (rLen == 0 || aLen == 0 ||
+								((rLen > 1 || aLen > 1) && *refSeq != *altSeq)) {
 								--rsPos;
 								--refSeq;
 								--altSeq;
+								++rLen;
+								++aLen;
 							}
 
-							ret = variant_call_init("1", rsPos, ".", refSeq, tmpRS - refSeq, altSeq, tmpAltS - altSeq, 60, RefIndices, AltIndices, &vc);
+							ret = variant_call_init("1", rsPos, ".", refSeq, rLen, altSeq, aLen, 60, RefIndices, AltIndices, &vc);
 							if (ret == ERR_SUCCESS) {
 								vc.RefWeight = RSWeight;
 								vc.AltWeight = ReadWeight;
@@ -383,8 +407,7 @@ static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER
 			FILE *f = NULL;
 			char *directory = NULL;
 			char graphName[128];
-			char diffName[128];
-			char vcfName[128];
+//			char vcfName[128];
 
 			directory = "succ";
 #pragma warning (disable : 4996)											
@@ -461,7 +484,7 @@ static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 		if (ret == ERR_SUCCESS) {
 			if (Allocator != NULL)
 //			g->Allocator = *Allocator;
-				ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength);
+				ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength, ParseOptions);
 			if (ret == ERR_SUCCESS) {
 				GEN_ARRAY_KMER_EDGE_PAIR ep;
 
@@ -551,9 +574,9 @@ static ERR_VALUE _examine_read_coverage(const ONE_READ *Reads, const size_t Read
 		printf("Not covered: ");
 		for (size_t i = 0; i < RefSeqLen; ++i) {
 			if (c[i] == 0) {
-				printf("%u ", i);
+				printf("%zu ", i);
 				if (RefSeq[i] != Alternate[i]) {
-					printf("%u: The position has SNPs but is not covered in any read (%c %c)\n", i, RefSeq[i], Alternate[i]);
+					printf("%zu: The position has SNPs but is not covered in any read (%c %c)\n", i, RefSeq[i], Alternate[i]);
 					ret = ERR_BAD_READ_COVERAGE;
 				}
 			}
@@ -743,7 +766,6 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 			task.RegionStart = RegionStart;
 
 			PARSE_OPTIONS po = Options->ParseOptions;
-//			po.ReadThreshold = (coverage > Options->Threshold * 3) ? coverage / 3 : Options->Threshold;
 			po.ReadThreshold = Options->Threshold;
 			po.RegionStart = RegionStart;
 			po.RegionLength = Options->RegionLength;
@@ -781,6 +803,8 @@ static ERR_VALUE process_repair_reads(const KMER_GRAPH_ALLOCATOR *Allocator, con
 			PARSE_OPTIONS po = Options->ParseOptions;
 
 			po.ReadThreshold = (coverage >= Options->Threshold * 4) ? coverage / 4 : Options->Threshold;
+			po.RegionStart = RegionStart;
+			po.RegionLength = Options->RegionLength;
 			ret = assembly_repair_reads(Allocator, Options->KMerSize, FilteredReads->Data, gen_array_size(FilteredReads), RefSeq, Options->RegionLength, &po);
 		}
 
@@ -876,16 +900,35 @@ static void _lookaside_edge_free(struct _KMER_GRAPH *Graph, PKMER_EDGE Edge, voi
 static void process_active_region_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_OPTIONS *Options)
 {
 	int j = 0;
+	const uint32_t realStep = ((Options->RegionLength + Options->TestStep - 1) / Options->TestStep)*Options->TestStep;
 	long done = 0;
 	PUTILS_LOOKASIDE el = NULL;
 	PUTILS_LOOKASIDE vl = NULL;
 
-	_init_lookasides(Options->KMerSize, &vl, &el);
-#pragma omp parallel for shared(Options, Contig, _activeRegionProcessed), private(vl, el)
-	for (j = 0; j < Contig->Length - Options->RegionLength; j += (int)Options->TestStep) {
-		int threadIndex = omp_get_thread_num();
-		KMER_GRAPH_ALLOCATOR ga;
+	for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
+		_init_lookasides(Options->KMerSize, &vl, &el);
+#pragma omp parallel for shared(k, realStep, Options, Contig, _activeRegionProcessed), private(vl, el)
+		for (j = k; j < Contig->Length - Options->RegionLength; j += (int)realStep) {
+			int threadIndex = omp_get_thread_num();
+			KMER_GRAPH_ALLOCATOR ga;
 
+			_init_lookasides(Options->KMerSize, &vl, &el);
+			ga.VertexAllocatorContext = vl;
+			ga.VertexAllocator = _lookaside_vertex_alloc;
+			ga.VertexFreer = _lookaside_vertex_free;
+			ga.EdgeAllocatorContext = el;
+			ga.EdgeAllocator = _lookaside_edge_alloc;
+			ga.EdgeFreer = _lookaside_edge_free;
+			process_active_region(&ga, Options, Contig->Offset + j, Contig->Sequence + j, Options->ReadSubArrays + omp_get_thread_num());
+			done = utils_atomic_increment(&_activeRegionProcessed);
+			if (done % (_activeRegionCount / 10000) == 0)
+				fprintf(stderr, "%u %%\r", done * 10000 / _activeRegionCount);
+		}
+	}
+
+	KMER_GRAPH_ALLOCATOR ga;
+
+	for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
 		_init_lookasides(Options->KMerSize, &vl, &el);
 		ga.VertexAllocatorContext = vl;
 		ga.VertexAllocator = _lookaside_vertex_alloc;
@@ -893,22 +936,11 @@ static void process_active_region_in_parallel(const ACTIVE_REGION *Contig, const
 		ga.EdgeAllocatorContext = el;
 		ga.EdgeAllocator = _lookaside_edge_alloc;
 		ga.EdgeFreer = _lookaside_edge_free;
-		process_active_region(&ga, Options, Contig->Offset + j, Contig->Sequence + j, Options->ReadSubArrays + omp_get_thread_num());
+		process_active_region(&ga, Options, Contig->Offset + Contig->Length - Options->RegionLength - k, Contig->Sequence + Contig->Length - Options->RegionLength - k, Options->ReadSubArrays);
 		done = utils_atomic_increment(&_activeRegionProcessed);
-		if (done % (_activeRegionCount / 100) == 0)
-			fprintf(stderr, "%u %%\r", done*100 / _activeRegionCount);
+		if (done % (_activeRegionCount / 10000) == 0)
+			fprintf(stderr, "%u %%\r", done * 10000 / _activeRegionCount);
 	}
-
-	KMER_GRAPH_ALLOCATOR ga;
-
-	_init_lookasides(Options->KMerSize, &vl, &el);
-	ga.VertexAllocatorContext = vl;
-	ga.VertexAllocator = _lookaside_vertex_alloc;
-	ga.VertexFreer = _lookaside_vertex_free;
-	ga.EdgeAllocatorContext = el;
-	ga.EdgeAllocator = _lookaside_edge_alloc;
-	ga.EdgeFreer = _lookaside_edge_free;
-	process_active_region(&ga, Options, Contig->Offset + Contig->Length - Options->RegionLength, Contig->Sequence + Contig->Length - Options->RegionLength, Options->ReadSubArrays);
 
 	return;
 }
@@ -1073,36 +1105,21 @@ int main(int argc, char *argv[])
 							utils_free(_vertexLAs);
 							fasta_free(&seqFile);
 						}
-					}
-					else if (strncmp(cmd, "rfreq", sizeof("rfreq")) == 0) {
+					} else if (strncmp(cmd, "rfreq", sizeof("rfreq")) == 0) {
 						kmer_freq_distribution(&po, po.KMerSize, po.Reads, po.ReadCount);
 					} else if (strncmp(cmd, "paired", sizeof("paired")) == 0) {
-						ret = paired_reads_init();
-						if (ret == ERR_SUCCESS) {
-							ret = paired_reads_insert_array(po.Reads, po.ReadCount);
-							if (ret == ERR_SUCCESS) {
-								paired_reads_connect();
-								paired_reads_print(stdout);
-							}
-
-							paired_reads_finit();
-						}
+						paired_reads_print(stdout);
 					} else if (strncmp(cmd, "call", sizeof("call")) == 0) {
 						fprintf(stderr, "K-mer size:                 %u\n", po.KMerSize);
 						fprintf(stderr, "Active region length:       %u\n", po.RegionLength);
 						fprintf(stderr, "Reference:                  %s\n", po.RefSeqFile);
-						fprintf(stderr, "Reads:                      %u\n", po.ReadCount);
+						fprintf(stderr, "Reads:                      %zu\n", po.ReadCount);
 						fprintf(stderr, "Read coverage threshold:    %u\n", po.Threshold);
 						fprintf(stderr, "Min. read position quality: %u\n", po.ReadPosQuality);
 						fprintf(stderr, "OpenMP thread count:        %i\n", po.OMPThreads);
 						fprintf(stderr, "Output VCF file:            %s\n", po.VCFFile);
-						ret = paired_reads_init();
-						if (ret == ERR_SUCCESS)
-							ret = paired_reads_insert_array(po.Reads, po.ReadCount);
 
 						if (ret == ERR_SUCCESS) {
-							paired_reads_connect();
-							paired_reads_fix_overlaps();
 							if (ret == ERR_SUCCESS) {
 								size_t refSeqLen = 0;
 								FASTA_FILE seqFile;
@@ -1170,6 +1187,7 @@ int main(int argc, char *argv[])
 												}
 
 												utils_free(rsFasta);
+												fprintf(stderr, "Merging the results...\n");
 												ret = vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
 												int i = 0;
 #pragma omp parallel for shared(po)

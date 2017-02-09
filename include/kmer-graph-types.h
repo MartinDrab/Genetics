@@ -46,6 +46,7 @@ typedef struct _KMER_VERTEX {
 	POINTER_ARRAY_KMER_EDGE Successors;
 	POINTER_ARRAY_KMER_EDGE Predecessors;
 	uint32_t RefSeqPosition;
+	uint64_t AbsPos;
 	union {
 		struct _KMER_VERTEX *Next;
 		struct _KMER_GRAPH *Graph;

@@ -1,4 +1,5 @@
 
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -81,6 +82,7 @@ static ERR_VALUE _vertex_create(PKMER_GRAPH Graph, const KMER *KMer, const EKMer
 		pointer_array_init_KMER_EDGE(&tmp->Successors, 140);
 		pointer_array_init_KMER_EDGE(&tmp->Predecessors, 140);
 		tmp->RefSeqPosition = 0;
+		tmp->AbsPos = 0;
 		tmp->Helper = FALSE;
 		tmp->Lists.Next = NULL;
 		tmp->Lists.Graph = NULL;
@@ -261,7 +263,7 @@ static void _vertex_table_on_print(struct _KMER_TABLE *Table, void *ItemData, FI
 	kmer_print(Stream, &v->KMer);
 	fprintf(Stream, "[label=\"");
 	kmer_print(Stream, &v->KMer);
-	fprintf(Stream, "\\nIN=%zu; OUT=%zu; O=%u\",style=filled,color=%s]", kmer_vertex_in_degree(v), kmer_vertex_out_degree(v), v->Order, colors[v->Type]);
+	fprintf(Stream, "\\nPOS: %" PRId64 "\",style=filled,color=%s]", v->AbsPos, colors[v->Type]);
 	fprintf(Stream, ";\n");
 
 	return;
@@ -340,10 +342,18 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 			fprintf(Stream, "red");
 			fprintf(Stream, ",label=\"W: %Iu (%Iu); L: %Iu; P:%Iu\"", read_info_weight(&e->ReadInfo, g->QualityTable), read_info_get_count(&e->ReadInfo),  e->SeqLen, gen_array_size(&e->Paths));
 			break;
-		case kmetVariant:
+		case kmetVariant: {
+			const FOUND_SEQUENCE_VARIANT *var = e->Variants.Data;
+
 			fprintf(Stream, "blue");
-			fprintf(Stream, ",label=\"W: %Iu; L: %Iu; P: %Iu\\n1: %s\"", e->Seq1Weight, e->SeqLen, gen_array_size(&e->Paths), e->Seq);
-			break;
+			fprintf(Stream, ",label=\"W: %Iu; L: %Iu; P: %Iu\\nREF: %s\\n", e->Seq1Weight, e->SeqLen, gen_array_size(&e->Paths), e->Seq);
+			for (size_t i = 0; i < gen_array_size(&e->Variants); ++i) {
+				fprintf(Stream, "POS: %" PRId64 ", ALT: %s\\n", (uint64_t)var->RefSeqStart + (e->Source->AbsPos - e->Source->RefSeqPosition), var->Seq1);
+				++var;
+			}
+
+			fprintf(Stream, "\"");
+		} break;
 	}
 
 	fprintf(Stream, "];\n");

@@ -392,6 +392,7 @@ void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t Region
 	part->Quality = Read->Quality;
 	part->ReadSequence = Read->ReadSequence;
 	part->ReadSequenceLength = Read->ReadSequenceLen;
+
 	if (startStripped > 0) {
 		if (part->ReadSequenceLength >= startStripped) {
 			part->ReadSequenceLength -= startStripped;
@@ -422,7 +423,6 @@ void read_split(PONE_READ Read)
 	READ_PART part;
 	boolean end = FALSE;
 
-	Read->Indels = FALSE;
 	if (Read->CIGAR != NULL && *Read->CIGAR != '\0' && *Read->CIGAR != '*') {
 		char t;
 		unsigned long count = 1;
@@ -446,31 +446,22 @@ void read_split(PONE_READ Read)
 				case 'M':
 				case 'I':
 					part.ReadSequenceLength += count;
-					Read->Indels = TRUE;
 					break;
 				case 'D':
-					Read->Indels = TRUE;
 					break;
 				case 'S':
 					if (part.ReadSequenceLength > 0) {
 						end = TRUE;
-					}
-					else {
-//						part.Position += count;
+					} else {
 						part.ReadSequence += count;
 						part.Quality += count;
 					}
 					break;
 				case 'H':
-					if (part.ReadSequenceLength > 0) {
+					if (part.ReadSequenceLength > 0)
 						end = TRUE;
-					}
-					else {
-//						part.Position += count;
-					}
 					break;
 				default:
-					Read->Indels = TRUE;
 					part.Offset = 0;
 					part.Position = Read->Pos;
 					part.ReadSequence = Read->ReadSequence;
@@ -489,6 +480,11 @@ void read_split(PONE_READ Read)
 			Read->QualityLen = part.ReadSequenceLength;
 			Read->ReadSequence[Read->ReadSequenceLen] = '\0';
 		}
+
+		if (Read->CIGARLen > 0) {
+			Read->CIGAR[0] = '*';
+			Read->CIGAR[1] = '\0';
+		}
 	}
 
 	return;
@@ -498,183 +494,85 @@ void read_split(PONE_READ Read)
 void read_shorten(PONE_READ Read, const size_t Count)
 {
 	if (Read->ReadSequenceLen > 2 * Count) {
-		memmove(Read->Quality, Read->Quality + Count, Read->ReadSequenceLen - Count);
-		memmove(Read->ReadSequence, Read->ReadSequence + Count, Read->ReadSequenceLen - Count);
-		Read->ReadSequenceLen -= Count;
-		Read->Pos += Count;
+		if (!Read->NoStartStrip) {
+			memmove(Read->Quality, Read->Quality + Count, Read->ReadSequenceLen - Count);
+			memmove(Read->ReadSequence, Read->ReadSequence + Count, Read->ReadSequenceLen - Count);
+			Read->ReadSequenceLen -= Count;
+			Read->Pos += Count;
+		}
+
+		if (!Read->NoEndStrip)
+			Read->ReadSequenceLen -= Count;
+
+		Read->ReadSequence[Read->ReadSequenceLen] = '\0';
 	}
 
 	return;
 }
 
 
-ERR_VALUE read_save(FILE *Stream, const ONE_READ *Read)
+ERR_VALUE read_base_insert(PONE_READ Read, const char Base, size_t Index)
 {
-	const uint32_t rsLen32 = (uint32_t)Read->ReadSequenceLen;
-	const uint32_t qLen32 = (uint32_t)Read->QualityLen;
+	char *tmpBases = NULL;
+	uint8_t *tmpQualities = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_fwrite(&rsLen32, sizeof(rsLen32), 1, Stream);
-	if (ret == ERR_SUCCESS) 
-		ret = utils_fwrite(Read->ReadSequence, sizeof(char), Read->ReadSequenceLen, Stream);
-		
-	if (ret == ERR_SUCCESS) 
-		ret = utils_fwrite(&qLen32, sizeof(qLen32), 1, Stream);
-			
-	if (ret == ERR_SUCCESS) 
-		ret = utils_fwrite(Read->Quality, sizeof(uint8_t), Read->QualityLen, Stream);
-				
-	if (ret == ERR_SUCCESS) 
-		ret = utils_fwrite(&Read->Pos, sizeof(Read->Pos), 1, Stream);
-					
-	if (ret == ERR_SUCCESS) 
-		ret = utils_fwrite(&Read->PosQuality, sizeof(Read->PosQuality), 1, Stream);
-						
-	if (ret == ERR_SUCCESS)
-		ret = utils_fwrite(&Read->Flags, sizeof(Read->Flags), 1, Stream);
-
-	return ret;
-}
-
-
-ERR_VALUE read_load(FILE *Stream, PONE_READ Read)
-{
-	uint32_t rsLen32 = 0;
-	uint32_t qLen32 = 0;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	memset(Read, 0, sizeof(ONE_READ));
-	ret = utils_fread(&rsLen32, sizeof(rsLen32), 1, Stream);
+	Index += Read->Part.Offset;
+	assert(Read->QualityLen == Read->ReadSequenceLen);
+	ret = utils_calloc(Read->ReadSequenceLen + 2, sizeof(char), &tmpBases);
 	if (ret == ERR_SUCCESS) {
-		Read->ReadSequenceLen = rsLen32;
-		ret = utils_calloc(Read->ReadSequenceLen + 1, sizeof(char), &Read->ReadSequence);
+		ret = utils_calloc(Read->QualityLen + 2, sizeof(uint8_t), &tmpQualities);
 		if (ret == ERR_SUCCESS) {
-			Read->ReadSequence[Read->ReadSequenceLen] = '\0';
-			ret = utils_fread(Read->ReadSequence, sizeof(char), Read->ReadSequenceLen, Stream);
-			if (ret == ERR_SUCCESS) {
-				ret = utils_fread(&qLen32, sizeof(qLen32), 1, Stream);
-				if (ret == ERR_SUCCESS) {
-					Read->QualityLen = qLen32;
-					ret = utils_calloc(Read->QualityLen, sizeof(uint8_t), &Read->Quality);
-					if (ret == ERR_SUCCESS) {
-						ret = utils_fread(Read->Quality, sizeof(uint8_t), Read->QualityLen, Stream);
-						if (ret == ERR_SUCCESS) {
-							ret = utils_fread(&Read->Pos, sizeof(Read->Pos), 1, Stream);
-							if (ret == ERR_SUCCESS) {								
-								ret = utils_fread(&Read->PosQuality, sizeof(Read->PosQuality), 1, Stream);
-								if (ret == ERR_SUCCESS) {
-									ret = utils_fread(&Read->Flags, sizeof(Read->Flags), 1, Stream);
-									if (ret == ERR_SUCCESS)										
-										read_split(Read);
-								}
-							}
-						}
-					
-						if (ret != ERR_SUCCESS)
-							utils_free(Read->Quality);
-					}
-				}
-			}
-
-			if (ret != ERR_SUCCESS)
+			memcpy(tmpBases, Read->ReadSequence, Index * sizeof(char));
+			tmpBases[Index] = Base;
+			memcpy(tmpBases + Index + 1, Read->ReadSequence + Index, Read->ReadSequenceLen - Index);
+			tmpBases[Read->ReadSequenceLen + 1] = L'\0';
+			++Read->ReadSequenceLen;
+			memcpy(tmpQualities, Read->Quality, Index * sizeof(char));
+			tmpQualities[Index] = 255;
+			memcpy(tmpQualities + Index + 1, Read->Quality + Index, Read->QualityLen - Index);
+			tmpQualities[Read->QualityLen + 1] = L'\0';
+			++Read->QualityLen;
+			if (Read->ReadSequence != NULL)
 				utils_free(Read->ReadSequence);
-		}
-	}
 
-	return ret;
-}
-
-
-ERR_VALUE read_set_save(FILE *Stream, const ONE_READ *ReadSet, const size_t Count)
-{
-	const uint32_t count32 = (uint32_t)Count;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = utils_fwrite(&count32, sizeof(count32), 1, Stream);
-	if (ret == ERR_SUCCESS) {
-		for (uint32_t i = 0; i < count32; ++i) {
-			ret = read_save(Stream, ReadSet + i);
+			Read->ReadSequence = tmpBases;
+			if (Read->Quality != NULL)
+				utils_free(Read->Quality);
+			
+			Read->Quality = tmpQualities;
 			if (ret != ERR_SUCCESS)
-				break;
+				utils_free(tmpQualities);
 		}
+
+		if (ret != ERR_SUCCESS)
+			utils_free(tmpBases);
 	}
 
 	return ret;
 }
 
 
-ERR_VALUE read_set_load(FILE *Stream, PONE_READ *ReadSet, size_t *Count)
+void read_base_delete(PONE_READ Read, size_t Index)
 {
-	uint32_t count32 = 0;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	PONE_READ tmpReadSet = NULL;
+	assert(Read->QualityLen == Read->ReadSequenceLen);
+	assert(Read->ReadSequenceLen >= 0);
+	if (Read->Part.Offset <= Index)
+	
+	Index += Read->Part.Offset;
+	memmove(Read->ReadSequence + Index, Read->ReadSequence + Index + 1, Read->ReadSequenceLen - Index - 1);
+	--Read->ReadSequenceLen;
+	memmove(Read->Quality + Index, Read->Quality + Index + 1, Read->QualityLen - Index - 1);
+	--Read->QualityLen;
 
-	ret = utils_fread(&count32, sizeof(count32), 1, Stream);
-	if (ret == ERR_SUCCESS) {
-		ret = utils_calloc(count32, sizeof(ONE_READ), &tmpReadSet);
-		if (ret == ERR_SUCCESS) {
-			for (uint32_t i = 0; i < count32; ++i) {
-				ret = read_load(Stream, tmpReadSet + i);
-				if (ret != ERR_SUCCESS) {
-					for (uint32_t j = 0; j < i; ++j)
-						_read_destroy_structure(tmpReadSet + j);
-					
-					break;
-				}
-			}
-
-			if (ret == ERR_SUCCESS) {
-				*ReadSet = tmpReadSet;
-				*Count = count32;
-			}
-
-			if (ret != ERR_SUCCESS)
-				utils_free(tmpReadSet);
-		}
-	}
-
-	return ret;
+	return;
 }
 
 
-ERR_VALUE seq_save(FILE *Stream, const char *RefSeq, const size_t Length)
-{
-	const uint32_t length32 = (uint32_t)Length;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_fwrite(&length32, sizeof(length32), 1, Stream);
-	if (ret == ERR_SUCCESS)
-		ret = utils_fwrite(RefSeq, sizeof(char), length32, Stream);
-
-	return ret;
-}
-
-
-ERR_VALUE seq_load(FILE *Stream, char **RefSeq, size_t *Length)
-{
-	char *tmpSeq = NULL;
-	uint32_t length32 = 0;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = utils_fread(&length32, sizeof(length32), 1, Stream);
-	if (ret == ERR_SUCCESS) {
-		ret = utils_calloc(length32 + 1, sizeof(char), &tmpSeq);
-		if (ret == ERR_SUCCESS) {
-			tmpSeq[length32] = '\0';
-			ret = utils_fread(tmpSeq, sizeof(char), length32, Stream);
-			if (ret == ERR_SUCCESS) {
-				*RefSeq = tmpSeq;
-				*Length = length32;
-			}
-
-			if (ret != ERR_SUCCESS)
-				utils_free(tmpSeq);
-		}
-	}
-
-	return ret;
-}
-
+/************************************************************************/
+/*                ASSEMBLY TATKS                                        */
+/************************************************************************/
 
 void assembly_task_init(PASSEMBLY_TASK Task, const char *RefSeq, const size_t RefSeqLen, const char *Alternate1, const size_t Alternate1Length, const char *Alternate2, const size_t Alternate2Length, const ONE_READ *ReadSet, const size_t ReadCount)
 {
@@ -703,84 +601,6 @@ void assembly_task_finit(PASSEMBLY_TASK Task)
 	}
 
 	return;
-}
-
-
-ERR_VALUE assembly_task_save(FILE *Stream, const ASSEMBLY_TASK *Task)
-{
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = seq_save(Stream, Task->Reference, Task->ReferenceLength);
-	if (ret == ERR_SUCCESS)
-		ret = seq_save(Stream, Task->Alternate1, Task->Alternate1Length);
-	
-	if (ret == ERR_SUCCESS)
-		ret = seq_save(Stream, Task->Alternate2, Task->Alternate2Length);
-	
-	if (ret == ERR_SUCCESS)
-		ret = read_set_save(Stream, Task->Reads, Task->ReadCount);
-
-	return ret;
-}
-
-
-ERR_VALUE assembly_task_save_file(const char *FileName, const ASSEMBLY_TASK *Task)
-{
-	FILE *f = NULL;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = utils_fopen(FileName, FOPEN_MODE_WRITE, &f);
-	if (ret == ERR_SUCCESS) {
-		ret = assembly_task_save(f, Task);
-		utils_fclose(f);
-	}
-
-	return ret;
-}
-
-ERR_VALUE assembly_task_load(FILE *Stream, PASSEMBLY_TASK Task)
-{
-	char *rs = NULL;
-	char *alt1 = NULL;
-	char *alt2 = NULL;
-	PONE_READ readSet = NULL;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	memset(Task, 0, sizeof(ASSEMBLY_TASK));
-	ret = seq_load(Stream, &rs, &Task->ReferenceLength);
-	if (ret == ERR_SUCCESS)
-		ret = seq_load(Stream, &alt1, &Task->Alternate1Length);
-
-	if (ret == ERR_SUCCESS)
-		ret = seq_load(Stream, &alt2, &Task->Alternate2Length);
-
-	if (ret == ERR_SUCCESS)
-		ret = read_set_load(Stream, &readSet, &Task->ReadCount);
-
-	if (ret == ERR_SUCCESS) {
-		Task->Reference = rs;
-		Task->Alternate1 = alt1;
-		Task->Alternate2 = alt2;
-		Task->Reads = readSet;
-		Task->Allocated = TRUE;
-	}
-
-	return ret;
-}
-
-
-ERR_VALUE assembly_task_load_file(const char *FileName, PASSEMBLY_TASK Task)
-{
-	FILE *f = NULL;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = utils_fopen(FileName, FOPEN_MODE_READ, &f);
-	if (ret == ERR_SUCCESS) {
-		ret = assembly_task_load(f, Task);
-		utils_fclose(f);
-	}
-
-	return ret;
 }
 
 

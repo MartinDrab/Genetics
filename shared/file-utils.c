@@ -89,7 +89,15 @@ ERR_VALUE utils_fopen(const char *FileName, const uint32_t Mode, FILE **Stream)
 		"ab",
 		"rb",
 		"wb",
-		"wb+"
+		"wb+",
+		"",
+		"r",
+		"w",
+		"w+"
+		"a",
+		"r",
+		"w",
+		"w+"
 	};
 
 #pragma warning(disable : 4996)

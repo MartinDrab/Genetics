@@ -11,6 +11,7 @@
 #define FOPEN_MODE_READ				1
 #define FOPEN_MODE_WRITE			2
 #define FOPEN_MODE_APPEND			4
+#define FOPEN_MODE_TEXT				8
 
 typedef struct _FUILTS_MAPPED_FILE {
 	void *Address;
