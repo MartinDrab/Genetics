@@ -308,18 +308,12 @@ ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, co
 				ONE_READ tmp;
 
 				if (r->ReadSequenceLen > KMerSize && r->NumberOfFixes * 100 / r->ReadSequenceLen < FixupThreshold) {
-					ret = read_copy(&tmp, r);
-					if (ret == ERR_SUCCESS) {
-						tmp.Parent = r;
-						read_adjust(&tmp, RegionStart, RegionLength);
-						if (tmp.ReadSequenceLen > KMerSize)
-							dym_array_push_back_no_alloc_ONE_READ(NewReads, tmp);
-						else _read_destroy_structure(&tmp);
-					}
+					tmp = *r;
+					tmp.Parent = r;
+					read_adjust(&tmp, RegionStart, RegionLength);
+					if (tmp.ReadSequenceLen > KMerSize)
+						dym_array_push_back_no_alloc_ONE_READ(NewReads, tmp);
 				}
-
-				if (ret != ERR_SUCCESS)
-					break;
 
 				++r;
 			}
@@ -382,8 +376,9 @@ void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQua
 
 	int i = 0;
 #pragma omp parallel for shared(Reads)
-	for (i = 0; i < (int)readSetSize; ++i)
+	for (i = 0; i < (int)readSetSize; ++i) {
 		read_split(Reads + i);
+	}
 
 	*Count = readSetSize;
 

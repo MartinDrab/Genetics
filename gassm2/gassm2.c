@@ -34,7 +34,7 @@ static ERR_VALUE _init_default_values()
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = option_add_UInt32(PROGRAM_OPTION_KMERSIZE, 5);
+	ret = option_add_UInt32(PROGRAM_OPTION_KMERSIZE, 31);
 	if (ret == ERR_SUCCESS)
 		ret = option_add_String(PROGRAM_OPTION_SEQFILE, "\0");
 
@@ -42,14 +42,14 @@ static ERR_VALUE _init_default_values()
 		ret = option_add_UInt64(PROGRAM_OPTION_SEQSTART, (uint64_t)-1);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_SEQLEN, 100);
+		ret = option_add_UInt32(PROGRAM_OPTION_SEQLEN, 2000);
 
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(PROGRAM_OPTION_TEST_STEP, 1500);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_THRESHOLD, 0);
+		ret = option_add_UInt32(PROGRAM_OPTION_THRESHOLD, 2);
 	
 	if (ret == ERR_SUCCESS)
 		ret = option_add_String(PROGRAM_OPTION_READFILE, "\0");
@@ -88,7 +88,7 @@ static ERR_VALUE _init_default_values()
 		ret = option_add_UInt32(PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY, 2);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_MAX_PATHS, 10);
+		ret = option_add_UInt32(PROGRAM_OPTION_MAX_PATHS, 1);
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(PROGRAM_OPTION_READ_MAX_ERROR_RATE, 20);
@@ -194,9 +194,6 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 
 					for (size_t i = 0; i < Options->ReadCount; ++i)
 						read_shorten(Options->Reads + i, Options->ReadStrip);
-
-					if (ret == ERR_SUCCESS)
-						paired_reads_fix_overlaps(TRUE);
 				}
 			}
 		}
@@ -770,8 +767,6 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 			ret = _compute_graph(Allocator, Options, &po, &task, &tmpstats);
 			assembly_task_finit(&task);
 		}
-
-		input_back_reads(FilteredReads);
 	}
 
 	dym_array_clear_ONE_READ(FilteredReads);
@@ -1080,8 +1075,8 @@ int main(int argc, char *argv[])
 
 									PONE_READ r = po.Reads;
 									for (size_t i = 0; i < po.ReadCount; ++i) {
-										if (r->NumberOfFixes * 100 / r->ReadSequenceLen <= po.ParseOptions.ReadMaxErrorRate) {
-											read_quality_encode(r);
+										if (r->ReadSequenceLen > 0 && r->NumberOfFixes * 100 / r->ReadSequenceLen <= po.ParseOptions.ReadMaxErrorRate) {
+											read_quality_encode(r);											
 											read_write_sam(stdout, r);
 											read_quality_decode(r);
 										}
@@ -1117,6 +1112,7 @@ int main(int argc, char *argv[])
 						fprintf(stderr, "OpenMP thread count:        %i\n", po.OMPThreads);
 						fprintf(stderr, "Output VCF file:            %s\n", po.VCFFile);
 
+						paired_reads_fix_overlaps(TRUE);
 						if (ret == ERR_SUCCESS) {
 							if (ret == ERR_SUCCESS) {
 								size_t refSeqLen = 0;

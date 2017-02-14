@@ -24,30 +24,37 @@ typedef struct _READ_PART {
 GEN_ARRAY_TYPEDEF(READ_PART);
 GEN_ARRAY_IMPLEMENTATION(READ_PART)
 
+#define READ_TOP_QUALITY						(255 - 33)
+
 struct _ONE_READ;
 
 typedef struct _ONE_READ_PAIRED_LIST {
 	struct _ONE_READ *Next;
 } ONE_READ_PAIRED_LIST, *PONE_READ_PAIRED_LIST;
 
-typedef struct _ONE_READ {
+typedef struct _ONE_READ_EXTENSION {
 	uint16_t Flags;
-	char *ReadSequence;
-	size_t ReadSequenceLen;
-	uint8_t *Quality;
 	char *CIGAR;
 	char *RName;
 	char *RNext;
 	int32_t TLen;
 	uint64_t PNext;
+	char *TemplateName;
+} ONE_READ_EXTENSION, *PONE_READ_EXTENSION;
+
+typedef struct _ONE_READ {
+	char *ReadSequence;
+	size_t ReadSequenceLen;
+	size_t RealReadSequenceLen;
+	uint8_t *Quality;
 	uint64_t Pos;
 	uint8_t PosQuality;
-	char *TemplateName;
 	uint32_t NumberOfFixes;
 	size_t ReadIndex;
 	struct _ONE_READ *Parent;
 	uint32_t Offset;
 	boolean NoStartStrip;
+	PONE_READ_EXTENSION Extension;
 	boolean NoEndStrip;
 } ONE_READ, *PONE_READ;
 
@@ -77,7 +84,6 @@ void read_quality_encode(PONE_READ Read);
 void read_write_sam(FILE *Stream, const ONE_READ *Read);
 ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read);
 void read_copy_direct(PONE_READ Dest, const ONE_READ *Source);
-ERR_VALUE read_copy(PONE_READ Dest, const ONE_READ *Source);
 void read_destroy(PONE_READ Read);
 void _read_destroy_structure(PONE_READ Read);
 
@@ -88,9 +94,6 @@ void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t Region
 void read_shorten(PONE_READ Read, const size_t Count);
 ERR_VALUE read_base_insert(PONE_READ Read, const char Base, size_t Index);
 void read_base_delete(PONE_READ Read, size_t Index);
-
-ERR_VALUE seq_save(FILE *Stream, const char *RefSeq, const size_t Length);
-ERR_VALUE seq_load(FILE *Stream, char **RefSeq, size_t *Length);
 
 void assembly_task_init(PASSEMBLY_TASK Task, const char *RefSeq, const size_t RefSeqLen, const char *Alternate1, const size_t Alternate1Length, const char *Alternate2, const size_t Alternate2Length, const ONE_READ *ReadSet, const size_t ReadCount);
 void assembly_task_set_name(PASSEMBLY_TASK Task, const char *Name);

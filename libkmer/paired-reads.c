@@ -55,15 +55,15 @@ ERR_VALUE paired_reads_insert(const ONE_READ *Read)
 	PPOINTER_ARRAY_ONE_READ pairedReads = NULL;
 
 	ret = ERR_SUCCESS;
-	if (Read->TemplateName != NULL && *Read->TemplateName != '\0') {
-		it = kh_get(RP, _table, Read->TemplateName);
+	if (Read->Extension->TemplateName != NULL && *Read->Extension->TemplateName != '\0') {
+		it = kh_get(RP, _table, Read->Extension->TemplateName);
 		if (it == kh_end(_table)) {
 			ret = utils_malloc(sizeof(POINTER_ARRAY_ONE_READ), &pairedReads);
 			if (ret == ERR_SUCCESS) {
 				int tmp = 0;
 
 				pointer_array_init_ONE_READ(pairedReads, 140);
-				it = kh_put(RP, _table, Read->TemplateName, &tmp);
+				it = kh_put(RP, _table, Read->Extension->TemplateName, &tmp);
 				switch (tmp) {
 					case -1: ret = ERR_OUT_OF_MEMORY;  break;
 					case 0: ret = ERR_ALREADY_EXISTS; break;
@@ -239,7 +239,7 @@ void paired_reads_print(FILE *Stream)
 
 		counts.Data[pointer_array_size(reads) - 1] += 1;
 		totalCount += pointer_array_size(reads);
-		fprintf(Stream, "%s\t --> %Iu reads\n", reads->Data[0]->TemplateName, pointer_array_size(reads));
+		fprintf(Stream, "%s\t --> %Iu reads\n", reads->Data[0]->Extension->TemplateName, pointer_array_size(reads));
 		err = paired_reads_next(it, &it, &reads);
 	}
 

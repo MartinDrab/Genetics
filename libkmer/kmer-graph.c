@@ -1782,3 +1782,26 @@ ERR_VALUE kmer_graph_get_variants(const KMER_GRAPH *Graph, PGEN_ARRAY_FOUND_SEQU
 
 	return ret;
 }
+
+
+PKMER_EDGE kmer_vertex_get_edge_by_base(PKMER_VERTEX Vertex, const char Base)
+{
+	boolean found = FALSE;
+	PKMER_EDGE ret = NULL;
+
+	for (size_t i = 0; i < gen_array_size(&Vertex->Successors); ++i) {
+		const KMER *kmer = NULL;
+		
+		ret = Vertex->Successors.Data[i];
+		kmer = &ret->Dest->KMer;
+		found = (kmer_get_base(kmer, kmer_get_size(kmer) - 1) == Base);
+		if (found)
+			break;
+	}
+
+	if (!found)
+		ret = NULL;
+
+	return ret;
+}
+

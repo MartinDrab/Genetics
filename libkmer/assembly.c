@@ -706,6 +706,164 @@ static ERR_VALUE _kmer_graph_parse_read_v2(const PARSE_OPTIONS *Options, PKMER_G
 }
 
 
+static boolean _test_lookahead(const KMER_GRAPH *Graph, const KMER_VERTEX *StartVertex, const char *ReadSequence, const size_t ReadSequenceLength, size_t LookAhead, size_t Threshold)
+{
+	ERR_VALUE err = ERR_INTERNAL_ERROR;
+	PKMER kmer = NULL;
+	boolean ret = FALSE;
+
+	if (LookAhead <= ReadSequenceLength) {
+		const KMER_VERTEX *u = StartVertex;
+		const KMER_VERTEX *v = NULL;
+		const KMER_EDGE *e = NULL;
+		PPOINTER_ARRAY_KMER_VERTEX vertices = NULL;
+
+		ret = TRUE;
+		KMER_STACK_ALLOC(kmer, 0, kmer_graph_get_kmer_size(Graph), NULL);
+		kmer_init_from_kmer(kmer, &StartVertex->KMer);
+		for (size_t i = 0; i < LookAhead; ++i) {
+			kmer_advance(kmer, *ReadSequence);
+			err = kmer_graph_get_vertices(Graph, kmer, &vertices);
+			if (err == ERR_SUCCESS) {
+				const KMER_EDGE *maxEdge = NULL;
+				size_t maxValue = Threshold;
+				size_t weight = 0;
+
+				e = NULL;
+				for (size_t j = 0; j < pointer_array_size(vertices); ++j) {
+					v = vertices->Data[j];
+					e = kmer_graph_get_edge(Graph, &u->KMer, &v->KMer);
+					if (e != NULL) {
+						weight = read_info_weight(&e->ReadInfo, Graph->QualityTable);
+						if (weight > maxValue) {
+							maxValue = weight;
+							maxEdge = e;
+						}
+					}
+				}
+
+				ret = (maxEdge != NULL);
+				if (ret)
+					u = maxEdge->Dest;
+
+				break;
+			}
+
+			if (!ret || err != ERR_SUCCESS)
+				break;
+
+			++ReadSequence;
+		}
+	}
+
+	return ret;
+}
+
+
+static boolean _deletion_feesible(const KMER_GRAPH *Graph, const KMER_VERTEX *StartVertex, const char *ReadSequence, const size_t ReadSequenceLength, size_t LookAhead, size_t Threshold)
+{
+	return _test_lookahead(Graph, StartVertex, ReadSequence + 1, ReadSequenceLength - 1, LookAhead, Threshold);
+}
+
+
+static boolean _insertion_feesible(const KMER_GRAPH *Graph, const KMER_VERTEX *StartVertex, const char *ReadSequence, const size_t ReadSequenceLength, size_t LookAhead, size_t Threshold, char *BaseToInsert)
+{
+	PKMER kmer = NULL;
+	boolean ret = FALSE;
+	size_t maxValue = Threshold;
+	ERR_VALUE err = ERR_INTERNAL_ERROR;
+
+	if (LookAhead <= ReadSequenceLength) {
+		PPOINTER_ARRAY_KMER_VERTEX vertices = NULL;
+		char possibleBases[] = {'A', 'C', 'G', 'T'};
+
+		KMER_STACK_ALLOC(kmer, 0, kmer_graph_get_kmer_size(Graph), NULL);
+		for (size_t baseIndex = 0; baseIndex <= sizeof(possibleBases) / sizeof(possibleBases[0]); ++baseIndex) {
+			kmer_init_from_kmer(kmer, &StartVertex->KMer);
+			kmer_advance(kmer, possibleBases[baseIndex]);
+			err = kmer_graph_get_vertices(Graph, kmer, &vertices);
+			if (err == ERR_SUCCESS) {				
+				for (size_t j = 0; j < pointer_array_size(vertices); ++j) {
+					const KMER_VERTEX *v = vertices->Data[j];
+					const KMER_EDGE *e = kmer_graph_get_edge(Graph, &StartVertex->KMer, &v->KMer);
+
+					if (e != NULL) {
+						size_t weight = 0;
+						
+						weight = read_info_weight(&e->ReadInfo, Graph->QualityTable);
+						if (weight > maxValue) {
+							if (_test_lookahead(Graph, v, ReadSequence, ReadSequenceLength, LookAhead, Threshold)) {
+								maxValue = weight;
+								*BaseToInsert = possibleBases[baseIndex];
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			if (err != ERR_SUCCESS)
+				break;
+		}
+	}
+
+	ret = (maxValue > Threshold);
+
+	return ret;
+}
+
+
+static boolean _replace_feesible(const KMER_GRAPH *Graph, const KMER_VERTEX *StartVertex, const char *ReadSequence, const size_t ReadSequenceLength, size_t LookAhead, size_t Threshold, char *BaseToInsert)
+{
+	ERR_VALUE err = ERR_INTERNAL_ERROR;
+	PKMER kmer = NULL;
+	size_t maxValue = Threshold;
+	boolean ret = FALSE;
+
+	if (LookAhead <= ReadSequenceLength) {
+		PPOINTER_ARRAY_KMER_VERTEX vertices = NULL;
+		char possibleBases[] = { 'A', 'C', 'G', 'T' };
+
+		KMER_STACK_ALLOC(kmer, 0, kmer_graph_get_kmer_size(Graph), NULL);
+		for (size_t baseIndex = 0; baseIndex <= sizeof(possibleBases) / sizeof(possibleBases[0]); ++baseIndex) {
+			if (possibleBases[baseIndex] == *ReadSequence)
+				continue;
+			
+			kmer_init_from_kmer(kmer, &StartVertex->KMer);
+			kmer_advance(kmer, possibleBases[baseIndex]);
+			err = kmer_graph_get_vertices(Graph, kmer, &vertices);
+			if (err == ERR_SUCCESS) {
+				for (size_t j = 0; j < pointer_array_size(vertices); ++j) {
+					const KMER_VERTEX *v = vertices->Data[j];
+					const KMER_EDGE *e = kmer_graph_get_edge(Graph, &StartVertex->KMer, &v->KMer);
+
+					if (e != NULL) {
+						size_t weight = 0;
+						
+						weight = read_info_weight(&e->ReadInfo, Graph->QualityTable);
+						if (weight > maxValue) {
+							ret = _test_lookahead(Graph, v, ReadSequence + 1, ReadSequenceLength - 1, LookAhead, Threshold);
+							if (ret) {
+								maxValue = weight;
+								*BaseToInsert = possibleBases[baseIndex];
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			if (err != ERR_SUCCESS)
+				break;
+		}
+	}
+
+	ret = (maxValue > Threshold);
+
+	return ret;
+}
+
+
 static void _fix_read(const KMER_GRAPH *Graph, PONE_READ Reads, KMER_VERTEX **Vertices, const size_t NumberOfVertices, const size_t ReadIndex, PKMER_EDGE *Edges, const PARSE_OPTIONS *Options, PGEN_ARRAY_size_t FixedReads)
 {
 	boolean fixed = FALSE;
@@ -717,65 +875,36 @@ static void _fix_read(const KMER_GRAPH *Graph, PONE_READ Reads, KMER_VERTEX **Ve
 		const KMER_VERTEX *v = Vertices[1];
 		char *pBase = read->ReadSequence + kmerSize;
 		const size_t realThreshold = Options->ReadThreshold * 100;
+		boolean lowQualitypass = FALSE;
 
 		fixed = FALSE;
 		for (size_t i = 0; i < NumberOfVertices - 1; ++i) {
 			const KMER_EDGE *e = Edges[i];
 			const size_t origWeight = read_info_weight(&e->ReadInfo, Graph->QualityTable);
 
-			if ((u->Type != kmvtRefSeqMiddle || u->RefSeqPosition > kmerSize) &&
-				(v->Type != kmvtRefSeqMiddle || v->RefSeqPosition > kmerSize)) {
-				if (read->Quality[kmerSize + i] < 255 && (origWeight <= realThreshold || *pBase == 'N')) {
-					size_t maxValue = 0;
-					size_t maxIndex = 0;
-
-					for (size_t j = 0; j < kmer_vertex_out_degree(u); ++j) {
-						const KMER_EDGE *f = kmer_vertex_get_succ_edge(u, j);
-
-						if (f == e)
-							continue;
-
-						const size_t weight = read_info_weight(&f->ReadInfo, Graph->QualityTable);
-
-						if (maxValue <= weight) {
-							maxValue = weight;
-							maxIndex = j;
-						}
-					}
-
-					if (maxValue > realThreshold /*|| maxValue > origWeight*/) {
-						PKMER_EDGE newPath = kmer_vertex_get_succ_edge(u, maxIndex);
-
-						char newBase = kmer_get_base(&(newPath->Dest->KMer), kmerSize - 1);
-						if (*pBase != newBase) {
-							const READ_INFO *ri = &e->ReadInfo;
-							const READ_INFO_ENTRY *re = read_info_get_entry(ri, 0);
-							const char oldBase = *pBase;
-							
-							if (read->Parent->Quality[kmerSize + i] > 20)
-								read->NumberOfFixes++;
-
-							read->Quality[kmerSize + i] = 255;
-							read->ReadSequence[kmerSize + i] = newBase;
-							dym_array_push_back_size_t(FixedReads, ReadIndex);
-							/*
-							for (size_t j = 0; j < read_info_get_count(ri); ++j) {
-								PONE_READ r = Reads + re->ReadIndex;
-
-								assert(r->Part.ReadSequence[re->ReadPosition] == oldBase);
-								r->Part.Quality[re->ReadPosition] = 255;
-								r->Part.ReadSequence[re->ReadPosition] = newBase;
-								if (!dym_array_contains_size_t(FixedReads, re->ReadIndex))
-									dym_array_push_back_size_t(FixedReads, re->ReadIndex);
-
-								++re;
-							}
-							*/
-							break;
-						}
-					}
-				}
-			}
+				if (!lowQualitypass &&
+					read->Quality[kmerSize + i] < READ_TOP_QUALITY && (origWeight <= realThreshold || *pBase == 'N')) {
+					char base = '\0';
+					
+					if (_insertion_feesible(Graph, u, pBase, NumberOfVertices - 1 - i, 5, realThreshold, &base)) {
+						read_base_insert(read, base, pBase - read->ReadSequence);
+						++read->NumberOfFixes;
+						dym_array_push_back_size_t(FixedReads, ReadIndex);
+						break;
+					} else if (_deletion_feesible(Graph, u, pBase, NumberOfVertices - 1 - i, 5, realThreshold)) {
+						read_base_delete(read, pBase - read->ReadSequence);
+						++read->NumberOfFixes;
+						dym_array_push_back_size_t(FixedReads, ReadIndex);
+						break;
+					} else if (_replace_feesible(Graph, u, pBase, NumberOfVertices - 1 - i, 5, realThreshold, &base)) {
+						*pBase = base;
+						read->Quality[pBase - read->ReadSequence] = READ_TOP_QUALITY;
+						++read->NumberOfFixes;
+						dym_array_push_back_size_t(FixedReads, ReadIndex);
+						break;
+					} else lowQualitypass = TRUE;
+				} else if (origWeight > realThreshold && *pBase != 'N')
+					lowQualitypass = FALSE;
 
 			++pBase;
 			u = v;
@@ -1004,7 +1133,7 @@ ERR_VALUE assembly_repair_reads(const KMER_GRAPH_ALLOCATOR *GraphAllocator, cons
 
 						if (ret == ERR_SUCCESS) {
 							GEN_ARRAY_size_t fixedReads;
-
+							
 							dym_array_init_size_t(&fixedReads, 140);
 							do {
 								if (gen_array_size(&fixedReads) > 0) {

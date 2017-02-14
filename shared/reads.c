@@ -93,23 +93,28 @@ static const char *_sam_read_int_field(const char *Start, int32_t *Value)
 
 void _read_destroy_structure(PONE_READ Read)
 {
+	Read->Quality -= Read->Offset;
+	Read->ReadSequence -= Read->Offset;
+
 	if (Read->Quality != NULL)
 		utils_free(Read->Quality);
 
 	if (Read->ReadSequence != NULL)
 		utils_free(Read->ReadSequence);
 
-	if (Read->RNext != NULL)
-		utils_free(Read->RNext);
+	if (Read->Extension->RNext != NULL)
+		utils_free(Read->Extension->RNext);
 
-	if (Read->CIGAR != NULL)
-		utils_free(Read->CIGAR);
+	if (Read->Extension->CIGAR != NULL)
+		utils_free(Read->Extension->CIGAR);
 
-	if (Read->RName != NULL)
-		utils_free(Read->RName);
+	if (Read->Extension->RName != NULL)
+		utils_free(Read->Extension->RName);
 
-	if (Read->TemplateName != NULL)
-		utils_free(Read->TemplateName);
+	if (Read->Extension->TemplateName != NULL)
+		utils_free(Read->Extension->TemplateName);
+
+	utils_free(Read->Extension);
 
 	return;
 }
@@ -122,63 +127,12 @@ void _read_destroy_structure(PONE_READ Read)
 void read_copy_direct(PONE_READ Dest, const ONE_READ *Source)
 {
 	Dest->NumberOfFixes = Source->NumberOfFixes;
-	memcpy(Dest->ReadSequence, Source->ReadSequence, Source->ReadSequenceLen*sizeof(char));
-	memcpy(Dest->Quality, Source->Quality, Source->ReadSequenceLen*sizeof(uint8_t));
+	Dest->RealReadSequenceLen = Source->RealReadSequenceLen;
+	Dest->ReadSequenceLen = Source->RealReadSequenceLen;
+	Dest->ReadSequence = Source->ReadSequence - Source->Offset;
+	Dest->Quality = Source->Quality - Source->Offset;
 
 	return;
-}
-
-ERR_VALUE read_copy(PONE_READ Dest, const ONE_READ *Source)
-{
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = ERR_SUCCESS;
-	*Dest = *Source;
-	if (Dest->CIGAR != NULL)
-		ret = utils_copy_string(Source->CIGAR, &Dest->CIGAR);
-
-	if (ret == ERR_SUCCESS) {
-		if (Dest->TemplateName != NULL)
-			ret = utils_copy_string(Source->TemplateName, &Dest->TemplateName);
-
-		if (ret == ERR_SUCCESS) {
-			if (Dest->ReadSequenceLen > 0)
-				ret = utils_copy_string(Source->ReadSequence, &Dest->ReadSequence);
-
-			if (ret == ERR_SUCCESS) {
-				if (Dest->Quality != NULL) {
-					ret = utils_calloc(Dest->ReadSequenceLen + 1, sizeof(uint8_t), &Dest->Quality);
-					if (ret == ERR_SUCCESS) {
-						memcpy(Dest->Quality, Source->Quality, Dest->ReadSequenceLen);;
-						Dest->Quality[Dest->ReadSequenceLen] = 0;
-					}
-				}
-
-				if (ret == ERR_SUCCESS && Source->RName != NULL)
-					ret = utils_copy_string(Source->RName, &Dest->RName);
-
-				if (ret == ERR_SUCCESS && Source->RNext != NULL)
-					ret = utils_copy_string(Source->RNext, &Dest->RNext);
-
-				if (ret != ERR_SUCCESS) {
-					if (Dest->ReadSequenceLen > 0)
-						utils_free(Dest->ReadSequence);
-				}
-			}
-
-			if (ret != ERR_SUCCESS) {
-				if (Dest->TemplateName != NULL)
-					utils_free(Dest->TemplateName);
-			}
-		}
-
-		if (ret != ERR_SUCCESS) {
-			if (Dest->CIGAR != NULL)
-				utils_free(Dest->CIGAR);
-		}
-	}
-
-	return ret;
 }
 
 
@@ -202,7 +156,7 @@ void read_quality_decode(PONE_READ Read)
 
 void read_write_sam(FILE *Stream, const ONE_READ *Read)
 {
-	fprintf(Stream, "%s\t%u\t%s\t%" PRId64 "\t%u\t%s\t%s\t%" PRId64 "\t%i\t%s\t%s\n", Read->TemplateName, Read->Flags, Read->RName, Read->Pos + 1, Read->PosQuality, Read->CIGAR, Read->RNext, Read->PNext, Read->TLen, Read->ReadSequence, Read->Quality);
+	fprintf(Stream, "%s\t%u\t%s\t%" PRId64 "\t%u\t%s\t%s\t%" PRId64 "\t%i\t%.*s\t%.*s\n", Read->Extension->TemplateName, Read->Extension->Flags, Read->Extension->RName, Read->Pos + 1, Read->PosQuality, Read->Extension->CIGAR, Read->Extension->RNext, Read->Extension->PNext, Read->Extension->TLen, Read->RealReadSequenceLen, Read->ReadSequence, Read->RealReadSequenceLen, Read->Quality);
 
 	return;
 }
@@ -216,21 +170,24 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read)
 
 	ret = ERR_SUCCESS;
 	memset(Read, 0, sizeof(ONE_READ));
-	Line = _sam_read_string_field(Line, &Read->TemplateName, &tmpStringLen);
-	if (Line != NULL && *Line == '\t')
-		++Line;
-	else ret = ERR_SAM_INVALID_RNAME;
+	ret = utils_malloc(sizeof(ONE_READ_EXTENSION), &Read->Extension);
+	if (ret == ERR_SUCCESS) {
+		Line = _sam_read_string_field(Line, &Read->Extension->TemplateName, &tmpStringLen);
+		if (Line != NULL && *Line == '\t')
+			++Line;
+		else ret = ERR_SAM_INVALID_RNAME;
+	}
 
 	if (ret == ERR_SUCCESS) {
 		Line = _sam_read_uint_field(Line, &tmp32);
 		if (Line != NULL && *Line == '\t') {
 			++Line;
-			Read->Flags = tmp32;
+			Read->Extension->Flags = tmp32;
 		} else ret = ERR_SAM_INVALID_FLAG;
 	}
 
 	if (ret == ERR_SUCCESS) {
-		Line = _sam_read_string_field(Line, &Read->RName, &tmpStringLen);
+		Line = _sam_read_string_field(Line, &Read->Extension->RName, &tmpStringLen);
 		if (Line != NULL && *Line == '\t')
 			++Line;
 		else ret = ERR_SAM_INVALID_RNAME;
@@ -254,14 +211,14 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read)
 	}
 
 	if (ret == ERR_SUCCESS) {
-		Line = _sam_read_string_field(Line, &Read->CIGAR, &tmpStringLen);
+		Line = _sam_read_string_field(Line, &Read->Extension->CIGAR, &tmpStringLen);
 		if (Line != NULL && *Line == '\t')
 			++Line;
 		else ret = ERR_SAM_INVALID_CIGAR;
 	}
 
 	if (ret == ERR_SUCCESS) {
-		Line = _sam_read_string_field(Line, &Read->RNext, &tmpStringLen);
+		Line = _sam_read_string_field(Line, &Read->Extension->RNext, &tmpStringLen);
 		if (Line != NULL && *Line == '\t')
 			++Line;
 		else ret = ERR_SAM_INVALID_RNEXT;
@@ -271,7 +228,7 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read)
 		Line = _sam_read_uint_field(Line, &tmp32);
 		if (Line != NULL && *Line == '\t') {
 			++Line;
-			Read->PNext = tmp32;
+			Read->Extension->PNext = tmp32;
 		} else ret = ERR_SAM_INVALID_PNEXT;
 	}
 
@@ -279,15 +236,16 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read)
 		Line = _sam_read_int_field(Line, &tmp32);
 		if (Line != NULL && *Line == '\t') {
 			++Line;
-			Read->TLen = tmp32;
+			Read->Extension->TLen = tmp32;
 		} else ret = ERR_SAM_INVALID_TLEN;
 	}
 
 	if (ret == ERR_SUCCESS) {
 		Line = _sam_read_string_field(Line, &Read->ReadSequence, &Read->ReadSequenceLen);
-		if (Line != NULL && *Line == '\t')
+		if (Line != NULL && *Line == '\t') {
+			Read->RealReadSequenceLen = Read->ReadSequenceLen;
 			++Line;
-		else ret = ERR_SAM_INVALID_SEQ;
+		} else ret = ERR_SAM_INVALID_SEQ;
 	}
 
 	if (ret == ERR_SUCCESS) {
@@ -309,17 +267,17 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read)
 		if (Read->ReadSequence != NULL)
 			utils_free(Read->ReadSequence);
 
-		if (Read->RNext != NULL)
-			utils_free(Read->RNext);
+		if (Read->Extension->RNext != NULL)
+			utils_free(Read->Extension->RNext);
 		
-		if (Read->CIGAR != NULL)
-			utils_free(Read->CIGAR);
+		if (Read->Extension->CIGAR != NULL)
+			utils_free(Read->Extension->CIGAR);
 			
-		if (Read->RName != NULL)
-			utils_free(Read->RName);
+		if (Read->Extension->RName != NULL)
+			utils_free(Read->Extension->RName);
 
-		if (Read->TemplateName != NULL)
-			utils_free(Read->TemplateName);
+		if (Read->Extension->TemplateName != NULL)
+			utils_free(Read->Extension->TemplateName);
 	}
 
 	return ret;
@@ -387,12 +345,12 @@ void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t Region
 		endStripped = (size_t)(Read->Pos + Read->ReadSequenceLen - RegionStart - RegionLength);
 
 	if (startStripped > 0) {
+		Read->Offset = startStripped;
 		if (Read->ReadSequenceLen >= startStripped) {
 			Read->ReadSequenceLen -= startStripped;
 			Read->ReadSequence += startStripped;
 			Read->Quality += startStripped;
 			Read->Pos += startStripped;
-			Read->Offset = startStripped;
 		} else {
 			startStripped -= Read->ReadSequenceLen;
 			Read->ReadSequenceLen = 0;
@@ -417,10 +375,10 @@ void read_split(PONE_READ Read)
 	READ_PART part;
 	boolean end = FALSE;
 
-	if (Read->CIGAR != NULL && *Read->CIGAR != '\0' && *Read->CIGAR != '*') {
+	if (Read->Extension->CIGAR != NULL && *Read->Extension->CIGAR != '\0' && *Read->Extension->CIGAR != '*') {
 		char t;
 		unsigned long count = 1;
-		const char *c = Read->CIGAR;
+		const char *c = Read->Extension->CIGAR;
 
 		part.ReadSequence = Read->ReadSequence;
 		part.Position = Read->Pos;
@@ -472,11 +430,13 @@ void read_split(PONE_READ Read)
 			memmove(Read->Quality, part.Quality, part.ReadSequenceLength*sizeof(char));
 			Read->ReadSequenceLen = part.ReadSequenceLength;
 			Read->ReadSequence[Read->ReadSequenceLen] = '\0';
+			Read->Quality[Read->ReadSequenceLen] = '\0';
+			Read->RealReadSequenceLen = Read->ReadSequenceLen;
 		}
 
-		if (Read->CIGAR != NULL) {
-			Read->CIGAR[0] = '*';
-			Read->CIGAR[1] = '\0';
+		if (Read->Extension->CIGAR != NULL) {
+			Read->Extension->CIGAR[0] = '*';
+			Read->Extension->CIGAR[1] = '\0';
 		}
 	}
 
@@ -498,6 +458,8 @@ void read_shorten(PONE_READ Read, const size_t Count)
 			Read->ReadSequenceLen -= Count;
 
 		Read->ReadSequence[Read->ReadSequenceLen] = '\0';
+		Read->Quality[Read->ReadSequenceLen] = '\0';
+		Read->RealReadSequenceLen = Read->ReadSequenceLen;
 	}
 
 	return;
@@ -511,27 +473,28 @@ ERR_VALUE read_base_insert(PONE_READ Read, const char Base, size_t Index)
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	Index += Read->Offset;
-	ret = utils_calloc(Read->ReadSequenceLen + 2, sizeof(char), &tmpBases);
+	ret = utils_calloc(Read->RealReadSequenceLen + 2, sizeof(char), &tmpBases);
 	if (ret == ERR_SUCCESS) {
-		ret = utils_calloc(Read->ReadSequenceLen + 2, sizeof(uint8_t), &tmpQualities);
+		ret = utils_calloc(Read->RealReadSequenceLen + 2, sizeof(uint8_t), &tmpQualities);
 		if (ret == ERR_SUCCESS) {
-			memcpy(tmpBases, Read->ReadSequence, Index * sizeof(char));
+			memcpy(tmpBases, Read->ReadSequence - Read->Offset, Index * sizeof(char));
 			tmpBases[Index] = Base;
-			memcpy(tmpBases + Index + 1, Read->ReadSequence + Index, Read->ReadSequenceLen - Index);
-			tmpBases[Read->ReadSequenceLen + 1] = L'\0';
-			memcpy(tmpQualities, Read->Quality, Index * sizeof(char));
-			tmpQualities[Index] = 255;
-			memcpy(tmpQualities + Index + 1, Read->Quality + Index, Read->ReadSequenceLen - Index);
-			tmpQualities[Read->ReadSequenceLen + 1] = L'\0';
+			memcpy(tmpBases + Index + 1, Read->ReadSequence - Read->Offset + Index, (Read->RealReadSequenceLen - Index)*sizeof(char));
+			tmpBases[Read->RealReadSequenceLen + 1] = '\0';
+			memcpy(tmpQualities, Read->Quality - Read->Offset, Index * sizeof(char));
+			tmpQualities[Index] = READ_TOP_QUALITY;
+			memcpy(tmpQualities + Index + 1, Read->Quality - Read->Offset + Index, (Read->RealReadSequenceLen - Index)*sizeof(char));
+			tmpQualities[Read->RealReadSequenceLen + 1] = '\0';
 			++Read->ReadSequenceLen;
+			++Read->RealReadSequenceLen;
 			if (Read->ReadSequence != NULL)
-				utils_free(Read->ReadSequence);
+				utils_free(Read->ReadSequence - Read->Offset);
 
-			Read->ReadSequence = tmpBases;
+			Read->ReadSequence = tmpBases + Read->Offset;
 			if (Read->Quality != NULL)
-				utils_free(Read->Quality);
+				utils_free(Read->Quality - Read->Offset);
 			
-			Read->Quality = tmpQualities;
+			Read->Quality = tmpQualities + Read->Offset;
 			if (ret != ERR_SUCCESS)
 				utils_free(tmpQualities);
 		}
@@ -547,11 +510,14 @@ ERR_VALUE read_base_insert(PONE_READ Read, const char Base, size_t Index)
 void read_base_delete(PONE_READ Read, size_t Index)
 {
 	assert(Read->ReadSequenceLen >= 0);
-	
+
 	Index += Read->Offset;
-	memmove(Read->ReadSequence + Index, Read->ReadSequence + Index + 1, Read->ReadSequenceLen - Index - 1);
-	memmove(Read->Quality + Index, Read->Quality + Index + 1, Read->ReadSequenceLen - Index - 1);
+	memmove(Read->ReadSequence  - Read->Offset + Index, Read->ReadSequence - Read->Offset + Index + 1, Read->RealReadSequenceLen - Index - 1);
+	memmove(Read->Quality - Read->Offset + Index, Read->Quality + Index - Read->Offset + 1, Read->RealReadSequenceLen - Index - 1);
 	--Read->ReadSequenceLen;
+	--Read->RealReadSequenceLen;
+	Read->ReadSequence[Read->RealReadSequenceLen - Read->Offset] = '\0';
+	Read->Quality[Read->RealReadSequenceLen - Read->Offset] = '\0';
 
 	return;
 }

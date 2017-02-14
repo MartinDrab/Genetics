@@ -34,6 +34,7 @@ UTILS_NAMED_CALLOC_FUNCTION(PPKMER_EDGE, PKMER_EDGE *)
 #define kmer_vertex_get_predecessor(aVertex, aIndex)		(kmer_vertex_get_pred_edge((aVertex), (aIndex))->Source)
 #define kmer_vertex_in_degree(aVertex)						(pointer_array_size(&(aVertex)->Predecessors))
 #define kmer_vertex_out_degree(aVertex)						(pointer_array_size(&(aVertex)->Successors))
+PKMER_EDGE kmer_vertex_get_edge_by_base(PKMER_VERTEX Vertex, const char Base);
 
 
 ERR_VALUE kmer_graph_create(const uint32_t KMerSize, const size_t VerticesHint, const size_t EdgesHint, PKMER_GRAPH *Graph);
