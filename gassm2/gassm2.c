@@ -387,6 +387,23 @@ static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER
 	size_t res = 0;
 	size_t alternateLens[2];
 	GEN_ARRAY_FOUND_SEQUENCE_VARIANT variants;
+	FILE *f = NULL;
+	char *directory = NULL;
+	char graphName[128];
+
+	{
+		directory = "succ";
+#pragma warning (disable : 4996)											
+		sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-k%u.graph", Options->OutputDirectoryBase, directory, Task->Name, kmer_graph_get_kmer_size(Graph));
+		unlink(graphName);
+		if (Options->VCFFileHandle != NULL) {
+			ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
+			if (ret == ERR_SUCCESS) {
+				kmer_graph_print(f, Graph);
+				utils_fclose(f);
+			}
+		}
+	}
 
 	dym_array_init_FOUND_SEQUENCE_VARIANT(&variants, 140);
 	ret = kmer_graph_get_variants(Graph, &variants);
@@ -400,12 +417,7 @@ static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER
 		if (ret == ERR_SUCCESS)
 			res = pointer_array_size(&seqArray);
 
-		if (Task->Name != NULL && (Graph->TypedEdgeCount[kmetRead] > 0 || Graph->TypedEdgeCount[kmetVariant] > 0)) {
-			FILE *f = NULL;
-			char *directory = NULL;
-			char graphName[128];
-//			char vcfName[128];
-
+		if (Task->Name != NULL && (/*Graph->TypedEdgeCount[kmetRead] > 0 ||*/ Graph->TypedEdgeCount[kmetVariant] > 0)) {
 			directory = "succ";
 #pragma warning (disable : 4996)											
 			sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-k%u-p%Iu.graph", Options->OutputDirectoryBase, directory, Task->Name, kmer_graph_get_kmer_size(Graph), gen_array_size(&seqArray));
@@ -900,7 +912,7 @@ static void process_active_region_in_parallel(const ACTIVE_REGION *Contig, const
 
 	for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
 		_init_lookasides(Options->KMerSize, &vl, &el);
-#pragma omp parallel for shared(k, realStep, Options, Contig, _activeRegionProcessed), private(vl, el)
+#pragma omp parallel for shared(k, Options, Contig, _activeRegionProcessed), private(vl, el)
 		for (j = k; j < Contig->Length - Options->RegionLength; j += (int)realStep) {
 			int threadIndex = omp_get_thread_num();
 			KMER_GRAPH_ALLOCATOR ga;
