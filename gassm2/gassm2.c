@@ -413,9 +413,11 @@ static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER
 		alternateLens[0] = Task->Alternate1Length;
 		alternateLens[1] = Task->Alternate2Length;
 		pointer_array_init_FOUND_SEQUENCE(&seqArray, 140);
-		ret = kmer_graph_get_seqs(Graph, Task->Reference, Options->MaxPaths, &seqArray);
-		if (ret == ERR_SUCCESS)
-			res = pointer_array_size(&seqArray);
+		if (Options->MaxPaths > 1) {
+			ret = kmer_graph_get_seqs(Graph, Task->Reference, Options->MaxPaths, &seqArray);
+			if (ret == ERR_SUCCESS)
+				res = pointer_array_size(&seqArray);
+		} else res = (Graph->TypedEdgeCount[kmetRead] > 0) ? Options->MaxPaths + 1 : 1;
 
 		if (Task->Name != NULL && (/*Graph->TypedEdgeCount[kmetRead] > 0 ||*/ Graph->TypedEdgeCount[kmetVariant] > 0)) {
 			directory = "succ";
@@ -435,7 +437,7 @@ static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER
 				PFOUND_SEQUENCE *pseq = seqArray.Data;
 				PGEN_ARRAY_VARIANT_CALL vcArray = Options->VCSubArrays + omp_get_thread_num();
 
-				if (pointer_array_size(&seqArray) <= Options->MaxPaths) {
+				if (res <= Options->MaxPaths) {
 					_process_variant_calls(vcArray, Task, &variants, Options->Threshold);
 					for (size_t i = 0; i < pointer_array_size(&seqArray); ++i) {
 						_process_variant_calls(vcArray, Task, &(*pseq)->ReadVariants, Options->Threshold);
