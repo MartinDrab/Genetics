@@ -90,7 +90,7 @@ typedef struct _VARIANT_GRAPH {
 
 
 
-ERR_VALUE vg_graph_init(PVARIANT_CALL Variants, const size_t VariantCount, PVARIANT_GRAPH Graph);
+ERR_VALUE vg_graph_init(PVARIANT_CALL Variants, const size_t VariantCount, size_t Threshold, PVARIANT_GRAPH Graph);
 void vg_graph_finit(PVARIANT_GRAPH Graph);
 ERR_VALUE vg_graph_add_paired(PVARIANT_GRAPH Graph);
 ERR_VALUE vg_graph_color(PVARIANT_GRAPH Graph);

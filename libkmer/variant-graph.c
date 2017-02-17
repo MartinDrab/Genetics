@@ -588,12 +588,14 @@ static boolean vg_graph_remove_paired_colisions(PVARIANT_GRAPH Graph, const size
 
 ERR_VALUE vg_graph_color(PVARIANT_GRAPH Graph)
 {
+	int i = 0;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	const size_t componentCount = gen_array_size(&Graph->ComponentIndices);
 
 	ret = ERR_SUCCESS;
 	fprintf(stderr, "%Iu components\n", componentCount);
-	for (size_t i = 0; i < componentCount - 1; ++i) {
+#pragma omp parallel for shared(Graph)
+	for (i = 0; i < (int)componentCount - 1; ++i) {
 		const size_t startIndex = Graph->ComponentIndices.Data[i];
 		const size_t endIndex = Graph->ComponentIndices.Data[i + 1];
 
@@ -605,9 +607,6 @@ ERR_VALUE vg_graph_color(PVARIANT_GRAPH Graph)
 			
 			ret = ERR_SUCCESS;
 		}
-
-		if (ret != ERR_SUCCESS)
-			break;
 	}
 
 	return ret;
@@ -651,13 +650,13 @@ static void _optimize_both_paths(PVARIANT_GRAPH Graph)
 /************************************************************************/
 
 
-ERR_VALUE vg_graph_init(PVARIANT_CALL Variants, const size_t VariantCount, PVARIANT_GRAPH Graph)
+ERR_VALUE vg_graph_init(PVARIANT_CALL Variants, const size_t VariantCount, size_t Threshold, PVARIANT_GRAPH Graph)
 {
 	int i = 0;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	Graph->Thresholds.Paired = 2;
-	Graph->Thresholds.Read = 2;
+	Graph->Thresholds.Paired = Threshold;
+	Graph->Thresholds.Read = Threshold;
 	Graph->ReadMap = kh_init(ReadToVertex);
 	if (Graph->ReadMap != NULL) {
 		Graph->VerticesArraySize = VariantCount;
@@ -992,7 +991,6 @@ ERR_VALUE vg_graph_add_paired(PVARIANT_GRAPH Graph)
 void vg_graph_finalize(PVARIANT_GRAPH Graph)
 {
 	PVARIANT_GRAPH_VERTEX v = Graph->Vertices.ByType.Alternative;
-	const size_t threshold = 2;
 
 	for (size_t i = 0; i < Graph->VerticesArraySize; ++i) {
 		if (!_vg_vertex_exists(Graph, v))

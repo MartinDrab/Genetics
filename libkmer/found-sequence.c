@@ -486,28 +486,18 @@ void vc_array_finit(PGEN_ARRAY_VARIANT_CALL Array)
 }
 
 
-void vc_array_print(FILE *Stream, const GEN_ARRAY_VARIANT_CALL *Array)
+void vc_array_print(FILE *Stream, const char *ReferenceFile, const char *ContigID, const GEN_ARRAY_VARIANT_CALL *Array)
 {
 	const VARIANT_CALL *tmp = Array->Data;
 
 	fprintf(Stream, "##fileformat=VCFv4.0\n");
 	fprintf(Stream, "##fileDate=20160525\n");
 	fprintf(Stream, "##source=GASSMV2\n");
-	fprintf(Stream, "##reference=1\n");
+	fprintf(Stream, "##reference=%s\n", ReferenceFile);
+	fprintf(Stream, "##contig=<ID=%s>\n", ContigID);
 	fprintf(Stream, "##phasing=partial\n");
-//	fprintf(Stream, "##INFO=<ID=NS,Number=1,Type=Integer,Description=\"Number of Samples With Data\">\n");
-//	fprintf(Stream, "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n");
-//	fprintf(Stream, "##INFO=<ID=AF,Number=.,Type=Float,Description=\"Allele Frequency\">\n");
-//	fprintf(Stream, "##INFO=<ID=AA,Number=1,Type=String,Description=\"Ancestral Allele\">\n");
-//	fprintf(Stream, "##INFO=<ID=DB,Number=0,Type=Flag,Description=\"dbSNP membership, build 129\">\n");
-//	fprintf(Stream, "##INFO=<ID=H2,Number=0,Type=Flag,Description=\"HapMap2 membership\">\n");
-//	fprintf(Stream, "##FILTER=<ID=q10,Description=\"Quality below 10\">\n");
-//	fprintf(Stream, "##FILTER=<ID=s50,Description=\"Less than 50 %% of samples have data\">\n");
 	fprintf(Stream, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n");
 	fprintf(Stream, "##FORMAT=<ID=PS,Number=1,Type=String,Description=\"Phase number\">\n");
-//	fprintf(Stream, "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">\n");
-//	fprintf(Stream, "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read Depth\">\n");
-//	fprintf(Stream, "##FORMAT=<ID=HQ,Number=2,Type=Integer,Description=\"Haplotype Quality\">\n");
 	fprintf(Stream, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tDNAcko\n");
 	for (size_t i = 0; i < gen_array_size(Array); ++i) {
 		if (tmp->Valid) {

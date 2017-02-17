@@ -1218,7 +1218,7 @@ int main(int argc, char *argv[])
 												VARIANT_GRAPH vg;
 
 												fprintf(stderr, "Creating variant graph...\n");
-												ret = vg_graph_init(po.VCArray.Data, gen_array_size(&po.VCArray), &vg);
+												ret = vg_graph_init(po.VCArray.Data, gen_array_size(&po.VCArray), po.Threshold, &vg);
 												if (ret == ERR_SUCCESS) {
 													ret = vg_graph_add_paired(&vg);
 													if (ret == ERR_SUCCESS) {
@@ -1230,7 +1230,7 @@ int main(int argc, char *argv[])
 													vg_graph_finit(&vg);
 												}
 
-												vc_array_print(po.VCFFileHandle, &po.VCArray);
+												vc_array_print(po.VCFFileHandle, po.RefSeqFile, "1", &po.VCArray);
 											}
 
 											vc_array_finit(&po.VCArray);
