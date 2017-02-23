@@ -681,9 +681,9 @@ void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings)
 		v = *pointer_array_pop_back_KMER_VERTEX(&stack);
 		while (kmer_vertex_in_degree(v) > 0) {
 			e = kmer_vertex_get_pred_edge(v, 0);
-			if (kmer_vertex_out_degree(e->Dest) == 1 &&
-				kmer_vertex_in_degree(e->Dest) > 0)
-				ret = pointer_array_push_back_KMER_VERTEX(&stack, e->Dest);
+			if (kmer_vertex_out_degree(e->Source) == 1 &&
+				kmer_vertex_in_degree(e->Source) > 0)
+				ret = pointer_array_push_back_KMER_VERTEX(&stack, e->Source);
 
 			kmer_graph_delete_edge(Graph, e);
 		}
