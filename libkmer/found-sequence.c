@@ -128,19 +128,15 @@ ERR_VALUE found_sequence_variant_init_indices(PFOUND_SEQUENCE_VARIANT Variant, c
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	dym_array_init_size_t(&Variant->RefReadIndices, 140);
-	ret = dym_array_reserve_size_t(&Variant->RefReadIndices, GEN_ARRAY_STATIC_ALLOC + 1);
+	ret = dym_array_reserve_size_t(&Variant->RefReadIndices, max(GEN_ARRAY_STATIC_ALLOC + 1, gen_array_size(RefIndices)));
 	if (ret == ERR_SUCCESS) {
 		dym_array_init_size_t(&Variant->ReadIndices, 140);
-		ret = dym_array_reserve_size_t(&Variant->ReadIndices, GEN_ARRAY_STATIC_ALLOC + 1);
+		ret = dym_array_reserve_size_t(&Variant->ReadIndices, max(GEN_ARRAY_STATIC_ALLOC + 1, gen_array_size(ReadIndices)));
 		if (ret == ERR_SUCCESS) {
 			if (RefIndices != NULL)
-				ret = dym_array_push_back_array_size_t(&Variant->RefReadIndices, RefIndices);
+				dym_array_push_back_array_size_t(&Variant->RefReadIndices, RefIndices);
 			
-			if (ret == ERR_SUCCESS && ReadIndices != NULL)
-				ret = dym_array_push_back_array_size_t(&Variant->ReadIndices, ReadIndices);
-		
-			if (ret != ERR_SUCCESS)
-				dym_array_finit_size_t(&Variant->ReadIndices);
+			ret = dym_array_push_back_array_size_t(&Variant->ReadIndices, ReadIndices);		
 		}
 
 		if (ret != ERR_SUCCESS)
@@ -184,73 +180,6 @@ ERR_VALUE found_sequence_set_variant(PFOUND_SEQUENCE FS, const size_t Index, PFO
 }
 
 
-boolean found_sequence_match(const FOUND_SEQUENCE *FS, const char *Seq, const size_t Length)
-{
-	const char *fPos = FS->Sequence;
-	const char *sPos = Seq;
-	boolean ret = TRUE;
-	size_t remaining = Length;
-	size_t cvIndex = 0;
-	PFOUND_SEQUENCE_VARIANT currentVariant = NULL;
-
-	if (gen_array_size(&FS->Variants) > 0) {
-		currentVariant = dym_array_item_FOUND_SEQUENCE_VARIANT(&FS->Variants, 0);
-		currentVariant->Reserved = 0;
-	}
-
-	while (ret && remaining > 0) {
-		if (*fPos == '?') {
-			ret = (currentVariant->Reserved < 2);
-			if (ret) {
-				const size_t index = currentVariant->Reserved;
-				const char *varSeq = (index == 1) ? currentVariant->Seq2 : currentVariant->Seq1;
-				const size_t varSeqlen = (index == 1) ? currentVariant->Seq2Len : currentVariant->Seq1Len;
-			
-				++currentVariant->Reserved;
-				if (remaining >= varSeqlen && memcmp(varSeq, sPos, varSeqlen) == 0) {
-					currentVariant->LastSPos = sPos;
-					currentVariant->LastFPos = fPos;
-					sPos += varSeqlen;
-					remaining -= varSeqlen;
-					++fPos;
-					++currentVariant;
-					++cvIndex;
-					if (cvIndex < gen_array_size(&FS->Variants))
-						currentVariant->Reserved = 0;
-				}
-			} else {
-				ret = (cvIndex > 0);
-				if (ret) {
-					--currentVariant;
-					--cvIndex;
-					fPos = currentVariant->LastFPos;
-					sPos = currentVariant->LastSPos;
-					remaining = sPos - Seq;
-				}
-			}
-		} else {
-			ret = (*fPos == *sPos);
-			if (ret) {
-				++fPos;
-				++sPos;
-				--remaining;
-			} else {
-				ret = (cvIndex > 0);
-				if (ret) {
-					--currentVariant;
-					--cvIndex;
-					fPos = currentVariant->LastFPos;
-					sPos = currentVariant->LastSPos;
-					remaining = sPos - Seq;
-				}
-			}
-		}
-	}
-
-	return ret;
-}
-
-
 ERR_VALUE found_sequence_build_read_variants(const KMER_GRAPH *Graph, PFOUND_SEQUENCE FS, const POINTER_ARRAY_KMER_EDGE *PathEdges)
 {
 	uint32_t refseqStart = 0;
@@ -277,7 +206,7 @@ ERR_VALUE found_sequence_build_read_variants(const KMER_GRAPH *Graph, PFOUND_SEQ
 				refseqStart = e->Source->RefSeqPosition + 1;
 				startIndex = i;
 				rs_storage_reset(&seqStorage);
-				weight = read_info_weight(&e->ReadInfo, Graph->QualityTable);
+				weight = e->Seq1Weight;
 				switch (rsEdge->Type) {
 					case kmetReference:
 //						rsWeight = read_info_weight(&rsEdge->ReadInfo);

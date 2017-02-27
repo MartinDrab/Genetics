@@ -66,11 +66,13 @@ PKMER_EDGE kmer_graph_get_edge(const struct _KMER_GRAPH *Graph, const struct _KM
 PKMER_VERTEX kmer_graph_get_vertex(const struct _KMER_GRAPH *Graph, const struct _KMER *KMer);
 ERR_VALUE kmer_graph_get_vertices(const KMER_GRAPH *Graph, const KMER *KMer, PPOINTER_ARRAY_KMER_VERTEX *VertexArray);
 
-ERR_VALUE kmer_graph_find_rs_read_edges(const KMER_GRAPH *Graph, PPOINTER_ARRAY_KMER_EDGE InEdges, PPOINTER_ARRAY_KMER_EDGE OutEdges);
-ERR_VALUE kmer_graph_process_rs_read_edges(PKMER_GRAPH Graph, PPOINTER_ARRAY_KMER_EDGE InEdges, PPOINTER_ARRAY_KMER_EDGE OutEdges, const size_t Threshold);
-
 PKMER_EDGE _get_refseq_edge(const KMER_VERTEX *Vertex);
 PKMER_EDGE _get_refseq_or_variant_edge(const KMER_VERTEX *Vertex);
+
+ERR_VALUE kmer_graph_resolve_triangles(PKMER_GRAPH Graph, const size_t Threshold);
+void kmer_graph_compute_weights(PKMER_GRAPH Graph);
+ERR_VALUE kmer_graph_resolve_read_narrowings(PKMER_GRAPH Graph);
+
 
 
 

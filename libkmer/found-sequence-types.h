@@ -22,9 +22,6 @@ typedef struct _FOUND_SEQUENCE_VARIANT {
 	size_t Seq2Weight;
 	GEN_ARRAY_size_t RefReadIndices;
 	GEN_ARRAY_size_t ReadIndices;
-	size_t Reserved;
-	const char *LastFPos;
-	const char *LastSPos;
 } FOUND_SEQUENCE_VARIANT, *PFOUND_SEQUENCE_VARIANT;
 
 GEN_ARRAY_TYPEDEF(FOUND_SEQUENCE_VARIANT);

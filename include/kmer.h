@@ -23,6 +23,7 @@ typedef struct _KMER {
 
 #define kmer_get_size(aKMer)					((aKMer)->Size)
 #define kmer_get_base(aKMer, aIndex)			((aKMer)->Bases[(aIndex)])
+#define kmer_get_last_base(aKMer)				kmer_get_base(aKMer, kmer_get_size(aKMer) - 1)
 #define kmer_set_base(aKMer, aIndex, aBase)		((aKMer)->Bases[(aIndex)] = (aBase))
 #define kmer_get_number(aKMer)					((aKMer)->Number)
 #define kmer_set_number(aKMer, aNumber)			((aKMer)->Number = (aNumber))

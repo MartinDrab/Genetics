@@ -781,18 +781,20 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 			fprintf(Stream, "\tV%Iu_1 -> V%Iu_2 [arrowhead=none,color=blue];\n", i, i);
 	}
 
-	for (size_t i = 0; i < Graph->VerticesArraySize - 1; ++i) {
-		if (_vg_read_edge_exists(Graph, vgvtReference, vgvtReference, i))
-			fprintf(Stream, "\tV%Iu_1 -> V%Iu_1[label=\"%Iu\",color=green];\n", i, i + 1, Graph->ReadEdges.ByTypes.RefToRef[i]);
+	if (Graph->VerticesArraySize > 0) {
+		for (size_t i = 0; i < Graph->VerticesArraySize - 1; ++i) {
+			if (_vg_read_edge_exists(Graph, vgvtReference, vgvtReference, i))
+				fprintf(Stream, "\tV%Iu_1 -> V%Iu_1[label=\"%Iu\",color=green];\n", i, i + 1, Graph->ReadEdges.ByTypes.RefToRef[i]);
 
-		if (_vg_read_edge_exists(Graph, vgvtReference, vgvtAlternative, i))
-			fprintf(Stream, "\tV%Iu_1 -> V%Iu_2[label=\"%Iu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.RefToAlt[i]);
+			if (_vg_read_edge_exists(Graph, vgvtReference, vgvtAlternative, i))
+				fprintf(Stream, "\tV%Iu_1 -> V%Iu_2[label=\"%Iu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.RefToAlt[i]);
 
-		if (_vg_read_edge_exists(Graph, vgvtAlternative, vgvtReference, i))
-			fprintf(Stream, "\tV%Iu_2 -> V%Iu_1[label=\"%Iu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.AltToRef[i]);
+			if (_vg_read_edge_exists(Graph, vgvtAlternative, vgvtReference, i))
+				fprintf(Stream, "\tV%Iu_2 -> V%Iu_1[label=\"%Iu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.AltToRef[i]);
 
-		if (_vg_read_edge_exists(Graph, vgvtAlternative, vgvtAlternative, i))
-			fprintf(Stream, "\tV%Iu_2 -> V%Iu_2[label=\"%Iu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.AltToAlt[i]);
+			if (_vg_read_edge_exists(Graph, vgvtAlternative, vgvtAlternative, i))
+				fprintf(Stream, "\tV%Iu_2 -> V%Iu_2[label=\"%Iu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.AltToAlt[i]);
+		}
 	}
 
 	for (size_t i = 0; i < Graph->VerticesArraySize; ++i) {

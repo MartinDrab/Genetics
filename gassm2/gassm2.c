@@ -391,7 +391,7 @@ static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER
 	char *directory = NULL;
 	char graphName[128];
 
-	{
+	if (Graph->TypedEdgeCount[kmetRead] > 0) {
 		directory = "succ";
 #pragma warning (disable : 4996)											
 		sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-k%u.graph", Options->OutputDirectoryBase, directory, Task->Name, kmer_graph_get_kmer_size(Graph));
@@ -419,9 +419,10 @@ static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER
 				res = pointer_array_size(&seqArray);
 		} else res = (Graph->TypedEdgeCount[kmetRead] > 0) ? Options->MaxPaths + 1 : 1;
 
-		if (Task->Name != NULL && (/*Graph->TypedEdgeCount[kmetRead] > 0 ||*/ Graph->TypedEdgeCount[kmetVariant] > 0)) {
+		if (Task->Name != NULL && Graph->TypedEdgeCount[kmetVariant] > 0) {
+			/*
 			directory = "succ";
-#pragma warning (disable : 4996)											
+#pragma warning (disable : 4996)	
 			sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-k%u-p%Iu.graph", Options->OutputDirectoryBase, directory, Task->Name, kmer_graph_get_kmer_size(Graph), gen_array_size(&seqArray));
 			unlink(graphName);
 			if (Options->VCFFileHandle != NULL)
@@ -432,7 +433,7 @@ static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER
 					utils_fclose(f);
 				}
 			}
-
+			*/
 			if (Options->VCFFileHandle != NULL) {
 				PFOUND_SEQUENCE *pseq = seqArray.Data;
 				PGEN_ARRAY_VARIANT_CALL vcArray = Options->VCSubArrays + omp_get_thread_num();
@@ -503,7 +504,12 @@ static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 				ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount, Options->Threshold, ParseOptions, &ep);
 				if (ret == ERR_SUCCESS) {
 					size_t deletedThings = 0;
+					GEN_ARRAY_size_t readIndices;
+					GEN_ARRAY_size_t refIndices;
 
+					dym_array_init_size_t(&refIndices, 140);
+					dym_array_init_size_t(&readIndices, 140);
+					
 					g->DeleteEdgeCallback = _on_delete_edge;
 					g->DeleteEdgeCallbackContext = &ep;
 					kmer_graph_delete_edges_under_threshold(g, 0);
@@ -513,11 +519,13 @@ static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 						size_t changeCount = 0;
 						ret = kmer_graph_connect_reads_by_pairs(g, Options->Threshold, &ep, &changeCount);
 						if (ret == ERR_SUCCESS) {
+							kmer_graph_compute_weights(g);
 							if (ParseOptions->LinearShrink)
 								kmer_graph_delete_1to1_vertices(g);
 
 							kmer_graph_delete_edges_under_threshold(g, Options->Threshold);
 							kmer_graph_delete_trailing_things(g, &deletedThings);
+//							kmer_graph_resolve_read_narrowings(g);
 							if (ParseOptions->MergeBubbles) {
 								boolean changed = FALSE;
 
@@ -525,17 +533,16 @@ static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 									changed = FALSE;
 									ret = kmer_graph_detect_uncertainities(g, Task->Reference, &changed);
 								} while (ret == ERR_SUCCESS && changed);
+							
+//								kmer_graph_resolve_triangles(g, Options->Threshold);
 							}
 
 							if (ret == ERR_SUCCESS)
 								pathCount = _compare_alternate_sequences(Options, g, Task, Statistics);
 							else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
-						}
-						else printf("kmer_graph_connect_reads_by_pairs(): %u\n", ret);
-					}
-					else ++Statistics->CannotSucceed;
-				}
-				else printf("kmer_graph_parse_reads(): %u\n", ret);
+						} else printf("kmer_graph_connect_reads_by_pairs(): %u\n", ret);
+					} else ++Statistics->CannotSucceed;
+				} else printf("kmer_graph_parse_reads(): %u\n", ret);
 
 				PKMER_EDGE_PAIR p = ep.Data;
 
@@ -547,12 +554,10 @@ static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 				}
 
 				dym_array_finit_KMER_EDGE_PAIR(&ep);
-			}
-			else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
+			} else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
 
 			kmer_graph_destroy(g);
-		}
-		else printf("kmer_graph_create(): %u\n", ret);
+		} else printf("kmer_graph_create(): %u\n", ret);
 
 		if (ret != ERR_SUCCESS || pathCount <= Options->MaxPaths)
 			break;
