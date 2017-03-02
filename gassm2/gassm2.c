@@ -378,6 +378,30 @@ static ERR_VALUE _process_variant_calls(PGEN_ARRAY_VARIANT_CALL VCArray, const A
 }
 
 
+static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *Task, const char *Suffix)
+{
+	FILE *f = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	const char *directory = NULL;
+	char graphName[128];
+
+	ret = ERR_SUCCESS;
+	directory = "succ";
+#pragma warning (disable : 4996)											
+	sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-k%u-%s.graph", Options->OutputDirectoryBase, directory, Task->Name, kmer_graph_get_kmer_size(Graph), Suffix);
+	unlink(graphName);
+	if (Options->VCFFileHandle != NULL) {
+		ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
+		if (ret == ERR_SUCCESS) {
+			kmer_graph_print(f, Graph);
+			utils_fclose(f);
+		}
+	}
+
+	return ret;
+}
+
+
 static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER_GRAPH Graph, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
 {
 	boolean notFound = FALSE;
@@ -391,20 +415,7 @@ static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER
 	char *directory = NULL;
 	char graphName[128];
 
-	if (Graph->TypedEdgeCount[kmetRead] > 0) {
-		directory = "succ";
-#pragma warning (disable : 4996)											
-		sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-k%u.graph", Options->OutputDirectoryBase, directory, Task->Name, kmer_graph_get_kmer_size(Graph));
-		unlink(graphName);
-		if (Options->VCFFileHandle != NULL) {
-			ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
-			if (ret == ERR_SUCCESS) {
-				kmer_graph_print(f, Graph);
-				utils_fclose(f);
-			}
-		}
-	}
-
+	_print_graph(Graph, Options, Task, "f2");
 	dym_array_init_FOUND_SEQUENCE_VARIANT(&variants, 140);
 	ret = kmer_graph_get_variants(Graph, &variants);
 	if (ret == ERR_SUCCESS) {
@@ -420,20 +431,6 @@ static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER
 		} else res = (Graph->TypedEdgeCount[kmetRead] > 0) ? Options->MaxPaths + 1 : 1;
 
 		if (Task->Name != NULL && Graph->TypedEdgeCount[kmetVariant] > 0) {
-			/*
-			directory = "succ";
-#pragma warning (disable : 4996)	
-			sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-k%u-p%Iu.graph", Options->OutputDirectoryBase, directory, Task->Name, kmer_graph_get_kmer_size(Graph), gen_array_size(&seqArray));
-			unlink(graphName);
-			if (Options->VCFFileHandle != NULL)
-			{
-				ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
-				if (ret == ERR_SUCCESS) {
-					kmer_graph_print(f, Graph);
-					utils_fclose(f);
-				}
-			}
-			*/
 			if (Options->VCFFileHandle != NULL) {
 				PFOUND_SEQUENCE *pseq = seqArray.Data;
 				PGEN_ARRAY_VARIANT_CALL vcArray = Options->VCSubArrays + omp_get_thread_num();
@@ -517,13 +514,14 @@ static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 					g->DeleteEdgeCallback = NULL;
 					if (g->TypedEdgeCount[kmetRead] > 0) {
 						size_t changeCount = 0;
-						ret = kmer_graph_connect_reads_by_pairs(g, Options->Threshold, &ep, &changeCount);
+						ret = kmer_graph_connect_reads_by_pairs(g, ParseOptions->ReadThreshold, &ep, &changeCount);
 						if (ret == ERR_SUCCESS) {
 							kmer_graph_compute_weights(g);
 							if (ParseOptions->LinearShrink)
 								kmer_graph_delete_1to1_vertices(g);
 
-							kmer_graph_delete_edges_under_threshold(g, Options->Threshold);
+							_print_graph(g, Options, Task, "f1");
+							kmer_graph_delete_edges_under_threshold(g, ParseOptions->ReadThreshold);
 							kmer_graph_delete_trailing_things(g, &deletedThings);
 //							kmer_graph_resolve_read_narrowings(g);
 							if (ParseOptions->MergeBubbles) {
@@ -534,7 +532,7 @@ static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 									ret = kmer_graph_detect_uncertainities(g, Task->Reference, &changed);
 								} while (ret == ERR_SUCCESS && changed);
 							
-//								kmer_graph_resolve_triangles(g, Options->Threshold);
+								kmer_graph_resolve_triangles(g, Options->Threshold);
 							}
 
 							if (ret == ERR_SUCCESS)
