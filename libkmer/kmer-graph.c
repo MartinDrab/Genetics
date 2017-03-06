@@ -722,6 +722,7 @@ void kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph)
 				const KMER_EDGE *outEdge = kmer_vertex_get_succ_edge(v, 0);
 
 				if (inEdge->Type != kmetVariant && outEdge->Type != kmetVariant) {
+					/*
 					PKMER_EDGE newEdge = kmer_graph_get_edge(Graph, &inEdge->Source->KMer, &outEdge->Dest->KMer);
 
 					if (newEdge != NULL &&
@@ -748,7 +749,7 @@ void kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph)
 							}
 						}
 					}
-
+					*/
 					kmer_graph_delete_vertex(Graph, v);
 				}
 			}

@@ -287,25 +287,26 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 								++aLen;
 							}
 
-							ret = variant_call_init("1", rsPos, ".", refSeq, rLen, altSeq, aLen, 60, RefIndices, AltIndices, &vc);
-							if (ret == ERR_SUCCESS) {
-								vc.RefWeight = RSWeight;
-								vc.AltWeight = ReadWeight;
-								ret = vc_array_add(VCArray, &vc);
+							if (rsPos - Task->RegionStart - 1 >= 100 && rsPos - Task->RegionStart - 1 < Task->ReferenceLength - 100) {
+								ret = variant_call_init("1", rsPos, ".", refSeq, rLen, altSeq, aLen, 60, RefIndices, AltIndices, &vc);
 								if (ret == ERR_SUCCESS) {
-								}
+									vc.RefWeight = RSWeight;
+									vc.AltWeight = ReadWeight;
+									ret = vc_array_add(VCArray, &vc);
+									if (ret == ERR_SUCCESS) {
+									}
 
-								if (ret != ERR_SUCCESS) {
-									variant_call_finit(&vc);
-									if (ret == ERR_ALREADY_EXISTS)
-										ret = ERR_SUCCESS;
+									if (ret != ERR_SUCCESS) {
+										variant_call_finit(&vc);
+										if (ret == ERR_ALREADY_EXISTS)
+											ret = ERR_SUCCESS;
+									}
 								}
-
-								rsPos += (tmpRS - refSeq);
-								refSeq = tmpRS;
-								altSeq = tmpAltS;
 							}
 
+							rsPos += (tmpRS - refSeq);
+							refSeq = tmpRS;
+							altSeq = tmpAltS;
 							nothing = TRUE;
 						} else {
 							rsPos++;
@@ -532,7 +533,7 @@ static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 									ret = kmer_graph_detect_uncertainities(g, Task->Reference, &changed);
 								} while (ret == ERR_SUCCESS && changed);
 							
-								kmer_graph_resolve_triangles(g, Options->Threshold);
+//								kmer_graph_resolve_triangles(g, Options->Threshold);
 							}
 
 							if (ret == ERR_SUCCESS)

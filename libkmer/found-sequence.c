@@ -282,15 +282,15 @@ ERR_VALUE variant_call_init(const char *Chrom, uint64_t Pos, const char *ID, con
 {
 	char *tmp = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	/*
-	while ((RefLen > 2 && AltLen > 2 || RefLen == AltLen) && *Ref == *Alt) {
+	
+	while ((RefLen >= 2 && AltLen >= 2) && *Ref == *Alt) {
 		++Pos;
 		++Ref;
 		++Alt;
 		--RefLen;
 		--AltLen;
 	}
-	*/
+
 	VC->Valid = TRUE;
 	VC->PhasedPos = 0;
 	VC->PhaseType = vcptNone;
