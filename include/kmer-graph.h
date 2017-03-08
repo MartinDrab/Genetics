@@ -72,7 +72,7 @@ PKMER_EDGE _get_refseq_or_variant_edge(const KMER_VERTEX *Vertex);
 ERR_VALUE kmer_graph_resolve_triangles(PKMER_GRAPH Graph, const size_t Threshold);
 void kmer_graph_compute_weights(PKMER_GRAPH Graph);
 ERR_VALUE kmer_graph_resolve_read_narrowings(PKMER_GRAPH Graph);
-
+void kmer_graph_pair_variants(PKMER_GRAPH Graph);
 
 
 

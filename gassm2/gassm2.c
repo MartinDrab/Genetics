@@ -218,22 +218,6 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 }
 
 
-static void _write_differences(FILE *Stream, const char *RefSeq, const char *Alt1, const char *Alt2, const size_t Length)
-{
-	for (size_t i = 0; i < Length; ++i) {
-
-		if (*RefSeq != *Alt1 || *RefSeq != *Alt2)
-			fprintf(Stream, "%Iu:\t%c\t%c\t%c\n", i, *RefSeq, *Alt1, *Alt2);
-
-		++RefSeq;
-		++Alt1;
-		++Alt2;
-	}
-
-	return;
-}
-
-
 typedef enum _EExperimentResult {
 	erSuccess,
 	erFailure,
@@ -242,7 +226,7 @@ typedef enum _EExperimentResult {
 
 
 
-static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t RefSeqStart, const size_t RefSeqEnd, const char *AltSeq, const size_t AltSeqLen, const size_t RSWeight, const size_t ReadWeight, const GEN_ARRAY_size_t *RefIndices, const GEN_ARRAY_size_t *AltIndices, PGEN_ARRAY_VARIANT_CALL VCArray)
+static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t RefSeqStart, const size_t RefSeqEnd, const char *AltSeq, const size_t AltSeqLen, const size_t RSWeight, const size_t ReadWeight, const GEN_ARRAY_size_t *RefIndices, const GEN_ARRAY_size_t *AltIndices, void *Context, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	VARIANT_CALL vc;
 	char *altSeqStart = NULL;
@@ -290,12 +274,10 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 							if (rsPos - Task->RegionStart - 1 >= 100 && rsPos - Task->RegionStart - 1 < Task->ReferenceLength - 100) {
 								ret = variant_call_init("1", rsPos, ".", refSeq, rLen, altSeq, aLen, 60, RefIndices, AltIndices, &vc);
 								if (ret == ERR_SUCCESS) {
+									vc.Context = Context;
 									vc.RefWeight = RSWeight;
 									vc.AltWeight = ReadWeight;
 									ret = vc_array_add(VCArray, &vc);
-									if (ret == ERR_SUCCESS) {
-									}
-
 									if (ret != ERR_SUCCESS) {
 										variant_call_finit(&vc);
 										if (ret == ERR_ALREADY_EXISTS)
@@ -364,10 +346,10 @@ static ERR_VALUE _process_variant_calls(PGEN_ARRAY_VARIANT_CALL VCArray, const A
 
 		if (var->RefSeqStart < var->RefSeqEnd) {
 			if (var->Seq1Weight > realThreshold && var->Seq1Type == kmetRead)
-				ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, var->Seq2Weight, var->Seq1Weight, &var->RefReadIndices, &var->ReadIndices, VCArray);
+				ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, var->Seq2Weight, var->Seq1Weight, &var->RefReadIndices, &var->ReadIndices, var->Context, VCArray);
 
 			if (var->Seq2Weight > realThreshold && var->Seq2Type == kmetRead)
-				ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq2, var->Seq2Len, var->Seq1Weight, var->Seq2Weight, &var->RefReadIndices, &var->ReadIndices, VCArray);
+				ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq2, var->Seq2Len, var->Seq1Weight, var->Seq2Weight, &var->RefReadIndices, &var->ReadIndices, var->Context, VCArray);
 		} else {
 			printf("VAR-BACK: %u->%u, %s\n", var->RefSeqStart, var->RefSeqEnd, var->Seq1);
 		}
@@ -405,51 +387,34 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 
 static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER_GRAPH Graph, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
 {
-	boolean notFound = FALSE;
-	POINTER_ARRAY_FOUND_SEQUENCE seqArray;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	const char *alternates[2];
 	size_t res = 0;
-	size_t alternateLens[2];
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	GEN_ARRAY_FOUND_SEQUENCE_VARIANT variants;
-	FILE *f = NULL;
-	char *directory = NULL;
-	char graphName[128];
 
-	_print_graph(Graph, Options, Task, "f2");
+	kmer_graph_pair_variants(Graph);
 	dym_array_init_FOUND_SEQUENCE_VARIANT(&variants, 140);
 	ret = kmer_graph_get_variants(Graph, &variants);
 	if (ret == ERR_SUCCESS) {
-		alternates[0] = Task->Alternate1;
-		alternates[1] = Task->Alternate2;
-		alternateLens[0] = Task->Alternate1Length;
-		alternateLens[1] = Task->Alternate2Length;
-		pointer_array_init_FOUND_SEQUENCE(&seqArray, 140);
-		if (Options->MaxPaths > 1) {
-			ret = kmer_graph_get_seqs(Graph, Task->Reference, Options->MaxPaths, &seqArray);
-			if (ret == ERR_SUCCESS)
-				res = pointer_array_size(&seqArray);
-		} else res = (Graph->TypedEdgeCount[kmetRead] > 0) ? Options->MaxPaths + 1 : 1;
+		PGEN_ARRAY_VARIANT_CALL vcArray = Options->VCSubArrays + omp_get_thread_num();
+		GEN_ARRAY_VARIANT_CALL localArray;
 
-		if (Task->Name != NULL && Graph->TypedEdgeCount[kmetVariant] > 0) {
-			if (Options->VCFFileHandle != NULL) {
-				PFOUND_SEQUENCE *pseq = seqArray.Data;
-				PGEN_ARRAY_VARIANT_CALL vcArray = Options->VCSubArrays + omp_get_thread_num();
+		dym_array_init_VARIANT_CALL(&localArray, 140);
+		if (Graph->TypedEdgeCount[kmetVariant] > 0)
+			_process_variant_calls(&localArray, Task, &variants, Options->Threshold);
+		
+		vc_array_map_to_edges(&localArray);
+		_print_graph(Graph, Options, Task, "f2");
+		res = (Graph->TypedEdgeCount[kmetRead] > 0) ? Options->MaxPaths + 1 : 1;
+		if (res <= Options->MaxPaths) {
+			for (size_t i = 0; i < gen_array_size(&localArray); ++i) {
+				PVARIANT_CALL v = localArray.Data + i;
 
-				if (res <= Options->MaxPaths) {
-					_process_variant_calls(vcArray, Task, &variants, Options->Threshold);
-					for (size_t i = 0; i < pointer_array_size(&seqArray); ++i) {
-						_process_variant_calls(vcArray, Task, &(*pseq)->ReadVariants, Options->Threshold);
-						++pseq;
-					}
-				}
+				if (vc_array_add(vcArray, v) != ERR_SUCCESS)
+					variant_call_finit(v);
 			}
 		}
 
-		for (size_t j = 0; j < pointer_array_size(&seqArray); ++j)
-			found_sequence_free(*pointer_array_item_FOUND_SEQUENCE(&seqArray, j));
-
-		pointer_array_finit_FOUND_SEQUENCE(&seqArray);
+		dym_array_finit_VARIANT_CALL(&localArray);
 	}
 
 	dym_array_finit_FOUND_SEQUENCE_VARIANT(&variants);
@@ -1148,8 +1113,11 @@ int main(int argc, char *argv[])
 								if (ret == ERR_SUCCESS) {
 									po.VCFFileHandle = NULL;
 									if (*po.VCFFile != '\0') {
-										po.VCFFileHandle = fopen(po.VCFFile, "w");
-										ret = (po.VCFFileHandle != NULL) ? ERR_SUCCESS : ERR_NOT_FOUND;
+										if (strcmp(po.VCFFile, "-") != 0) {
+											po.VCFFileHandle = fopen(po.VCFFile, "w");
+											ret = (po.VCFFileHandle != NULL) ? ERR_SUCCESS : ERR_NOT_FOUND;
+										} else po.VCFFileHandle = stdout;
+
 										if (ret == ERR_SUCCESS)
 											dym_array_init_VARIANT_CALL(&po.VCArray, 140);
 									}
@@ -1238,7 +1206,8 @@ int main(int argc, char *argv[])
 											}
 
 											vc_array_finit(&po.VCArray);
-											fclose(po.VCFFileHandle);
+											if (po.VCFFileHandle != NULL && po.VCFFileHandle != stdout)
+												fclose(po.VCFFileHandle);
 										}
 
 									}

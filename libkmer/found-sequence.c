@@ -552,3 +552,18 @@ ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL S
 
 	return ret;
 }
+
+
+void vc_array_map_to_edges(PGEN_ARRAY_VARIANT_CALL VCArray)
+{
+	for (size_t i = 0; i < gen_array_size(VCArray); ++i) {
+		PKMER_EDGE e = NULL;
+		PVARIANT_CALL var = VCArray->Data + i;
+
+		e = (PKMER_EDGE)var->Context;
+		pointer_array_push_back_VARIANT_CALL(&e->VCs, var);
+	}
+
+
+	return;
+}

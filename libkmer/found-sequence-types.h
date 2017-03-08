@@ -22,6 +22,7 @@ typedef struct _FOUND_SEQUENCE_VARIANT {
 	size_t Seq2Weight;
 	GEN_ARRAY_size_t RefReadIndices;
 	GEN_ARRAY_size_t ReadIndices;
+	void *Context;
 } FOUND_SEQUENCE_VARIANT, *PFOUND_SEQUENCE_VARIANT;
 
 GEN_ARRAY_TYPEDEF(FOUND_SEQUENCE_VARIANT);
@@ -66,6 +67,7 @@ typedef struct _VARIANT_CALL {
 	boolean Valid;
 	uint64_t PhasedPos;
 	EVariantCallPhaseType PhaseType;
+	void *Context;
 } VARIANT_CALL, *PVARIANT_CALL;
 
 GEN_ARRAY_TYPEDEF(VARIANT_CALL);

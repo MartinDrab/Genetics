@@ -32,6 +32,8 @@ void vc_array_finit(PGEN_ARRAY_VARIANT_CALL Array);
 void vc_array_print(FILE *Stream, const char *ReferenceFile, const char *ContigID, const GEN_ARRAY_VARIANT_CALL *Array);
 void vc_array_sort(PGEN_ARRAY_VARIANT_CALL Array);
 ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL Sources, const size_t SourceCount);
+void vc_array_map_to_edges(PGEN_ARRAY_VARIANT_CALL VCArray);
+
 
 
 #endif 
