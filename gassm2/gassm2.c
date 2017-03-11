@@ -8,6 +8,7 @@
 #include "tinydir.h"
 #include "err.h"
 #include "utils.h"
+#include "kthread.h"
 #include "utils-lookaside.h"
 #include "file-utils.h"
 #include "options.h"
