@@ -8,3 +8,9 @@ bin
 /genome
 test-data.tgz
 Genetics.opensdf
+*.vcf
+*.cmp
+*.bam
+*.sam
+*.fa
+*.gz
