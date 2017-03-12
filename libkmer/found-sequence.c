@@ -458,7 +458,11 @@ static int _vc_comparator(const VARIANT_CALL *VC1, const VARIANT_CALL *VC2)
 	if (VC1->Pos > VC2->Pos)
 		return 1;
 
-	return 0;
+	int ret = strcmp(VC1->Ref, VC2->Ref);
+	if (ret == 0)
+		ret = strcmp(VC1->Alt, VC2->Alt);
+
+	return ret;
 }
 
 static int _size_t_comparer(const size_t *A, const size_t *B)

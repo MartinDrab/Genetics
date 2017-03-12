@@ -100,9 +100,9 @@ void utils_allocator_check(void);
 // #define USE_DEBUG_ALLOCATOR
 
 
-#define utils_malloc(aSize, aAddress)					utils_allocator_malloc((aSize), (aAddress), __FUNCTION__, __LINE__)
-#define utils_calloc(aCount, aSize, aAddress)			utils_allocator_calloc((aCount), (aSize), (aAddress), __FUNCTION__, __LINE__)
-#define utils_free(aAddress)							utils_allocator_free((aAddress));
+#define utils_malloc(aSize, aAddress)					_utils_malloc((aSize), (aAddress))
+#define utils_calloc(aCount, aSize, aAddress)			_utils_calloc((aCount), (aSize), (aAddress))
+#define utils_free(aAddress)							_utils_free((aAddress));
 void *_utils_alloc_mark(void);
 void _utils_alloc_diff(void *Mark);
 ERR_VALUE utils_allocator_init(const size_t NumberOfThreads);

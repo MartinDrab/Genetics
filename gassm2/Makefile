@@ -19,6 +19,7 @@ OBJ=\
 	$(SHAREDOBJDIR)/general-queue.o \
 	$(SHAREDOBJDIR)/input-file.o \
 	$(SHAREDOBJDIR)/reads.o \
+	$(SHAREDOBJDIR)/kthread.o \
 	$(OBJDIR)/gassm2.o \
 	$(LIBKMEROBJDIR)/ssw.o \
 	$(LIBKMEROBJDIR)/paired-reads.o \

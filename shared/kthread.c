@@ -13,25 +13,9 @@
  ************/
 
 #ifdef _MSC_VER
-#define pthread_t	HANDLE
 #define alloca		_alloca
 #endif
 
-
-struct kt_for_t;
-
-typedef struct {
-	struct kt_for_t *t;
-	long i;
-} ktf_worker_t;
-
-typedef struct kt_for_t {
-	int n_threads;
-	long n;
-	ktf_worker_t *w;
-	void (*func)(void*,long,int);
-	void *data;
-} kt_for_t;
 
 static inline long steal_work(kt_for_t *t)
 {
@@ -42,8 +26,7 @@ static inline long steal_work(kt_for_t *t)
 #ifndef _MSC_VER
 	k = __sync_fetch_and_add(&t->w[min_i].i, t->n_threads);
 #else
-	k = InterlockedAdd(&t->w[min_i].i, t->n_threads);
-	k -= t->n_threads;
+	k = InterlockedAdd(&t->w[min_i].i, t->n_threads) - t->n_threads;
 #endif
 	return k >= t->n? -1 : k;
 }
@@ -55,59 +38,170 @@ static DWORD WINAPI ktf_worker(void *data)
 #endif
 {
 	ktf_worker_t *w = (ktf_worker_t*)data;
-	long i;
-	for (;;) {
+
+	if (!w->Terminate) {
+		long i;
+		for (;;) {
 #ifndef _MSC_VER
-		i = __sync_fetch_and_add(&w->i, w->t->n_threads);
+			i = __sync_fetch_and_add(&w->i, w->t->n_threads);
 #else
-		i = InterlockedAdd(&w->i, w->t->n_threads);
-		i -= w->t->n_threads;
+			i = InterlockedAdd(&w->i, w->t->n_threads) - w->t->n_threads;
 #endif
-		if (i >= w->t->n) break;
-		w->t->func(w->t->data, i, w - w->t->w);
+			if (i >= w->t->n) 
+				break;
+			
+			w->t->func(w->t->data, i, w - w->t->w);
+		}
+		
+		while ((i = steal_work(w->t)) >= 0)
+			w->t->func(w->t->data, i, w - w->t->w);
 	}
-	while ((i = steal_work(w->t)) >= 0)
-		w->t->func(w->t->data, i, w - w->t->w);
 
 #ifndef _MSC_VER
 	pthread_exit(0);
 #else
+
 	return 0;
 #endif
 }
 
-void kt_for(int n_threads, void (*func)(void*,long,int), void *data, long n)
-{
-	if (n_threads > 1) {
-		int i;
-		kt_for_t t;
-		pthread_t *tid;
-		t.func = func, t.data = data, t.n_threads = n_threads, t.n = n;
-		t.w = (ktf_worker_t*)alloca(n_threads * sizeof(ktf_worker_t));
-		tid = (pthread_t*)alloca(n_threads * sizeof(pthread_t));
-		for (i = 0; i < n_threads; ++i)
-			t.w[i].t = &t, t.w[i].i = i;
 
-		for (i = 0; i < n_threads; ++i) {
-#ifndef _MSC_VER
-			pthread_create(&tid[i], 0, ktf_worker, &t.w[i]);
-#else
+static void _kt_for_init_worker_data(kt_for_t *ForLoop, int ThreadNo)
+{
+	ktf_worker_t *workerData = &ForLoop->w[ThreadNo];
+
+	workerData->t = ForLoop;
+	workerData->i = ThreadNo;
+	workerData->ThreadHandle = (pthread_t)NULL;
+	workerData->Terminate = 0;
+
+	return;
+}
+
+
+/************************************************************************/
+/*             PUBLIC FUNCTIONS                                         */
+/************************************************************************/
+
+
+void kt_for_init(kt_for_t *ForLoop, int n_threads, kt_for_worker_routine *func, void *data, long n)
+{
+	ForLoop->func = func;
+	ForLoop->data = data; 
+	ForLoop->n_threads = n_threads;
+	ForLoop->n = n;
+	ForLoop->w = NULL;
+	ForLoop->Allocated = 0;
+
+	return;
+}
+
+
+int kt_for_prepare(kt_for_t *ForLoop)
+{
+	int ret = 0;
+
+	ForLoop->w = (ktf_worker_t*)calloc(ForLoop->n_threads, sizeof(ktf_worker_t));
+	if (ForLoop->w != NULL) {
+		for (int i = 0; i < ForLoop->n_threads; ++i) {
+			_kt_for_init_worker_data(ForLoop, i);
+#ifdef _MSC_VER
 			DWORD threadId;
 
-			tid[i] = CreateThread(NULL, 0, ktf_worker, &t.w[i], 0, &threadId);
+			ForLoop->w[i].ThreadHandle = CreateThread(NULL, 0, ktf_worker, &ForLoop->w[i], CREATE_SUSPENDED, &threadId);
+			if (ForLoop->w[i].ThreadHandle == NULL) {
+				for (int j = 0; j < i; ++j) {
+					HANDLE th = ForLoop->w[j].ThreadHandle;
+
+					ForLoop->w[j].Terminate = 1;
+					ResumeThread(th);
+					WaitForSingleObject(th, INFINITE);
+					CloseHandle(th);
+				}
+
+				ret = -2;
+				break;
+			}
 #endif
 		}
 
-		for (i = 0; i < n_threads; ++i) {
+		if (ret == 0)
+			ForLoop->Allocated = 1;
+
+		if (ret != 0)
+			free(ForLoop->w);
+	} else ret = -1;
+
+	return ret;
+}
+
+
+void kt_for_finit(kt_for_t *ForLoop, int Terminate)
+{
+	ktf_worker_t *w = ForLoop->w;
+
+	for (int i = 0; i < ForLoop->n_threads; ++i) {
+		if (w->ThreadHandle != (pthread_t)NULL) {
+			w->Terminate = Terminate;
 #ifndef _MSC_VER
-			pthread_join(tid[i], 0);
+			pthread_join(w->ThreadHandle, 0);
 #else
-			WaitForSingleObject(tid[i], INFINITE);
+			ResumeThread(w->ThreadHandle);
+			WaitForSingleObject(w->ThreadHandle, INFINITE);
+			CloseHandle(w->ThreadHandle);
 #endif
+			w->ThreadHandle = (pthread_t)NULL;
 		}
+
+		++w;
+	}
+
+	if (ForLoop->Allocated) {
+		free(ForLoop->w);
+		ForLoop->w = NULL;
+	}
+
+	return;
+}
+
+
+void kt_for_perform(kt_for_t *ForLoop)
+{
+	ktf_worker_t *w = ForLoop->w;
+
+	for (int i = 0; i < ForLoop->n_threads; ++i) {
+#ifndef _MSC_VER
+		pthread_create(&w->ThreadHandle, 0, ktf_worker, w);
+#else
+		if (w->ThreadHandle == NULL) {
+			DWORD threadId;
+
+			w->ThreadHandle = CreateThread(NULL, 0, ktf_worker, w, 0, &threadId);
+		} else ResumeThread(w->ThreadHandle);
+#endif
+
+		++w;
+	}
+
+	return;
+}
+
+
+void kt_for(int n_threads, kt_for_worker_routine *func, void *data, long n)
+{
+	if (n_threads > 1) {
+		kt_for_t t;
+
+		kt_for_init(&t, n_threads, func, data, n);
+		t.w = (ktf_worker_t*)alloca(n_threads * sizeof(ktf_worker_t));
+		for (int i = 0; i < n_threads; ++i)
+			_kt_for_init_worker_data(&t, i);
+
+		kt_for_perform(&t);
+		kt_for_finit(&t, 0);
 	} else {
-		long j;
-		for (j = 0; j < n; ++j) func(data, j, 0);
+		for (long j = 0; j < n; ++j) 
+			func(data, j, 0);
 	}
 }
 

@@ -272,18 +272,16 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 								++aLen;
 							}
 
-							if (rsPos - Task->RegionStart - 1 >= 100 && rsPos - Task->RegionStart - 1 < Task->ReferenceLength - 100) {
-								ret = variant_call_init("1", rsPos, ".", refSeq, rLen, altSeq, aLen, 60, RefIndices, AltIndices, &vc);
-								if (ret == ERR_SUCCESS) {
-									vc.Context = Context;
-									vc.RefWeight = RSWeight;
-									vc.AltWeight = ReadWeight;
-									ret = vc_array_add(VCArray, &vc);
-									if (ret != ERR_SUCCESS) {
-										variant_call_finit(&vc);
-										if (ret == ERR_ALREADY_EXISTS)
-											ret = ERR_SUCCESS;
-									}
+							ret = variant_call_init("1", rsPos, ".", refSeq, rLen, altSeq, aLen, 60, RefIndices, AltIndices, &vc);
+							if (ret == ERR_SUCCESS) {
+								vc.Context = Context;
+								vc.RefWeight = RSWeight;
+								vc.AltWeight = ReadWeight;
+								ret = vc_array_add(VCArray, &vc);
+								if (ret != ERR_SUCCESS) {
+									variant_call_finit(&vc);
+									if (ret == ERR_ALREADY_EXISTS)
+										ret = ERR_SUCCESS;
 								}
 							}
 
@@ -386,7 +384,7 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 }
 
 
-static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER_GRAPH Graph, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
+static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER_GRAPH Graph, const ASSEMBLY_TASK *Task, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	size_t res = 0;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -396,7 +394,6 @@ static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER
 	dym_array_init_FOUND_SEQUENCE_VARIANT(&variants, 140);
 	ret = kmer_graph_get_variants(Graph, &variants);
 	if (ret == ERR_SUCCESS) {
-		PGEN_ARRAY_VARIANT_CALL vcArray = Options->VCSubArrays + omp_get_thread_num();
 		GEN_ARRAY_VARIANT_CALL localArray;
 
 		dym_array_init_VARIANT_CALL(&localArray, 140);
@@ -410,7 +407,7 @@ static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER
 			for (size_t i = 0; i < gen_array_size(&localArray); ++i) {
 				PVARIANT_CALL v = localArray.Data + i;
 
-				if (vc_array_add(vcArray, v) != ERR_SUCCESS)
+				if (vc_array_add(VCArray, v) != ERR_SUCCESS)
 					variant_call_finit(v);
 			}
 		}
@@ -448,7 +445,7 @@ static void _on_delete_edge(const KMER_GRAPH *Graph, const KMER_EDGE *Edge, void
 	return;
 }
 
-static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const PARSE_OPTIONS *ParseOptions, const ASSEMBLY_TASK *Task, PPROGRAM_STATISTICS Statistics)
+static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const PARSE_OPTIONS *ParseOptions, const ASSEMBLY_TASK *Task, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	PKMER_GRAPH g = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -503,10 +500,10 @@ static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 							}
 
 							if (ret == ERR_SUCCESS)
-								pathCount = _compare_alternate_sequences(Options, g, Task, Statistics);
+								pathCount = _compare_alternate_sequences(Options, g, Task, VCArray);
 							else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
 						} else printf("kmer_graph_connect_reads_by_pairs(): %u\n", ret);
-					} else ++Statistics->CannotSucceed;
+					}
 				} else printf("kmer_graph_parse_reads(): %u\n", ret);
 
 				PKMER_EDGE_PAIR p = ep.Data;
@@ -530,10 +527,8 @@ static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 		kmerSize += 10;
 	}
 
-	if (ret != ERR_SUCCESS) {
-		++Statistics->FailureCount;
+	if (ret != ERR_SUCCESS)
 		printf("FAILD: %u\n", ret);
-	}
 
 	return ret;
 }
@@ -711,7 +706,7 @@ static size_t _totalRegionLength = 0;
 static omp_lock_t _readCoverageLock;
 
 
-ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads)
+ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	
@@ -720,7 +715,6 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 		if (gen_array_size(FilteredReads) > 0) {
 			char taskName[128];
 			ASSEMBLY_TASK task;
-			PROGRAM_STATISTICS tmpstats;
 			
 			size_t coverage = 0;
 			{
@@ -748,7 +742,7 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 			po.ReadThreshold = Options->Threshold;
 			po.RegionStart = RegionStart;
 			po.RegionLength = Options->RegionLength;
-			ret = _compute_graph(Allocator, Options, &po, &task, &tmpstats);
+			ret = _compute_graph(Allocator, Options, &po, &task, VCArray);
 			assembly_task_finit(&task);
 		}
 	}
@@ -798,37 +792,36 @@ static long _activeRegionCount = 0;
 static volatile long _activeRegionProcessed = 0;
 
 
-static ERR_VALUE _init_lookasides(const uint32_t KmerSize, PUTILS_LOOKASIDE *VA, PUTILS_LOOKASIDE *EA)
+static ERR_VALUE _init_lookasides(const uint32_t KmerSize, PUTILS_LOOKASIDE *VA, PUTILS_LOOKASIDE *EA, size_t ThreadIndex)
 {
 	ERR_VALUE ret = ERR_SUCCESS;
-	int threadIndex = omp_get_thread_num();
 
-	if (_vertexLAs[threadIndex] == NULL) {
-		ret = utils_malloc(sizeof(UTILS_LOOKASIDE), _vertexLAs + threadIndex);
+	if (_vertexLAs[ThreadIndex] == NULL) {
+		ret = utils_malloc(sizeof(UTILS_LOOKASIDE), _vertexLAs + ThreadIndex);
 		if (ret == ERR_SUCCESS) {
-			ret = utils_lookaside_init(_vertexLAs[threadIndex], sizeof(KMER_VERTEX) + KmerSize, 3000);
+			ret = utils_lookaside_init(_vertexLAs[ThreadIndex], sizeof(KMER_VERTEX) + KmerSize, 3000);
 			if (ret != ERR_SUCCESS) {
-				utils_free(_vertexLAs[threadIndex]);
-				_vertexLAs[threadIndex] = NULL;
+				utils_free(_vertexLAs[ThreadIndex]);
+				_vertexLAs[ThreadIndex] = NULL;
 			}
 		}
 	}
 
 	if (ret == ERR_SUCCESS) {
-		*VA = _vertexLAs[threadIndex];
-		if (_edgeLAs[threadIndex] == NULL) {
-			ret = utils_malloc(sizeof(UTILS_LOOKASIDE), _edgeLAs + threadIndex);
+		*VA = _vertexLAs[ThreadIndex];
+		if (_edgeLAs[ThreadIndex] == NULL) {
+			ret = utils_malloc(sizeof(UTILS_LOOKASIDE), _edgeLAs + ThreadIndex);
 			if (ret == ERR_SUCCESS) {
-				ret = utils_lookaside_init(_edgeLAs[threadIndex], sizeof(KMER_EDGE), 5000);
+				ret = utils_lookaside_init(_edgeLAs[ThreadIndex], sizeof(KMER_EDGE), 5000);
 				if (ret != ERR_SUCCESS) {
-					utils_free(_edgeLAs[threadIndex]);
-					_edgeLAs[threadIndex] = NULL;
+					utils_free(_edgeLAs[ThreadIndex]);
+					_edgeLAs[ThreadIndex] = NULL;
 				}
 			}
 		}
 
 		if (ret == ERR_SUCCESS)
-			*EA = _edgeLAs[threadIndex];
+			*EA = _edgeLAs[ThreadIndex];
 	}
 
 	return ret;
@@ -874,6 +867,41 @@ static void _lookaside_edge_free(struct _KMER_GRAPH *Graph, PKMER_EDGE Edge, voi
 	return;
 }
 
+
+typedef struct _AR_WRAPPER_CONTEXT{
+	const char *Reference;
+	uint64_t RegionStart;
+	const PROGRAM_OPTIONS *Options;
+	uint32_t K;
+	uint32_t RealStep;
+} AR_WRAPPER_CONTEXT, *PAR_WRAPPER_CONTEXT;
+
+
+static void _ar_wrapper(PAR_WRAPPER_CONTEXT Context, long WorkIndex, size_t ThreadNo)
+{
+		uint32_t j;
+		long done = 0;
+		PUTILS_LOOKASIDE el = NULL;
+		PUTILS_LOOKASIDE vl = NULL;
+		KMER_GRAPH_ALLOCATOR ga;
+
+		j = Context->K + Context->RealStep*WorkIndex;
+		_init_lookasides(Context->Options->KMerSize, &vl, &el, ThreadNo);
+		ga.VertexAllocatorContext = vl;
+		ga.VertexAllocator = _lookaside_vertex_alloc;
+		ga.VertexFreer = _lookaside_vertex_free;
+		ga.EdgeAllocatorContext = el;
+		ga.EdgeAllocator = _lookaside_edge_alloc;
+		ga.EdgeFreer = _lookaside_edge_free;
+		process_active_region(&ga, Context->Options, Context->RegionStart + j, Context->Reference + j, Context->Options->ReadSubArrays + ThreadNo, Context->Options->VCSubArrays + ThreadNo);
+		done = utils_atomic_increment(&_activeRegionProcessed);
+		if (done % (_activeRegionCount / 10000) == 0)
+			fprintf(stderr, "%u %%\r", done * 10000 / _activeRegionCount);
+
+	return;
+}
+
+
 static void process_active_region_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_OPTIONS *Options)
 {
 	int j = 0;
@@ -883,37 +911,30 @@ static void process_active_region_in_parallel(const ACTIVE_REGION *Contig, const
 	PUTILS_LOOKASIDE vl = NULL;
 
 	for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
-		_init_lookasides(Options->KMerSize, &vl, &el);
-#pragma omp parallel for shared(k, Options, Contig, _activeRegionProcessed), private(vl, el)
-		for (j = k; j < Contig->Length - Options->RegionLength; j += (int)realStep) {
-			int threadIndex = omp_get_thread_num();
-			KMER_GRAPH_ALLOCATOR ga;
+		_init_lookasides(Options->KMerSize, &vl, &el, 0);
 
-			_init_lookasides(Options->KMerSize, &vl, &el);
-			ga.VertexAllocatorContext = vl;
-			ga.VertexAllocator = _lookaside_vertex_alloc;
-			ga.VertexFreer = _lookaside_vertex_free;
-			ga.EdgeAllocatorContext = el;
-			ga.EdgeAllocator = _lookaside_edge_alloc;
-			ga.EdgeFreer = _lookaside_edge_free;
-			process_active_region(&ga, Options, Contig->Offset + j, Contig->Sequence + j, Options->ReadSubArrays + omp_get_thread_num());
-			done = utils_atomic_increment(&_activeRegionProcessed);
-			if (done % (_activeRegionCount / 10000) == 0)
-				fprintf(stderr, "%u %%\r", done * 10000 / _activeRegionCount);
-		}
+		AR_WRAPPER_CONTEXT arCtx;
+
+		arCtx.K = k;
+		arCtx.Options = Options;
+		arCtx.RealStep = realStep;
+		arCtx.Reference = Contig->Sequence;
+		arCtx.RegionStart = Contig->Offset;
+		long MaxWorkIndex = (Contig->Length - Options->RegionLength - k) / realStep;
+		kt_for(Options->OMPThreads, _ar_wrapper, &arCtx, MaxWorkIndex);
 	}
 
 	KMER_GRAPH_ALLOCATOR ga;
 
 	for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
-		_init_lookasides(Options->KMerSize, &vl, &el);
+		_init_lookasides(Options->KMerSize, &vl, &el, 0);
 		ga.VertexAllocatorContext = vl;
 		ga.VertexAllocator = _lookaside_vertex_alloc;
 		ga.VertexFreer = _lookaside_vertex_free;
 		ga.EdgeAllocatorContext = el;
 		ga.EdgeAllocator = _lookaside_edge_alloc;
 		ga.EdgeFreer = _lookaside_edge_free;
-		process_active_region(&ga, Options, Contig->Offset + Contig->Length - Options->RegionLength - k, Contig->Sequence + Contig->Length - Options->RegionLength - k, Options->ReadSubArrays);
+		process_active_region(&ga, Options, Contig->Offset + Contig->Length - Options->RegionLength - k, Contig->Sequence + Contig->Length - Options->RegionLength - k, Options->ReadSubArrays, Options->VCSubArrays);
 		done = utils_atomic_increment(&_activeRegionProcessed);
 		if (done % (_activeRegionCount / 10000) == 0)
 			fprintf(stderr, "%u %%\r", done * 10000 / _activeRegionCount);
@@ -929,12 +950,11 @@ static void repair_reads_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_
 	const long count = _activeRegionCount*iterations;
 	const uint32_t realStep = ((Options->RegionLength + Options->TestStep - 1) / Options->TestStep)*Options->TestStep;
 	long done;
-	int threadIndex = omp_get_thread_num();
 	ERR_VALUE ret = ERR_SUCCESS;
 	PUTILS_LOOKASIDE el = NULL;
 	PUTILS_LOOKASIDE vl = NULL;
 
-	_init_lookasides(Options->KMerSize, &vl, &el);
+	_init_lookasides(Options->KMerSize, &vl, &el, 0);
 	for (size_t it = 0; it < iterations; ++it) {
 		for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
 			int j = 0;
@@ -942,7 +962,7 @@ static void repair_reads_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_
 			for (j = k; j < Contig->Length - Options->RegionLength; j += (int)realStep) {
 				KMER_GRAPH_ALLOCATOR ga;
 				
-				_init_lookasides(Options->KMerSize, &vl, &el);
+				_init_lookasides(Options->KMerSize, &vl, &el, omp_get_thread_num());
 				ga.VertexAllocatorContext = vl;
 				ga.VertexAllocator = _lookaside_vertex_alloc;
 				ga.VertexFreer = _lookaside_vertex_free;
@@ -958,7 +978,7 @@ static void repair_reads_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_
 
 		KMER_GRAPH_ALLOCATOR ga;
 
-		_init_lookasides(Options->KMerSize, &vl, &el);
+		_init_lookasides(Options->KMerSize, &vl, &el, 0);
 		ga.VertexAllocatorContext = vl;
 		ga.VertexAllocator = _lookaside_vertex_alloc;
 		ga.VertexFreer = _lookaside_vertex_free;
