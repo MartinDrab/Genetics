@@ -489,7 +489,6 @@ static ERR_VALUE _create_long_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertic
 	size_t seqIndex = kmerSize;
 	EKMerEdgeType longEdgeType;
 	uint32_t lastRefSeqPos = 0;
-	uint32_t maxRefSeqPos = 0;
 	boolean permitLongEdge = FALSE;
 
 	ret = ERR_SUCCESS;
@@ -511,6 +510,9 @@ static ERR_VALUE _create_long_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertic
 						p.ConnectingEdge = connectingEdge;
 						if (p.U->Dest->Type == kmvtRefSeqMiddle) {
 							p.ConnectingEdge->Source->LongEdgeAllowed |= permitLongEdge;
+							connectingEdge->LongData.LongEdge = TRUE;
+							connectingEdge->LongData.RefSeqEnd = p.U->Dest->RefSeqPosition;
+							connectingEdge->LongData.RefSeqStart = p.V->Source->RefSeqPosition + 1;
 						}
 
 						p.ReadDistance = seqIndex - readGapSeqStart - 1;
@@ -544,11 +546,8 @@ static ERR_VALUE _create_long_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertic
 			if (ret != ERR_SUCCESS)
 				break;
 
-			if (v->Type == kmvtRefSeqMiddle) {
+			if (v->Type == kmvtRefSeqMiddle)
 				lastRefSeqPos = v->RefSeqPosition;
-				if (lastRefSeqPos > maxRefSeqPos)
-					maxRefSeqPos = lastRefSeqPos;
-			}
 
 			if (!w->Helper)
 				++seqIndex;

@@ -45,6 +45,7 @@ int main(int argc, char **argv)
 		ret = utils_calloc(readCount, sizeof(bseq1_t), &seqs);
 		if (ret == ERR_SUCCESS) {
 			for (size_t i = 0; i < readCount; ++i) {
+//				read_shorten(reads + i, 5);
 				memset(seqs + i, 0, sizeof(seqs[i]));
 				seqs[i].l_seq = reads[i].ReadSequenceLen;
 				read_quality_encode(reads + i);
@@ -62,9 +63,14 @@ int main(int argc, char **argv)
 			fml_fltuniq(&options, readCount, seqs);
 			fprintf(stderr, "Converting back to our format...\n");
 			for (size_t i = 0; i < readCount; ++i) {
-				if (reads[i].ReadSequenceLen != seqs[i].l_seq)
-					utils_copy_string("*", &reads[i].Extension->CIGAR);
-
+				char cigar[20];
+				
+				memset(cigar, 0, sizeof(cigar));
+				if (reads[i].Pos > 0)
+					snprintf(cigar, sizeof(cigar), "%uM", reads[i].ReadSequenceLen);
+				else cigar[0] = "*";
+				
+				utils_copy_string(cigar, &reads[i].Extension->CIGAR);
 				reads[i].ReadSequenceLen = seqs[i].l_seq;
 				ret = utils_copy_string(seqs[i].seq, &reads[i].ReadSequence);
 				if (ret == ERR_SUCCESS)

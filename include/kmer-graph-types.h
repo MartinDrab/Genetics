@@ -34,6 +34,11 @@ typedef struct _KMER_EDGE {
 	GEN_ARRAY_size_t Paths;
 	GEN_ARRAY_FOUND_SEQUENCE_VARIANT Variants;
 	POINTER_ARRAY_VARIANT_CALL VCs;
+	struct {
+		boolean LongEdge;
+		uint32_t RefSeqEnd;
+		uint32_t RefSeqStart;
+	} LongData;
 } KMER_EDGE, *PKMER_EDGE;
 
 POINTER_ARRAY_TYPEDEF(KMER_EDGE);

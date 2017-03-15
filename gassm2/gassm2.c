@@ -16,6 +16,7 @@
 #include "input-file.h"
 #include "reads.h"
 #include "pointer_array.h"
+#include "ksw.h"
 #include "gassm2.h"
 
 
@@ -343,15 +344,11 @@ static ERR_VALUE _process_variant_calls(PGEN_ARRAY_VARIANT_CALL VCArray, const A
 		char *altSeq = NULL;
 		const char *refSeq = Task->Reference + var->RefSeqStart;
 
-		if (var->RefSeqStart < var->RefSeqEnd) {
-			if (var->Seq1Weight > realThreshold && var->Seq1Type == kmetRead)
-				ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, var->Seq2Weight, var->Seq1Weight, &var->RefReadIndices, &var->ReadIndices, var->Context, VCArray);
+		if (var->Seq1Weight > realThreshold && var->Seq1Type == kmetRead)
+			ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, var->Seq2Weight, var->Seq1Weight, &var->RefReadIndices, &var->ReadIndices, var->Context, VCArray);
 
-			if (var->Seq2Weight > realThreshold && var->Seq2Type == kmetRead)
-				ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq2, var->Seq2Len, var->Seq1Weight, var->Seq2Weight, &var->RefReadIndices, &var->ReadIndices, var->Context, VCArray);
-		} else {
-			printf("VAR-BACK: %u->%u, %s\n", var->RefSeqStart, var->RefSeqEnd, var->Seq1);
-		}
+		if (var->Seq2Weight > realThreshold && var->Seq2Type == kmetRead)
+			ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq2, var->Seq2Len, var->Seq1Weight, var->Seq2Weight, &var->RefReadIndices, &var->ReadIndices, var->Context, VCArray);
 
 		++var;
 	}
@@ -401,7 +398,7 @@ static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER
 			_process_variant_calls(&localArray, Task, &variants, Options->Threshold);
 		
 		vc_array_map_to_edges(&localArray);
-		_print_graph(Graph, Options, Task, "f2");
+		_print_graph(Graph, Options, Task, "f3");
 		res = (Graph->TypedEdgeCount[kmetRead] > 0) ? Options->MaxPaths + 1 : 1;
 		if (res <= Options->MaxPaths) {
 			for (size_t i = 0; i < gen_array_size(&localArray); ++i) {
@@ -445,6 +442,7 @@ static void _on_delete_edge(const KMER_GRAPH *Graph, const KMER_EDGE *Edge, void
 	return;
 }
 
+
 static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const PARSE_OPTIONS *ParseOptions, const ASSEMBLY_TASK *Task, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	PKMER_GRAPH g = NULL;
@@ -487,6 +485,7 @@ static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 							_print_graph(g, Options, Task, "f1");
 							kmer_graph_delete_edges_under_threshold(g, ParseOptions->ReadThreshold);
 							kmer_graph_delete_trailing_things(g, &deletedThings);
+							_print_graph(g, Options, Task, "f2");
 //							kmer_graph_resolve_read_narrowings(g);
 							if (ParseOptions->MergeBubbles) {
 								boolean changed = FALSE;
@@ -997,10 +996,31 @@ static void repair_reads_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_
 }
 
 
+void ksw_test()
+{
+	int matrix[] = {
+		2, -1, -1, -1,
+		-1, 2, -1, -1,
+		-1, -1, 2, -1
+		-1, -1, -1, 2
+	};
+	uint8_t target[] = {1, 2, 0, 1, 2, 3, 2, 3};
+	uint8_t q[] = {2, 0, 1, 2, 3, 2, 3, 0};
+	
+	kswr_t profile;
+	
+	profile = ksw_align(sizeof(q), q, sizeof(target), target, 4, matrix, 0, 0, KSW_XSTART | KSW_XSUBO, NULL);
+
+
+	return;
+}
+
+
 int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
+	ksw_test();
 	utils_allocator_init(omp_get_num_procs());
 	omp_init_lock(&_readCoverageLock);
 #ifdef _MSC_VER

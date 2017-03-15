@@ -618,7 +618,7 @@ static void _optimize_both_paths(PVARIANT_GRAPH Graph)
 {
 	PVARIANT_GRAPH_VERTEX v = NULL;
 	PVARIANT_GRAPH_VERTEX var = NULL;
-
+	
 	for (EVariangGraphVertexType type = vgvtReference; type < vgvtMax; ++type) {
 		for (size_t i = 0; i < Graph->VerticesArraySize; ++i) {
 			v = _vg_vertex_get(Graph, type, i);
@@ -629,18 +629,15 @@ static void _optimize_both_paths(PVARIANT_GRAPH Graph)
 
 				var = _vg_vertex_get_variant(Graph, v);
 				varExists = _vg_vertex_exists(Graph, var);
-				if (!varExists || (refExists && altExists)) {
+				if (!varExists /*|| (refExists && altExists)*/) {
 					v->Color = vgvcBoth;
 					if (varExists)
 						_delete_vertex(Graph, var);
-
-//					if (v->Type == vgvtReference)
-//						_delete_vertex(Graph, v);
 				}
 			}
 		}
 	}
-
+	
 	return;
 }
 
