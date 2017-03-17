@@ -228,7 +228,7 @@ typedef enum _EExperimentResult {
 
 
 
-static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t RefSeqStart, const size_t RefSeqEnd, const char *AltSeq, const size_t AltSeqLen, const size_t RSWeight, const size_t ReadWeight, const GEN_ARRAY_size_t *RefIndices, const GEN_ARRAY_size_t *AltIndices, void *Context, PGEN_ARRAY_VARIANT_CALL VCArray)
+static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t RefSeqStart, const size_t RefSeqEnd, const char *AltSeq, const size_t AltSeqLen, const GEN_ARRAY_size_t *RSWeights, const GEN_ARRAY_size_t *ReadWeights, const GEN_ARRAY_size_t *RefIndices, const GEN_ARRAY_size_t *AltIndices, void *Context, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	VARIANT_CALL vc;
 	char *altSeqStart = NULL;
@@ -238,7 +238,13 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 	char *altSeq = NULL;
 	const char *refSeq = Task->Reference + RefSeqStart;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	int rfwStartIndex = 1;
+	int rfwEndIndex = 1;
+	int rewStartIndex = 1;
+	int rewEndIndex = 1;
 
+	assert(gen_array_size(RSWeights) >= RefSeqEnd - RefSeqStart);
+	assert(gen_array_size(ReadWeights) >= AltSeqLen);
 	ret = utils_calloc(altLen + 2, sizeof(char), &altSeq);
 	if (ret == ERR_SUCCESS) {
 		altSeqStart = altSeq;
@@ -267,6 +273,8 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 							if (rLen == 0 || aLen == 0 ||
 								((rLen > 1 || aLen > 1) && *refSeq != *altSeq)) {
 								--rsPos;
+								--rfwStartIndex;
+								--rewStartIndex;
 								--refSeq;
 								--altSeq;
 								++rLen;
@@ -275,9 +283,32 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 
 							ret = variant_call_init("1", rsPos, ".", refSeq, rLen, altSeq, aLen, 60, RefIndices, AltIndices, &vc);
 							if (ret == ERR_SUCCESS) {
+								size_t count = 0;
+								
 								vc.Context = Context;
-								vc.RefWeight = RSWeight;
-								vc.AltWeight = ReadWeight;
+								vc.RefWeight = 0;
+								for (int i = rfwStartIndex; i < rfwEndIndex; ++i) {
+									if (i >= 0) {
+										++count;
+										vc.RefWeight += RSWeights->Data[i];
+									}
+								}
+								
+								if (count > 0)
+									vc.RefWeight /= count;
+
+								count = 0;
+								vc.AltWeight = 0;
+								for (int i = rewStartIndex; i < rewEndIndex; ++i) {
+									if (i >= 0) {
+										++count;
+										vc.AltWeight += ReadWeights->Data[i];
+									}
+								}
+
+								if (count > 0)
+									vc.AltWeight /= count;
+
 								ret = vc_array_add(VCArray, &vc);
 								if (ret != ERR_SUCCESS) {
 									variant_call_finit(&vc);
@@ -287,29 +318,39 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 							}
 
 							rsPos += (tmpRS - refSeq);
+							rfwStartIndex = rfwEndIndex;
+							rewStartIndex = rewEndIndex;
 							refSeq = tmpRS;
 							altSeq = tmpAltS;
 							nothing = TRUE;
 						} else {
 							rsPos++;
+							++rfwStartIndex;
+							++rewStartIndex;
 							refSeq++;
 							altSeq++;
 						}
 
 						++tmpRS;
 						++tmpAltS;
+						++rfwEndIndex;
+						++rewEndIndex;
 						break;
 					case 'X':
 						++tmpRS;
+						++rfwEndIndex;
+						++rewEndIndex;
 						++tmpAltS;
 						nothing = FALSE;
 						break;
 					case 'I':
 						++tmpAltS;
+						++rewEndIndex;
 						nothing = FALSE;
 						break;
 					case 'D':
 						++tmpRS;
+						++rfwEndIndex;
 						nothing = FALSE;
 						break;
 				}
@@ -345,10 +386,7 @@ static ERR_VALUE _process_variant_calls(PGEN_ARRAY_VARIANT_CALL VCArray, const A
 		const char *refSeq = Task->Reference + var->RefSeqStart;
 
 		if (var->Seq1Weight > realThreshold && var->Seq1Type == kmetRead)
-			ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, var->Seq2Weight, var->Seq1Weight, &var->RefReadIndices, &var->ReadIndices, var->Context, VCArray);
-
-		if (var->Seq2Weight > realThreshold && var->Seq2Type == kmetRead)
-			ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq2, var->Seq2Len, var->Seq1Weight, var->Seq2Weight, &var->RefReadIndices, &var->ReadIndices, var->Context, VCArray);
+			ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, &var->RefWeights, &var->ReadWeights, &var->RefReadIndices, &var->ReadIndices, var->Context, VCArray);
 
 		++var;
 	}
@@ -381,9 +419,8 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 }
 
 
-static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER_GRAPH Graph, const ASSEMBLY_TASK *Task, PGEN_ARRAY_VARIANT_CALL VCArray)
+static ERR_VALUE _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER_GRAPH Graph, const ASSEMBLY_TASK *Task, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
-	size_t res = 0;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	GEN_ARRAY_FOUND_SEQUENCE_VARIANT variants;
 
@@ -399,22 +436,24 @@ static size_t _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER
 		
 		vc_array_map_to_edges(&localArray);
 		_print_graph(Graph, Options, Task, "f3");
-		res = (Graph->TypedEdgeCount[kmetRead] > 0) ? Options->MaxPaths + 1 : 1;
-		if (res <= Options->MaxPaths) {
+		if (Graph->TypedEdgeCount[kmetRead] > 0)
+			ret = ERR_TOO_COMPLEX;
+
+		if (ret == ERR_SUCCESS) {
 			for (size_t i = 0; i < gen_array_size(&localArray); ++i) {
 				PVARIANT_CALL v = localArray.Data + i;
 
 				if (vc_array_add(VCArray, v) != ERR_SUCCESS)
 					variant_call_finit(v);
 			}
-		}
+		} else vc_array_clear(&localArray);
 
 		dym_array_finit_VARIANT_CALL(&localArray);
 	}
 
 	dym_array_finit_FOUND_SEQUENCE_VARIANT(&variants);
 
-	return res;
+	return ret;
 }
 
 
@@ -443,91 +482,116 @@ static void _on_delete_edge(const KMER_GRAPH *Graph, const KMER_EDGE *Edge, void
 }
 
 
-static ERR_VALUE _compute_graph(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const PARSE_OPTIONS *ParseOptions, const ASSEMBLY_TASK *Task, PGEN_ARRAY_VARIANT_CALL VCArray)
+static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const PARSE_OPTIONS *ParseOptions, const ASSEMBLY_TASK *Task, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	PKMER_GRAPH g = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	uint32_t kmerSize = Options->KMerSize;
-	size_t pathCount = 0;
 
-	for (uint32_t i = 0; i < 8; ++i) {
-		ret = kmer_graph_create(kmerSize, 2500, 6000, &g);
+	ret = kmer_graph_create(KMerSize, 2500, 6000, &g);
+	if (ret == ERR_SUCCESS) {
+		if (Allocator != NULL)
+			//			g->Allocator = *Allocator;
+			ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength, ParseOptions);
 		if (ret == ERR_SUCCESS) {
-			if (Allocator != NULL)
-//			g->Allocator = *Allocator;
-				ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength, ParseOptions);
+			GEN_ARRAY_KMER_EDGE_PAIR ep;
+
+			dym_array_init_KMER_EDGE_PAIR(&ep, 140);
+			ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount, Options->Threshold, ParseOptions, &ep);
 			if (ret == ERR_SUCCESS) {
-				GEN_ARRAY_KMER_EDGE_PAIR ep;
+				size_t deletedThings = 0;
+				GEN_ARRAY_size_t readIndices;
+				GEN_ARRAY_size_t refIndices;
 
-				dym_array_init_KMER_EDGE_PAIR(&ep, 140);
-				ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount, Options->Threshold, ParseOptions, &ep);
-				if (ret == ERR_SUCCESS) {
-					size_t deletedThings = 0;
-					GEN_ARRAY_size_t readIndices;
-					GEN_ARRAY_size_t refIndices;
+				dym_array_init_size_t(&refIndices, 140);
+				dym_array_init_size_t(&readIndices, 140);
 
-					dym_array_init_size_t(&refIndices, 140);
-					dym_array_init_size_t(&readIndices, 140);
-					
-					g->DeleteEdgeCallback = _on_delete_edge;
-					g->DeleteEdgeCallbackContext = &ep;
-					kmer_graph_delete_edges_under_threshold(g, 0);
-					kmer_graph_delete_trailing_things(g, &deletedThings);
-					g->DeleteEdgeCallback = NULL;
-					if (g->TypedEdgeCount[kmetRead] > 0) {
-						size_t changeCount = 0;
-						ret = kmer_graph_connect_reads_by_pairs(g, ParseOptions->ReadThreshold, &ep, &changeCount);
-						if (ret == ERR_SUCCESS) {
-							kmer_graph_compute_weights(g);
-							if (ParseOptions->LinearShrink)
-								kmer_graph_delete_1to1_vertices(g);
+				g->DeleteEdgeCallback = _on_delete_edge;
+				g->DeleteEdgeCallbackContext = &ep;
+				kmer_graph_delete_edges_under_threshold(g, 0);
+				kmer_graph_delete_trailing_things(g, &deletedThings);
+				g->DeleteEdgeCallback = NULL;
+				if (g->TypedEdgeCount[kmetRead] > 0) {
+					size_t changeCount = 0;
+					ret = kmer_graph_connect_reads_by_pairs(g, ParseOptions->ReadThreshold, &ep, &changeCount);
+					if (ret == ERR_SUCCESS) {
+						kmer_graph_compute_weights(g);
+						if (ParseOptions->LinearShrink)
+							kmer_graph_delete_1to1_vertices(g);
 
-							_print_graph(g, Options, Task, "f1");
-							kmer_graph_delete_edges_under_threshold(g, ParseOptions->ReadThreshold);
-							kmer_graph_delete_trailing_things(g, &deletedThings);
-							_print_graph(g, Options, Task, "f2");
-//							kmer_graph_resolve_read_narrowings(g);
-							if (ParseOptions->MergeBubbles) {
-								boolean changed = FALSE;
+						_print_graph(g, Options, Task, "f1");
+						kmer_graph_delete_edges_under_threshold(g, ParseOptions->ReadThreshold);
+						kmer_graph_delete_trailing_things(g, &deletedThings);
+						_print_graph(g, Options, Task, "f2");
+//						kmer_graph_resolve_read_narrowings(g);
+						if (ParseOptions->MergeBubbles) {
+							boolean changed = FALSE;
 
-								do {
-									changed = FALSE;
-									ret = kmer_graph_detect_uncertainities(g, Task->Reference, &changed);
-								} while (ret == ERR_SUCCESS && changed);
-							
-//								kmer_graph_resolve_triangles(g, Options->Threshold);
-							}
+							do {
+								changed = FALSE;
+								ret = kmer_graph_detect_uncertainities(g, Task->Reference, &changed);
+							} while (ret == ERR_SUCCESS && changed);
 
-							if (ret == ERR_SUCCESS)
-								pathCount = _compare_alternate_sequences(Options, g, Task, VCArray);
-							else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
-						} else printf("kmer_graph_connect_reads_by_pairs(): %u\n", ret);
+//							kmer_graph_resolve_triangles(g, Options->Threshold);
+						}
+
+						if (ret == ERR_SUCCESS)
+							ret = _compare_alternate_sequences(Options, g, Task, VCArray);
+						else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
 					}
-				} else printf("kmer_graph_parse_reads(): %u\n", ret);
-
-				PKMER_EDGE_PAIR p = ep.Data;
-
-				for (size_t i = 0; i < gen_array_size(&ep); ++i) {
-					if (p->Edges != NULL)
-						utils_free(p->Edges);
-
-					++p;
+					else printf("kmer_graph_connect_reads_by_pairs(): %u\n", ret);
 				}
+			}
+			else printf("kmer_graph_parse_reads(): %u\n", ret);
 
-				dym_array_finit_KMER_EDGE_PAIR(&ep);
-			} else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
+			PKMER_EDGE_PAIR p = ep.Data;
 
-			kmer_graph_destroy(g);
-		} else printf("kmer_graph_create(): %u\n", ret);
+			for (size_t i = 0; i < gen_array_size(&ep); ++i) {
+				if (p->Edges != NULL)
+					utils_free(p->Edges);
 
-		if (ret != ERR_SUCCESS || pathCount <= Options->MaxPaths)
+				++p;
+			}
+
+			dym_array_finit_KMER_EDGE_PAIR(&ep);
+		}
+		else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
+
+		kmer_graph_destroy(g);
+	} else printf("kmer_graph_create(): %u\n", ret);
+
+	return ret;
+}
+
+
+static ERR_VALUE _compute_graphs(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const PARSE_OPTIONS *ParseOptions, const ASSEMBLY_TASK *Task, PGEN_ARRAY_VARIANT_CALL VCArray)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	uint32_t kmerSize = Options->KMerSize;
+	GEN_ARRAY_VARIANT_CALL lowerArray;
+	GEN_ARRAY_VARIANT_CALL higherArray;
+	const uint32_t step = 10;
+
+	dym_array_init_VARIANT_CALL(&lowerArray, 140);
+	dym_array_init_VARIANT_CALL(&higherArray, 140);
+	for (uint32_t i = 0; i < 8; ++i) {
+		ret = _compute_graph(kmerSize, Allocator, Options, ParseOptions, Task, &lowerArray);
+		if (ret == ERR_SUCCESS) {
+//			ret = _compute_graph(kmerSize + step, Allocator, Options, ParseOptions, Task, &higherArray);
+			if (ret == ERR_SUCCESS)
+				vc_array_intersection(&lowerArray, &lowerArray, VCArray);
+		}
+
+
+		vc_array_clear(&lowerArray);
+		vc_array_clear(&higherArray);
+		if (ret != ERR_TOO_COMPLEX)
 			break;
 
-		kmerSize += 10;
+		kmerSize += step;
 	}
 
-	if (ret != ERR_SUCCESS)
-		printf("FAILD: %u\n", ret);
+	dym_array_finit_VARIANT_CALL(&higherArray);
+	dym_array_finit_VARIANT_CALL(&lowerArray);
 
 	return ret;
 }
@@ -741,7 +805,7 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 			po.ReadThreshold = Options->Threshold;
 			po.RegionStart = RegionStart;
 			po.RegionLength = Options->RegionLength;
-			ret = _compute_graph(Allocator, Options, &po, &task, VCArray);
+			ret = _compute_graphs(Allocator, Options, &po, &task, VCArray);
 			assembly_task_finit(&task);
 		}
 	}
@@ -996,31 +1060,12 @@ static void repair_reads_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_
 }
 
 
-void ksw_test()
-{
-	int matrix[] = {
-		2, -1, -1, -1,
-		-1, 2, -1, -1,
-		-1, -1, 2, -1
-		-1, -1, -1, 2
-	};
-	uint8_t target[] = {1, 2, 0, 1, 2, 3, 2, 3};
-	uint8_t q[] = {2, 0, 1, 2, 3, 2, 3, 0};
-	
-	kswr_t profile;
-	
-	profile = ksw_align(sizeof(q), q, sizeof(target), target, 4, matrix, 0, 0, KSW_XSTART | KSW_XSUBO, NULL);
-
-
-	return;
-}
 
 
 int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ksw_test();
 	utils_allocator_init(omp_get_num_procs());
 	omp_init_lock(&_readCoverageLock);
 #ifdef _MSC_VER

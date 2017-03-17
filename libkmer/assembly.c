@@ -507,15 +507,15 @@ static ERR_VALUE _create_long_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertic
 
 						p.U = gapStartE;
 						p.V = Edges[i];
+						p.ReadDistance = seqIndex - readGapSeqStart - 1;
 						p.ConnectingEdge = connectingEdge;
 						if (p.U->Dest->Type == kmvtRefSeqMiddle) {
-							p.ConnectingEdge->Source->LongEdgeAllowed |= permitLongEdge;
+							p.ConnectingEdge->Source->LongEdgeAllowed |= (permitLongEdge);
 							connectingEdge->LongData.LongEdge = TRUE;
 							connectingEdge->LongData.RefSeqEnd = p.U->Dest->RefSeqPosition;
 							connectingEdge->LongData.RefSeqStart = p.V->Source->RefSeqPosition + 1;
 						}
 
-						p.ReadDistance = seqIndex - readGapSeqStart - 1;
 						if (!_edge_pair_exists(PairArray, &p)) {
 							p.EdgeCount = i - readGapStart - 1;
 							ret = utils_calloc_PKMER_EDGE(p.EdgeCount, &p.Edges);
@@ -526,6 +526,8 @@ static ERR_VALUE _create_long_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertic
 									utils_free(p.Edges);
 							}
 						}
+
+
 					}
 
 				}

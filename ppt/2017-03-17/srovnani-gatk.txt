@@ -1,0 +1,19 @@
+Srovnání s GATK
+---------------
+
+                9.3	17.3	Fermi (regiony)	Fermi
+SNP	TP     	45141	45815	47650		45241
+SNP    	FN     	5532	4858	3043		5432
+SNP    	FP     	1233	1120	1441		385
+INDEL  	TP     	9533	9592	9802		7853
+INDEL  	FN     	1434	1375	1365		3114
+INDEL  	FP   	2763	2615	835		250
+
+TODO:
+ * prunik fermi a gatk VCF a hledat varianty, ktere v nem muj algo nenajde (vcftools isec)
+ * dopropagovat presnejsi vazeni jednotlivych variant do VCF
+ * pokud bude Gold standard, porovnat s nim
+ * udelat strukturu textu prace
+
+
+

@@ -7,17 +7,46 @@
 #include "found-sequence.h"
 
 
+ERR_VALUE found_sequence_variant_init(const char *Seq, size_t SeqLen, uint64_t RefSeqStart, uint64_t RefSeqEnd, PFOUND_SEQUENCE_VARIANT FSV)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = ERR_SUCCESS;
+	FSV->Context = NULL;
+	FSV->RefSeqStart = RefSeqStart;
+	FSV->RefSeqEnd = RefSeqEnd;
+	dym_array_init_size_t(&FSV->ReadIndices, 140);
+	dym_array_init_size_t(&FSV->RefReadIndices, 140);
+	dym_array_init_size_t(&FSV->ReadWeights, 140);
+	dym_array_init_size_t(&FSV->RefWeights, 140);
+	FSV->Seq1Weight = 0;
+	FSV->Seq1Type = kmetRead;
+	FSV->Seq1Len = SeqLen;
+	FSV->Seq1 = NULL;
+	if (FSV->Seq1Len > 0) {
+		ret = utils_calloc(FSV->Seq1Len, sizeof(char), &FSV->Seq1);
+		if (ret == ERR_SUCCESS) {
+			memcpy(FSV->Seq1, Seq, FSV->Seq1Len * sizeof(char));
+			FSV->Seq1[FSV->Seq1Len] = '\0';
+		}
+	}
+
+
+
+	return ret;
+}
 
 
 void found_sequence_variant_free(PFOUND_SEQUENCE_VARIANT FSV)
 {
+	dym_array_finit_size_t(&FSV->RefWeights);
+	dym_array_finit_size_t(&FSV->ReadWeights);
 	dym_array_finit_size_t(&FSV->RefReadIndices);
 	dym_array_finit_size_t(&FSV->ReadIndices);
 	if (FSV->Seq1 != NULL)
 		utils_free(FSV->Seq1);
 
-	if (FSV->Seq2 != NULL)
-		utils_free(FSV->Seq2);
+	return;
 
 }
 
@@ -37,15 +66,7 @@ ERR_VALUE found_sequence_variant_copy(PFOUND_SEQUENCE_VARIANT Target, const FOUN
 	*Target = *Source;
 	ret = utils_copy_string(Source->Seq1, &Target->Seq1);
 	if (ret == ERR_SUCCESS) {
-		ret = utils_copy_string(Source->Seq2, &Target->Seq2);
-		if (ret == ERR_SUCCESS) {
-			ret = found_sequence_variant_init_indices(Target, &Source->RefReadIndices, &Source->ReadIndices);
-			if (ret != ERR_SUCCESS) {
-				utils_free(Target->Seq2);
-				Target->Seq2 = NULL;
-			}
-		}
-
+		ret = found_sequence_variant_init_indices(Target, &Source->RefReadIndices, &Source->ReadIndices, &Source->RefWeights, &Source->ReadWeights);
 		if (ret != ERR_SUCCESS) {
 			utils_free(Target->Seq1);
 			Target->Seq1 = NULL;
@@ -123,7 +144,7 @@ void found_sequence_free(PFOUND_SEQUENCE FS)
 }
 
 
-ERR_VALUE found_sequence_variant_init_indices(PFOUND_SEQUENCE_VARIANT Variant, const GEN_ARRAY_size_t *RefIndices, const GEN_ARRAY_size_t *ReadIndices)
+ERR_VALUE found_sequence_variant_init_indices(PFOUND_SEQUENCE_VARIANT Variant, const GEN_ARRAY_size_t *RefIndices, const GEN_ARRAY_size_t *ReadIndices, const GEN_ARRAY_size_t *RefWeights, const GEN_ARRAY_size_t *ReadWeights)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
@@ -133,146 +154,36 @@ ERR_VALUE found_sequence_variant_init_indices(PFOUND_SEQUENCE_VARIANT Variant, c
 		dym_array_init_size_t(&Variant->ReadIndices, 140);
 		ret = dym_array_reserve_size_t(&Variant->ReadIndices, max(GEN_ARRAY_STATIC_ALLOC + 1, gen_array_size(ReadIndices)));
 		if (ret == ERR_SUCCESS) {
-			if (RefIndices != NULL)
-				dym_array_push_back_array_size_t(&Variant->RefReadIndices, RefIndices);
-			
-			ret = dym_array_push_back_array_size_t(&Variant->ReadIndices, ReadIndices);		
+			dym_array_init_size_t(&Variant->RefWeights, 140);
+			ret = dym_array_reserve_size_t(&Variant->RefWeights, max(GEN_ARRAY_STATIC_ALLOC + 1, gen_array_size(RefWeights)));
+			if (ret == ERR_SUCCESS) {
+				dym_array_init_size_t(&Variant->ReadWeights, 140);
+				ret = dym_array_reserve_size_t(&Variant->ReadWeights, max(GEN_ARRAY_STATIC_ALLOC + 1, gen_array_size(ReadWeights)));
+				if (ret == ERR_SUCCESS) {
+					if (RefIndices != NULL)
+						dym_array_push_back_array_size_t(&Variant->RefReadIndices, RefIndices);
+
+					if (ReadIndices != NULL)
+						dym_array_push_back_array_size_t(&Variant->ReadIndices, ReadIndices);
+
+					if (RefWeights != NULL)
+						dym_array_push_back_array_size_t(&Variant->RefWeights, RefWeights);
+
+					if (ReadWeights != NULL)
+						dym_array_push_back_array_size_t(&Variant->ReadWeights, ReadWeights);
+				}
+
+				if (ret != ERR_SUCCESS)
+					dym_array_finit_size_t(&Variant->RefWeights);
+			}
+
+			if (ret != ERR_SUCCESS)
+				dym_array_finit_size_t(&Variant->ReadIndices);
 		}
 
 		if (ret != ERR_SUCCESS)
 			dym_array_finit_size_t(&Variant->RefReadIndices);
 	}
-
-	return ret;
-}
-
-
-ERR_VALUE found_sequence_set_variant(PFOUND_SEQUENCE FS, const size_t Index, PFOUND_SEQUENCE_VARIANT Variant)
-{
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	FOUND_SEQUENCE_VARIANT tmp;
-
-	tmp.Seq1Len = Variant->Seq1Len;
-	ret = utils_copy_string(Variant->Seq1, &tmp.Seq1);
-	if (ret == ERR_SUCCESS) {
-		tmp.Seq2Len = Variant->Seq2Len;
-		ret = utils_copy_string(Variant->Seq2, &tmp.Seq2);
-		if (ret == ERR_SUCCESS) {
-			tmp.RefSeqStart = Variant->RefSeqStart;
-			tmp.RefSeqEnd = Variant->RefSeqEnd;
-			tmp.Seq1Type = Variant->Seq1Type;
-			tmp.Seq2Type = Variant->Seq2Type;
-			tmp.Seq1Weight = Variant->Seq1Weight;
-			tmp.Seq2Weight = Variant->Seq2Weight;
-			ret = found_sequence_variant_init_indices(&tmp, &Variant->RefReadIndices, &Variant->ReadIndices);
-			if (ret == ERR_SUCCESS)
-				dym_array_push_back_no_alloc_FOUND_SEQUENCE_VARIANT(&FS->Variants, tmp);
-		
-			if (ret != ERR_SUCCESS)
-				utils_free(tmp.Seq2);
-		}
-
-		if (ret != ERR_SUCCESS)
-			utils_free(tmp.Seq1);
-	}
-
-	return ret;
-}
-
-
-ERR_VALUE found_sequence_build_read_variants(const KMER_GRAPH *Graph, PFOUND_SEQUENCE FS, const POINTER_ARRAY_KMER_EDGE *PathEdges)
-{
-	uint32_t refseqStart = 0;
-	uint32_t refseqEnd = 0;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	const KMER_EDGE *e = NULL;
-	size_t startIndex = (size_t)-1;
-	REFSEQ_STORAGE seqStorage;
-	size_t weight = 0;
-	size_t rsWeight = 0;
-	GEN_ARRAY_size_t refIndices;
-	GEN_ARRAY_size_t readIndices;
-
-	ret = ERR_SUCCESS;
-	dym_array_init_size_t(&refIndices, 140);
-	dym_array_init_size_t(&readIndices, 140);
-	rs_storage_init(&seqStorage);
-	for (size_t i = 0; i < pointer_array_size(PathEdges); ++i) {
-		e = *pointer_array_const_item_KMER_EDGE(PathEdges, i);
-		if (e->Type == kmetRead) {
-			if ((e->Source->Type == kmvtRefSeqMiddle || e->Source->Type == kmvtRefSeqStart)) {
-				const KMER_EDGE *rsEdge = _get_refseq_or_variant_edge(e->Source);
-				
-				refseqStart = e->Source->RefSeqPosition + 1;
-				startIndex = i;
-				rs_storage_reset(&seqStorage);
-				weight = e->Seq1Weight;
-				switch (rsEdge->Type) {
-					case kmetReference:
-//						rsWeight = read_info_weight(&rsEdge->ReadInfo);
-//						break;
-					case kmetVariant:
-						rsWeight = rsEdge->Seq1Weight;
-						break;
-				}
-
-				ret = read_info_to_indices(&rsEdge->ReadInfo, &refIndices);
-				if (ret != ERR_SUCCESS)
-					break;
-			}
-
-			if (startIndex != (size_t)-1) {
-				ret = rs_storage_add_edge(&seqStorage, e);
-				if (ret != ERR_SUCCESS)
-					break;
-
-				ret = read_info_to_indices(&e->ReadInfo, &readIndices);
-				if (ret != ERR_SUCCESS)
-					break;
-			}
-
-			if (e->Dest->Type == kmvtRefSeqMiddle) {
-				FOUND_SEQUENCE_VARIANT var;
-				
-				assert(startIndex != (size_t)-1);
-				if (!e->Dest->Helper && !e->Dest->Type != kmvtRefSeqEnd)
-					rs_storage_remove(&seqStorage, 1);
-				
-				var.RefSeqStart = refseqStart;
-				var.RefSeqEnd = e->Dest->RefSeqPosition;
-				if (var.RefSeqStart < var.RefSeqEnd) {
-					var.Seq1Type = kmetRead;
-					ret = rs_storage_create_string(&seqStorage, &var.Seq1);
-					if (ret == ERR_SUCCESS) {
-						var.Seq1Len = strlen(var.Seq1);
-						var.Seq1Weight = weight;
-						var.Seq2Type = kmetNone;
-						var.Seq2 = NULL;
-						var.Seq2Len = 0;
-						var.Seq2Weight = rsWeight;
-						ret = found_sequence_variant_init_indices(&var, &refIndices, &readIndices);
-						if (ret == ERR_SUCCESS)
-							ret = dym_array_push_back_FOUND_SEQUENCE_VARIANT(&FS->ReadVariants, var);
-
-						if (ret != ERR_SUCCESS)
-							utils_free(var.Seq1);
-					}
-				}
-
-				dym_array_clear_size_t(&refIndices);
-				dym_array_clear_size_t(&readIndices);
-				rs_storage_reset(&seqStorage);
-				startIndex = (size_t)-1;
-			}
-		}
-
-		if (ret != ERR_SUCCESS)
-			break;
-	}
-
-	rs_storage_finit(&seqStorage);
-	dym_array_finit_size_t(&readIndices);
-	dym_array_finit_size_t(&refIndices);
 
 	return ret;
 }
@@ -402,6 +313,15 @@ ERR_VALUE vc_array_add(PGEN_ARRAY_VARIANT_CALL Array, const VARIANT_CALL *VC)
 
 void vc_array_finit(PGEN_ARRAY_VARIANT_CALL Array)
 {
+	vc_array_clear(Array);
+	dym_array_finit_VARIANT_CALL(Array);
+
+	return;
+}
+
+
+void vc_array_clear(PGEN_ARRAY_VARIANT_CALL Array)
+{
 	PVARIANT_CALL tmp = Array->Data;
 
 	for (size_t i = 0; i < gen_array_size(Array); ++i) {
@@ -409,7 +329,7 @@ void vc_array_finit(PGEN_ARRAY_VARIANT_CALL Array)
 		++tmp;
 	}
 
-	dym_array_finit_VARIANT_CALL(Array);
+	dym_array_clear_VARIANT_CALL(Array);
 
 	return;
 }
@@ -570,4 +490,35 @@ void vc_array_map_to_edges(PGEN_ARRAY_VARIANT_CALL VCArray)
 
 
 	return;
+}
+
+
+ERR_VALUE vc_array_intersection(GEN_ARRAY_VARIANT_CALL *A1, const GEN_ARRAY_VARIANT_CALL *A2, PGEN_ARRAY_VARIANT_CALL Intersection)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	const VARIANT_CALL *v1 = A1->Data;
+	
+	for (size_t i = 0; i < gen_array_size(A1); ++i) {
+		const VARIANT_CALL *v2 = A2->Data;
+
+		for (size_t j = 00; j < gen_array_size(A2); ++j) {			
+			if (variant_call_equal(v1, v2)) {
+				VARIANT_CALL tmp;
+
+				ret = variant_call_init(v1->Chrom, v1->Pos, v1->ID, v1->Ref, strlen(v1->Ref), v1->Alt, strlen(v1->Alt), v1->Qual, &v1->RefReads, &v1->AltReads, &tmp);
+				if (ret == ERR_SUCCESS) {
+					tmp.RefWeight = v1->RefWeight;
+					tmp.AltWeight = v1->AltWeight;
+					if (vc_array_add(Intersection, &tmp) != ERR_SUCCESS)
+						variant_call_finit(&tmp);
+				}
+			}
+
+			++v2;
+		}
+
+		++v1;
+	}
+
+	return ret;
 }

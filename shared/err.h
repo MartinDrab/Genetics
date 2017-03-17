@@ -60,5 +60,6 @@ typedef int ERR_VALUE;
 
 #define ERR_CANNOT_COLOR						53
 
+#define ERR_TOO_COMPLEX							54
 
 #endif 

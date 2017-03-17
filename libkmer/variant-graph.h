@@ -45,6 +45,7 @@ typedef struct _VARIANT_GRAPH_VERTEX {
 	size_t PairedCount;
 	size_t ComponentIndex;
 	size_t Index;
+	uint32_t Weight;
 	EVariantGraphVertexColo Color;
 	boolean Uncolorable;
 } VARIANT_GRAPH_VERTEX, *PVARIANT_GRAPH_VERTEX;

@@ -16,12 +16,10 @@ typedef struct _FOUND_SEQUENCE_VARIANT {
 	char *Seq1;
 	size_t Seq1Len;
 	size_t Seq1Weight;
-	EKMerEdgeType Seq2Type;
-	char *Seq2;
-	size_t Seq2Len;
-	size_t Seq2Weight;
 	GEN_ARRAY_size_t RefReadIndices;
 	GEN_ARRAY_size_t ReadIndices;
+	GEN_ARRAY_size_t RefWeights;
+	GEN_ARRAY_size_t ReadWeights;
 	void *Context;
 } FOUND_SEQUENCE_VARIANT, *PFOUND_SEQUENCE_VARIANT;
 

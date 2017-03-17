@@ -165,6 +165,7 @@ static ERR_VALUE _edge_create(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_VERT
 		tmp->LongData.LongEdge = FALSE;
 		tmp->LongData.RefSeqEnd = 0;
 		tmp->LongData.RefSeqStart = 0;
+		dym_array_init_size_t(&tmp->Weights, 140);
 		*Edge = tmp;
 		ret = ERR_SUCCESS;
 	} else ret = ERR_OUT_OF_MEMORY;
@@ -175,6 +176,7 @@ static ERR_VALUE _edge_create(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_VERT
 
 static void _edge_destroy(PKMER_GRAPH Graph, PKMER_EDGE Edge)
 {
+	dym_array_finit_size_t(&Edge->Weights);
 	found_sequence_variant_array_free(Edge->Variants.Data, gen_array_size(&Edge->Variants));
 	pointer_array_finit_VARIANT_CALL(&Edge->VCs);
 	dym_array_finit_FOUND_SEQUENCE_VARIANT(&Edge->Variants);
@@ -1138,12 +1140,17 @@ ERR_VALUE kmer_graph_merge_edges(PKMER_GRAPH Graph, PKMER_EDGE Source, PKMER_EDG
 				newEdge->MarkedForDelete = mfd;
 				ret = _capture_edge_sequence(Source, NULL, Dest, &newEdge->Seq, &newEdge->SeqLen);
 				if (ret == ERR_SUCCESS) {
-					newEdge->SeqType = newEdge->SeqType;
-					newEdge->Seq1Weight = max(Source->Seq1Weight, Dest->Seq1Weight);
-					ret = read_info_merge(&newEdge->ReadInfo, &Source->ReadInfo, &Dest->ReadInfo);
+					ret = dym_array_reserve_size_t(&newEdge->Weights, newEdge->SeqLen + 1);
 					if (ret == ERR_SUCCESS) {
-						kmer_graph_delete_edge(Graph, Source);
-						kmer_graph_delete_edge(Graph, Dest);
+						dym_array_push_back_array_size_t(&newEdge->Weights, &Source->Weights);
+						dym_array_push_back_array_size_t(&newEdge->Weights, &Dest->Weights);
+						newEdge->SeqType = newEdge->SeqType;
+						newEdge->Seq1Weight = max(Source->Seq1Weight, Dest->Seq1Weight);
+						ret = read_info_merge(&newEdge->ReadInfo, &Source->ReadInfo, &Dest->ReadInfo);
+						if (ret == ERR_SUCCESS) {
+							kmer_graph_delete_edge(Graph, Source);
+							kmer_graph_delete_edge(Graph, Dest);
+						}
 					}
 				}
 
@@ -1257,139 +1264,6 @@ ERR_VALUE kmer_graph_split_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge, PKMER_EDGE *
 	assert(*SourceEdge != NULL);
 	assert(*DestEdge != NULL);
 	assert(*SplitVertex != NULL);
-
-	return ret;
-}
-
-
-ERR_VALUE kmer_graph_get_seqs(PKMER_GRAPH Graph, const char *RefSeq, const uint32_t MaxPaths, PPOINTER_ARRAY_FOUND_SEQUENCE SeqArray)
-{
-	REFSEQ_STORAGE rsStorage;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	PKMER_VERTEX v = Graph->StartingVertex;
-	const uint32_t kmerSize = kmer_graph_get_kmer_size(Graph);
-	size_t edgeIndex = 0;
-	PKMER_EDGE edge = NULL;
-	GEN_ARRAY_size_t edgeIndices;
-	POINTER_ARRAY_KMER_EDGE edges;
-	GEN_ARRAY_FOUND_SEQUENCE_VARIANT variantStack;
-
-	ret = ERR_SUCCESS;
-	rs_storage_init(&rsStorage);
-	rs_storage_add_seq(&rsStorage, RefSeq, kmerSize - 1);
-	dym_array_init_FOUND_SEQUENCE_VARIANT(&variantStack, 140);
-	dym_array_init_size_t(&edgeIndices, 140);
-	pointer_array_init_KMER_EDGE(&edges, 140);
-		do {
-			if (edgeIndex == kmer_vertex_out_degree(v)) {
-				if (v == Graph->StartingVertex)
-					break;
-
-				edge = *pointer_array_pop_back_KMER_EDGE(&edges);
-				edge->Finished = FALSE;
-				edgeIndex = *dym_array_pop_back_size_t(&edgeIndices);
-				v = edge->Source;
-				rs_storage_remove_edge(&rsStorage, edge);				
-				if (edge->Type == kmetVariant) {
-					for (size_t i = 0; i < gen_array_size(&edge->Variants); ++i)
-						dym_array_pop_back_FOUND_SEQUENCE_VARIANT(&variantStack);
-				}
-			} else {
-				edge = kmer_vertex_get_succ_edge(v, edgeIndex);
-				if (!edge->Finished) {
-					if (edge->Type == kmetVariant) {
-						ret = rs_storage_add(&rsStorage, '?');
-						if (ret != ERR_SUCCESS)
-							break;
-
-						assert(edge->Dest->Type == kmvtRefSeqMiddle);
-						ret = rs_storage_add_vertex(&rsStorage, edge->Dest);
-						if (ret != ERR_SUCCESS)
-							break;
-
-						ret = dym_array_push_back_array_FOUND_SEQUENCE_VARIANT(&variantStack, &edge->Variants);
-						if (ret != ERR_SUCCESS)
-							break;
-					} else {
-						ret = rs_storage_add_edge(&rsStorage, edge);
-						if (ret != ERR_SUCCESS)
-							break;
-					}
-
-					edge->Finished = TRUE;
-					if (edge->Dest == Graph->EndingVertex) {
-						PFOUND_SEQUENCE fs = NULL;
-						const size_t vCount = gen_array_size(&variantStack);
-
-						ret = found_sequence_alloc(rsStorage.Sequence, rsStorage.ValidLength, vCount, &fs);
-						if (ret == ERR_SUCCESS) {
-							for (size_t i = 0; i < vCount; ++i) {
-								ret = found_sequence_set_variant(fs, i, dym_array_item_FOUND_SEQUENCE_VARIANT(&variantStack, i));
-								if (ret != ERR_SUCCESS)
-									break;
-							}
-
-							ret = found_sequence_build_read_variants(Graph, fs, &edges);
-							if (ret == ERR_SUCCESS) {
-								for (size_t i = 0; i < pointer_array_size(&edges); ++i) {
-									ret = dym_array_push_back_size_t(&(edges.Data[i]->Paths), (size_t)fs);
-									if (ret != ERR_SUCCESS)
-										break;
-								}
-
-								if (ret == ERR_SUCCESS) {
-									ret = dym_array_push_back_size_t(&edge->Paths, (size_t)fs);
-									if (ret == ERR_SUCCESS) {
-										ret = pointer_array_push_back_FOUND_SEQUENCE(SeqArray, fs);
-										if (ret == ERR_SUCCESS) {
-											edge->Finished = FALSE;
-											rs_storage_remove_edge(&rsStorage, edge);
-											++edgeIndex;
-											if (pointer_array_size(SeqArray) > MaxPaths)
-												break;
-										}
-
-										if (ret != ERR_SUCCESS)
-											dym_array_pop_back_size_t(&edge->Paths);
-									}
-
-									if (ret != ERR_SUCCESS) {
-										for (size_t i = 0; i < pointer_array_size(&edges); ++i)
-											dym_array_pop_back_size_t(&(edges.Data[i]->Paths));
-									}
-								}
-							}
-
-							if (ret != ERR_SUCCESS)
-								found_sequence_free(fs);
-						}
-					} else {
-						v = edge->Dest;
-						ret = dym_array_push_back_size_t(&edgeIndices, (edgeIndex + 1));
-						if (ret != ERR_SUCCESS)
-							break;
-
-						ret = pointer_array_push_back_KMER_EDGE(&edges, edge);
-						if (ret != ERR_SUCCESS)
-							break;
-
-						edgeIndex = 0;
-					}
-				} else ++edgeIndex;
-			}
-		} while (ret == ERR_SUCCESS && v != Graph->StartingVertex);
-
-	pointer_array_finit_KMER_EDGE(&edges);
-	dym_array_finit_size_t(&edgeIndices);
-	dym_array_finit_FOUND_SEQUENCE_VARIANT(&variantStack);
-	if (ret != ERR_SUCCESS) {
-		for (size_t i = 0; i < pointer_array_size(SeqArray); ++i)
-			found_sequence_free(*pointer_array_item_FOUND_SEQUENCE(SeqArray, i));
-
-		pointer_array_clear_FOUND_SEQUENCE(SeqArray);
-	}
-
-	rs_storage_finit(&rsStorage);
 
 	return ret;
 }
@@ -1674,7 +1548,7 @@ static ERR_VALUE _capture_edge_variants(const KMER_EDGE *Edge, PGEN_ARRAY_FOUND_
 }
 
 
-static ERR_VALUE _follow_line(PKMER_EDGE Start, char **Seq, size_t *SeqLen, PKMER_EDGE *LastEdge, READ_INFO *RI)
+static ERR_VALUE _follow_line(PKMER_EDGE Start, char **Seq, size_t *SeqLen, PKMER_EDGE *LastEdge, READ_INFO *RI, PGEN_ARRAY_size_t Weights)
 {
 	REFSEQ_STORAGE rs;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -1687,11 +1561,16 @@ static ERR_VALUE _follow_line(PKMER_EDGE Start, char **Seq, size_t *SeqLen, PKME
 		if (ret == ERR_SUCCESS)
 			read_info_add_array(RI, &Start->ReadInfo.Array);
 		
+		ret = dym_array_push_back_array_size_t(Weights, &Start->Weights);
+
 		Start = kmer_vertex_get_succ_edge(Start->Dest, 0);
 	}
 
 	if (ret == ERR_SUCCESS) {
 		ret = rs_storage_add_edge(&rs, Start);
+		if (ret == ERR_SUCCESS)
+			ret = dym_array_push_back_array_size_t(Weights, &Start->Weights);
+
 		if (ret == ERR_SUCCESS)
 			ret = rs_storage_create_string(&rs, Seq);
 	
@@ -1712,6 +1591,8 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 	boolean edgeCreated = FALSE;
 	REFSEQ_STORAGE s1;
 	REFSEQ_STORAGE s2;
+	GEN_ARRAY_size_t w1;
+	GEN_ARRAY_size_t w2;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	PKMER_EDGE e = NULL;
 	PKMER_VERTEX v = NULL;
@@ -1728,6 +1609,8 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 	rs_storage_init(&s1);
 	rs_storage_init(&s2);
 	dym_array_init_FOUND_SEQUENCE_VARIANT(&variants, 140);
+	dym_array_init_size_t(&w1, 140);
+	dym_array_init_size_t(&w2, 140);
 	v = _get_refseq_edge(Graph->StartingVertex)->Dest;
 	while (v != Graph->EndingVertex) {
 		edgeCreated = FALSE;
@@ -1746,13 +1629,14 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 				memset(&oneVariant, 0, sizeof(oneVariant));
 				oneVariant.RefSeqStart = v->RefSeqPosition + 1;
 				oneVariant.Seq1Type = kmetRead;
-				oneVariant.Seq2Type = kmetNone;
 
 				PKMER_VERTEX path1Vertex = path1Start->Dest;
 				PKMER_VERTEX path2Vertex = path2Start->Dest;
 
+				dym_array_clear_size_t(&w1);
 				rs_storage_reset(&s1);
 				rs_storage_add_edge(&s1, path1Start);
+				dym_array_push_back_array_size_t(&w1, &path1Start->Weights);
 				ret = read_info_assign(&ri, &path1Start->ReadInfo.Array);
 				if (ret == ERR_SUCCESS)
 					ret = read_info_to_indices(&path1Start->ReadInfo, &refReadIndices);
@@ -1781,6 +1665,7 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 					weight1 = max(weight1, e->Seq1Weight);
 					path1Vertex = e->Dest;
 					rs_storage_add_edge(&s1, e);
+					dym_array_push_back_array_size_t(&w1, &e->Weights);
 				}
 
 				if (!path1Vertex->Helper)
@@ -1789,8 +1674,10 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 				{
 					khash_t(es)	*table = kh_init(es);
 
+					dym_array_clear_size_t(&w2);
 					rs_storage_reset(&s2);
 					rs_storage_add_edge(&s2, path2Start);
+					dym_array_push_back_array_size_t(&w2, &path2Start->Weights);
 					ret = read_info_to_indices(&path2Start->ReadInfo, &readIndices);
 					while (ret == ERR_SUCCESS && kmer_vertex_out_degree(path2Vertex) == 1 && path2Vertex->Type == kmvtRead) {
 						int r;
@@ -1804,6 +1691,7 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 						if (ret != ERR_SUCCESS)
 							break;
 
+						dym_array_push_back_array_size_t(&w2, &e->Weights);
 						ret = rs_storage_add_edge(&s2, e);
 						weight2 = max(weight2, e->Seq1Weight);
 						path2Vertex = e->Dest;
@@ -1812,20 +1700,24 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 
 					if (ret == ERR_SUCCESS && path2Vertex->Type == kmvtRead && kmer_vertex_out_degree(path2Vertex) > 1 && kmer_vertex_in_degree(path2Vertex) == 1) {
 						READ_INFO tmpRI;
+						GEN_ARRAY_size_t tmpw2;
 
+						dym_array_init_size_t(&tmpw2, 140);
 						read_info_init(&tmpRI);
 						for (size_t i = 0; i < kmer_vertex_out_degree(path2Vertex); ++i) {
 							char *tmpSeq = NULL;
 							size_t tmpSeqLen = 0;
 							PKMER_EDGE succEdge = kmer_vertex_get_succ_edge(path2Vertex, i);
 
+							dym_array_clear_size_t(&tmpw2);
 							read_info_clear(&tmpRI);
-							ret = _follow_line(succEdge, &tmpSeq, &tmpSeqLen, &succEdge, &tmpRI);
+							ret = _follow_line(succEdge, &tmpSeq, &tmpSeqLen, &succEdge, &tmpRI, &tmpw2);
 							if (ret == ERR_SUCCESS) {
 								if (path1Vertex == succEdge->Dest) {
 									path2Start = succEdge;
 									path2Vertex = succEdge->Dest;
 									rs_storage_add_seq(&s2, tmpSeq, tmpSeqLen);
+									dym_array_push_back_array_size_t(&w2, &tmpw2);
 									read_info_to_indices(&tmpRI, &readIndices);
 									break;
 								} else utils_free(tmpSeq);
@@ -1836,6 +1728,7 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 						}
 
 						read_info_finit(&tmpRI);
+						dym_array_finit_size_t(&tmpw2);
 					}
 
 					if (path2Vertex->Type == kmvtRefSeqMiddle && !path2Vertex->Helper)
@@ -1848,7 +1741,7 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 							ret = rs_storage_create_string(&s2, &oneVariant.Seq1);
 							if (ret == ERR_SUCCESS) {
 								oneVariant.Seq1Len = strlen(oneVariant.Seq1);
-								ret = found_sequence_variant_init_indices(&oneVariant, &refReadIndices, &readIndices);
+								ret = found_sequence_variant_init_indices(&oneVariant, &refReadIndices, &readIndices, &w1, &w2);
 								if (ret == ERR_SUCCESS)
 									ret = dym_array_push_back_FOUND_SEQUENCE_VARIANT(&variants, oneVariant);
 
@@ -1858,6 +1751,7 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 						}
 
 						rs_storage_reset(&s2);
+						dym_array_clear_size_t(&w2);
 					}
 
 					kh_destroy(es, table);
@@ -1881,6 +1775,9 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 									kmer_edge_add_seq(e, kmetReference, tmpSeq, s1.ValidLength);
 									e->Seq1Weight = weight1;
 									ret = read_info_assign(&e->ReadInfo, &ri.Array);
+									if (ret == ERR_SUCCESS)
+										ret = dym_array_push_back_array_size_t(&e->Weights,  &w1);
+
 									if (ret == ERR_SUCCESS)
 										ret = dym_array_push_back_array_FOUND_SEQUENCE_VARIANT(&e->Variants, &variants);
 
@@ -1915,6 +1812,8 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 	}
 
 	size_t dummy = 0;
+	dym_array_finit_size_t(&w2);
+	dym_array_finit_size_t(&w1);
 	found_sequence_variant_array_free(variants.Data, gen_array_size(&variants));
 	dym_array_finit_FOUND_SEQUENCE_VARIANT(&variants);
 	rs_storage_finit(&s2);
@@ -1973,6 +1872,7 @@ PKMER_EDGE kmer_vertex_get_edge_by_base(PKMER_VERTEX Vertex, const char Base)
 }
 
 
+/*
 ERR_VALUE kmer_graph_resolve_triangles(PKMER_GRAPH Graph, const size_t Threshold)
 {
 	ERR_VALUE ret = ERR_SUCCESS;
@@ -2052,7 +1952,6 @@ ERR_VALUE kmer_graph_resolve_triangles(PKMER_GRAPH Graph, const size_t Threshold
 								memset(&fsv, 0, sizeof(fsv));
 								fsv.RefSeqStart = triangleStart->RefSeqPosition + 1;
 								fsv.RefSeqEnd = fsv.RefSeqStart + rsEdge->SeqLen + 1 + nextRsEdge->SeqLen;
-								fsv.Seq2Weight = seqWeight;
 								fsv.Seq1Type = kmetRead;
 								ret = found_sequence_variant_init_indices(&fsv, &refIndices, &readIndices);
 								if (ret == ERR_SUCCESS) {
@@ -2094,6 +1993,7 @@ ERR_VALUE kmer_graph_resolve_triangles(PKMER_GRAPH Graph, const size_t Threshold
 
 	return ret;
 }
+*/
 
 
 void kmer_graph_compute_weights(PKMER_GRAPH Graph)
@@ -2103,8 +2003,17 @@ void kmer_graph_compute_weights(PKMER_GRAPH Graph)
 
 	if (kmer_edge_table_first(Graph->EdgeTable, &iter, &e) == ERR_SUCCESS) {
 		do {
+			size_t wLen = e->SeqLen + 1;
+
+			if (e->Dest->Helper)
+				wLen -= 1;
+
 			assert(e->Seq1Weight == 0);
+//			assert(e->SeqLen == 0 || e->LongData.LongEdge);
 			e->Seq1Weight = read_info_weight(&e->ReadInfo, Graph->QualityTable);
+			dym_array_reserve_size_t(&e->Weights, wLen);
+			for (size_t i = 0; i < wLen; ++i)
+				dym_array_push_back_no_alloc_size_t(&e->Weights, e->Seq1Weight);
 		} while (kmer_edge_table_next(Graph->EdgeTable, iter, &iter, &e) == ERR_SUCCESS);
 	}
 

@@ -23,7 +23,7 @@ UTILS_TYPED_CALLOC_FUNCTION(PPOINTER_ARRAY_VARIANT_GRAPH_VERTEX)
 
 
 #define _vg_vertex_exists(aGraph, aVertex)	\
-	((aVertex)->ReadCount > ((aGraph)->Thresholds.Read))
+	((aVertex)->Weight > (aGraph)->Thresholds.Read*100 /*&& (aVertex)->ReadCount > ((aGraph)->Thresholds.Read)*/)
 
 #define _vg_vertex_index(aGraph, aVertex)	\
 	(size_t)(((aVertex)->Type == vgvtReference) ? ((aVertex) - (aGraph)->Vertices.ByType.Reference) : ((aVertex) - (aGraph)->Vertices.ByType.Alternative))
@@ -117,9 +117,11 @@ static void _vg_vertex_init(PVARIANT_CALL Variant, const size_t Index, const EVa
 	switch (Vertex->Type) {
 		case vgvtReference:
 			indicesArray = &Variant->RefReads;
+			Vertex->Weight = Variant->RefWeight;
 			break;
 		case vgvtAlternative:
 			indicesArray = &Variant->AltReads;
+			Vertex->Weight = Variant->AltWeight;
 			break;
 		default:
 			assert(FALSE);
@@ -767,11 +769,11 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 		vc = Graph->Vertices.ByType.Reference[i].Variant;
 		v = Graph->Vertices.ByType.Reference + i;
 		if (_vg_vertex_exists(Graph, v))
-			fprintf(Stream, "\tV%Iu_1[label=\"Pos: %" PRId64 "\\nCount: %Iu\\nType: %s\",style=filled,color=%s];\n", i, vc->Pos, v->ReadCount, typeNames[v->Type], colors[v->Color]);
+			fprintf(Stream, "\tV%Iu_1[label=\"Pos: %" PRId64 "\\nCount: %Iu; Weight: %u\\nType: %s\",style=filled,color=%s];\n", i, vc->Pos, v->ReadCount, v->Weight, typeNames[v->Type], colors[v->Color]);
 
 		v = Graph->Vertices.ByType.Alternative + i;
 		if (_vg_vertex_exists(Graph, v))
-			fprintf(Stream, "\tV%Iu_2[label=\"Pos: %" PRId64 "\\nCount: %Iu\\nType: %s\",style=filled,color=%s];\n", i, vc->Pos, v->ReadCount, typeNames[v->Type], colors[v->Color]);
+			fprintf(Stream, "\tV%Iu_2[label=\"Pos: %" PRId64 "\\nCount: %Iu;Weight: %u\\nType: %s\",style=filled,color=%s];\n", i, vc->Pos, v->ReadCount, v->Weight, typeNames[v->Type], colors[v->Color]);
 
 		if (_vg_vertex_exists(Graph, Graph->Vertices.ByType.Reference + i) && 
 			_vg_vertex_exists(Graph, Graph->Vertices.ByType.Alternative + i))
