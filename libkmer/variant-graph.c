@@ -23,7 +23,7 @@ UTILS_TYPED_CALLOC_FUNCTION(PPOINTER_ARRAY_VARIANT_GRAPH_VERTEX)
 
 
 #define _vg_vertex_exists(aGraph, aVertex)	\
-	((aVertex)->Weight > (aGraph)->Thresholds.Read*100 /*&& (aVertex)->ReadCount > ((aGraph)->Thresholds.Read)*/)
+	((aVertex)->ReadCount > ((aGraph)->Thresholds.Read))
 
 #define _vg_vertex_index(aGraph, aVertex)	\
 	(size_t)(((aVertex)->Type == vgvtReference) ? ((aVertex) - (aGraph)->Vertices.ByType.Reference) : ((aVertex) - (aGraph)->Vertices.ByType.Alternative))

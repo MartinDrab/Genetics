@@ -282,32 +282,19 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 							}
 
 							ret = variant_call_init("1", rsPos, ".", refSeq, rLen, altSeq, aLen, 60, RefIndices, AltIndices, &vc);
-							if (ret == ERR_SUCCESS) {
-								size_t count = 0;
-								
+							if (ret == ERR_SUCCESS) {								
 								vc.Context = Context;
 								vc.RefWeight = 0;
 								for (int i = rfwStartIndex; i < rfwEndIndex; ++i) {
-									if (i >= 0) {
-										++count;
-										vc.RefWeight += RSWeights->Data[i];
-									}
+									if (i >= 0)
+										vc.RefWeight = max(RSWeights->Data[i], vc.RefWeight);
 								}
-								
-								if (count > 0)
-									vc.RefWeight /= count;
 
-								count = 0;
 								vc.AltWeight = 0;
 								for (int i = rewStartIndex; i < rewEndIndex; ++i) {
-									if (i >= 0) {
-										++count;
-										vc.AltWeight += ReadWeights->Data[i];
-									}
+									if (i >= 0)
+										vc.AltWeight = max(ReadWeights->Data[i], vc.AltWeight);
 								}
-
-								if (count > 0)
-									vc.AltWeight /= count;
 
 								ret = vc_array_add(VCArray, &vc);
 								if (ret != ERR_SUCCESS) {
