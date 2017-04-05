@@ -97,14 +97,14 @@ ERR_VALUE utils_allocator_calloc(const size_t Count, const size_t Size, void **A
 void utils_allocator_free(void *Address);
 void utils_allocator_check(void);
 
-// #define USE_DEBUG_ALLOCATOR
+#define USE_DEBUG_ALLOCATOR
 
 
 #define utils_malloc(aSize, aAddress)					_utils_malloc((aSize), (aAddress))
 #define utils_calloc(aCount, aSize, aAddress)			_utils_calloc((aCount), (aSize), (aAddress))
 #define utils_free(aAddress)							_utils_free((aAddress));
 void *_utils_alloc_mark(void);
-void _utils_alloc_diff(void *Mark);
+boolean _utils_alloc_diff(void *Mark);
 ERR_VALUE utils_allocator_init(const size_t NumberOfThreads);
 
 #define UTILS_TYPED_MALLOC_FUNCTION(aType)	\

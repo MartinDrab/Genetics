@@ -44,8 +44,8 @@ typedef struct _ONE_READ_EXTENSION {
 
 typedef struct _ONE_READ {
 	char *ReadSequence;
-	size_t ReadSequenceLen;
-	size_t RealReadSequenceLen;
+	uint32_t ReadSequenceLen;
+	uint32_t RealReadSequenceLen;
 	uint8_t *Quality;
 	uint64_t Pos;
 	uint8_t PosQuality;
@@ -86,6 +86,7 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read);
 void read_copy_direct(PONE_READ Dest, const ONE_READ *Source);
 void read_destroy(PONE_READ Read);
 void _read_destroy_structure(PONE_READ Read);
+ERR_VALUE read_concat(PONE_READ Target, const ONE_READ *Source);
 
 void read_set_destroy(PONE_READ ReadSet, const size_t Count);
 ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ONE_READ *Source, const size_t SourceCount);

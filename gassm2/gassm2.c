@@ -283,15 +283,20 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 
 							ret = variant_call_init("1", rsPos, ".", refSeq, rLen, altSeq, aLen, 60, RefIndices, AltIndices, &vc);
 							if (ret == ERR_SUCCESS) {								
+								size_t index = 0;
+								
+								while (opString[index] == 'M')
+									++index;
+
 								vc.Context = Context;
 								vc.RefWeight = 0;
-								for (int i = rfwStartIndex; i < rfwEndIndex; ++i) {
+								for (int i = rfwStartIndex; i < rfwEndIndex + index; ++i) {
 									if (i >= 0)
 										vc.RefWeight = max(RSWeights->Data[i], vc.RefWeight);
 								}
 
 								vc.AltWeight = 0;
-								for (int i = rewStartIndex; i < rewEndIndex; ++i) {
+								for (int i = rewStartIndex; i < rewEndIndex + index; ++i) {
 									if (i >= 0)
 										vc.AltWeight = max(ReadWeights->Data[i], vc.AltWeight);
 								}
@@ -415,27 +420,13 @@ static ERR_VALUE _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PK
 	dym_array_init_FOUND_SEQUENCE_VARIANT(&variants, 140);
 	ret = kmer_graph_get_variants(Graph, &variants);
 	if (ret == ERR_SUCCESS) {
-		GEN_ARRAY_VARIANT_CALL localArray;
-
-		dym_array_init_VARIANT_CALL(&localArray, 140);
 		if (Graph->TypedEdgeCount[kmetVariant] > 0)
-			_process_variant_calls(&localArray, Task, &variants, Options->Threshold);
+			_process_variant_calls(VCArray, Task, &variants, Options->Threshold);
 		
-		vc_array_map_to_edges(&localArray);
+		vc_array_map_to_edges(VCArray);
 		_print_graph(Graph, Options, Task, "f3");
 		if (Graph->TypedEdgeCount[kmetRead] > 0)
 			ret = ERR_TOO_COMPLEX;
-
-		if (ret == ERR_SUCCESS) {
-			for (size_t i = 0; i < gen_array_size(&localArray); ++i) {
-				PVARIANT_CALL v = localArray.Data + i;
-
-				if (vc_array_add(VCArray, v) != ERR_SUCCESS)
-					variant_call_finit(v);
-			}
-		} else vc_array_clear(&localArray);
-
-		dym_array_finit_VARIANT_CALL(&localArray);
 	}
 
 	dym_array_finit_FOUND_SEQUENCE_VARIANT(&variants);
@@ -477,7 +468,7 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 	ret = kmer_graph_create(KMerSize, 2500, 6000, &g);
 	if (ret == ERR_SUCCESS) {
 		if (Allocator != NULL)
-			//			g->Allocator = *Allocator;
+//			g->Allocator = *Allocator;
 			ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength, ParseOptions);
 		if (ret == ERR_SUCCESS) {
 			GEN_ARRAY_KMER_EDGE_PAIR ep;
@@ -1074,86 +1065,6 @@ int main(int argc, char *argv[])
 					const char *cmd = argv[1];
 					if (strncmp(cmd, "help", sizeof("help")) == 0) {
 						options_print_help();
-					} else if (strncmp(cmd, "repair", sizeof("repair")) == 0) {
-						size_t refSeqLen = 0;
-						FASTA_FILE seqFile;
-						char *rsFasta = NULL;
-
-						ret = fasta_load(po.RefSeqFile, &seqFile);
-						if (ret == ERR_SUCCESS) {
-							ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
-							po.ReferenceSequence = rsFasta;
-							if (ret != ERR_SUCCESS)
-								fasta_free(&seqFile);
-						}
-
-						if (ret == ERR_SUCCESS) {
-							ret = utils_calloc_PUTILS_LOOKASIDE(omp_get_num_procs(), &_vertexLAs);
-							if (ret == ERR_SUCCESS)
-								ret = utils_calloc_PUTILS_LOOKASIDE(omp_get_num_procs(), &_edgeLAs);
-
-							if (ret == ERR_SUCCESS) {
-								ret = utils_calloc_GEN_ARRAY_ONE_READ(omp_get_num_procs(), &po.ReadSubArrays);
-								if (ret == ERR_SUCCESS) {
-									const size_t numThreads = omp_get_num_procs();
-									for (size_t i = 0; i < numThreads; ++i) {
-										dym_array_init_ONE_READ(po.ReadSubArrays + i, 140);
-										_vertexLAs[i] = NULL;
-										_edgeLAs[i] = NULL;
-									}
-
-									size_t regionCount = 0;
-									PACTIVE_REGION regions = NULL;
-
-									ret = input_refseq_to_regions(po.ReferenceSequence, refSeqLen, &regions, &regionCount);
-									if (ret == ERR_SUCCESS) {
-										const ACTIVE_REGION *pa = NULL;
-
-										pa = regions;
-										for (size_t i = 0; i < regionCount; ++i) {
-											if (pa->Type == artValid && pa->Length >= po.RegionLength)
-												_activeRegionCount += (long)(pa->Length / po.TestStep);
-
-											++pa;
-										}
-
-										_activeRegionProcessed = 0;
-										pa = regions;
-										for (size_t i = 0; i < regionCount; ++i) {
-											if (pa->Type == artValid && pa->Length >= po.RegionLength)
-												repair_reads_in_parallel(pa, &po);
-													
-											++pa;
-										}
-
-										input_free_regions(regions, regionCount);
-									}
-
-									PONE_READ r = po.Reads;
-									for (size_t i = 0; i < po.ReadCount; ++i) {
-										if (r->ReadSequenceLen > 0 && r->NumberOfFixes * 100 / r->ReadSequenceLen <= po.ParseOptions.ReadMaxErrorRate) {
-											read_quality_encode(r);											
-											read_write_sam(stdout, r);
-											read_quality_decode(r);
-										}
-
-										++r;
-									}
-
-									utils_free(rsFasta);
-									int i = 0;
-#pragma omp parallel for shared (po)
-									for (i = 0; i < numThreads; ++i)
-										dym_array_finit_ONE_READ(po.ReadSubArrays + i);
-
-									utils_free(po.ReadSubArrays);
-								}
-							}
-
-							utils_free(_edgeLAs);
-							utils_free(_vertexLAs);
-							fasta_free(&seqFile);
-						}
 					} else if (strncmp(cmd, "rfreq", sizeof("rfreq")) == 0) {
 						kmer_freq_distribution(&po, po.KMerSize, po.Reads, po.ReadCount);
 					} else if (strncmp(cmd, "paired", sizeof("paired")) == 0) {
@@ -1171,14 +1082,13 @@ int main(int argc, char *argv[])
 						paired_reads_fix_overlaps(TRUE);
 						if (ret == ERR_SUCCESS) {
 							if (ret == ERR_SUCCESS) {
-								size_t refSeqLen = 0;
 								FASTA_FILE seqFile;
-								char *rsFasta = NULL;
+								REFSEQ_DATA rsData;
 
 								ret = fasta_load(po.RefSeqFile, &seqFile);
 								if (ret == ERR_SUCCESS) {
-									ret = fasta_read_seq(&seqFile, &rsFasta, &refSeqLen);
-									po.ReferenceSequence = rsFasta;
+									ret = fasta_read_seq(&seqFile, &rsData);
+									po.ReferenceSequence = rsData.Sequence;
 									if (ret != ERR_SUCCESS)
 										fasta_free(&seqFile);
 								}
@@ -1215,7 +1125,7 @@ int main(int argc, char *argv[])
 												size_t regionCount = 0;
 												PACTIVE_REGION regions = NULL;
 
-												ret = input_refseq_to_regions(po.ReferenceSequence, refSeqLen, &regions, &regionCount);
+												ret = input_refseq_to_regions(po.ReferenceSequence, rsData.Length, &regions, &regionCount);
 												if (ret == ERR_SUCCESS) {
 													const ACTIVE_REGION *pa = NULL;
 
@@ -1239,9 +1149,8 @@ int main(int argc, char *argv[])
 													input_free_regions(regions, regionCount);
 												}
 
-												utils_free(rsFasta);
-												fprintf(stderr, "Merging the results...\n");
-												ret = vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
+												fasta_free_seq(&rsData);
+												fprintf(stderr, "Merging the results...\n");										ret = vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
 												int i = 0;
 #pragma omp parallel for shared(po)
 												for (i = 0; i <(int) numThreads; ++i) {

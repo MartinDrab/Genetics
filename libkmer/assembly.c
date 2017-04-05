@@ -958,7 +958,7 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 			ret = kmer_alloc(0, kmerSize, RefSeq, &destKMer);
 			if (ret == ERR_SUCCESS) {
 				kmer_back(destKMer, 'B');
-				for (size_t i = kmerSize - 1; i < RefSeqLen; ++i) {
+				for (uint32_t i = kmerSize - 1; i < RefSeqLen; ++i) {
 					kmer_advance(destKMer, RefSeq[i]);
 					kmer_set_number(destKMer, 0);
 					ret = kmer_graph_add_vertex_ex(Graph, destKMer, kmvtRefSeqMiddle, &destVertex);

@@ -102,18 +102,20 @@ void *_utils_alloc_mark(void)
 	return _allocators[omp_get_thread_num()].Prev;
 }
 
-void _utils_alloc_diff(void *Mark)
+boolean _utils_alloc_diff(void *Mark)
 {
+	boolean ret = FALSE;
 	PALLOCATOR_HEADER item = (PALLOCATOR_HEADER)Mark;
 	PALLOCATOR_HEADER head = _allocators + omp_get_thread_num();
 
 	item = item->Next;
+	ret = (item != head);
 	while (item != head) {
-		printf("[LEAK]: %zu bytes, function %s, line %u\n", item->BodySize, item->Function, item->Line);
+		fprintf(stderr, "[LEAK]: %zu bytes, function %s, line %u\n", item->BodySize, item->Function, item->Line);
 		item = item->Next;
 	}
 
-	return;
+	return ret;
 }
 
 ERR_VALUE utils_allocator_malloc(const size_t Size, void **Address, const char *Function, const uint32_t Line)
@@ -127,13 +129,7 @@ ERR_VALUE utils_allocator_malloc(const size_t Size, void **Address, const char *
 	const size_t realSize = Size;
 #endif
 
-#ifdef WIN32xx
-	HANDLE heap = _allocatorHeaps[omp_get_thread_num()];
-
-	addr = HeapAlloc(heap, 0, realSize);
-#else
 	addr = malloc(realSize);
-#endif
 	ret = (addr != NULL) ? ERR_SUCCESS : ERR_OUT_OF_MEMORY;
 	if (ret == ERR_SUCCESS) {
 #ifdef USE_DEBUG_ALLOCATOR
@@ -162,6 +158,7 @@ ERR_VALUE utils_allocator_malloc(const size_t Size, void **Address, const char *
 	return ret;
 }
 
+
 ERR_VALUE utils_allocator_calloc(const size_t Count, const size_t Size, void **Address, const char *Function, const uint32_t Line)
 {
 	return utils_allocator_malloc(Size*Count, Address, Function, Line);
@@ -184,13 +181,8 @@ void utils_allocator_free(void *Address)
 	memset(h, 0xbadf00d, h->BodySize + sizeof(ALLOCATOR_HEADER) + sizeof(ALLOCATOR_FOOTER));
 	Address = h;
 #endif
-#ifdef WIN32xx
-	HANDLE heap = _allocatorHeaps[omp_get_thread_num()];
-
-	HeapFree(heap, 0, Address);
-#else
 	free(Address);
-#endif
+
 	return;
 }
 

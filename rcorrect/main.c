@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 				
 				memset(cigar, 0, sizeof(cigar));
 				if (reads[i].Pos > 0)
-					snprintf(cigar, sizeof(cigar), "%uM", reads[i].ReadSequenceLen);
+					snprintf(cigar, sizeof(cigar), "%iM", seqs[i].l_seq);
 				else cigar[0] = "*";
 				
 				utils_copy_string(cigar, &reads[i].Extension->CIGAR);

@@ -339,7 +339,7 @@ void vc_array_print(FILE *Stream, const char *ReferenceFile, const char *ContigI
 {
 	const VARIANT_CALL *tmp = Array->Data;
 
-	fprintf(Stream, "##fileformat=VCFv4.0\n");
+	fprintf(Stream, "##fileformat=VCFv4.1\n");
 	fprintf(Stream, "##fileDate=20160525\n");
 	fprintf(Stream, "##source=GASSMV2\n");
 	fprintf(Stream, "##reference=%s\n", ReferenceFile);
@@ -347,7 +347,7 @@ void vc_array_print(FILE *Stream, const char *ReferenceFile, const char *ContigI
 	fprintf(Stream, "##phasing=partial\n");
 	fprintf(Stream, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n");
 	fprintf(Stream, "##FORMAT=<ID=PS,Number=1,Type=String,Description=\"Phase number\">\n");
-	fprintf(Stream, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tDNAcko\n");
+	fprintf(Stream, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t13350_1\n");
 	for (size_t i = 0; i < gen_array_size(Array); ++i) {
 		if (tmp->Valid) {
 			const char *genotype = NULL;

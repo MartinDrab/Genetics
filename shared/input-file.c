@@ -34,18 +34,26 @@ static const char *_advance_to_next_line(const char *LineEnd)
 	return LineEnd;
 }
 
+typedef const char * cchar;
 
-static boolean _fasta_read_seq_raw(char *Start, size_t Length, char **SeqStart, char **SeqEnd)
+
+static boolean _fasta_read_seq_raw(char *Start, size_t Length, char **SeqStart, char **SeqEnd, cchar *Description, size_t *DescriptionLength)
 {
 	boolean ret = FALSE;
 
 	ret = *Start == '>';
 	if (ret) {
+		size_t descrLen = 1;
+		const char *descrStart = Start;
+
 		while (Length > 0 && *Start != '\n' && *Start != '\r' && *Start != 26) {
 			++Start;
 			--Length;
+			++descrLen;
 		}
 
+		*Description = descrStart;
+		*DescriptionLength = descrLen - ((Length > 0) ? 1 : 0);
 		if (Length > 0) {
 			while (Length > 0 && (*Start == '\n' || *Start == '\r')) {
 				++Start;
@@ -76,15 +84,76 @@ static boolean _fasta_read_seq_raw(char *Start, size_t Length, char **SeqStart, 
 	return ret;
 }
 
-static ERR_VALUE _fasta_read_seq(char *Start, size_t Length, char **NewStart, char **Seq, size_t *SeqLen)
+
+
+static ERR_VALUE _fasta_parse_description(const char *Description, size_t Length, char **Name, uint64_t *Pos)
+{
+	uint64_t tmpPos = 1;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	const char *nameStart = NULL;
+	size_t nameLen = 0;
+	char *tmpName = NULL;
+
+	*Name = NULL;
+	*Pos = 1;
+	ret = ERR_SUCCESS;
+	assert(*Description == '>');
+	++Description;
+	--Length;
+	while (Length > 0 && (*Description == ' ' || *Description == '\t')) {
+		++Description;
+		--Length;
+	}
+
+	if (Length > 0) {
+		nameStart = Description;
+		nameLen = 0;
+		while (Length > 0 && *Description != ':') {
+			++Description;
+			--Length;
+			++nameLen;
+		}
+
+		ret = utils_malloc((nameLen + 1)*sizeof(char), &tmpName);
+		if (ret == ERR_SUCCESS) {
+			memcpy(tmpName, nameStart, nameLen * sizeof(char));
+			tmpName[nameLen] = '\0';
+			if (Length > 1) {
+				++Description;
+				--Length;
+				tmpPos = 0;
+				while (Length > 0 && isdigit(*Description) != 0) {
+					tmpPos = tmpPos * 10 + (*Description - '0');
+					++Description;
+					--Length;
+				}
+			}
+
+			if (ret == ERR_SUCCESS) {
+				*Pos = tmpPos;
+				*Name = tmpName;
+			}
+
+			if (ret != ERR_SUCCESS)
+				utils_free(tmpName);
+		}
+	}
+
+	return ret;
+}
+
+
+static ERR_VALUE _fasta_read_seq(char *Start, size_t Length, char **NewStart, char **Seq, size_t *SeqLen, char **Name, uint64_t *Pos)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	char *seqStart = NULL;
 	char *seqEnd = NULL;
 	char *tmpSeq = NULL;
 	size_t tmpSeqLen = 0;
+	char *descr = NULL;
+	size_t descrLen = 0;
 
-	if (_fasta_read_seq_raw(Start, Length, &seqStart, &seqEnd)) {
+	if (_fasta_read_seq_raw(Start, Length, &seqStart, &seqEnd, &descr, &descrLen)) {
 		*Seq = NULL;
 		*SeqLen = 0;
 		if (seqStart != NULL) {
@@ -106,6 +175,7 @@ static ERR_VALUE _fasta_read_seq(char *Start, size_t Length, char **NewStart, ch
 				*NewStart = seqEnd;
 				*Seq = tmpSeq;
 				*SeqLen = tmpSeqLen;
+				_fasta_parse_description(descr, descrLen, Name, Pos);
 			}
 		} else ret = ERR_NO_MORE_ENTRIES;
 	} else ret = ERR_NO_MORE_ENTRIES;
@@ -130,13 +200,37 @@ ERR_VALUE fasta_load(const char *FileName, PFASTA_FILE FastaRecord)
 
 
 
-ERR_VALUE fasta_read_seq(PFASTA_FILE FastaRecord, char **Seq, size_t *SeqLen)
+ERR_VALUE fasta_read_seq(PFASTA_FILE FastaRecord, PREFSEQ_DATA Data)
 {
+	size_t tmpLength = 0;
+	char *tmpSeq = NULL;
+	char *tmpName = NULL;
+	uint64_t tmpPos = 0;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = _fasta_read_seq(FastaRecord->CurrentPointer, FastaRecord->DataLength - (FastaRecord->CurrentPointer - FastaRecord->FileData), &FastaRecord->CurrentPointer, Seq, SeqLen);
+	Data->StartPos = 0;
+	Data->Name = NULL;
+	ret = _fasta_read_seq(FastaRecord->CurrentPointer, FastaRecord->DataLength - (FastaRecord->CurrentPointer - FastaRecord->FileData), &FastaRecord->CurrentPointer, &tmpSeq, &tmpLength, &tmpName, &tmpPos);
+	if (ret == ERR_SUCCESS) {
+		Data->Sequence = tmpSeq;
+		Data->Length = tmpLength;
+		Data->Name = tmpName;
+		Data->StartPos = tmpPos - 1;
+	}
 
 	return ret;
+}
+
+
+void fasta_free_seq(PREFSEQ_DATA Data)
+{
+	if (Data->Name != NULL)
+		utils_free((char *)Data->Name);
+
+	if (Data->Sequence != NULL)
+		utils_free((char *)Data->Sequence);
+
+	return;
 }
 
 
@@ -144,58 +238,6 @@ void fasta_free(PFASTA_FILE FastaRecord)
 {
 	if (FastaRecord->DataLength > 0)
 		utils_free(FastaRecord->FileData);
-
-	return;
-}
-
-
-
-ERR_VALUE input_get_refseq(const char *FileName, const char *InputType, char **RefSeq, size_t *RefSeqLen)
-{
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	if (strcasecmp(InputType, "fasta") == 0) {
-		FASTA_FILE f;
-
-		ret = fasta_load(FileName, &f);
-		if (ret == ERR_SUCCESS) {
-			ret = fasta_read_seq(&f, RefSeq, RefSeqLen);
-			fasta_free(&f);
-		}
-	} else if (strcasecmp(InputType, "test") == 0) {
-		char *data = NULL;
-		char *dummy = NULL;
-		size_t dataLength = 0;
-
-		ret = utils_file_read(FileName, &data, &dataLength);
-		if (ret == ERR_SUCCESS) {
-			const char *end = NULL;
-			size_t len = 0;
-
-			end = _read_line(data);
-			len = (end - data);
-			if (len > 0) {
-				ret = utils_calloc(len + 1, sizeof(char), &dummy);
-				if (ret == ERR_SUCCESS) {
-					memcpy(dummy, data, len*sizeof(char));
-					dummy[len] = '\0';
-					*RefSeq = dummy;
-					*RefSeqLen = len;
-				}
-			} else ret = ERR_INTERNAL_ERROR;
-
-			utils_free(data);
-		}
-	} else ret = ERR_UNKNOWN_REFSEQ_INPUT_TYPE;
-
-	return ret;
-}
-
-
-void input_free_refseq(char *RefSeq, const size_t RefSeqLen)
-{
-	if (RefSeqLen > 0)
-		utils_free(RefSeq);
 
 	return;
 }

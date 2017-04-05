@@ -119,6 +119,51 @@ void _read_destroy_structure(PONE_READ Read)
 	return;
 }
 
+
+ERR_VALUE read_concat(PONE_READ Target, const ONE_READ *Source)
+{
+	size_t newLength = 0;
+	char *bases = NULL;
+	uint8_t *qualities = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	if (in_range(Target->Pos, Target->ReadSequenceLen, Source->Pos)) {
+		if (Source->Pos + Source->ReadSequenceLen > Target->Pos + Target->ReadSequenceLen) {
+			newLength = (size_t)(Source->Pos + Source->ReadSequenceLen - Target->Pos);
+			ret = utils_calloc(newLength + 1, sizeof(char), &bases);
+			if (ret == ERR_SUCCESS) {
+				ret = utils_calloc(newLength + 1, sizeof(uint8_t), &qualities);
+				if (ret == ERR_SUCCESS) {
+					size_t sourceStart = (size_t)(Target->Pos + Target->ReadSequenceLen - Source->Pos);
+
+					memcpy(bases, Target->ReadSequence, Target->ReadSequenceLen);
+					memcpy(bases + Target->ReadSequenceLen, Source->ReadSequence + sourceStart, Source->ReadSequenceLen - sourceStart);
+					bases[newLength] = '\0';
+					memcpy(qualities, Target->Quality, Target->ReadSequenceLen);
+					memcpy(qualities + Target->ReadSequenceLen, Source->Quality + sourceStart, Source->ReadSequenceLen - sourceStart);
+					qualities[newLength] = 0;
+					if (Target->ReadSequence != NULL)
+						utils_free(Target->ReadSequence);
+
+					Target->ReadSequence = bases;
+					if (Target->Quality != NULL)
+						utils_free(Target->Quality);
+
+					Target->Quality = qualities;
+					Target->RealReadSequenceLen = newLength;
+				}
+
+				if (ret != ERR_SUCCESS)
+					utils_free(bases);
+			}
+		} else ret = ERR_NO_LENGHTENING;
+	} else ret = ERR_NO_OVERLAP;
+
+	return ret;
+}
+
+
+
 /************************************************************************/
 /*                          PUBLIC FUNCTIONS                            */
 /************************************************************************/
@@ -156,7 +201,7 @@ void read_quality_decode(PONE_READ Read)
 
 void read_write_sam(FILE *Stream, const ONE_READ *Read)
 {
-	fprintf(Stream, "%s\t%u\t%s\t%" PRId64 "\t%u\t%s\t%s\t%" PRId64 "\t%i\t%.*s\t%.*s\n", Read->Extension->TemplateName, Read->Extension->Flags, Read->Extension->RName, Read->Pos + 1, Read->PosQuality, Read->Extension->CIGAR, Read->Extension->RNext, Read->Extension->PNext, Read->Extension->TLen, Read->RealReadSequenceLen, Read->ReadSequence, Read->RealReadSequenceLen, Read->Quality);
+	fprintf(Stream, "%s\t%u\t%s\t%" PRId64 "\t%u\t%s\t%s\t%" PRId64 "\t%i\t%.*s\t%.*s\n", Read->Extension->TemplateName, Read->Extension->Flags, Read->Extension->RName, Read->Pos + 1, Read->PosQuality, Read->Extension->CIGAR, Read->Extension->RNext, Read->Extension->PNext, Read->Extension->TLen, (int)Read->RealReadSequenceLen, Read->ReadSequence, (int)Read->RealReadSequenceLen, Read->Quality);
 
 	return;
 }
@@ -335,14 +380,14 @@ ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ON
 
 void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t RegionLength)
 {
-	size_t endStripped = 0;
-	size_t startStripped = 0;
+	uint32_t endStripped = 0;
+	uint32_t startStripped = 0;
 
 	if (Read->Pos < RegionStart)
-		startStripped = (size_t)(RegionStart - Read->Pos);
+		startStripped = (uint32_t)(RegionStart - Read->Pos);
 
 	if (Read->Pos + Read->ReadSequenceLen >= RegionStart + RegionLength)
-		endStripped = (size_t)(Read->Pos + Read->ReadSequenceLen - RegionStart - RegionLength);
+		endStripped = (uint32_t)(Read->Pos + Read->ReadSequenceLen - RegionStart - RegionLength);
 
 	if (startStripped > 0) {
 		Read->Offset = startStripped;
