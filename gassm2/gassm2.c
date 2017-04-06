@@ -750,9 +750,7 @@ static omp_lock_t _readCoverageLock;
 ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	void *mark = NULL;
 
-	mark = _utils_alloc_mark();
 	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, Options->ParseOptions.ReadMaxErrorRate, FilteredReads);
 	if (ret == ERR_SUCCESS) {
 		if (gen_array_size(FilteredReads) > 0) {
@@ -791,9 +789,6 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 	}
 
 	dym_array_clear_ONE_READ(FilteredReads);
-	fprintf(stderr, "Number of variants: %u\n", gen_array_size(VCArray));
-	vc_array_clear(VCArray);
-	_utils_alloc_diff(mark);
 
 	return ret;
 }

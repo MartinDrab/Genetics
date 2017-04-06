@@ -99,7 +99,13 @@ ERR_VALUE utils_allocator_init(const size_t NumberOfThreads)
 
 void *_utils_alloc_mark(void)
 {
-	return _allocators[omp_get_thread_num()].Prev;
+	PALLOCATOR_HEADER mark = NULL;
+	PALLOCATOR_HEADER head = _allocators + omp_get_thread_num();
+
+	if (utils_malloc(4, &mark) == ERR_SUCCESS)
+		mark = head->Prev;
+
+	return mark;
 }
 
 boolean _utils_alloc_diff(void *Mark)
@@ -107,13 +113,18 @@ boolean _utils_alloc_diff(void *Mark)
 	boolean ret = FALSE;
 	PALLOCATOR_HEADER item = (PALLOCATOR_HEADER)Mark;
 	PALLOCATOR_HEADER head = _allocators + omp_get_thread_num();
+	PALLOCATOR_HEADER next = NULL;
 
-	item = item->Next;
-	ret = (item != head);
-	while (item != head) {
-		fprintf(stderr, "[LEAK]: %zu bytes, function %s, line %u\n", item->BodySize, item->Function, item->Line);
-		item = item->Next;
+	next = item->Next;
+	ret = (next != head);
+	while (next != head) {
+		if (strcmp(next->Function, "_utils_alloc_mark") != 0)
+			fprintf(stderr, "[LEAK]: %zu bytes, function %s, line %u\n", next->BodySize, next->Function, next->Line);
+		
+		next = next->Next;
 	}
+
+	utils_allocator_free((unsigned char *)Mark + sizeof(ALLOCATOR_HEADER));
 
 	return ret;
 }

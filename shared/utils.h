@@ -97,7 +97,7 @@ ERR_VALUE utils_allocator_calloc(const size_t Count, const size_t Size, void **A
 void utils_allocator_free(void *Address);
 void utils_allocator_check(void);
 
-#define USE_DEBUG_ALLOCATOR
+// #define USE_DEBUG_ALLOCATOR
 
 #ifdef USE_DEBUG_ALLOCATOR
 
