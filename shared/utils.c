@@ -172,7 +172,13 @@ ERR_VALUE utils_allocator_malloc(const size_t Size, void **Address, const char *
 
 ERR_VALUE utils_allocator_calloc(const size_t Count, const size_t Size, void **Address, const char *Function, const uint32_t Line)
 {
-	return utils_allocator_malloc(Size*Count, Address, Function, Line);
+	ERR_VALUE ret;
+
+	ret = utils_allocator_malloc(Size*Count, Address, Function, Line);
+	if (ret != ERR_SUCCESS)
+		memset(*Address, 0, Size*Count);
+
+	return ret;
 }
 
 
