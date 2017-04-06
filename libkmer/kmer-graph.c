@@ -182,7 +182,7 @@ static void _edge_destroy(PKMER_GRAPH Graph, PKMER_EDGE Edge)
 	dym_array_finit_FOUND_SEQUENCE_VARIANT(&Edge->Variants);
 	dym_array_finit_size_t(&Edge->Paths);
 	read_info_finit(&Edge->ReadInfo);
-	if (Edge->SeqLen > 0)
+	if (Edge->Seq != NULL)
 		utils_free(Edge->Seq);
 
 	Graph->Allocator.EdgeFreer(Graph, Edge, Graph->Allocator.EdgeAllocatorContext);
@@ -618,8 +618,8 @@ void kmer_graph_destroy(PKMER_GRAPH Graph)
 
 	while (del != NULL) {
 		old = del;
-		old->Lists.Graph = NULL;
 		del = del->Lists.Next;
+		old->Lists.Graph = NULL;
 		_vertex_destroy(Graph, old);
 	}
 
@@ -753,22 +753,6 @@ void kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph)
 			ret = ERR_SUCCESS;
 	}
 
-	/*
-	if (ret == ERR_SUCCESS) {
-		ret = kmer_table_first(Graph->VertexTable, &iter, &v);
-		while (ret == ERR_SUCCESS) {
-			if (v->Type == kmvtRefSeqMiddle && kmer_vertex_in_degree(v) == 1 && kmer_vertex_out_degree(v) == 1) {
-				const KMER_EDGE *inEdge = kmer_vertex_get_pred_edge(v, 0);
-				const KMER_EDGE *outEdge = kmer_vertex_get_succ_edge(v, 0);
-
-				if (inEdge->Type != kmetVariant && outEdge->Type != kmetVariant)
-					kmer_graph_delete_vertex(Graph, v);
-			}
-
-			ret = kmer_table_next(Graph->VertexTable, iter, &iter, (void **)&v);
-		}
-	}
-	*/
 	return;
 }
 
@@ -1090,7 +1074,10 @@ ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex)
 				--Graph->NumberOfVertices;
 			}
 		} else ret = ERR_PRED_IS_SUCC;
-	} else ret = ERR_TOO_MANY_EDGES;
+	} else {
+		__debugbreak();
+		ret = ERR_TOO_MANY_EDGES;
+	}
 
 	return ret;
 }
@@ -1717,6 +1704,7 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 									path2Start = succEdge;
 									path2Vertex = succEdge->Dest;
 									rs_storage_add_seq(&s2, tmpSeq, tmpSeqLen);
+									utils_free(tmpSeq);
 									dym_array_push_back_array_size_t(&w2, &tmpw2);
 									read_info_to_indices(&tmpRI, &readIndices);
 									break;
