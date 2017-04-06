@@ -1647,6 +1647,8 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, const char *Refere
 						ret = read_info_merge(&tmp, &ri, &e->ReadInfo);
 						if (ret == ERR_SUCCESS)
 							ret = read_info_assign(&ri, &tmp.Array);
+					
+						read_info_finit(&tmp);
 					}
 
 					weight1 = max(weight1, e->Seq1Weight);

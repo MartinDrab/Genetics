@@ -791,9 +791,9 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 	}
 
 	dym_array_clear_ONE_READ(FilteredReads);
+	fprintf(stderr, "Number of variants: %u\n", gen_array_size(VCArray));
 	vc_array_clear(VCArray);
-	if (_utils_alloc_diff(mark))
-		__debugbreak();
+	_utils_alloc_diff(mark);
 
 	return ret;
 }
