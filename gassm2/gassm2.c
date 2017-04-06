@@ -794,41 +794,6 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 }
 
 
-static ERR_VALUE process_repair_reads(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads)
-{
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, Options->ParseOptions.ReadMaxErrorRate, FilteredReads);
-	if (ret == ERR_SUCCESS) {
-		if (gen_array_size(FilteredReads) > 0) {
-			uint32_t coverage = 0;
-			const ONE_READ *fr = FilteredReads->Data;
-			size_t baseCount = 0;
-
-			for (size_t i = 0; i < gen_array_size(FilteredReads); ++i) {
-				baseCount += fr->ReadSequenceLen;
-				++fr;
-			}
-
-			coverage = (uint32_t)(baseCount / Options->RegionLength);
-
-			PARSE_OPTIONS po = Options->ParseOptions;
-
-			po.ReadThreshold = (coverage >= Options->Threshold * 4) ? coverage / 4 : Options->Threshold;
-			po.RegionStart = RegionStart;
-			po.RegionLength = Options->RegionLength;
-			ret = assembly_repair_reads(Allocator, Options->KMerSize, FilteredReads->Data, gen_array_size(FilteredReads), RefSeq, Options->RegionLength, &po);
-		}
-
-		input_back_reads(FilteredReads);
-	}
-
-	dym_array_clear_ONE_READ(FilteredReads);
-
-	return ret;
-}
-
-
 static long _activeRegionCount = 0;
 static volatile long _activeRegionProcessed = 0;
 
@@ -983,61 +948,6 @@ static void process_active_region_in_parallel(const ACTIVE_REGION *Contig, const
 
 	return;
 }
-
-
-static void repair_reads_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_OPTIONS *Options)
-{
-	const long iterations = 2;
-	const long count = _activeRegionCount*iterations;
-	const uint32_t realStep = ((Options->RegionLength + Options->TestStep - 1) / Options->TestStep)*Options->TestStep;
-	long done;
-	ERR_VALUE ret = ERR_SUCCESS;
-	PUTILS_LOOKASIDE el = NULL;
-	PUTILS_LOOKASIDE vl = NULL;
-
-	_init_lookasides(Options->KMerSize, &vl, &el, 0);
-	for (size_t it = 0; it < iterations; ++it) {
-		for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
-			int j = 0;
-#pragma omp parallel for shared(Options, Contig, k, _activeRegionProcessed), private(vl, el)
-			for (j = k; j < Contig->Length - Options->RegionLength; j += (int)realStep) {
-				KMER_GRAPH_ALLOCATOR ga;
-				
-				_init_lookasides(Options->KMerSize, &vl, &el, omp_get_thread_num());
-				ga.VertexAllocatorContext = vl;
-				ga.VertexAllocator = _lookaside_vertex_alloc;
-				ga.VertexFreer = _lookaside_vertex_free;
-				ga.EdgeAllocatorContext = el;
-				ga.EdgeAllocator = _lookaside_edge_alloc;
-				ga.EdgeFreer = _lookaside_edge_free;
-				process_repair_reads(&ga, Options, Contig->Offset + j, Contig->Sequence + j, Options->ReadSubArrays + omp_get_thread_num());
-				done = utils_atomic_increment(&_activeRegionProcessed);
-				if (done % (count / 100) == 0)
-					fprintf(stderr, "%u %%\r", done * 100 / count);
-			}
-		}
-
-		KMER_GRAPH_ALLOCATOR ga;
-
-		_init_lookasides(Options->KMerSize, &vl, &el, 0);
-		ga.VertexAllocatorContext = vl;
-		ga.VertexAllocator = _lookaside_vertex_alloc;
-		ga.VertexFreer = _lookaside_vertex_free;
-		ga.EdgeAllocatorContext = el;
-		ga.EdgeAllocator = _lookaside_edge_alloc;
-		ga.EdgeFreer = _lookaside_edge_free;
-		for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
-			process_repair_reads(&ga, Options, Contig->Offset + Contig->Length - Options->RegionLength - k, Contig->Sequence + Contig->Length - Options->RegionLength - k, Options->ReadSubArrays);
-			done = utils_atomic_increment(&_activeRegionProcessed);
-			if (done % (count / 100) == 0)
-				fprintf(stderr, "%u %%\r", done * 100 / count);
-		}
-	}
-
-	return;
-}
-
-
 
 
 int main(int argc, char *argv[])
