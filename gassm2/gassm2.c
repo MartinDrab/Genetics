@@ -750,9 +750,7 @@ static omp_lock_t _readCoverageLock;
 ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	void *mark = NULL;
 
-	mark = _utils_alloc_mark();
 	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, Options->ParseOptions.ReadMaxErrorRate, FilteredReads);
 	if (ret == ERR_SUCCESS) {
 		if (gen_array_size(FilteredReads) > 0) {
@@ -791,9 +789,6 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 	}
 
 	dym_array_clear_ONE_READ(FilteredReads);
-	vc_array_clear(VCArray);
-	if (_utils_alloc_diff(mark))
-		__debugbreak();
 
 	return ret;
 }
@@ -998,12 +993,10 @@ int main(int argc, char *argv[])
 						if (ret == ERR_SUCCESS) {
 							if (ret == ERR_SUCCESS) {
 								FASTA_FILE seqFile;
-								REFSEQ_DATA rsData;
 
 								ret = fasta_load(po.RefSeqFile, &seqFile);
 								if (ret == ERR_SUCCESS) {
-									ret = fasta_read_seq(&seqFile, &rsData);
-									po.ReferenceSequence = rsData.Sequence;
+									ret = fasta_read_seq(&seqFile, &po.RefSeq);
 									if (ret != ERR_SUCCESS)
 										fasta_free(&seqFile);
 								}
@@ -1040,7 +1033,7 @@ int main(int argc, char *argv[])
 												size_t regionCount = 0;
 												PACTIVE_REGION regions = NULL;
 
-												ret = input_refseq_to_regions(po.ReferenceSequence, rsData.Length, &regions, &regionCount);
+												ret = input_refseq_to_regions(po.RefSeq.Sequence, po.RefSeq.Length, &regions, &regionCount);
 												if (ret == ERR_SUCCESS) {
 													const ACTIVE_REGION *pa = NULL;
 
@@ -1067,7 +1060,7 @@ int main(int argc, char *argv[])
 													input_free_regions(regions, regionCount);
 												}
 
-												fasta_free_seq(&rsData);
+												fasta_free_seq(&po.RefSeq);
 												int i = 0;
 #pragma omp parallel for shared(po)
 												for (i = 0; i <(int) numThreads; ++i) {

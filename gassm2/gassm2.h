@@ -7,7 +7,8 @@
 #include "utils.h"
 #include "reads.h"
 #include "gen_dym_array.h"
-#include "found-sequence.h"
+#include "input-file.h"
+#include "found-sequence-types.h"
 #include "libkmer.h"
 
 /************************************************************************/
@@ -58,7 +59,7 @@
 typedef struct _PROGRAM_OPTIONS {
 	const char *OutputDirectoryBase;
 	uint32_t KMerSize;
-	const char *ReferenceSequence;
+	REFSEQ_DATA RefSeq;
 	char *RefSeqFile;
 	uint64_t RegionStart;
 	uint32_t RegionLength;
