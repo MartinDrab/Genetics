@@ -228,7 +228,7 @@ typedef enum _EExperimentResult {
 
 
 
-static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t RefSeqStart, const size_t RefSeqEnd, const char *AltSeq, const size_t AltSeqLen, const GEN_ARRAY_size_t *RSWeights, const GEN_ARRAY_size_t *ReadWeights, const GEN_ARRAY_size_t *RefIndices, const GEN_ARRAY_size_t *AltIndices, void *Context, PGEN_ARRAY_VARIANT_CALL VCArray)
+static ERR_VALUE _process_variant_call(const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *Task, const size_t RefSeqStart, const size_t RefSeqEnd, const char *AltSeq, const size_t AltSeqLen, const GEN_ARRAY_size_t *RSWeights, const GEN_ARRAY_size_t *ReadWeights, const GEN_ARRAY_size_t *RefIndices, const GEN_ARRAY_size_t *AltIndices, void *Context, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	VARIANT_CALL vc;
 	char *altSeqStart = NULL;
@@ -281,7 +281,7 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 								++aLen;
 							}
 
-							ret = variant_call_init("1", rsPos, ".", refSeq, rLen, altSeq, aLen, 60, RefIndices, AltIndices, &vc);
+							ret = variant_call_init(Options->RefSeq.Name, rsPos, ".", refSeq, rLen, altSeq, aLen, 60, RefIndices, AltIndices, &vc);
 							if (ret == ERR_SUCCESS) {								
 								size_t index = 0;
 								
@@ -363,7 +363,7 @@ static ERR_VALUE _process_variant_call(const ASSEMBLY_TASK *Task, const size_t R
 }
 
 
-static ERR_VALUE _process_variant_calls(PGEN_ARRAY_VARIANT_CALL VCArray, const ASSEMBLY_TASK *Task, const GEN_ARRAY_FOUND_SEQUENCE_VARIANT *VariantArray, const size_t Threshold)
+static ERR_VALUE _process_variant_calls(const PROGRAM_OPTIONS *Options, PGEN_ARRAY_VARIANT_CALL VCArray, const ASSEMBLY_TASK *Task, const GEN_ARRAY_FOUND_SEQUENCE_VARIANT *VariantArray, const size_t Threshold)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	const size_t variantCount = gen_array_size(VariantArray);
@@ -378,7 +378,7 @@ static ERR_VALUE _process_variant_calls(PGEN_ARRAY_VARIANT_CALL VCArray, const A
 		const char *refSeq = Task->Reference + var->RefSeqStart;
 
 		if (var->Seq1Weight > realThreshold && var->Seq1Type == kmetRead)
-			ret = _process_variant_call(Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, &var->RefWeights, &var->ReadWeights, &var->RefReadIndices, &var->ReadIndices, var->Context, VCArray);
+			ret = _process_variant_call(Options, Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, &var->RefWeights, &var->ReadWeights, &var->RefReadIndices, &var->ReadIndices, var->Context, VCArray);
 
 		++var;
 	}
@@ -421,7 +421,7 @@ static ERR_VALUE _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PK
 	ret = kmer_graph_get_variants(Graph, &variants);
 	if (ret == ERR_SUCCESS) {
 		if (Graph->TypedEdgeCount[kmetVariant] > 0)
-			_process_variant_calls(VCArray, Task, &variants, Options->Threshold);
+			_process_variant_calls(Options, VCArray, Task, &variants, Options->Threshold);
 		
 		vc_array_map_to_edges(VCArray);
 		_print_graph(Graph, Options, Task, "f3");
