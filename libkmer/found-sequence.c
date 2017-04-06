@@ -455,8 +455,10 @@ ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL S
 
 					if (minValue != (uint64_t)-1) {
 						ret = vc_array_add(Dest, minVc);
-						if (ret == ERR_ALREADY_EXISTS)
+						if (ret == ERR_ALREADY_EXISTS) {
+							variant_call_finit(minVc);
 							ret = ERR_SUCCESS;
+						}
 
 						indices[minSourceIndex]++;
 						if (indices[minSourceIndex] == counts[minSourceIndex])

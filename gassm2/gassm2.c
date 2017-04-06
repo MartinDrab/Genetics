@@ -750,7 +750,9 @@ static omp_lock_t _readCoverageLock;
 ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	
+	void *mark = NULL;
+
+	mark = _utils_alloc_mark();
 	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, Options->ParseOptions.ReadMaxErrorRate, FilteredReads);
 	if (ret == ERR_SUCCESS) {
 		if (gen_array_size(FilteredReads) > 0) {
@@ -789,6 +791,9 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 	}
 
 	dym_array_clear_ONE_READ(FilteredReads);
+	vc_array_clear(VCArray);
+	if (_utils_alloc_diff(mark))
+		__debugbreak();
 
 	return ret;
 }
@@ -1050,8 +1055,11 @@ int main(int argc, char *argv[])
 													_activeRegionProcessed = 0;
 													pa = regions;
 													for (size_t i = 0; i < regionCount; ++i) {
-														if (pa->Type == artValid && pa->Length >= po.RegionLength)
+														if (pa->Type == artValid && pa->Length >= po.RegionLength) {
 															process_active_region_in_parallel(pa, &po);
+															fprintf(stderr, "Merging the results...\n");
+															vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
+														}
 														
 														++pa;
 													}
@@ -1060,7 +1068,6 @@ int main(int argc, char *argv[])
 												}
 
 												fasta_free_seq(&rsData);
-												fprintf(stderr, "Merging the results...\n");										ret = vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
 												int i = 0;
 #pragma omp parallel for shared(po)
 												for (i = 0; i <(int) numThreads; ++i) {
