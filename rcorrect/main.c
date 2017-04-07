@@ -44,8 +44,10 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Converting to fermi-lite format...\n");
 		ret = utils_calloc(readCount, sizeof(bseq1_t), &seqs);
 		if (ret == ERR_SUCCESS) {
-			for (size_t i = 0; i < readCount; ++i) {
-//				read_shorten(reads + i, 5);
+			int i = 0;
+
+#pragma omp parallel for shared(reads, seqs)
+			for (i = 0; i < (int)readCount; ++i) {
 				memset(seqs + i, 0, sizeof(seqs[i]));
 				seqs[i].l_seq = reads[i].ReadSequenceLen;
 				read_quality_encode(reads + i);
@@ -54,6 +56,10 @@ int main(int argc, char **argv)
 					seqs[i].qual = _copy_string(reads[i].Quality, reads[i].ReadSequenceLen);
 
 				read_quality_decode(reads + i);
+				if (reads[i].ReadSequenceLen > 0) {
+					utils_free(reads[i].Quality);
+					utils_free(reads[i].ReadSequence);
+				}
 			}
 
 			fml_opt_adjust(&options, readCount, seqs);
@@ -62,7 +68,9 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Fitting unique k-mers...\n");
 			fml_fltuniq(&options, readCount, seqs);
 			fprintf(stderr, "Converting back to our format...\n");
-			for (size_t i = 0; i < readCount; ++i) {
+
+#pragma omp parallel for shared(reads, seqs)
+			for (i = 0; i < (int)readCount; ++i) {
 				char cigar[20];
 				
 				memset(cigar, 0, sizeof(cigar));
@@ -76,21 +84,29 @@ int main(int argc, char **argv)
 				if (ret == ERR_SUCCESS)
 					ret = utils_copy_string(seqs[i].qual, &reads[i].Quality);
 
+				if (seqs[i].l_seq > 0) {
+					free(seqs[i].seq);
+					free(seqs[i].qual);
+				}
+
 				for (size_t j = 0; j < reads[i].ReadSequenceLen; ++j)
 					reads[i].ReadSequence[j] = toupper(reads[i].ReadSequence[j]);
-
+			}
+				
+			fprintf(stderr, "Saving corrected reads...\n");
+			for (size_t i = 0; i < readCount; ++i) {
 				if (reads[i].ReadSequenceLen > 0 && reads[i].Quality != NULL)
 					read_write_sam(stdout, reads + i);
 
 				read_quality_decode(reads + i);
 			}
-				
+
 			fprintf(stderr, "Freeing fermi-lite resources...\n");
 			utils_free(seqs);
 		}
 		
 		fprintf(stderr, "Freeing our reads...\n");
-		read_set_destroy(reads, readCount);
+//		read_set_destroy(reads, readCount);
 	}
 
 	return 0;

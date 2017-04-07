@@ -1074,10 +1074,7 @@ ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex)
 				--Graph->NumberOfVertices;
 			}
 		} else ret = ERR_PRED_IS_SUCC;
-	} else {
-		__debugbreak();
-		ret = ERR_TOO_MANY_EDGES;
-	}
+	} else ret = ERR_TOO_MANY_EDGES;
 
 	return ret;
 }

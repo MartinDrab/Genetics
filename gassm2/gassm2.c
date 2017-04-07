@@ -264,6 +264,13 @@ static ERR_VALUE _process_variant_call(const PROGRAM_OPTIONS *Options, const ASS
 
 			while (ret == ERR_SUCCESS) {
 				switch (*opIt) {
+				case 'X':
+					++tmpRS;
+					++rfwEndIndex;
+					++rewEndIndex;
+					++tmpAltS;
+					nothing = FALSE;
+					break;
 					case '\0':
 					case 'M':
 						if (!nothing) {
@@ -327,13 +334,6 @@ static ERR_VALUE _process_variant_call(const PROGRAM_OPTIONS *Options, const ASS
 						++tmpAltS;
 						++rfwEndIndex;
 						++rewEndIndex;
-						break;
-					case 'X':
-						++tmpRS;
-						++rfwEndIndex;
-						++rewEndIndex;
-						++tmpAltS;
-						nothing = FALSE;
 						break;
 					case 'I':
 						++tmpAltS;
