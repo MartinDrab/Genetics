@@ -910,12 +910,10 @@ static void _ar_wrapper(PAR_WRAPPER_CONTEXT Context, long WorkIndex, size_t Thre
 
 static void process_active_region_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_OPTIONS *Options)
 {
-	int j = 0;
 	const uint32_t realStep = ((Options->RegionLength + Options->TestStep - 1) / Options->TestStep)*Options->TestStep;
-	long done = 0;
 	PUTILS_LOOKASIDE el = NULL;
 	PUTILS_LOOKASIDE vl = NULL;
-
+	
 	for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
 		_init_lookasides(Options->KMerSize, &vl, &el, 0);
 
@@ -929,7 +927,7 @@ static void process_active_region_in_parallel(const ACTIVE_REGION *Contig, const
 		long MaxWorkIndex = (Contig->Length - Options->RegionLength - k) / realStep;
 		kt_for(Options->OMPThreads, _ar_wrapper, &arCtx, MaxWorkIndex);
 	}
-
+	
 	KMER_GRAPH_ALLOCATOR ga;
 
 	for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
@@ -941,7 +939,8 @@ static void process_active_region_in_parallel(const ACTIVE_REGION *Contig, const
 		ga.EdgeAllocator = _lookaside_edge_alloc;
 		ga.EdgeFreer = _lookaside_edge_free;
 		process_active_region(&ga, Options, Contig->Offset + Contig->Length - Options->RegionLength - k, Contig->Sequence + Contig->Length - Options->RegionLength - k, Options->ReadSubArrays, Options->VCSubArrays);
-		done = utils_atomic_increment(&_activeRegionProcessed);
+		
+		long done = utils_atomic_increment(&_activeRegionProcessed);
 		if (done % (_activeRegionCount / 10000) == 0)
 			fprintf(stderr, "%u %%\r", done * 10000 / _activeRegionCount);
 	}

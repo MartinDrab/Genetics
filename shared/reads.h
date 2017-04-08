@@ -83,7 +83,6 @@ void read_quality_decode(PONE_READ Read);
 void read_quality_encode(PONE_READ Read);
 void read_write_sam(FILE *Stream, const ONE_READ *Read);
 ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read);
-void read_copy_direct(PONE_READ Dest, const ONE_READ *Source);
 void read_destroy(PONE_READ Read);
 void _read_destroy_structure(PONE_READ Read);
 ERR_VALUE read_concat(PONE_READ Target, const ONE_READ *Source);

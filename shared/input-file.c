@@ -366,19 +366,6 @@ ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, co
 }
 
 
-void input_back_reads(const GEN_ARRAY_ONE_READ *Reads)
-{
-	const ONE_READ *r = Reads->Data;
-
-	for (size_t i = 0; i < gen_array_size(Reads); ++i) {
-		read_copy_direct(r->Parent, r);
-		++r;
-	}
-
-	return;
-}
-
-
 static int _read_comparator(const void *A, const void *B)
 {
 	const ONE_READ *rA = (const ONE_READ *)A;

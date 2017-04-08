@@ -169,18 +169,6 @@ ERR_VALUE read_concat(PONE_READ Target, const ONE_READ *Source)
 /************************************************************************/
 
 
-void read_copy_direct(PONE_READ Dest, const ONE_READ *Source)
-{
-	Dest->NumberOfFixes = Source->NumberOfFixes;
-	Dest->RealReadSequenceLen = Source->RealReadSequenceLen;
-	Dest->ReadSequenceLen = Source->RealReadSequenceLen;
-	Dest->ReadSequence = Source->ReadSequence - Source->Offset;
-	Dest->Quality = Source->Quality - Source->Offset;
-
-	return;
-}
-
-
 void read_quality_encode(PONE_READ Read)
 {
 	for (size_t i = 0; i < Read->ReadSequenceLen; ++i)
