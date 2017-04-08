@@ -11,7 +11,6 @@ LIBS= -lm -fopenmp
 OBJ=\
 	$(SHAREDOBJDIR)/utils.o \
 	$(SHAREDOBJDIR)/file-utils.o \
-	$(SHAREDOBJDIR)/dym-array.o \
 	$(SHAREDOBJDIR)/input-file.o \
 	$(SHAREDOBJDIR)/reads.o \
 	$(OBJDIR)/bfc.o \

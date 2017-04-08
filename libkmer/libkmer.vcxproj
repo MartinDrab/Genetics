@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\shared\dym-array.c" />
     <ClCompile Include="..\shared\file-utils.c" />
     <ClCompile Include="..\shared\general-queue.c" />
     <ClCompile Include="..\shared\ksw.c" />
@@ -51,7 +50,6 @@
     <ClInclude Include="..\include\pointer_array.h" />
     <ClInclude Include="..\include\read-info.h" />
     <ClInclude Include="..\include\refseq-storage.h" />
-    <ClInclude Include="..\shared\dym-array.h" />
     <ClInclude Include="..\shared\err.h" />
     <ClInclude Include="..\shared\file-utils.h" />
     <ClInclude Include="..\shared\general-queue.h" />

@@ -277,7 +277,7 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 
 		if (ret == ERR_SUCCESS) {
 			PONE_READ tmpReads = NULL;
-			size_t tmpReadCount = dym_array_size(&readArray);
+			size_t tmpReadCount = gen_array_size(&readArray);
 
 			ret = utils_calloc(tmpReadCount, sizeof(ONE_READ), &tmpReads);
 			if (ret == ERR_SUCCESS) {
@@ -288,7 +288,7 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 		}
 
 		if (ret != ERR_SUCCESS) {
-			size_t len = dym_array_size(&readArray);
+			size_t len = gen_array_size(&readArray);
 
 			for (size_t i = 0; i < len; ++i)
 				_read_destroy_structure((PONE_READ)dym_array_item_ONE_READ(&readArray, i));
