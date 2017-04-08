@@ -878,31 +878,33 @@ typedef struct _AR_WRAPPER_CONTEXT{
 	const char *Reference;
 	uint64_t RegionStart;
 	const PROGRAM_OPTIONS *Options;
-	uint32_t K;
-	uint32_t RealStep;
 } AR_WRAPPER_CONTEXT, *PAR_WRAPPER_CONTEXT;
 
+GEN_ARRAY_TYPEDEF(AR_WRAPPER_CONTEXT);
+GEN_ARRAY_IMPLEMENTATION(AR_WRAPPER_CONTEXT)
+
+
+static GEN_ARRAY_AR_WRAPPER_CONTEXT _assemblyTasks;
 
 static void _ar_wrapper(PAR_WRAPPER_CONTEXT Context, long WorkIndex, size_t ThreadNo)
 {
-		uint32_t j;
-		long done = 0;
-		PUTILS_LOOKASIDE el = NULL;
-		PUTILS_LOOKASIDE vl = NULL;
-		KMER_GRAPH_ALLOCATOR ga;
+	long done = 0;
+	PUTILS_LOOKASIDE el = NULL;
+	PUTILS_LOOKASIDE vl = NULL;
+	KMER_GRAPH_ALLOCATOR ga;
+	PAR_WRAPPER_CONTEXT task = Context + WorkIndex;
 
-		j = Context->K + Context->RealStep*WorkIndex;
-		_init_lookasides(Context->Options->KMerSize, &vl, &el, ThreadNo);
-		ga.VertexAllocatorContext = vl;
-		ga.VertexAllocator = _lookaside_vertex_alloc;
-		ga.VertexFreer = _lookaside_vertex_free;
-		ga.EdgeAllocatorContext = el;
-		ga.EdgeAllocator = _lookaside_edge_alloc;
-		ga.EdgeFreer = _lookaside_edge_free;
-		process_active_region(&ga, Context->Options, Context->RegionStart + j, Context->Reference + j, Context->Options->ReadSubArrays + ThreadNo, Context->Options->VCSubArrays + ThreadNo);
-		done = utils_atomic_increment(&_activeRegionProcessed);
-		if (done % (_activeRegionCount / 10000) == 0)
-			fprintf(stderr, "%u %%\r", done * 10000 / _activeRegionCount);
+	_init_lookasides(task->Options->KMerSize, &vl, &el, ThreadNo);
+	ga.VertexAllocatorContext = vl;
+	ga.VertexAllocator = _lookaside_vertex_alloc;
+	ga.VertexFreer = _lookaside_vertex_free;
+	ga.EdgeAllocatorContext = el;
+	ga.EdgeAllocator = _lookaside_edge_alloc;
+	ga.EdgeFreer = _lookaside_edge_free;
+	process_active_region(&ga, task->Options, task->RegionStart, task->Reference, task->Options->ReadSubArrays + ThreadNo, task->Options->VCSubArrays + ThreadNo);
+	done = utils_atomic_increment(&_activeRegionProcessed);
+	if (done % (_activeRegionCount / 10000) == 0)
+		fprintf(stderr, "%u %%\r", done * 10000 / _activeRegionCount);
 
 	return;
 }
@@ -910,40 +912,35 @@ static void _ar_wrapper(PAR_WRAPPER_CONTEXT Context, long WorkIndex, size_t Thre
 
 static void process_active_region_in_parallel(const ACTIVE_REGION *Contig, const PROGRAM_OPTIONS *Options)
 {
-	const uint32_t realStep = ((Options->RegionLength + Options->TestStep - 1) / Options->TestStep)*Options->TestStep;
 	PUTILS_LOOKASIDE el = NULL;
 	PUTILS_LOOKASIDE vl = NULL;
 	
-	for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
-		_init_lookasides(Options->KMerSize, &vl, &el, 0);
+	_init_lookasides(Options->KMerSize, &vl, &el, 0);
 
+	for (uint64_t i = 0; i < Contig->Length - Options->RegionLength; i += Options->TestStep) {
 		AR_WRAPPER_CONTEXT arCtx;
 
-		arCtx.K = k;
 		arCtx.Options = Options;
-		arCtx.RealStep = realStep;
-		arCtx.Reference = Contig->Sequence;
-		arCtx.RegionStart = Contig->Offset;
-		long MaxWorkIndex = (Contig->Length - Options->RegionLength - k) / realStep;
-		kt_for(Options->OMPThreads, _ar_wrapper, &arCtx, MaxWorkIndex);
+		arCtx.Reference = Contig->Sequence + i;
+		arCtx.RegionStart = Contig->Offset + i;
+		dym_array_push_back_no_alloc_AR_WRAPPER_CONTEXT(&_assemblyTasks, arCtx);
+//		kt_for(Options->OMPThreads, _ar_wrapper, &arCtx, MaxWorkIndex);
 	}
-	
+
 	KMER_GRAPH_ALLOCATOR ga;
 
-	for (uint32_t k = 0; k < realStep; k += Options->TestStep) {
-		_init_lookasides(Options->KMerSize, &vl, &el, 0);
-		ga.VertexAllocatorContext = vl;
-		ga.VertexAllocator = _lookaside_vertex_alloc;
-		ga.VertexFreer = _lookaside_vertex_free;
-		ga.EdgeAllocatorContext = el;
-		ga.EdgeAllocator = _lookaside_edge_alloc;
-		ga.EdgeFreer = _lookaside_edge_free;
-		process_active_region(&ga, Options, Contig->Offset + Contig->Length - Options->RegionLength - k, Contig->Sequence + Contig->Length - Options->RegionLength - k, Options->ReadSubArrays, Options->VCSubArrays);
+	_init_lookasides(Options->KMerSize, &vl, &el, 0);
+	ga.VertexAllocatorContext = vl;
+	ga.VertexAllocator = _lookaside_vertex_alloc;
+	ga.VertexFreer = _lookaside_vertex_free;
+	ga.EdgeAllocatorContext = el;
+	ga.EdgeAllocator = _lookaside_edge_alloc;
+	ga.EdgeFreer = _lookaside_edge_free;
+	process_active_region(&ga, Options, Contig->Offset + Contig->Length - Options->RegionLength, Contig->Sequence + Contig->Length - Options->RegionLength, Options->ReadSubArrays, Options->VCSubArrays);
 		
-		long done = utils_atomic_increment(&_activeRegionProcessed);
-		if (done % (_activeRegionCount / 10000) == 0)
-			fprintf(stderr, "%u %%\r", done * 10000 / _activeRegionCount);
-	}
+	long done = utils_atomic_increment(&_activeRegionProcessed);
+	if (done % (_activeRegionCount / 10000) == 0)
+		fprintf(stderr, "%u %%\r", done * 10000 / _activeRegionCount);
 
 	return;
 }
@@ -1029,6 +1026,8 @@ int main(int argc, char *argv[])
 													_edgeLAs[i] = NULL;
 												}
 
+												dym_array_init_AR_WRAPPER_CONTEXT(&_assemblyTasks, 140);
+												ret = dym_array_reserve_AR_WRAPPER_CONTEXT(&_assemblyTasks, po.RefSeq.Length / po.TestStep);
 												size_t regionCount = 0;
 												PACTIVE_REGION regions = NULL;
 
@@ -1047,19 +1046,21 @@ int main(int argc, char *argv[])
 													_activeRegionProcessed = 0;
 													pa = regions;
 													for (size_t i = 0; i < regionCount; ++i) {
-														if (pa->Type == artValid && pa->Length >= po.RegionLength) {
+														if (pa->Type == artValid && pa->Length >= po.RegionLength)
 															process_active_region_in_parallel(pa, &po);
-															fprintf(stderr, "Merging the results...\n");
-															vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
-														}
-														
+																	
 														++pa;
 													}
 														
+													kt_for(po.OMPThreads, _ar_wrapper, _assemblyTasks.Data, gen_array_size(&_assemblyTasks));
 													input_free_regions(regions, regionCount);
 												}
 
+												dym_array_finit_AR_WRAPPER_CONTEXT(&_assemblyTasks);
 												fasta_free_seq(&po.RefSeq);
+												fprintf(stderr, "Merging the results...\n");
+												vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
+
 												int i = 0;
 #pragma omp parallel for shared(po)
 												for (i = 0; i <(int) numThreads; ++i) {
