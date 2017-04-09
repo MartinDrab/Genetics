@@ -5,7 +5,6 @@
 #include "khash.h"
 #include "err.h"
 #include "utils.h"
-#include "dym-array.h"
 #include "kmer.h"
 #include "kmer-table.h"
 

@@ -5,7 +5,6 @@
 
 #include <stdint.h>
 #include "err.h"
-#include "dym-array.h"
 #include "kmer.h"
 #include "kmer-table.h"
 #include "kmer-edge.h"

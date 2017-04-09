@@ -6,7 +6,6 @@
 #include "utils.h"
 #include "file-utils.h"
 #include "options.h"
-#include "dym-array.h"
 #include "gen_dym_array.h"
 #include "reads.h"
 #include "input-file.h"
@@ -245,14 +244,13 @@ void fasta_free(PFASTA_FILE FastaRecord)
 
 ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ *Reads, size_t *ReadCount)
 {
+	size_t dataLength = 0;
+	FUTILS_MAPPED_FILE mapped;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	char *data = NULL;
-	size_t dataLength = 0;
-
-	ret = utils_file_read(Filename, &data, &dataLength);
+	ret = utils_file_map(Filename, &mapped);
 	if (ret == ERR_SUCCESS) {
-		const char *line = data;
+		const char *line = mapped.Address;
 		ONE_READ oneRead;
 		const char *lineEnd = _read_line(line);
 		GEN_ARRAY_ONE_READ readArray;
@@ -288,14 +286,14 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 		}
 
 		if (ret != ERR_SUCCESS) {
-			size_t len = gen_array_size(&readArray);
+			const size_t len = gen_array_size(&readArray);
 
 			for (size_t i = 0; i < len; ++i)
 				_read_destroy_structure((PONE_READ)dym_array_item_ONE_READ(&readArray, i));
 		}
 
 		dym_array_finit_ONE_READ(&readArray);
-		utils_free(data);
+		utils_file_unmap(&mapped);
 	}
 	
 	return ret;

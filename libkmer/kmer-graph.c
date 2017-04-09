@@ -8,7 +8,6 @@
 #include "err.h"
 #include "utils.h"
 #include "khash.h"
-#include "dym-array.h"
 #include "kmer.h"
 #include "kmer-table.h"
 #include "kmer-edge.h"
