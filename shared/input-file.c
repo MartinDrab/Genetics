@@ -247,35 +247,47 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 	size_t dataLength = 0;
 	FUTILS_MAPPED_FILE mapped;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	const char *fileExt = Filename + strlen(Filename);
+
+	while (fileExt != Filename && *fileExt != '.')
+		--fileExt;
 
 	ret = utils_file_map(Filename, &mapped);
 	if (ret == ERR_SUCCESS) {
 		const char *line = mapped.Address;
 		ONE_READ oneRead;
-		const char *lineEnd = _read_line(line);
 		GEN_ARRAY_ONE_READ readArray;
+		const char *lineEnd = _read_line(line);
 
 		dym_array_init_ONE_READ(&readArray, 140);
-		while (ret == ERR_SUCCESS && line != lineEnd) {
-			if (*line != '@') {
-				ret = read_create_from_sam_line(line, &oneRead);
+		if (strcasecmp(fileExt, ".sam") == 0) {
+			while (ret == ERR_SUCCESS && line != lineEnd) {
+				if (*line != '@') {
+					ret = read_create_from_sam_line(line, &oneRead);
+					if (ret == ERR_SUCCESS) {
+						ret = dym_array_push_back_ONE_READ(&readArray, oneRead);
+						if (ret != ERR_SUCCESS)
+							_read_destroy_structure(&oneRead);
+					}
+				}
+
+				line = _advance_to_next_line(lineEnd);
+				lineEnd = _read_line(line);
+			}
+		} else if (strcasecmp(fileExt, ".fq") == 0 || strcasecmp(fileExt, ".fastq") == 0) {
+			while (ret == ERR_SUCCESS && *line != 26 && *line != '\0') {
+				ret = read_create_from_fastq(line, &line, &oneRead);
 				if (ret == ERR_SUCCESS) {
 					ret = dym_array_push_back_ONE_READ(&readArray, oneRead);
 					if (ret != ERR_SUCCESS)
 						_read_destroy_structure(&oneRead);
-
-					if (ret == ERR_NOT_IN_REGION)
-						ret = ERR_SUCCESS;
 				}
 			}
-
-			line = _advance_to_next_line(lineEnd);
-			lineEnd = _read_line(line);
 		}
 
 		if (ret == ERR_SUCCESS) {
 			PONE_READ tmpReads = NULL;
-			size_t tmpReadCount = gen_array_size(&readArray);
+			const size_t tmpReadCount = gen_array_size(&readArray);
 
 			ret = utils_calloc(tmpReadCount, sizeof(ONE_READ), &tmpReads);
 			if (ret == ERR_SUCCESS) {
