@@ -64,5 +64,11 @@ typedef int ERR_VALUE;
 #define ERR_NO_OVERLAP							55
 #define ERR_NO_LENGHTENING						56
 
+#define ERR_FASTQ_NO_DESCRIPTION				57
+#define ERR_FASTQ_NO_SEQ						58
+#define ERR_FASTQ_NO_PLUS						59
+#define ERR_FASTQ_NO_QUALITY					60
+#define ERR_FASTQ_LEN_MISMATCH					61
+
 
 #endif 

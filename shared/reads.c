@@ -187,6 +187,113 @@ void read_quality_decode(PONE_READ Read)
 }
 
 
+void read_write_fastq(FILE *Stream, const ONE_READ *Read)
+{
+	fprintf(Stream, "@%s\n", Read->Extension->TemplateName);
+	fprintf(Stream, "%.*s\n", Read->ReadSequenceLen, Read->ReadSequence);
+	fprintf(Stream, "+%s\n", Read->Extension->TemplateName);
+	fprintf(Stream, "%.*s\n", Read->ReadSequenceLen, Read->Quality);
+
+	return;
+}
+
+
+static void _advance_to_line_end(const char **pCursor)
+{
+	const char *tmp = *pCursor;
+
+	while (*tmp != '\0' && *tmp != '\r' && *tmp != '\n' && *tmp != 26)
+		++tmp;
+
+	*pCursor = tmp;
+
+	return;
+}
+
+
+static boolean _advance_to_next_line(const char **pCursor)
+{
+	boolean ret = TRUE;
+	const char *tmp = *pCursor;
+
+	while (*tmp == '\n' || *tmp == '\r')
+		++tmp;
+
+	*pCursor = tmp;
+	ret = (*tmp != 26 && *tmp != '\0');
+
+	return ret;
+}
+
+
+ERR_VALUE read_create_from_fastq(const char *Block, const char **NewBlock, PONE_READ Read)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	memset(Read, 0, sizeof(ONE_READ));
+	ret = utils_malloc(sizeof(ONE_READ_EXTENSION), &Read->Extension);
+	if (ret == ERR_SUCCESS) {
+		memset(Read->Extension, 0, sizeof(ONE_READ_EXTENSION));
+		if (*Block == '@') {
+			size_t templateSize = 0;
+			const char *lineEnd = Block + 1;
+
+			_advance_to_line_end(&lineEnd);
+			templateSize = lineEnd - Block - 1;
+			ret = utils_calloc(templateSize + 1, sizeof(char), &Read->Extension->TemplateName);
+			if (ret == ERR_SUCCESS) {
+				memcpy(Read->Extension->TemplateName, Block + 1, templateSize * sizeof(char));
+				Read->Extension->TemplateName[templateSize] = '\0';
+				if (_advance_to_next_line(&lineEnd)) {
+					size_t seqLen = 0;
+
+					Block = lineEnd;
+					_advance_to_line_end(&lineEnd);
+					seqLen = lineEnd - Block;
+					ret = utils_calloc(seqLen + 1, sizeof(char), &Read->ReadSequence);
+					if (ret == ERR_SUCCESS) {
+						memcpy(Read->ReadSequence, Block, seqLen * sizeof(char));
+						Read->ReadSequence[seqLen] = '\0';
+						Read->ReadSequenceLen = (uint32_t)seqLen;
+						if (_advance_to_next_line(&lineEnd) && *lineEnd == '+') {
+							Block = lineEnd;
+							_advance_to_line_end(&lineEnd);
+							if (_advance_to_next_line(&lineEnd)) {
+								size_t qLen = 0;
+
+								Block = lineEnd;
+								_advance_to_line_end(&lineEnd);
+								qLen = lineEnd - Block;
+								if (qLen == Read->ReadSequenceLen) {
+									ret = utils_calloc(Read->ReadSequenceLen + 1, sizeof(char), &Read->Quality);
+									if (ret == ERR_SUCCESS) {
+										memcpy(Read->Quality, Block, Read->ReadSequenceLen * sizeof(char));
+										Read->Quality[Read->ReadSequenceLen] == '\0';
+										read_quality_decode(Read);
+										_advance_to_next_line(&lineEnd);
+										*NewBlock = lineEnd;
+									}
+								} else ret = ERR_FASTQ_LEN_MISMATCH;
+							} else ret = ERR_FASTQ_NO_QUALITY;
+						} else ret = ERR_FASTQ_NO_PLUS;
+
+						if (ret != ERR_SUCCESS)
+							utils_free(Read->ReadSequence);
+					}
+				} else ret = ERR_FASTQ_NO_SEQ;
+
+				if (ret != ERR_SUCCESS)
+					utils_free(Read->Extension->TemplateName);
+			}
+		} else ret = ERR_FASTQ_NO_DESCRIPTION;
+		
+		if (ret != ERR_SUCCESS)
+			utils_free(Read->Extension);
+	}
+
+	return ret;
+}
+
 void read_write_sam(FILE *Stream, const ONE_READ *Read)
 {
 	fprintf(Stream, "%s\t%u\t%s\t%" PRId64 "\t%u\t%s\t%s\t%" PRId64 "\t%i\t%.*s\t%.*s\n", Read->Extension->TemplateName, Read->Extension->Flags, Read->Extension->RName, Read->Pos + 1, Read->PosQuality, Read->Extension->CIGAR, Read->Extension->RNext, Read->Extension->PNext, Read->Extension->TLen, (int)Read->RealReadSequenceLen, Read->ReadSequence, (int)Read->RealReadSequenceLen, Read->Quality);
@@ -201,7 +308,6 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read)
 	size_t tmpStringLen = 0;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = ERR_SUCCESS;
 	memset(Read, 0, sizeof(ONE_READ));
 	ret = utils_malloc(sizeof(ONE_READ_EXTENSION), &Read->Extension);
 	if (ret == ERR_SUCCESS) {
