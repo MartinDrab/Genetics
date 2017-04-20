@@ -139,6 +139,9 @@ public:
 			break;
 		case 'T':
 			index = 3;
+		default:
+			assert(false);
+			index = 0;
 			break;
 		}
 

@@ -33,9 +33,6 @@
     <ClCompile Include="assembly.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\shared\general-queue.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="read-info.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -84,9 +81,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\assembly.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\shared\general-queue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="graph-reads.h">

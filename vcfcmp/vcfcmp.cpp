@@ -127,6 +127,54 @@ int main(int argc, char *argv[])
 			
 			delete[] insertionArray;
 		}
+	} else if (args.size() == 2) {
+		std::cerr << "Loading the truth set VCF..." << std::endl;
+		CVCFFile orig(args[0]);
+		std::cerr << "Loading our VCF..." << std::endl;
+		CVCFFile res(args[1]);
+		std::cerr << "Comparing the sets..." << std::endl;
+		auto truthIt = orig.Records.cbegin();
+		auto testIt = res.Records.cbegin();
+		std::vector<CVCFRecord> TPs;
+		std::vector<CVCFRecord> FPs;
+		std::vector<CVCFRecord> FNs;
+
+		while (truthIt != orig.Records.cend() && testIt != res.Records.cend()) {
+			if (truthIt->Pos < testIt->Pos) {
+				FNs.push_back(*truthIt);
+				++truthIt;
+			} else if (truthIt->Pos > testIt->Pos) {
+				FPs.push_back(*testIt);
+				++testIt;
+			} else {
+				if (truthIt->Ref == testIt->Ref &&
+					truthIt->Alt == testIt->Alt) {
+					TPs.push_back(*truthIt);
+				} else {
+					FNs.push_back(*truthIt);
+					FPs.push_back(*testIt);
+				}
+
+				++truthIt;
+				++testIt;
+			}
+		}
+
+		std::cerr << "Finishing false negatives..." << std::endl;
+		while (truthIt != orig.Records.cend()) {
+			FNs.push_back(*truthIt);
+			++truthIt;
+		}
+
+		std::cerr << "Finishing false positives..." << std::endl;
+		while (testIt != res.Records.cend()) {
+			FPs.push_back(*testIt);
+			++testIt;
+		}
+
+		std::cerr << "TPs: " << TPs.size() << std::endl;
+		std::cerr << "FNs: " << FNs.size() << std::endl;
+		std::cerr << "FPs: " << FPs.size() << std::endl;
 	} else print_usage();
 
 	return 0;

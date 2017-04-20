@@ -492,7 +492,6 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 	}
 
 	pointer_array_finit_VARIANT_GRAPH_VERTEX(&propagationStack);
-	fprintf(stderr, "%Iu --> %Iu: %u\n", Start, End, ret);
 
 	return ret;
 }
@@ -595,13 +594,11 @@ ERR_VALUE vg_graph_color(PVARIANT_GRAPH Graph)
 	const size_t componentCount = gen_array_size(&Graph->ComponentIndices);
 
 	ret = ERR_SUCCESS;
-	fprintf(stderr, "%Iu components\n", componentCount);
 #pragma omp parallel for shared(Graph)
 	for (i = 0; i < (int)componentCount - 1; ++i) {
 		const size_t startIndex = Graph->ComponentIndices.Data[i];
 		const size_t endIndex = Graph->ComponentIndices.Data[i + 1];
 
-		fprintf(stderr, "%Iu --> %Iu\n", startIndex, endIndex);
 		ret = vg_graph_color_component(Graph, startIndex, endIndex);
 		if (ret == ERR_CANNOT_COLOR) {
 			while (vg_graph_remove_paired_colisions(Graph, startIndex, endIndex))

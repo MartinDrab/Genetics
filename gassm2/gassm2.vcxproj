@@ -159,7 +159,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\shared\general-queue.c" />
     <ClCompile Include="..\shared\input-file.c" />
     <ClCompile Include="..\shared\kthread.c" />
     <ClCompile Include="..\shared\options.c" />
@@ -173,7 +172,6 @@
     <ClInclude Include="..\include\libkmer.h" />
     <ClInclude Include="..\include\pointer_array.h" />
     <ClInclude Include="..\shared\err.h" />
-    <ClInclude Include="..\shared\general-queue.h" />
     <ClInclude Include="..\shared\input-file.h" />
     <ClInclude Include="..\shared\kthread.h" />
     <ClInclude Include="..\shared\options.h" />

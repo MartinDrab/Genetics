@@ -335,20 +335,44 @@ void vc_array_clear(PGEN_ARRAY_VARIANT_CALL Array)
 }
 
 
-void vc_array_print(FILE *Stream, const char *ReferenceFile, const char *ContigID, const GEN_ARRAY_VARIANT_CALL *Array)
+void vc_array_print(FILE *Stream, const char *ReferenceFile, const GEN_ARRAY_VARIANT_CALL *Array)
 {
-	const VARIANT_CALL *tmp = Array->Data;
+	const size_t variantCount = gen_array_size(Array);
 
 	fprintf(Stream, "##fileformat=VCFv4.1\n");
 	fprintf(Stream, "##fileDate=20160525\n");
 	fprintf(Stream, "##source=GASSMV2\n");
 	fprintf(Stream, "##reference=%s\n", ReferenceFile);
-	fprintf(Stream, "##contig=<ID=%s>\n", ContigID);
+	{
+		uint64_t len = 0;
+		const char *chr = NULL;
+		const VARIANT_CALL *vc = Array->Data;
+
+		for (size_t i = 0; i < variantCount; ++i) {
+
+			if (i == variantCount - 1 || (chr != NULL && strcasecmp(chr, vc->Chrom) != 0)) {
+				if (len > 0)
+					fprintf(Stream, "##contig=<ID=%s,length=%" PRIu64 ">\n", chr, len);
+
+				chr = vc->Chrom;
+				if (i == variantCount - 1)
+					break;
+			}
+			
+			chr = vc->Chrom;
+			len = vc->Pos + strlen(vc->Ref);
+			++vc;
+		}
+	}
+
 	fprintf(Stream, "##phasing=partial\n");
 	fprintf(Stream, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n");
 	fprintf(Stream, "##FORMAT=<ID=PS,Number=1,Type=String,Description=\"Phase number\">\n");
 	fprintf(Stream, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t13350_1\n");
-	for (size_t i = 0; i < gen_array_size(Array); ++i) {
+
+	const VARIANT_CALL *tmp = Array->Data;
+
+	for (size_t i = 0; i < variantCount; ++i) {
 		if (tmp->Valid) {
 			const char *genotype = NULL;
 			
@@ -372,15 +396,19 @@ void vc_array_print(FILE *Stream, const char *ReferenceFile, const char *ContigI
 
 static int _vc_comparator(const VARIANT_CALL *VC1, const VARIANT_CALL *VC2)
 {
-	if (VC1->Pos < VC2->Pos)
-		return -1;
-	
-	if (VC1->Pos > VC2->Pos)
-		return 1;
+	int ret = strcasecmp(VC1->Chrom, VC2->Chrom);
 
-	int ret = strcmp(VC1->Ref, VC2->Ref);
-	if (ret == 0)
-		ret = strcmp(VC1->Alt, VC2->Alt);
+	if (ret == 0) {
+		if (VC1->Pos < VC2->Pos)
+			return -1;
+
+		if (VC1->Pos > VC2->Pos)
+			return 1;
+
+		int ret = strcmp(VC1->Ref, VC2->Ref);
+		if (ret == 0)
+			ret = strcmp(VC1->Alt, VC2->Alt);
+	}
 
 	return ret;
 }

@@ -18,9 +18,6 @@
     <ClCompile Include="gassm2.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\shared\general-queue.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\shared\options.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -48,9 +45,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\shared\err.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\shared\general-queue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\shared\options.h">

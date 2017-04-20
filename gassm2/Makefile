@@ -15,7 +15,6 @@ OBJ=\
 	$(SHAREDOBJDIR)/utils-lookaside.o \
 	$(SHAREDOBJDIR)/file-utils.o \
 	$(SHAREDOBJDIR)/options.o \
-	$(SHAREDOBJDIR)/general-queue.o \
 	$(SHAREDOBJDIR)/input-file.o \
 	$(SHAREDOBJDIR)/reads.o \
 	$(SHAREDOBJDIR)/kthread.o \

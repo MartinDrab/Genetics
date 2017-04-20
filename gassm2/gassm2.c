@@ -1094,7 +1094,7 @@ int main(int argc, char *argv[])
 													vg_graph_finit(&vg);
 												}
 
-												vc_array_print(po.VCFFileHandle, po.RefSeqFile, "1", &po.VCArray);
+												vc_array_print(po.VCFFileHandle, po.RefSeqFile, &po.VCArray);
 											}
 
 											vc_array_finit(&po.VCArray);
