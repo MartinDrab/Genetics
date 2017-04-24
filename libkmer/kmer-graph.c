@@ -582,8 +582,10 @@ ERR_VALUE kmer_graph_create(const uint32_t KMerSize, const size_t VerticesHint, 
 					lCallbacks.OnInsert = _kmerlist_table_on_insert;
 					lCallbacks.OnPrint = NULL;
 					ret = kmer_table_create(KMerSize, 37, &lCallbacks, &tmpGraph->KmerListTable);
-					if (ret == ERR_SUCCESS)
+					if (ret == ERR_SUCCESS) {
+						pointer_array_init_KMER_VERTEX(&tmpGraph->RefVertices, 140);
 						*Graph = tmpGraph;
+					}
 
 					if (ret != ERR_SUCCESS)
 						kmer_edge_table_destroy(tmpGraph->DummyVertices);
@@ -607,6 +609,7 @@ ERR_VALUE kmer_graph_create(const uint32_t KMerSize, const size_t VerticesHint, 
 
 void kmer_graph_destroy(PKMER_GRAPH Graph)
 {
+	pointer_array_finit_KMER_VERTEX(&Graph->RefVertices);
 	kmer_table_destroy(Graph->KmerListTable);
 	kmer_edge_table_destroy(Graph->DummyVertices);
 	kmer_edge_table_destroy(Graph->EdgeTable);

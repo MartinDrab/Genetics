@@ -130,6 +130,7 @@ typedef struct _KMER_GRAPH {
 	PKMER_VERTEX VerticesToDeleteList;
 	PKMER_TABLE KmerListTable;
 	uint8_t QualityTable[256];
+	POINTER_ARRAY_KMER_VERTEX RefVertices;
 	KMER_GRAPH_ALLOCATOR Allocator;
 } KMER_GRAPH, *PKMER_GRAPH;
 

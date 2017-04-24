@@ -262,6 +262,7 @@ static ERR_VALUE _assign_vertice_set_to_kmer(PKMER_GRAPH Graph, const KMER *KMer
 	return ret;
 }
 
+
 static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ *Read, PPOINTER_ARRAY_KMER_VERTEX *Vertices, const size_t NumberOfSets, const PARSE_OPTIONS *Options, boolean *Linear)
 {
 	size_t count = 0;
@@ -751,7 +752,15 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 	PKMER_VERTEX sourceVertex = NULL;
 	PKMER_VERTEX destVertex = NULL;
 
-	ret = kmer_alloc(0, kmerSize, RefSeq, &sourceKMer);
+	ret = pointer_array_reserve_KMER_VERTEX(&Graph->RefVertices, RefSeqLen + 1);
+	if (ret == ERR_SUCCESS) {
+		Graph->RefVertices.ValidLength = RefSeqLen + 1;
+		for (size_t i = 0; i < RefSeqLen; ++i)
+			Graph->RefVertices.Data[i] = NULL;
+
+		ret = kmer_alloc(0, kmerSize, RefSeq, &sourceKMer);
+	}
+
 	if (ret == ERR_SUCCESS) {
 		kmer_back(sourceKMer, 'B');
 		ret = kmer_graph_add_vertex_ex(Graph, sourceKMer, kmvtRefSeqStart, &sourceVertex);
@@ -775,6 +784,7 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 						PKMER_EDGE edge = NULL;
 
 						destVertex->RefSeqPosition = i;
+						Graph->RefVertices.Data[i] = destVertex;
 						destVertex->AbsPos = ParseOptions->RegionStart + destVertex->RefSeqPosition;
 						ret = kmer_graph_add_edge_ex(Graph, sourceVertex, destVertex, kmetReference, &edge);
 						kmer_advance(sourceKMer, RefSeq[i]);
