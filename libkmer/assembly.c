@@ -287,8 +287,10 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 					rev->Type == kmvtRead) {
 					size_t opStringSize = 0;
 					char *opString = NULL;
+					const char *ref = Options->Reference + rsv->RefSeqPosition + 1;
+					const char *alt = Read->ReadSequence + KMerSize + i - 1;
 
-					ret = ssw_clever(Options->Reference + rsv->RefSeqPosition + 1, 6, Read->ReadSequence + KMerSize + i - 1, 6, 2, -1, -1, &opString, &opStringSize);
+					ret = ssw_clever(ref, 6, alt, 6, 2, -1, -1, &opString, &opStringSize);
 					if (ret == ERR_SUCCESS) {
 						while (opStringSize > 0 && opString[opStringSize - 1] == 'M')
 							opStringSize--;
@@ -305,15 +307,28 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 
 							if (oneType) {
 								switch (typeChar) {
-								case 'I':
+								case 'I': {
+									for (size_t j = 0; j < opStringSize - 1; ++j) {
+										kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
+										++i;
+										_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
+									}
 
-									break;
-								case 'D':
+									kmer_init_from_kmer(kmer, &rsv->KMer);
+								} break;
+								case 'D': {
+									Vertices[i]->Data[0] = Graph->RefVertices.Data[rsv->RefSeqPosition + opStringSize + 1];
+									kmer_init_from_kmer(kmer, &Graph->RefVertices.Data[rsv->RefSeqPosition + opStringSize + 1]->KMer);
+								} break;
+								case 'X': {
+									for (size_t j = 0; j < opStringSize - 1; ++j) {
+										kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
+										++i;
+										_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
+									}
 
-									break;
-								case 'X':
-
-									break;
+									kmer_init_from_kmer(kmer, &Graph->RefVertices.Data[rsv->RefSeqPosition + opStringSize]->KMer);
+								} break;
 								default:
 									assert(FALSE);
 									break;
