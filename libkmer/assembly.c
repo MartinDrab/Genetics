@@ -270,72 +270,38 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 	const uint32_t KMerSize = kmer_graph_get_kmer_size(Graph);
 
 	KMER_STACK_ALLOC(kmer, 0, KMerSize, Read->ReadSequence);
-	Vertices[0] = NULL;
-	ret = kmer_graph_get_vertices(Graph, kmer, Vertices);
+	ret = _assign_vertice_set_to_kmer(Graph, kmer, Vertices, 0, Options, &count);
 	if (ret == ERR_SUCCESS) {
-		for (size_t i = 0; i < pointer_array_size(Vertices[0]); ++i) {
-			PKMER_VERTEX v = Vertices[0]->Data[i];
-		
-			if (v->RefSeqPosition > 0 && Read->Pos == Options->RegionStart + v->RefSeqPosition) {
-				pointer_array_clear_KMER_VERTEX(Vertices[0]);
-				pointer_array_push_back_no_alloc_KMER_VERTEX(Vertices[0], v);
-			}
-		}
+		kmer_advance(kmer, Read->ReadSequence[KMerSize]);
+		for (size_t i = 1; i < NumberOfSets; ++i) {
+			ret = _assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
+			if (ret == ERROR_SUCCESS && NumberOfSets - i > 8) {
+				const KMER_VERTEX *rsv = Vertices[i - 1]->Data[0];
+				const KMER_VERTEX *rev = Vertices[i]->Data[0];
 
-		count += pointer_array_size(Vertices[0]);
-	} else if (ret == ERR_NOT_FOUND) {
-		PKMER_VERTEX v = NULL;
+				if (pointer_array_size(Vertices[i - 1]) == 1 &&
+					rsv->Type == kmvtRefSeqMiddle &&
+					rev->Type == kmvtRead) {
+					size_t opStringSize = 0;
+					char *opString = NULL;
 
-		ret = kmer_graph_add_vertex_ex(Graph, kmer, kmvtRead, &v);
-		if (ret == ERR_SUCCESS) {
-			kmer_graph_get_vertices(Graph, kmer, Vertices);
-			count += 1;
-		}
-	}
+					ret = ssw_clever(Options->Reference + rsv->RefSeqPosition + 1, 6, Read->ReadSequence + KMerSize + i - 1, 6, 2, -1, -1, &opString, &opStringSize);
+					if (ret == ERR_SUCCESS) {
+						while (opStringSize > 0 && opString[opStringSize - 1] == 'M')
+							opStringSize--;
 
-	kmer_advance(kmer, Read->ReadSequence[KMerSize]);
-	for (size_t i = 1; i < NumberOfSets; ++i) {
-		Vertices[i] = NULL;
-		ret = kmer_graph_get_vertices(Graph, kmer, Vertices + i);
-		if (ret == ERR_SUCCESS) {
-			count += pointer_array_size(Vertices[i]);
-		} else if (ret == ERR_NOT_FOUND) {
-			PKMER_VERTEX v = NULL;
+						if (opStringSize > 0 && opStringSize <= 3) {
+							boolean oneType = TRUE;
+							char typeChar = opString[0];
 
-			ret = kmer_graph_add_vertex_ex(Graph, kmer, kmvtRead, &v);
-			if (ret == ERR_SUCCESS) {
-				kmer_graph_get_vertices(Graph, kmer, Vertices + i);
-				count += 1;
-			}
-		}
+							for (size_t i = 1; i < opStringSize; ++i) {
+								oneType = opString[i] == typeChar;
+								if (!oneType)
+									break;
+							}
 
-		if (ret == ERROR_SUCCESS && NumberOfSets - i > 8) {
-			const KMER_VERTEX *rsv = Vertices[i - 1]->Data[0];
-			const KMER_VERTEX *rev = Vertices[i]->Data[0];
-
-			if (pointer_array_size(Vertices[i - 1]) == 1 &&
-				rsv->Type == kmvtRefSeqMiddle &&
-				rev->Type == kmvtRead) {
-				size_t opStringSize = 0;
-				char *opString = NULL;
-
-				ret = ssw_clever(Options->Reference + rsv->RefSeqPosition + 1, 6, Read->ReadSequence + KMerSize + i - 1, 6, 2, -1, -1, &opString, &opStringSize);
-				if (ret == ERR_SUCCESS) {
-					while (opStringSize > 0 && opString[opStringSize - 1] == 'M')
-						opStringSize--;
-
-					if (opStringSize > 0 && opStringSize <= 3) {
-						boolean oneType = TRUE;
-						char typeChar = opString[0];
-
-						for (size_t i = 1; i < opStringSize; ++i) {
-							oneType = opString[i] == typeChar;
-							if (!oneType)
-								break;
-						}
-
-						if (oneType) {
-							switch (typeChar) {
+							if (oneType) {
+								switch (typeChar) {
 								case 'I':
 
 									break;
@@ -348,19 +314,20 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 								default:
 									assert(FALSE);
 									break;
+								}
 							}
 						}
-					}
 
-					utils_free(opString);
+						utils_free(opString);
+					}
 				}
 			}
+
+			if (ret != ERR_SUCCESS)
+				break;
+
+			kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
 		}
-
-		if (ret != ERR_SUCCESS)
-			break;
-
-		kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
 	}
 
 	if (ret == ERR_SUCCESS)
