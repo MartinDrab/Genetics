@@ -10,6 +10,7 @@
 #include "gen_dym_array.h"
 #include "pointer_array.h"
 #include "refseq-storage.h"
+#include "ssw.h"
 #include "assembly.h"
 
 
@@ -284,6 +285,54 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 			if (ret == ERR_SUCCESS) {
 				kmer_graph_get_vertices(Graph, kmer, Vertices + i);
 				count += 1;
+			}
+		}
+
+		if (ret == ERROR_SUCCESS && NumberOfSets - i > 8) {
+			const KMER_VERTEX *rsv = Vertices[i - 1]->Data[0];
+			const KMER_VERTEX *rev = Vertices[i]->Data[0];
+
+			if (pointer_array_size(Vertices[i - 1]) == 1 &&
+				rsv->Type == kmvtRefSeqMiddle &&
+				rev->Type == kmvtRead) {
+				size_t opStringSize = 0;
+				char *opString = NULL;
+
+				ret = ssw_clever(Options->Reference + rsv->RefSeqPosition + 1, 6, Read->ReadSequence + KMerSize + i - 1, 6, 2, -1, -1, &opString, &opStringSize);
+				if (ret == ERR_SUCCESS) {
+					while (opStringSize > 0 && opString[opStringSize - 1] == 'M')
+						opStringSize--;
+
+					if (opStringSize > 0) {
+						boolean oneType = TRUE;
+						char typeChar = opString[0];
+
+						for (size_t i = 1; i < opStringSize; ++i) {
+							oneType = opString[i] == typeChar;
+							if (!oneType)
+								break;
+						}
+
+						if (oneType) {
+							switch (typeChar) {
+								case 'I':
+
+									break;
+								case 'D':
+
+									break;
+								case 'X':
+
+									break;
+								default:
+									assert(FALSE);
+									break;
+							}
+						}
+					}
+
+					utils_free(opString);
+				}
 			}
 		}
 
@@ -662,16 +711,10 @@ static ERR_VALUE _produce_single_path(const PARSE_OPTIONS *Options, PKMER_GRAPH 
 
 	ret = utils_calloc_PPOINTER_ARRAY_KMER_VERTEX(MaxNumberOfSets, &vertices);
 	if (ret == ERR_SUCCESS) {
-//		for (size_t i = 0; i < MaxNumberOfSets; ++i)
-//			pointer_array_init_KMER_VERTEX(vertices + i, 140);
-
 		ret = _assign_vertice_sets_to_kmers(Graph, Read, vertices, MaxNumberOfSets, Options, &linear);
 		if (ret == ERR_SUCCESS)
 			ret = _find_best_path(Options, Graph, vertices, MaxNumberOfSets, linear, CreateDummyVertices, Path, PathLength);
 	
-//		for (size_t i = 0; i < MaxNumberOfSets; ++i)
-//			pointer_array_finit_KMER_VERTEX(vertices + i);
-
 		utils_free(vertices);
 	}
 

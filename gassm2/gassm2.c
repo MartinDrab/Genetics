@@ -264,13 +264,13 @@ static ERR_VALUE _process_variant_call(const PROGRAM_OPTIONS *Options, const ASS
 
 			while (ret == ERR_SUCCESS) {
 				switch (*opIt) {
-				case 'X':
-					++tmpRS;
-					++rfwEndIndex;
-					++rewEndIndex;
-					++tmpAltS;
-					nothing = FALSE;
-					break;
+					case 'X':
+						++tmpRS;
+						++rfwEndIndex;
+						++rewEndIndex;
+						++tmpAltS;
+						nothing = FALSE;
+						break;
 					case '\0':
 					case 'M':
 						if (!nothing) {
@@ -783,6 +783,7 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 			po.ReadThreshold = Options->Threshold;
 			po.RegionStart = RegionStart;
 			po.RegionLength = Options->RegionLength;
+			po.Reference = RefSeq;
 			ret = _compute_graphs(Allocator, Options, &po, &task, VCArray);
 			assembly_task_finit(&task);
 		}
