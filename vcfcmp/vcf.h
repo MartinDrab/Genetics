@@ -118,6 +118,9 @@ public:
 			case 'T':
 				index = 3;
 				break;
+			default:
+				__debugbreak();
+				break;
 		}
 
 		return Sons_[index];
@@ -139,6 +142,7 @@ public:
 			break;
 		case 'T':
 			index = 3;
+			break;
 		default:
 			assert(false);
 			index = 0;

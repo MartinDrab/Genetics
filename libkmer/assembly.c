@@ -241,6 +241,27 @@ static ERR_VALUE _find_best_path(const PARSE_OPTIONS *Options, PKMER_GRAPH Graph
 }
 
 
+static ERR_VALUE _assign_vertice_set_to_kmer(PKMER_GRAPH Graph, const KMER *KMer, PPOINTER_ARRAY_KMER_VERTEX *Vertices, const size_t Index, const PARSE_OPTIONS *Options, size_t *SetSize)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	Vertices[Index] = NULL;
+	ret = kmer_graph_get_vertices(Graph, KMer, Vertices + Index);
+	if (ret == ERR_SUCCESS) {
+		*SetSize += pointer_array_size(Vertices[Index]);
+	} else if (ret == ERR_NOT_FOUND) {
+		PKMER_VERTEX v = NULL;
+
+		ret = kmer_graph_add_vertex_ex(Graph, KMer, kmvtRead, &v);
+		if (ret == ERR_SUCCESS) {
+			kmer_graph_get_vertices(Graph, KMer, Vertices + Index);
+			*SetSize += 1;
+		}
+	}
+
+	return ret;
+}
+
 static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ *Read, PPOINTER_ARRAY_KMER_VERTEX *Vertices, const size_t NumberOfSets, const PARSE_OPTIONS *Options, boolean *Linear)
 {
 	size_t count = 0;
@@ -303,7 +324,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 					while (opStringSize > 0 && opString[opStringSize - 1] == 'M')
 						opStringSize--;
 
-					if (opStringSize > 0) {
+					if (opStringSize > 0 && opStringSize <= 3) {
 						boolean oneType = TRUE;
 						char typeChar = opString[0];
 
