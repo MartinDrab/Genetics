@@ -175,7 +175,33 @@ int main(int argc, char *argv[])
 		std::cerr << "TPs: " << TPs.size() << std::endl;
 		std::cerr << "FNs: " << FNs.size() << std::endl;
 		std::cerr << "FPs: " << FPs.size() << std::endl;
-	} else print_usage();
+	} else if (args.size() == 1) {
+		std::cerr << "Loading a VCF file..." << std::endl;
+		CVCFFile vcf(args[0]);
+		std::map<std::size_t, std::size_t> insertionCounts_;
+		std::map<std::size_t, std::size_t> deletionCounts_;
 
+		for (auto & r : vcf.Records) {
+			switch (r.Type) {
+				case vcfrtDeletion:
+					deletionCounts_.insert(std::make_pair(r.Ref.size(), 0)).first->second++;
+					break;
+				case vcfrtInsertion:
+					insertionCounts_.insert(std::make_pair(r.Alt.size(), 0)).first->second++;
+					break;
+			}
+		}
+
+		std::cerr << "Total SNPs:        " << vcf.SNPs << std::endl;
+		std::cerr << "Total Replaces:    " << vcf.Replaces << std::endl;
+		std::cerr << "Total insertions:  " << vcf.Insertions << std::endl;
+		for (auto & p : insertionCounts_)
+			std::cerr << "  " << p.first << ", " << p.second << std::endl;
+
+		std::cerr << "Total deletions:   " << vcf.Deletions << std::endl;
+		for (auto & p : deletionCounts_)
+			std::cerr << "  " << p.first << ", " << p.second << std::endl;
+	} else print_usage();
+	
 	return 0;
 }
