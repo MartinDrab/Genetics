@@ -273,8 +273,10 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 	KMER_STACK_ALLOC(kmer, 0, KMerSize, Read->ReadSequence);
 	ret = _assign_vertice_set_to_kmer(Graph, kmer, Vertices, 0, Options, &count);
 	if (ret == ERR_SUCCESS) {
+		size_t i = 1;
+		
 		kmer_advance(kmer, Read->ReadSequence[KMerSize]);
-		for (size_t i = 1; i < NumberOfSets; ++i) {
+		while (i < NumberOfSets) {
 			ret = _assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
 			if (ret == ERROR_SUCCESS && NumberOfSets - i > 8) {
 				const KMER_VERTEX *rsv = Vertices[i - 1]->Data[0];
@@ -328,6 +330,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 				break;
 
 			kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
+			++i;
 		}
 	}
 
