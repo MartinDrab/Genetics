@@ -294,17 +294,22 @@ ERR_VALUE vc_array_add(PGEN_ARRAY_VARIANT_CALL Array, const VARIANT_CALL *VC)
 	const VARIANT_CALL *tmp = Array->Data;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = ERR_SUCCESS;
+	ret = ERR_NOT_FOUND;
 	for (size_t i = 0; i < gen_array_size(Array); ++i) {
 		if (variant_call_equal(tmp, VC)) {
-			ret = ERR_ALREADY_EXISTS;
+			if (VC->AltWeight > tmp->AltWeight) {
+				fprintf(stderr, "Increasing variant call weight %Iu -> %Iu\n", tmp->AltWeight, VC->AltWeight);
+				variant_call_finit(tmp);
+				memcpy(tmp, VC, sizeof(VARIANT_CALL));
+				ret = ERR_SUCCESS;
+			}  else ret = ERR_ALREADY_EXISTS;
 			break;
 		}
 
 		++tmp;
 	}
 
-	if (ret == ERR_SUCCESS)
+	if (ret == ERR_NOT_FOUND)
 		ret = dym_array_push_back_VARIANT_CALL(Array, *VC);
 
 	return ret;

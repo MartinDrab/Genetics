@@ -119,7 +119,7 @@ public:
 				index = 3;
 				break;
 			default:
-				__debugbreak();
+				assert(false);
 				break;
 		}
 

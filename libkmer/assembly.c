@@ -297,8 +297,9 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 					PKMER_VERTEX rev = Vertices[i]->Data[0];
 
 					if (pointer_array_size(Vertices[i - 1]) == 1 &&
+						pointer_array_size(Vertices[i]) == 1 &&
 						rsv->Type == kmvtRefSeqMiddle &&
-						rev->Type == kmvtRead) {
+						rev->RefSeqPosition - 1 != rsv->RefSeqPosition) {
 						size_t opStringSize = 0;
 						char *opString = NULL;
 						const char *ref = Options->Reference + rsv->RefSeqPosition + 1;
@@ -326,10 +327,10 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 											kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
 											++i;
 											_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
-											rev->ReadStartAllowed = FALSE;
 										}
 
 										kmer_init_from_kmer(kmer, &rsv->KMer);
+										rev->ReadStartAllowed = FALSE;
 									} break;
 									case 'D': {
 										if (rsv->RefSeqPosition + opStringSize + 1 < Options->RegionLength) {
