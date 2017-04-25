@@ -78,11 +78,12 @@ static ERR_VALUE _vertex_create(PKMER_GRAPH Graph, const KMER *KMer, const EKMer
 		kmer_init_from_kmer(&tmp->KMer, KMer);;
 		tmp->Type = Type;
 		tmp->LongEdgeAllowed = FALSE;
+		tmp->ReadStartAllowed = TRUE;
+		tmp->Helper = FALSE;
 		pointer_array_init_KMER_EDGE(&tmp->Successors, 140);
 		pointer_array_init_KMER_EDGE(&tmp->Predecessors, 140);
 		tmp->RefSeqPosition = 0;
 		tmp->AbsPos = 0;
-		tmp->Helper = FALSE;
 		tmp->Lists.Next = NULL;
 		tmp->Lists.Graph = NULL;
 		*Result = tmp;
