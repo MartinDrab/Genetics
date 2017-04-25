@@ -1,7 +1,19 @@
-default:
+all: 1 2 3 4
+
+1:
+	echo "Building GASSMv2"
 	cd gassm2; make; cd ..
+
+2:
+	@echo "Building RCORRECT"
 	cd rcorrect; make; cd ..
+
+3:
+	@echo "Building VCFFIX"
 	cd vcffix; make; cd ..
+
+4:
+	@echo "Building VCFCMP"
 	cd vcfcmp; make; cd ..
 
 clean:
@@ -9,5 +21,3 @@ clean:
 	cd rcorrect; make clean; cd ..
 	cd vcffix; make clean; cd ..
 	cd vcfcmp; make clean; cd ..
-
-
