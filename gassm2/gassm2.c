@@ -46,7 +46,6 @@ static ERR_VALUE _init_default_values()
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(PROGRAM_OPTION_SEQLEN, 2000);
 
-
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(PROGRAM_OPTION_TEST_STEP, 1500);
 
@@ -84,16 +83,13 @@ static ERR_VALUE _init_default_values()
 		ret = option_add_Boolean(PROGRAM_OPTION_NO_HELPER_VERTICES, FALSE);
 
 	if (ret == ERR_SUCCESS)
+		ret = option_add_Boolean(PROGRAM_OPTION_NO_SHORT_VARIANTS, FALSE);
+
+	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(PROGRAM_OPTION_MISSING_EDGE_PENALTY, 3);
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY, 2);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_MAX_PATHS, 1);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_READ_MAX_ERROR_RATE, 20);
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(PROGRAM_OPTION_READ_STRIP, 5);
@@ -211,10 +207,10 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 	Options->ParseOptions.LinearShrink = !b;
 	option_get_Boolean(PROGRAM_OPTION_NO_HELPER_VERTICES, &b);
 	Options->ParseOptions.HelperVertices = !b;
+	option_get_Boolean(PROGRAM_OPTION_NO_SHORT_VARIANTS, &b);
+	Options->ParseOptions.OptimizeShortVariants = !b;
 	option_get_UInt32(PROGRAM_OPTION_MISSING_EDGE_PENALTY, &Options->ParseOptions.MissingEdgePenalty);
 	option_get_UInt32(PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY, &Options->ParseOptions.BackwardRefseqPenalty);
-	option_get_UInt32(PROGRAM_OPTION_MAX_PATHS, &Options->MaxPaths);
-	option_get_UInt32(PROGRAM_OPTION_READ_MAX_ERROR_RATE, &Options->ParseOptions.ReadMaxErrorRate);
 
 	return ret;
 }
@@ -751,7 +747,7 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, Options->ParseOptions.ReadMaxErrorRate, FilteredReads);
+	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, FilteredReads);
 	if (ret == ERR_SUCCESS) {
 		if (gen_array_size(FilteredReads) > 0) {
 			char taskName[128];

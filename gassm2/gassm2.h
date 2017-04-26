@@ -34,9 +34,8 @@
 #define PROGRAM_OPTION_NO_HELPER_VERTICES				"no-helper-vertices"
 #define PROGRAM_OPTION_MISSING_EDGE_PENALTY				"missing-edge-penalty"
 #define PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY			"backward-refseq-penalty"
-#define PROGRAM_OPTION_MAX_PATHS						"max-paths"
-#define PROGRAM_OPTION_READ_MAX_ERROR_RATE				"max-error-rate"
 #define PROGRAM_OPTION_READ_STRIP						"read-strip"
+#define PROGRAM_OPTION_NO_SHORT_VARIANTS				"no-short-variants"
 
 /************************************************************************/
 /*                  OPTION DESCRIPTION                                  */
@@ -51,6 +50,7 @@
 #define PROGRAM_OPTION_READFILE_DESC					"Name of a file (SAM) that contains reads. Valid only for non-test mode."
 #define PROGRAM_OPTION_OUTPUT_DIRECTORY_DESC			"Base output directory"
 #define PROGRAM_OPTION_VCFFILE_DESC						"VCF file name"
+#define PROGRAM_OPTION_NO_SHORT_VARIANTS_DESC			"Do not Optimize for short variants"
 
 /************************************************************************/
 /*                                                                      */
@@ -74,7 +74,6 @@ typedef struct _PROGRAM_OPTIONS {
 	GEN_ARRAY_VARIANT_CALL *VCSubArrays;
 	GEN_ARRAY_ONE_READ *ReadSubArrays;
 	GEN_ARRAY_VARIANT_CALL VCArray;
-	uint32_t MaxPaths;
 	uint32_t ReadStrip;
 	PARSE_OPTIONS ParseOptions;
 } PROGRAM_OPTIONS, *PPROGRAM_OPTIONS;

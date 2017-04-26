@@ -298,7 +298,6 @@ ERR_VALUE vc_array_add(PGEN_ARRAY_VARIANT_CALL Array, const VARIANT_CALL *VC)
 	for (size_t i = 0; i < gen_array_size(Array); ++i) {
 		if (variant_call_equal(tmp, VC)) {
 			if (VC->AltWeight > tmp->AltWeight) {
-				fprintf(stderr, "Increasing variant call weight %Iu -> %Iu\n", tmp->AltWeight, VC->AltWeight);
 				variant_call_finit(tmp);
 				memcpy(tmp, VC, sizeof(VARIANT_CALL));
 				ret = ERR_SUCCESS;

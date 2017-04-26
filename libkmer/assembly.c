@@ -292,7 +292,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 			kmer_advance(kmer, Read->ReadSequence[KMerSize]);
 			while (i < NumberOfSets) {
 				ret = _assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
-				if (ret == ERR_SUCCESS && NumberOfSets - i > 8) {
+				if (ret == ERR_SUCCESS && Options->OptimizeShortVariants && NumberOfSets - i > 8) {
 					const KMER_VERTEX *rsv = Vertices[i - 1]->Data[0];
 					PKMER_VERTEX rev = Vertices[i]->Data[0];
 
@@ -843,7 +843,7 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 					if (ret == ERR_SUCCESS) {
 						PKMER_EDGE edge = NULL;
 
-						destVertex->RefSeqPosition = RefSeqLen;
+						destVertex->RefSeqPosition = (uint32_t)RefSeqLen;
 						ret = kmer_graph_add_edge_ex(Graph, sourceVertex, destVertex, kmetReference, &edge);
 						if (ret == ERR_SUCCESS)
 							kmer_graph_set_ending_vertex(Graph, destKMer);

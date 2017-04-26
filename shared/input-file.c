@@ -313,7 +313,7 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 
 
 
-ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, const size_t SourceCount, const uint64_t RegionStart, const size_t RegionLength, const uint32_t FixupThreshold, PGEN_ARRAY_ONE_READ NewReads)
+ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, const size_t SourceCount, const uint64_t RegionStart, const size_t RegionLength, PGEN_ARRAY_ONE_READ NewReads)
 {
 	const ONE_READ *r = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -359,7 +359,7 @@ ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, co
 			for (size_t i = firstIndex; i <= lastIndex; ++i) {
 				ONE_READ tmp;
 
-				if (r->ReadSequenceLen > KMerSize && r->NumberOfFixes * 100 / r->ReadSequenceLen < FixupThreshold) {
+				if (r->ReadSequenceLen > KMerSize) {
 					tmp = *r;
 					tmp.Parent = r;
 					read_adjust(&tmp, RegionStart, RegionLength);

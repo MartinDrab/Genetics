@@ -49,7 +49,6 @@ typedef struct _ONE_READ {
 	uint8_t *Quality;
 	uint64_t Pos;
 	uint8_t PosQuality;
-	uint32_t NumberOfFixes;
 	size_t ReadIndex;
 	struct _ONE_READ *Parent;
 	uint32_t Offset;

@@ -8,6 +8,7 @@
 
 
 typedef struct _PARSE_OPTIONS {
+	boolean OptimizeShortVariants;
 	boolean ConnectRefSeq;
 	boolean ConnectReads;
 	boolean MergeBubbles;
@@ -16,7 +17,6 @@ typedef struct _PARSE_OPTIONS {
 	uint32_t MissingEdgePenalty;
 	uint32_t BackwardRefseqPenalty;
 	uint32_t ReadThreshold;
-	uint32_t ReadMaxErrorRate;
 	const char *Reference;
 	uint64_t RegionStart;
 	uint32_t RegionLength;
