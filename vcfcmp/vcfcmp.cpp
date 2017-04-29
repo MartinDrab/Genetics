@@ -175,6 +175,22 @@ int main(int argc, char *argv[])
 		std::cerr << "TPs: " << TPs.size() << std::endl;
 		std::cerr << "FNs: " << FNs.size() << std::endl;
 		std::cerr << "FPs: " << FPs.size() << std::endl;
+		
+		std::ofstream FNsFile("FNs.vcf");
+		for (auto & r : FNs) {
+			if (r.Type == vcfrtSNP)
+				r.write(FNsFile);
+		}
+
+		FNsFile.close();
+
+		std::ofstream FPsFile("FPs.vcf");
+		for (auto & r : FPs) {
+			if (r.Type == vcfrtSNP)
+				r.write(FPsFile);
+		}
+
+		FPsFile.close();
 	} else if (args.size() == 1) {
 		std::cerr << "Loading a VCF file..." << std::endl;
 		CVCFFile vcf(args[0]);

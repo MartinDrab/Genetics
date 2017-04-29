@@ -82,6 +82,11 @@ public:
 	const std::size_t & Pos = Pos_;
 	const EVCFRecordType & Type = Type_;
 	const std::size_t & Index = Index_;
+	void write(std::ostream & aStream) const {
+		aStream << RefName_ << "\t" << Pos_ << "\t.\t" << Ref_ << "\t" << Alt_ << std::endl;
+
+		return;
+	}
 private:
 	std::string RefName_;
 	std::string Ref_;
