@@ -402,12 +402,9 @@ private:
 
 		index = endIndex;
 		endIndex = aLine.find('\t', index + 1);
+		index = endIndex;
+		endIndex = aLine.find('\t', index + 1);
 		std::string ref = aLine.substr(index + 1, endIndex - index - 1);
-		if (ref == ".") {
-			index = endIndex;
-			endIndex = aLine.find('\t', index + 1);
-			ref = aLine.substr(index + 1, endIndex - index - 1);
-		}
 
 		index = endIndex;
 		endIndex = aLine.find('\t', index + 1);
