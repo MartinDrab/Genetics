@@ -489,12 +489,12 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 					ret = kmer_graph_connect_reads_by_pairs(g, ParseOptions->ReadThreshold, &ep, &changeCount);
 					if (ret == ERR_SUCCESS) {
 						kmer_graph_compute_weights(g);
+						kmer_graph_delete_edges_under_threshold(g, ParseOptions->ReadThreshold);
+						kmer_graph_delete_trailing_things(g, &deletedThings);
 						if (ParseOptions->LinearShrink)
 							kmer_graph_delete_1to1_vertices(g);
 
 						_print_graph(g, Options, Task, "f1");
-						kmer_graph_delete_edges_under_threshold(g, ParseOptions->ReadThreshold);
-						kmer_graph_delete_trailing_things(g, &deletedThings);
 						_print_graph(g, Options, Task, "f2");
 //						kmer_graph_resolve_read_narrowings(g);
 						if (ParseOptions->MergeBubbles) {
