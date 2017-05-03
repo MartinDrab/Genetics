@@ -586,13 +586,6 @@ void read_split(PONE_READ Read)
 void read_shorten(PONE_READ Read, const size_t Count)
 {
 	if (Read->ReadSequenceLen > 2 * Count) {
-		if (!Read->NoStartStrip) {
-			memmove(Read->Quality, Read->Quality + Count, Read->ReadSequenceLen - Count);
-			memmove(Read->ReadSequence, Read->ReadSequence + Count, Read->ReadSequenceLen - Count);
-			Read->ReadSequenceLen -= Count;
-			Read->Pos += Count;
-		}
-
 		if (!Read->NoEndStrip)
 			Read->ReadSequenceLen -= Count;
 

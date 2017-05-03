@@ -288,8 +288,8 @@ static ERR_VALUE _process_variant_call(const PROGRAM_OPTIONS *Options, const ASS
 							if (ret == ERR_SUCCESS) {								
 								size_t index = 0;
 								
-								while (opString[index] == 'M')
-									++index;
+//								while (opString[index] == 'M')
+//									++index;
 
 								vc.Context = Context;
 								vc.RefWeight = 0;

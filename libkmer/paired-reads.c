@@ -170,7 +170,6 @@ void paired_reads_fix_overlaps(boolean Strip)
 
 					matches = (strncmp(or1, or2, overlapLength) == 0);
 					r1->NoEndStrip = matches;
-					r2->NoStartStrip = matches;
 					if (!matches) {
 						++mismatches;
 						for (size_t k = 0; k < overlapLength; ++k) {
@@ -191,10 +190,9 @@ void paired_reads_fix_overlaps(boolean Strip)
 									--tmp2;
 								}
 
-								memmove(r2->ReadSequence, r2->ReadSequence + r2Move, (r2->ReadSequenceLen - r2Move) * sizeof(char));
-								memmove(r2->Quality, r2->Quality + r2Move, (r2->ReadSequenceLen - r2Move) * sizeof(uint8_t));
-								r2->ReadSequenceLen -= r2Move;
-								r2->ReadSequence[r2->ReadSequenceLen] = '\0';
+								r1->ReadSequenceLen -= r2Move;
+								r1->ReadSequence[r1->ReadSequenceLen] = '\0';
+								r1->Quality[r1->ReadSequenceLen] = '\0';
 							}
 
 							r1->ReadSequenceLen -= (r1->Pos + r1->ReadSequenceLen - r2->Pos);

@@ -292,7 +292,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 			kmer_advance(kmer, Read->ReadSequence[KMerSize]);
 			while (i < NumberOfSets) {
 				ret = _assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
-				if (ret == ERR_SUCCESS && Options->OptimizeShortVariants && NumberOfSets - i > 8) {
+				if (ret == ERR_SUCCESS && Options->OptimizeShortVariants && NumberOfSets - i > 10) {
 					const KMER_VERTEX *rsv = Vertices[i - 1]->Data[0];
 					PKMER_VERTEX rev = Vertices[i]->Data[0];
 
@@ -779,6 +779,39 @@ static ERR_VALUE _kmer_graph_parse_read_v2(const PARSE_OPTIONS *Options, PKMER_G
 }
 
 
+static int _read_comparator(const ONE_READ *R1, const ONE_READ *R2)
+{
+	return (int)R1->UnknownKMers - (int)R2->UnknownKMers;
+}
+
+static void _sort_reads(const KMER_GRAPH *Graph, PONE_READ Reads, size_t Count)
+{
+	PONE_READ r = Reads;
+	const uint32_t kmerSize = kmer_graph_get_kmer_size(Graph);
+	PKMER kmer = NULL;
+
+	KMER_STACK_ALLOC(kmer, 0, kmerSize, NULL);
+	for (size_t i = 0; i < Count; ++i) {
+		r->UnknownKMers = 0;
+		if (r->ReadSequenceLen > kmerSize) {
+			kmer_init(kmer, r->ReadSequence);
+			for (size_t j = 0; j < r->ReadSequenceLen - kmerSize; ++j) {
+				if (kmer_graph_get_vertex(Graph, kmer) == NULL)
+					++r->UnknownKMers;
+
+				kmer_advance(kmer, r->ReadSequence[j + kmerSize]);
+			}
+		}
+
+		++r;
+	}
+
+	qsort(Reads, Count, sizeof(ONE_READ), _read_comparator);
+
+	return;
+}
+
+
 /************************************************************************/
 /*                      PUBLIC FUNCTIONS                                */
 /************************************************************************/
@@ -871,6 +904,7 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_
 	uint8_t **flagPaths = NULL;
 	size_t *pathLengths = 0;
 
+	_sort_reads(Graph, Reads, ReadCount);
 	ret = utils_calloc_PPKMER_VERTEX(ReadCount, &paths);
 	if (ret == ERR_SUCCESS) {
 		ret = utils_calloc(ReadCount, sizeof(size_t), &pathLengths);

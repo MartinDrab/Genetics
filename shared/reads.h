@@ -52,9 +52,9 @@ typedef struct _ONE_READ {
 	size_t ReadIndex;
 	struct _ONE_READ *Parent;
 	uint32_t Offset;
-	boolean NoStartStrip;
 	PONE_READ_EXTENSION Extension;
 	boolean NoEndStrip;
+	uint32_t UnknownKMers;
 } ONE_READ, *PONE_READ;
 
 typedef struct _ASSEMBLY_TASK {
