@@ -370,6 +370,10 @@ void vc_array_print(FILE *Stream, const char *ReferenceFile, const GEN_ARRAY_VAR
 	}
 
 	fprintf(Stream, "##phasing=partial\n");
+	fprintf(Stream, "##INFO=<ID=RW,Number=1,Type=Integer,Description=\"Reference weight\">\n");
+	fprintf(Stream, "##INFO=<ID=AW,Number=A,Type=Integer,Description=\"Allele weight\">\n");
+	fprintf(Stream, "##INFO=<ID=RC,Number=1,Type=Integer,Description=\"Reference read count\">\n");
+	fprintf(Stream, "##INFO=<ID=AC,Number=A,Type=Integer,Description=\"Alelle read count\">\n");
 	fprintf(Stream, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n");
 	fprintf(Stream, "##FORMAT=<ID=PS,Number=1,Type=String,Description=\"Phase number\">\n");
 	fprintf(Stream, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t13350_1\n");
@@ -388,7 +392,7 @@ void vc_array_print(FILE *Stream, const char *ReferenceFile, const GEN_ARRAY_VAR
 				default: assert(FALSE); break;
 			}
 
-			fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\t.\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, genotype, tmp->PhasedPos);
+			fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\tRW=%u;RC=%u;AW=%u;AC=%u\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, (uint32_t)tmp->RefWeight, (uint32_t)gen_array_size(&tmp->RefReads), (uint32_t)tmp->AltWeight, (uint32_t)gen_array_size(&tmp->AltReads), genotype, tmp->PhasedPos);
 		}
 
 		++tmp;
