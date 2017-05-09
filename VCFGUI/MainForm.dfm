@@ -12,6 +12,8 @@ object MainFrm: TMainFrm
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
   object MainPanel: TPanel
@@ -21,10 +23,6 @@ object MainFrm: TMainFrm
     Height = 339
     Align = alClient
     TabOrder = 0
-    ExplicitLeft = 72
-    ExplicitTop = 80
-    ExplicitWidth = 129
-    ExplicitHeight = 97
     object SetsAndFilesGroupBox: TGroupBox
       Left = 1
       Top = 1
@@ -54,14 +52,14 @@ object MainFrm: TMainFrm
         Height = 21
         TabOrder = 0
       end
-      object testSetFileEdit: TEdit
+      object TestSetFileEdit: TEdit
         Left = 112
         Top = 51
         Width = 169
         Height = 21
         TabOrder = 1
       end
-      object Button1: TButton
+      object TruthSetBrowseButton: TButton
         Left = 296
         Top = 24
         Width = 65
@@ -69,7 +67,7 @@ object MainFrm: TMainFrm
         Caption = 'Browse...'
         TabOrder = 2
       end
-      object Button2: TButton
+      object TestSetBrowseButton: TButton
         Left = 296
         Top = 55
         Width = 65
@@ -86,55 +84,59 @@ object MainFrm: TMainFrm
       Align = alTop
       Caption = 'Settings'
       TabOrder = 1
-      ExplicitTop = 66
-      ExplicitWidth = 348
-      object CheckBox1: TCheckBox
+      object SNPsCheckBox: TCheckBox
         Left = 3
         Top = 16
         Width = 65
         Height = 17
         Caption = 'SNPs'
         TabOrder = 0
+        OnClick = FilterCheckBoxClick
       end
-      object CheckBox2: TCheckBox
+      object InsertionsCheckBox: TCheckBox
         Left = 3
         Top = 32
         Width = 65
         Height = 17
         Caption = 'Insertions'
         TabOrder = 1
+        OnClick = FilterCheckBoxClick
       end
-      object CheckBox3: TCheckBox
+      object DeletionsCheckBox: TCheckBox
         Left = 3
         Top = 55
         Width = 65
         Height = 17
         Caption = 'Deletions'
         TabOrder = 2
+        OnClick = FilterCheckBoxClick
       end
-      object CheckBox4: TCheckBox
+      object TruePositivesCheckBox: TCheckBox
         Left = 112
         Top = 16
         Width = 105
         Height = 17
         Caption = 'true positives'
         TabOrder = 3
+        OnClick = FilterCheckBoxClick
       end
-      object CheckBox5: TCheckBox
+      object FalseNegativesCheckBox: TCheckBox
         Left = 112
         Top = 32
         Width = 105
         Height = 17
         Caption = 'False negatives'
         TabOrder = 4
+        OnClick = FilterCheckBoxClick
       end
-      object CheckBox6: TCheckBox
+      object FalsePositivesCheckBox: TCheckBox
         Left = 112
         Top = 55
         Width = 105
         Height = 17
         Caption = 'False positives'
         TabOrder = 5
+        OnClick = FilterCheckBoxClick
       end
     end
     object ResultListView: TListView
@@ -160,9 +162,6 @@ object MainFrm: TMainFrm
           Width = 100
         end
         item
-          Caption = 'Quality'
-        end
-        item
           Caption = 'Info'
         end
         item
@@ -177,14 +176,23 @@ object MainFrm: TMainFrm
           AutoSize = True
           Caption = 'Sample'
         end>
+      OwnerData = True
       ReadOnly = True
       RowSelect = True
       TabOrder = 2
       ViewStyle = vsReport
-      ExplicitLeft = 48
-      ExplicitTop = 145
-      ExplicitWidth = 537
-      ExplicitHeight = 193
+      ExplicitLeft = 25
+      ExplicitWidth = 560
     end
+  end
+  object TruthSetOpenDialog: TOpenDialog
+    Filter = 'VCF files [*.vcf]|*.vcf|All files [*.*]|*.*'
+    Left = 368
+    Top = 24
+  end
+  object TestSetOpenDialog: TOpenDialog
+    Filter = 'VCF files [*.vcf]|*.vcf|All files [*.*]|*.*'
+    Left = 368
+    Top = 56
   end
 end

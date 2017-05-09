@@ -2,7 +2,8 @@ program VCFGUI;
 
 uses
   Vcl.Forms,
-  MainForm in 'MainForm.pas' {MainFrm};
+  MainForm in 'MainForm.pas' {MainFrm},
+  VCFRecord in 'VCFRecord.pas';
 
 {$R *.res}
 
