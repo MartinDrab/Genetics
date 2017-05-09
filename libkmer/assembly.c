@@ -904,7 +904,7 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_
 	uint8_t **flagPaths = NULL;
 	size_t *pathLengths = 0;
 
-	_sort_reads(Graph, Reads, ReadCount);
+//	_sort_reads(Graph, Reads, ReadCount);
 	ret = utils_calloc_PPKMER_VERTEX(ReadCount, &paths);
 	if (ret == ERR_SUCCESS) {
 		ret = utils_calloc(ReadCount, sizeof(size_t), &pathLengths);

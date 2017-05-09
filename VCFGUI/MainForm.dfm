@@ -66,6 +66,7 @@ object MainFrm: TMainFrm
         Height = 25
         Caption = 'Browse...'
         TabOrder = 2
+        OnClick = BrowseButtonClick
       end
       object TestSetBrowseButton: TButton
         Left = 296
@@ -74,6 +75,7 @@ object MainFrm: TMainFrm
         Height = 25
         Caption = 'Browse...'
         TabOrder = 3
+        OnClick = BrowseButtonClick
       end
     end
     object SettingsGroupBox: TGroupBox
@@ -84,6 +86,20 @@ object MainFrm: TMainFrm
       Align = alTop
       Caption = 'Settings'
       TabOrder = 1
+      object Label3: TLabel
+        Left = 240
+        Top = 32
+        Width = 36
+        Height = 13
+        Caption = 'Min AW'
+      end
+      object Label4: TLabel
+        Left = 240
+        Top = 60
+        Width = 34
+        Height = 13
+        Caption = 'Min AQ'
+      end
       object SNPsCheckBox: TCheckBox
         Left = 3
         Top = 16
@@ -138,12 +154,30 @@ object MainFrm: TMainFrm
         TabOrder = 5
         OnClick = FilterCheckBoxClick
       end
+      object MinAWFilterEdit: TEdit
+        Left = 288
+        Top = 24
+        Width = 49
+        Height = 21
+        TabOrder = 6
+        Text = '0'
+        OnExit = FilterCheckBoxClick
+      end
+      object MinAQFilterEdit: TEdit
+        Left = 288
+        Top = 51
+        Width = 49
+        Height = 21
+        TabOrder = 7
+        Text = '0'
+        OnExit = FilterCheckBoxClick
+      end
     end
     object ResultListView: TListView
       Left = 1
       Top = 160
       Width = 584
-      Height = 178
+      Height = 129
       Align = alClient
       Columns = <
         item
@@ -162,27 +196,85 @@ object MainFrm: TMainFrm
           Width = 100
         end
         item
+          AutoSize = True
           Caption = 'Info'
         end
         item
-          AutoSize = True
           Caption = 'Filter'
-        end
-        item
-          AutoSize = True
-          Caption = 'Format'
-        end
-        item
-          AutoSize = True
-          Caption = 'Sample'
+          Width = 60
         end>
       OwnerData = True
       ReadOnly = True
       RowSelect = True
       TabOrder = 2
       ViewStyle = vsReport
-      ExplicitLeft = 25
-      ExplicitWidth = 560
+      OnAdvancedCustomDrawItem = ResultListViewAdvancedCustomDrawItem
+      OnData = ResultListViewData
+    end
+    object LowerPanel: TPanel
+      Left = 1
+      Top = 289
+      Width = 584
+      Height = 49
+      Align = alBottom
+      TabOrder = 3
+      object TPsLabel: TLabel
+        Left = 3
+        Top = 16
+        Width = 41
+        Height = 19
+        Caption = 'TPs: '
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clGreen
+        Font.Height = -16
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        ParentFont = False
+      end
+      object FNsLabel: TLabel
+        Left = 131
+        Top = 16
+        Width = 29
+        Height = 19
+        Caption = 'FNs'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clRed
+        Font.Height = -16
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        ParentFont = False
+      end
+      object FPsLabel: TLabel
+        Left = 240
+        Top = 16
+        Width = 28
+        Height = 19
+        Caption = 'FPs'
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clBlue
+        Font.Height = -16
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        ParentFont = False
+      end
+      object LoadButton: TButton
+        Left = 456
+        Top = 6
+        Width = 57
+        Height = 33
+        Caption = 'Load'
+        TabOrder = 0
+        OnClick = LoadButtonClick
+      end
+      object HideButton: TButton
+        Left = 519
+        Top = 6
+        Width = 57
+        Height = 33
+        Caption = 'Hide'
+        TabOrder = 1
+        OnClick = HideButtonClick
+      end
     end
   end
   object TruthSetOpenDialog: TOpenDialog

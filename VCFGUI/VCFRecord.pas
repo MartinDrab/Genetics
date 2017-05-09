@@ -27,8 +27,14 @@ Type
       FFormat : WideString;
       FSample : WideString;
 
+      FRW : Cardinal;
+      FRC : Cardinal;
+      FAW : Cardinal;
+      FAC : Cardinal;
+
       FType : EVCFRecordType;
-      Procedure SplitLine(ALine:WideString; AList:TStrings);
+      Procedure SplitLine(ALine:WideString; ADelimiter:WideChar; AList:TStrings);
+      Procedure ParseInfo;
     Public
       Class Function Equal(A:TVCFRecord; B:TVCFRecord):Boolean;
 
@@ -46,6 +52,10 @@ Type
       Property Sample : WideString Read FSample;
 
       Property RecordType : EVCFRecordType Read FType;
+      Property RW : Cardinal Read FRW;
+      Property RC : Cardinal Read FRC;
+      Property AW : Cardinal Read FAW;
+      Property AC : Cardinal Read FAC;
     end;
 
     TVCFFile = Class
@@ -72,12 +82,41 @@ Uses
 
 (** TVCFRecord **)
 
-Procedure TVCFRecord.SplitLine(ALine:WideString; AList:TStrings);
+Procedure TVCFRecord.ParseInfo;
+Var
+  name : WideString;
+  value : WideString;
+  index : Integer;
+  t : WideString;
+  tuples : TStringList;
+begin
+tuples := TStringList.Create;
+SplitLine(FInfo, ';', tuples);
+For t In tuples DO
+  begin
+  index := System.Pos('=', t);
+  name := Copy(t, 1, index - 1);
+  value := Copy(t, index + 1, Length(t) - index);
+  If name = 'RW' Then
+    FRW := StrToInt64(value)
+  Else If name = 'RC' Then
+    FRC := StrToInt64(value)
+  Else If name = 'AW' Then
+    FAW := StrToInt64(value)
+  Else If name = 'AC' Then
+    FAC := Trunc(StrToFloat(value));
+
+  end;
+
+tuples.Free;
+end;
+
+Procedure TVCFRecord.SplitLine(ALine:WideString; ADelimiter:WideChar; AList:TStrings);
 Var
   tabIndex : Integer;
 begin
 Repeat
-tabIndex := System.Pos(#8, ALine);
+tabIndex := System.Pos(ADelimiter, ALine);
 If tabIndex > 0 Then
   begin
   AList.Add(Copy(ALine, 1, tabIndex - 1));
@@ -114,7 +153,7 @@ If ALine[1] = '#' Then
 
 fieldList := TStringList.Create;
 Try
-  SplitLine(ALine, fieldList);
+  SplitLine(ALine, #9, fieldList);
   FChrom := fieldList[0];
   FPos := StrToInt64(fieldList[1]);
   FId := fieldList[2];
@@ -134,6 +173,8 @@ Try
   Else If (altLen = 1) Then
     FType := vcfrtDeletion
   Else FType := vcfrtReplace;
+
+  ParseInfo;
 Finally
   fieldList.Free;
   end;
@@ -157,6 +198,7 @@ Var
 begin
 Inherited Create;
 FRecords := TObjectList<TVCFRecord>.Create;
+lines := TStringList.Create;
 lines.LoadFromFile(AFileName);
 lineIndex := 0;
 If lines.Count > 0 Then
@@ -177,6 +219,8 @@ If lines.Count > 0 Then
     FRecords.Add(TVCFRecord.Create(line));
     end;
   end;
+
+lines.Free;
 end;
 
 Destructor TVCFFile.Destroy;
