@@ -33,6 +33,7 @@ Type
       FAC : Cardinal;
 
       FType : EVCFRecordType;
+      Procedure DeduceType;
       Procedure SplitLine(ALine:WideString; ADelimiter:WideChar; AList:TStrings);
       Procedure ParseInfo;
     Public
@@ -81,6 +82,34 @@ Uses
   SysUtils;
 
 (** TVCFRecord **)
+
+Procedure TVCFRecord.DeduceType;
+Var
+  refLen : Integer;
+  altLen : Integer;
+begin
+refLen := Length(FRef);
+altLen := Length(FAlt);
+If System.Pos(',', FAlt) <= 0 Then
+  begin
+  While (refLen > 1) And (altLen > 1) ANd (FRef[1] = FAlt[1]) Do
+    begin
+    Delete(FRef, 1, 1);
+    Dec(refLen);
+    Delete(FAlt, 1, 1);
+    Dec(altLen);
+    Inc(FPos);
+    end;
+  end;
+
+If (refLen = 1) And (altLen = 1) Then
+  FType := vcfrtSNP
+Else If (refLen = 1) Then
+  FType := vcfrtInsertion
+Else If (altLen = 1) Then
+  FType := vcfrtDeletion
+Else FType := vcfrtReplace;
+end;
 
 Procedure TVCFRecord.ParseInfo;
 Var
@@ -164,16 +193,7 @@ Try
   FInfo := fieldList[7];
   FFormat := fieldList[8];
   FSample := fieldList[9];
-  refLen := Length(FRef);
-  altLen := Length(FAlt);
-  If (refLen = 1) And (altLen = 1) Then
-    FType := vcfrtSNP
-  Else If (refLen = 1) Then
-    FType := vcfrtInsertion
-  Else If (altLen = 1) Then
-    FType := vcfrtDeletion
-  Else FType := vcfrtReplace;
-
+  DeduceType;
   ParseInfo;
 Finally
   fieldList.Free;
@@ -190,11 +210,13 @@ end;
 
 Constructor TVCFFile.Creae(AFileName:WideString);
 Var
+  commaIndex : INteger;
   I : Integer;
   notHeader : Boolean;
   lineIndex : Integer;
   line : WideString;
   lines : TStringList;
+  r, r2 : TVCFRecord;
 begin
 Inherited Create;
 FRecords := TObjectList<TVCFRecord>.Create;
@@ -216,7 +238,22 @@ If lines.Count > 0 Then
     If Length(line) = 0 Then
       Continue;
 
-    FRecords.Add(TVCFRecord.Create(line));
+    r := TVCFRecord.Create(line);
+    commaIndex := Pos(',', r.Alt);
+    WHile commaIndex > 0 Do
+      begin
+      r2 := TVCFRecord.Create(line);
+      r2.FAlt := Copy(r.FAlt, 1, commaIndex - 1);
+      r2.DeduceType;
+      FRecords.Add(r2);
+
+      Delete(r.FAlt, 1, commaIndex);
+      r.DeduceType;
+      commaIndex := Pos(',', r.Alt);
+      end;
+
+
+    FRecords.Add(r);
     end;
   end;
 

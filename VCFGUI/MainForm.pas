@@ -175,8 +175,17 @@ WHile (I < FFilteredTest.Count) Do
   begin
   r2 := FFilteredTest[I];
   If r2.AW < FMinAWFilter Then
-    FFilteredTest.Delete(I)
-  Else Inc(I);
+    begin
+    FFilteredTest.Delete(I);
+    Dec(I);
+    end
+  Else If r2.AW DIv r2.AC  < FMinAQFilter Then
+    begin
+    FFilteredTest.Delete(I);
+    Dec(I);
+    end;
+
+  Inc(I);
   end;
 
 FTPsCount := 0;
