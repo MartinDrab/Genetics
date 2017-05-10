@@ -97,6 +97,7 @@ void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t Region
 void read_shorten(PONE_READ Read, const size_t Count);
 ERR_VALUE read_base_insert(PONE_READ Read, const char Base, size_t Index);
 void read_base_delete(PONE_READ Read, size_t Index);
+ERR_VALUE read_append(PONE_READ Read, const char *Seq, const uint8_t *Quality, size_t Length);
 
 void assembly_task_init(PASSEMBLY_TASK Task, const char *RefSeq, const size_t RefSeqLen, const char *Alternate1, const size_t Alternate1Length, const char *Alternate2, const size_t Alternate2Length, const ONE_READ *ReadSet, const size_t ReadCount);
 void assembly_task_set_name(PASSEMBLY_TASK Task, const char *Name);

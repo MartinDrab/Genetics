@@ -190,19 +190,21 @@ void paired_reads_fix_overlaps(boolean Strip)
 									--tmp2;
 								}
 
+								// memcpy(r1->ReadSequence + r1->ReadSequenceLen - r2Move, r2->ReadSequence, r2Move * sizeof(char));
+								// memcpy(r1->Quality + r1->ReadSequenceLen - r2Move, r2->Quality, r2Move * sizeof(uint8_t));
 								r1->ReadSequenceLen -= r2Move;
 								r1->ReadSequence[r1->ReadSequenceLen] = '\0';
 								r1->Quality[r1->ReadSequenceLen] = '\0';
-							}
+							} else {
+								r1->ReadSequenceLen -= (r1->Pos + r1->ReadSequenceLen - r2->Pos);
+								while (*or1 == *or2) {
+									++or1;
+									++or2;
+									++r1->ReadSequenceLen;
+								}
 
-							r1->ReadSequenceLen -= (r1->Pos + r1->ReadSequenceLen - r2->Pos);
-							while (*or1 == *or2) {
-								++or1;
-								++or2;
-								++r1->ReadSequenceLen;
+								r1->ReadSequence[r1->ReadSequenceLen] = '\0';
 							}
-
-							r1->ReadSequence[r1->ReadSequenceLen] = '\0';
 						}
 					}
 				}

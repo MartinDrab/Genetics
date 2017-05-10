@@ -655,6 +655,41 @@ void read_base_delete(PONE_READ Read, size_t Index)
 }
 
 
+ERR_VALUE read_append(PONE_READ Read, const char *Seq, const uint8_t *Quality, size_t Length)
+{
+	char *tmpSeq = NULL;
+	uint8_t *tmpQ = NULL;
+	const size_t totaLLength = Read->ReadSequenceLen + Length;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_calloc(totaLLength + 1, sizeof(char), &tmpSeq);
+	if (ret == ERR_SUCCESS) {
+		ret = utils_calloc(totaLLength + 1, sizeof(uint8_t), &tmpQ);
+		if (ret == ERR_SUCCESS) {
+			memcpy(tmpSeq, Read->ReadSequence, Read->ReadSequenceLen * sizeof(char));
+			memcpy(tmpSeq + Read->ReadSequenceLen, Seq, Length * sizeof(char));
+			tmpSeq[totaLLength] = '\0';
+			memcpy(tmpQ, Read->Quality, Read->ReadSequenceLen * sizeof(char));
+			memcpy(tmpQ + Read->ReadSequenceLen, Quality, Length * sizeof(uint8_t));
+			tmpQ[totaLLength] = '\0';
+			utils_free(Read->ReadSequence);
+			Read->ReadSequence = tmpSeq;
+			utils_free(Read->Quality);
+			Read->Quality = tmpQ;
+			Read->ReadSequenceLen = totaLLength;
+			Read->RealReadSequenceLen = totaLLength;
+			if (ret != ERR_SUCCESS)
+				utils_free(tmpQ);
+		}
+
+		if (ret != ERR_SUCCESS)
+			utils_free(tmpSeq);
+	}
+
+	return ret;
+}
+
+
 
 /************************************************************************/
 /*                ASSEMBLY TATKS                                        */
