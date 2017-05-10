@@ -39,8 +39,6 @@ int main(int argc, char **argv)
 	fprintf(stderr, "Loading reads from %s...\n", argv[1]);
 	ret = input_get_reads(argv[1], "sam", &reads, &readCount);
 	if (ret == ERR_SUCCESS) {
-		fprintf(stderr, "Adjusting reads...\n");
-		input_filter_bad_reads(reads, &readCount, 0, 0);
 		fprintf(stderr, "Converting to fermi-lite format...\n");
 		ret = utils_calloc(readCount, sizeof(bseq1_t), &seqs);
 		if (ret == ERR_SUCCESS) {
