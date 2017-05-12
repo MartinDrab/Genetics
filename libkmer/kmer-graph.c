@@ -342,9 +342,22 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 {
 	PKMER_EDGE e = (PKMER_EDGE)ItemData;
 	const KMER_GRAPH *g = (const KMER_GRAPH *)Context;
-
+	const char *typeStrings[] = {
+		"Reference",
+		"Read",
+		"Variant",
+		"None",
+		"Max",
+	};
 	fprintf(Stream, "\t/**Edge(\n");
-	fprintf(Stream, "\t\t  Reads(\n");
+	fprintf(Stream, "\t\tSource(");
+	kmer_print(Stream, &e->Source->KMer);
+	fprintf(Stream, ")\n");
+	fprintf(Stream, "\t\tDest(");
+	kmer_print(Stream, &e->Dest->KMer);
+	fprintf(Stream, ")\n");
+	fprintf(Stream, "\t\tType(%s)\n", typeStrings[e->Type]);
+	fprintf(Stream, "\t\tReads(\n");
 	for (size_t i = 0; i < read_info_get_count(&e->ReadInfo); ++i) {
 		const READ_INFO_ENTRY *entry = read_info_get_entry(&e->ReadInfo, i);
 	
@@ -355,6 +368,7 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 
 	fprintf(Stream, "\t\t)\n");
 	fprintf(Stream, "\t)**/\n");
+	
 	fprintf(Stream, "\t");
 	kmer_print(Stream, &e->Source->KMer);
 	fprintf(Stream, " -> ");
