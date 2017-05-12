@@ -343,6 +343,18 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 	PKMER_EDGE e = (PKMER_EDGE)ItemData;
 	const KMER_GRAPH *g = (const KMER_GRAPH *)Context;
 
+	fprintf(Stream, "\t/**Edge(\n");
+	fprintf(Stream, "\t\t  Reads(\n");
+	for (size_t i = 0; i < read_info_get_count(&e->ReadInfo); ++i) {
+		const READ_INFO_ENTRY *entry = read_info_get_entry(&e->ReadInfo, i);
+	
+		fprintf(Stream, "\t\t\t%zu:%zu:%u", entry->ReadIndex, entry->ReadPosition, entry->Quality);
+		if (i != read_info_get_count(&e->ReadInfo) - 1)
+			fputs(",\n", Stream);
+	}
+
+	fprintf(Stream, "\t\t)\n");
+	fprintf(Stream, "\t)**/\n");
 	fprintf(Stream, "\t");
 	kmer_print(Stream, &e->Source->KMer);
 	fprintf(Stream, " -> ");
@@ -635,14 +647,23 @@ void kmer_graph_destroy(PKMER_GRAPH Graph)
 
 void kmer_graph_print(FILE *Stream, const KMER_GRAPH *Graph)
 {
+	void *it = NULL;
+	const KMER_VERTEX *v = NULL;
+
 	fprintf(Stream, "digraph G {\n");
 	fprintf(Stream, "\t/* number of vertices: %u */\n", Graph->NumberOfVertices);
 	fprintf(Stream, "\t/* number of edges: %u */\n", Graph->NumberOfEdges);
 	fprintf(Stream, "\t/* number of reference edges: %u */\n", Graph->TypedEdgeCount[kmetReference]);
 	fprintf(Stream, "\t/* number of read edges: %u */\n", Graph->TypedEdgeCount[kmetRead]);
 	fprintf(Stream, "\t/* number of variant edges: %u */\n", Graph->TypedEdgeCount[kmetVariant]);
-	kmer_table_print(Stream, Graph->VertexTable);
-	kmer_edge_table_print(Stream, Graph->EdgeTable, Graph);
+	if (kmer_table_first(Graph->VertexTable, &it, &v) == ERR_SUCCESS) {
+		do {
+			_vertex_table_on_print(Graph->VertexTable, v, Stream);
+			for (size_t i = 0; i < pointer_array_size(&v->Successors); ++i)
+				_edge_table_on_print(Graph->EdgeTable, v->Successors.Data[i], Graph, Stream);
+		} while (kmer_table_next(Graph->VertexTable, it, &it, &v) == ERR_SUCCESS);
+	}
+
 	fprintf(Stream, "}\n");
 	fflush(Stream);
 
