@@ -783,6 +783,8 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 			ret = _compute_graphs(Allocator, Options, &po, &task, VCArray);
 			assembly_task_finit(&task);
 		}
+
+		input_free_filtered_reads(FilteredReads, FilteredReads->Data, gen_array_size(FilteredReads));
 	}
 
 	dym_array_clear_ONE_READ(FilteredReads);

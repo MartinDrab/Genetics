@@ -45,7 +45,6 @@ typedef struct _ONE_READ_EXTENSION {
 typedef struct _ONE_READ {
 	char *ReadSequence;
 	uint32_t ReadSequenceLen;
-//	uint32_t RealReadSequenceLen;
 	uint8_t *Quality;
 	uint64_t Pos;
 	uint8_t PosQuality;
@@ -55,6 +54,7 @@ typedef struct _ONE_READ {
 	PONE_READ_EXTENSION Extension;
 	boolean NoEndStrip;
 	uint32_t UnknownKMers;
+	boolean SeqsReloacated;
 } ONE_READ, *PONE_READ;
 
 typedef struct _ASSEMBLY_TASK {

@@ -376,6 +376,19 @@ ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, co
 }
 
 
+void input_free_filtered_reads(PONE_READ Reads, size_t Count)
+{
+	for (size_t i = 0; i < Count; ++i) {
+		if (Reads[i].SeqsReloacated) {
+			utils_free(Reads[i].ReadSequence - Reads[i].Offset);
+			utils_free(Reads[i].Quality - Reads[i].Offset);
+		}
+	}
+
+	return;
+}
+
+
 static int _read_comparator(const void *A, const void *B)
 {
 	const ONE_READ *rA = (const ONE_READ *)A;
