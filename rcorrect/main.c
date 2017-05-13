@@ -24,6 +24,75 @@ static char *_copy_string(const char *str, const size_t len)
 
 
 
+ERR_VALUE convert_to_fermilite(PONE_READ Reads, size_t Count, bseq1_t **Result)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	bseq1_t *tmpResult = NULL;
+
+	ret = utils_calloc(Count, sizeof(bseq1_t), &tmpResult);
+	if (ret == ERR_SUCCESS) {
+		int i = 0;
+
+#pragma omp parallel for shared(Reads, tmpResult)
+		for (i = 0; i < (int)Count; ++i) {
+			memset(tmpResult + i, 0, sizeof(tmpResult[i]));
+			tmpResult[i].l_seq = Reads[i].ReadSequenceLen;
+			read_quality_encode(Reads + i);
+			tmpResult[i].seq = _copy_string(Reads[i].ReadSequence, Reads[i].ReadSequenceLen);
+			if (Reads[i].Quality != NULL)
+				tmpResult[i].qual = _copy_string(Reads[i].Quality, Reads[i].ReadSequenceLen);
+
+			read_quality_decode(Reads + i);
+			if (Reads[i].ReadSequenceLen > 0) {
+				utils_free(Reads[i].Quality);
+				utils_free(Reads[i].ReadSequence);
+			}
+		}
+
+		if (ret == ERR_SUCCESS)
+			*Result = tmpResult;
+	
+		if (ret != ERR_SUCCESS)
+			utils_free(tmpResult);
+	}
+
+	return ret;
+}
+
+
+ERR_VALUE convert_to_gassm2(bseq1_t *Seqs, size_t Count, PONE_READ Reads)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	int i = 0;
+
+#pragma omp parallel for shared(Reads, Seqs)
+	for (i = 0; i < (int)Count; ++i) {
+		char cigar[20];
+
+		memset(cigar, 0, sizeof(cigar));
+		if (Reads[i].Pos > 0)
+			snprintf(cigar, sizeof(cigar), "%iM", Seqs[i].l_seq);
+		else cigar[0] = "*";
+
+		utils_copy_string(cigar, &Reads[i].Extension->CIGAR);
+		Reads[i].ReadSequenceLen = Seqs[i].l_seq;
+		ret = utils_copy_string(Seqs[i].seq, &Reads[i].ReadSequence);
+		if (ret == ERR_SUCCESS)
+			ret = utils_copy_string(Seqs[i].qual, &Reads[i].Quality);
+
+		if (Seqs[i].l_seq > 0) {
+			free(Seqs[i].seq);
+			free(Seqs[i].qual);
+		}
+
+		for (size_t j = 0; j < Reads[i].ReadSequenceLen; ++j)
+			Reads[i].ReadSequence[j] = toupper(Reads[i].ReadSequence[j]);
+	}
+
+	return ret;
+}
+
+
 int main(int argc, char **argv)
 {
 	fml_opt_t options;
@@ -42,57 +111,15 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Filtering and adjusting reads...\n");
 		input_filter_bad_reads(reads, &readCount, 0, 0);
 		fprintf(stderr, "Converting to fermi-lite format...\n");
-		ret = utils_calloc(readCount, sizeof(bseq1_t), &seqs);
+		ret = convert_to_fermilite(reads, readCount, &seqs);
 		if (ret == ERR_SUCCESS) {
-			int i = 0;
-
-#pragma omp parallel for shared(reads, seqs)
-			for (i = 0; i < (int)readCount; ++i) {
-				memset(seqs + i, 0, sizeof(seqs[i]));
-				seqs[i].l_seq = reads[i].ReadSequenceLen;
-				read_quality_encode(reads + i);
-				seqs[i].seq = _copy_string(reads[i].ReadSequence, reads[i].ReadSequenceLen);
-				if (reads[i].Quality != NULL)
-					seqs[i].qual = _copy_string(reads[i].Quality, reads[i].ReadSequenceLen);
-
-				read_quality_decode(reads + i);
-				if (reads[i].ReadSequenceLen > 0) {
-					utils_free(reads[i].Quality);
-					utils_free(reads[i].ReadSequence);
-				}
-			}
-
 			fml_opt_adjust(&options, readCount, seqs);
 			fprintf(stderr, "Correcting...\n");
 			fml_correct(&options, readCount, seqs);
 			fprintf(stderr, "Fitting unique k-mers...\n");
 			fml_fltuniq(&options, readCount, seqs);
 			fprintf(stderr, "Converting back to our format...\n");
-
-#pragma omp parallel for shared(reads, seqs)
-			for (i = 0; i < (int)readCount; ++i) {
-				char cigar[20];
-				
-				memset(cigar, 0, sizeof(cigar));
-				if (reads[i].Pos > 0)
-					snprintf(cigar, sizeof(cigar), "%iM", seqs[i].l_seq);
-				else cigar[0] = "*";
-				
-				utils_copy_string(cigar, &reads[i].Extension->CIGAR);
-				reads[i].ReadSequenceLen = seqs[i].l_seq;
-				ret = utils_copy_string(seqs[i].seq, &reads[i].ReadSequence);
-				if (ret == ERR_SUCCESS)
-					ret = utils_copy_string(seqs[i].qual, &reads[i].Quality);
-
-				if (seqs[i].l_seq > 0) {
-					free(seqs[i].seq);
-					free(seqs[i].qual);
-				}
-
-				for (size_t j = 0; j < reads[i].ReadSequenceLen; ++j)
-					reads[i].ReadSequence[j] = toupper(reads[i].ReadSequence[j]);
-			}
-				
+			ret = convert_to_gassm2(seqs, readCount, reads);
 			fprintf(stderr, "Saving corrected reads...\n");
 			for (size_t i = 0; i < readCount; ++i) {
 				if (reads[i].ReadSequenceLen > 0 && reads[i].Quality != NULL)
