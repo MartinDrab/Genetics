@@ -72,7 +72,7 @@ ERR_VALUE convert_to_gassm2(bseq1_t *Seqs, size_t Count, PONE_READ Reads)
 		memset(cigar, 0, sizeof(cigar));
 		if (Reads[i].Pos > 0)
 			snprintf(cigar, sizeof(cigar), "%iM", Seqs[i].l_seq);
-		else cigar[0] = "*";
+		else cigar[0] = '*';
 
 		utils_copy_string(cigar, &Reads[i].Extension->CIGAR);
 		Reads[i].ReadSequenceLen = Seqs[i].l_seq;

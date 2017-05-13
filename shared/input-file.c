@@ -361,7 +361,6 @@ ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, co
 
 				if (r->ReadSequenceLen > KMerSize) {
 					tmp = *r;
-					tmp.Parent = r;
 					read_adjust(&tmp, RegionStart, RegionLength);
 					if (tmp.ReadSequenceLen > KMerSize)
 						dym_array_push_back_no_alloc_ONE_READ(NewReads, tmp);

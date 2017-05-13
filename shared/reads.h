@@ -49,11 +49,10 @@ typedef struct _ONE_READ {
 	uint64_t Pos;
 	uint8_t PosQuality;
 	size_t ReadIndex;
-	struct _ONE_READ *Parent;
 	uint32_t Offset;
 	PONE_READ_EXTENSION Extension;
-	boolean NoEndStrip;
 	uint32_t UnknownKMers;
+	boolean NoEndStrip;
 	boolean SeqsReloacated;
 } ONE_READ, *PONE_READ;
 
