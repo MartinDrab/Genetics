@@ -14,3 +14,5 @@ Genetics.opensdf
 *.sam
 *.fa
 *.gz
+VCFGUI/__history
+VCFGUI/Win32
