@@ -9,6 +9,7 @@
 #include "fml.h"
 
 
+
 static char *_copy_string(const char *str, const size_t len)
 {
 	char *ret = NULL;
@@ -21,7 +22,6 @@ static char *_copy_string(const char *str, const size_t len)
 
 	return ret;
 }
-
 
 
 ERR_VALUE convert_to_fermilite(PONE_READ Reads, size_t Count, bseq1_t **Result)
@@ -93,47 +93,27 @@ ERR_VALUE convert_to_gassm2(bseq1_t *Seqs, size_t Count, PONE_READ Reads)
 }
 
 
-int main(int argc, char **argv)
+ERR_VALUE libcorrect_correct(PONE_READ Reads, size_t Count)
 {
 	fml_opt_t options;
 	bseq1_t *seqs = NULL;
-	PONE_READ reads = NULL;
-	size_t readCount = 0;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	fml_opt_init(&options);
 	options.n_threads = omp_get_num_procs();
-	utils_allocator_init(options.n_threads);
-	fprintf(stderr, "Loading reads from %s...\n", argv[1]);
-	ret = input_get_reads(argv[1], "sam", &reads, &readCount);
+	ret = convert_to_fermilite(Reads, Count, &seqs);
 	if (ret == ERR_SUCCESS) {
-		fprintf(stderr, "Filtering and adjusting reads...\n");
-		input_filter_bad_reads(reads, &readCount, 0, 0);
-		fprintf(stderr, "Converting to fermi-lite format...\n");
-		ret = convert_to_fermilite(reads, readCount, &seqs);
+		fml_opt_adjust(&options, Count, seqs);
+		fml_correct(&options, Count, seqs);
+		fml_fltuniq(&options, Count, seqs);
+		ret = convert_to_gassm2(seqs, Count, Reads);
 		if (ret == ERR_SUCCESS) {
-			fml_opt_adjust(&options, readCount, seqs);
-			fprintf(stderr, "Correcting...\n");
-			fml_correct(&options, readCount, seqs);
-			fprintf(stderr, "Fitting unique k-mers...\n");
-			fml_fltuniq(&options, readCount, seqs);
-			fprintf(stderr, "Converting back to our format...\n");
-			ret = convert_to_gassm2(seqs, readCount, reads);
-			fprintf(stderr, "Saving corrected reads...\n");
-			for (size_t i = 0; i < readCount; ++i) {
-				if (reads[i].ReadSequenceLen > 0 && reads[i].Quality != NULL)
-					read_write_sam(stdout, reads + i);
-
-				read_quality_decode(reads + i);
-			}
-
-			fprintf(stderr, "Freeing fermi-lite resources...\n");
-			utils_free(seqs);
+			for (size_t i = 0; i < Count; ++i)
+				read_quality_decode(Reads + i);
 		}
-		
-		fprintf(stderr, "Freeing our reads...\n");
-//		read_set_destroy(reads, readCount);
+
+		utils_free(seqs);
 	}
 
-	return 0;
+	return ret;
 }

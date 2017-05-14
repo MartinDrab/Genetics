@@ -292,7 +292,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 			kmer_advance(kmer, Read->ReadSequence[KMerSize]);
 			while (i < NumberOfSets) {
 				ret = _assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
-				if (ret == ERR_SUCCESS && Options->OptimizeShortVariants && NumberOfSets - i > 10) {
+				if (ret == ERR_SUCCESS && Options->OptimizeShortVariants && NumberOfSets - i >= 8) {
 					const KMER_VERTEX *rsv = Vertices[i - 1]->Data[0];
 					PKMER_VERTEX rev = Vertices[i]->Data[0];
 
@@ -305,7 +305,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 						const char *ref = Options->Reference + rsv->RefSeqPosition + 1;
 						const char *alt = Read->ReadSequence + KMerSize + i - 1;
 
-						ret = ssw_clever(ref, 6, alt, 6, 2, -1, -1, &opString, &opStringSize);
+						ret = ssw_clever(ref, 4, alt, 4, 2, -1, -1, &opString, &opStringSize);
 						if (ret == ERR_SUCCESS) {
 							while (opStringSize > 0 && opString[opStringSize - 1] == 'M')
 								opStringSize--;
