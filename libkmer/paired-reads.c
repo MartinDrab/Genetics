@@ -207,12 +207,15 @@ void paired_reads_fix_overlaps(boolean Strip)
 							}
 						}
 					} else {
+						/*
 						if (overlapLength < r2->ReadSequenceLen) {
-							read_append(r1, r2->ReadSequence + overlapLength, r2->Quality + overlapLength, r2->ReadSequenceLen - overlapLength);
+							r1->ReadSequenceLen -= overlapLength;
+							read_append(r1, r2->ReadSequence, r2->Quality, r2->ReadSequenceLen);
 							r2->ReadSequenceLen = 0;
 							r2->ReadSequence[0] = '\0';
 							r2->Quality[0] = 0;
 						}
+						*/
 					}
 				}
 			}

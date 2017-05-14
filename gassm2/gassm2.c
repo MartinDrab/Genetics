@@ -178,22 +178,6 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 		if (ret == ERR_SUCCESS && *readFile != '\0') {			
 			fprintf(stderr, "Loading reads from %s...\n", readFile);
 			ret = input_get_reads(readFile, "sam", &Options->Reads, &Options->ReadCount);
-			if (ret == ERR_SUCCESS) {
-				ret = paired_reads_init();
-				if (ret == ERR_SUCCESS) {
-					fprintf(stderr, "Filtering out reads with MAPQ less than %u and stripping %u bases from read ends...\n", Options->ReadPosQuality, Options->ReadStrip);
-					input_filter_bad_reads(Options->Reads, &Options->ReadCount, Options->ReadPosQuality, Options->ReadStrip);
-					input_sort_reads(Options->Reads, Options->ReadCount);
-					if (ret == ERR_SUCCESS)
-						ret = paired_reads_insert_array(Options->Reads, Options->ReadCount);
-
-					if (ret == ERR_SUCCESS)
-						paired_reads_fix_overlaps(FALSE);
-
-					for (size_t i = 0; i < Options->ReadCount; ++i)
-						read_shorten(Options->Reads + i, Options->ReadStrip);
-				}
-			}
 		}
 	}
 
@@ -984,130 +968,147 @@ int main(int argc, char *argv[])
 						fprintf(stderr, "OpenMP thread count:        %i\n", po.OMPThreads);
 						fprintf(stderr, "Output VCF file:            %s\n", po.VCFFile);
 
-						paired_reads_fix_overlaps(TRUE);
+						fprintf(stderr, "Filtering out reads with MAPQ less than %u and stripping %u bases from read ends...\n", po.ReadPosQuality, po.ReadStrip);
+						input_filter_bad_reads(po.Reads, &po.ReadCount, po.ReadPosQuality, po.ReadStrip);
+						input_sort_reads(po.Reads, po.ReadCount);
+						ret = paired_reads_init();
 						if (ret == ERR_SUCCESS) {
+							ret = paired_reads_insert_array(po.Reads, po.ReadCount);
 							if (ret == ERR_SUCCESS) {
-								FASTA_FILE seqFile;
+								paired_reads_fix_overlaps(FALSE);
 
-								ret = fasta_load(po.RefSeqFile, &seqFile);
+								for (size_t i = 0; i < po.ReadCount; ++i)
+									read_shorten(po.Reads + i, po.ReadStrip);
+
+								paired_reads_fix_overlaps(TRUE);
+							}
+
+							if (ret == ERR_SUCCESS) {
 								if (ret == ERR_SUCCESS) {
-									ret = fasta_read_seq(&seqFile, &po.RefSeq);
-									if (ret != ERR_SUCCESS)
-										fasta_free(&seqFile);
-								}
+									FASTA_FILE seqFile;
 
-								if (ret == ERR_SUCCESS) {
-									po.VCFFileHandle = NULL;
-									if (*po.VCFFile != '\0') {
-										if (strcmp(po.VCFFile, "-") != 0) {
-											po.VCFFileHandle = fopen(po.VCFFile, "w");
-											ret = (po.VCFFileHandle != NULL) ? ERR_SUCCESS : ERR_NOT_FOUND;
-										} else po.VCFFileHandle = stdout;
-
-										if (ret == ERR_SUCCESS)
-											dym_array_init_VARIANT_CALL(&po.VCArray, 140);
+									ret = fasta_load(po.RefSeqFile, &seqFile);
+									if (ret == ERR_SUCCESS) {
+										ret = fasta_read_seq(&seqFile, &po.RefSeq);
+										if (ret != ERR_SUCCESS)
+											fasta_free(&seqFile);
 									}
 
 									if (ret == ERR_SUCCESS) {
-										ret = utils_calloc_PUTILS_LOOKASIDE(omp_get_num_procs(), &_vertexLAs);
-										if (ret == ERR_SUCCESS)
-											ret = utils_calloc_PUTILS_LOOKASIDE(omp_get_num_procs(), &_edgeLAs);
-										
-										ret = utils_calloc_GEN_ARRAY_VARIANT_CALL(omp_get_num_procs(), &po.VCSubArrays);
+										po.VCFFileHandle = NULL;
+										if (*po.VCFFile != '\0') {
+											if (strcmp(po.VCFFile, "-") != 0) {
+												po.VCFFileHandle = fopen(po.VCFFile, "w");
+												ret = (po.VCFFileHandle != NULL) ? ERR_SUCCESS : ERR_NOT_FOUND;
+											}
+											else po.VCFFileHandle = stdout;
+
+											if (ret == ERR_SUCCESS)
+												dym_array_init_VARIANT_CALL(&po.VCArray, 140);
+										}
+
 										if (ret == ERR_SUCCESS) {
-											ret = utils_calloc_GEN_ARRAY_ONE_READ(omp_get_num_procs(), &po.ReadSubArrays);
+											ret = utils_calloc_PUTILS_LOOKASIDE(omp_get_num_procs(), &_vertexLAs);
+											if (ret == ERR_SUCCESS)
+												ret = utils_calloc_PUTILS_LOOKASIDE(omp_get_num_procs(), &_edgeLAs);
+
+											ret = utils_calloc_GEN_ARRAY_VARIANT_CALL(omp_get_num_procs(), &po.VCSubArrays);
 											if (ret == ERR_SUCCESS) {
-												const size_t numThreads = omp_get_num_procs();
-												for (size_t i = 0; i < numThreads; ++i) {
-													dym_array_init_VARIANT_CALL(po.VCSubArrays + i, 140);
-													dym_array_init_ONE_READ(po.ReadSubArrays + i, 140);
-													_vertexLAs[i] = NULL;
-													_edgeLAs[i] = NULL;
-												}
-
-												dym_array_init_AR_WRAPPER_CONTEXT(&_assemblyTasks, 140);
-												ret = dym_array_reserve_AR_WRAPPER_CONTEXT(&_assemblyTasks, po.RefSeq.Length / po.TestStep);
-												size_t regionCount = 0;
-												PACTIVE_REGION regions = NULL;
-
-												ret = input_refseq_to_regions(po.RefSeq.Sequence, po.RefSeq.Length, &regions, &regionCount);
+												ret = utils_calloc_GEN_ARRAY_ONE_READ(omp_get_num_procs(), &po.ReadSubArrays);
 												if (ret == ERR_SUCCESS) {
-													const ACTIVE_REGION *pa = NULL;
-
-													pa = regions;
-													for (size_t i = 0; i < regionCount; ++i) {
-														if (pa->Type == artValid && pa->Length >= po.RegionLength)
-															_activeRegionCount += (long)(pa->Length / po.TestStep);
-
-														++pa;
+													const size_t numThreads = omp_get_num_procs();
+													for (size_t i = 0; i < numThreads; ++i) {
+														dym_array_init_VARIANT_CALL(po.VCSubArrays + i, 140);
+														dym_array_init_ONE_READ(po.ReadSubArrays + i, 140);
+														_vertexLAs[i] = NULL;
+														_edgeLAs[i] = NULL;
 													}
-														
-													_activeRegionProcessed = 0;
-													pa = regions;
-													for (size_t i = 0; i < regionCount; ++i) {
-														if (pa->Type == artValid && pa->Length >= po.RegionLength)
-															process_active_region_in_parallel(pa, &po);
-																	
-														++pa;
-													}
-														
-													kt_for(po.OMPThreads, _ar_wrapper, _assemblyTasks.Data, gen_array_size(&_assemblyTasks));
-													input_free_regions(regions, regionCount);
-												}
 
-												dym_array_finit_AR_WRAPPER_CONTEXT(&_assemblyTasks);
-												fasta_free_seq(&po.RefSeq);
-												fprintf(stderr, "Merging the results...\n");
-												vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
+													dym_array_init_AR_WRAPPER_CONTEXT(&_assemblyTasks, 140);
+													ret = dym_array_reserve_AR_WRAPPER_CONTEXT(&_assemblyTasks, po.RefSeq.Length / po.TestStep);
+													size_t regionCount = 0;
+													PACTIVE_REGION regions = NULL;
 
-												int i = 0;
-#pragma omp parallel for shared(po)
-												for (i = 0; i <(int) numThreads; ++i) {
-													dym_array_finit_ONE_READ(po.ReadSubArrays + i);
-													vc_array_finit(po.VCSubArrays + i);
-												}
-
-												utils_free(po.ReadSubArrays);
-											}
-
-											utils_free(po.VCSubArrays);
-										}
-
-										utils_free(_edgeLAs);
-										utils_free(_vertexLAs);
-
-										if (po.VCFFileHandle != NULL) {
-											if (ret == ERR_SUCCESS) {
-												VARIANT_GRAPH vg;
-
-												fprintf(stderr, "Creating variant graph...\n");
-												ret = vg_graph_init(po.VCArray.Data, gen_array_size(&po.VCArray), po.Threshold, &vg);
-												if (ret == ERR_SUCCESS) {
-													ret = vg_graph_add_paired(&vg);
+													ret = input_refseq_to_regions(po.RefSeq.Sequence, po.RefSeq.Length, &regions, &regionCount);
 													if (ret == ERR_SUCCESS) {
-														vg_graph_color(&vg);
-														vg_graph_print(stdout, &vg);
-														vg_graph_finalize(&vg);
+														const ACTIVE_REGION *pa = NULL;
+
+														pa = regions;
+														for (size_t i = 0; i < regionCount; ++i) {
+															if (pa->Type == artValid && pa->Length >= po.RegionLength)
+																_activeRegionCount += (long)(pa->Length / po.TestStep);
+
+															++pa;
+														}
+
+														_activeRegionProcessed = 0;
+														pa = regions;
+														for (size_t i = 0; i < regionCount; ++i) {
+															if (pa->Type == artValid && pa->Length >= po.RegionLength)
+																process_active_region_in_parallel(pa, &po);
+
+															++pa;
+														}
+
+														kt_for(po.OMPThreads, _ar_wrapper, _assemblyTasks.Data, gen_array_size(&_assemblyTasks));
+														input_free_regions(regions, regionCount);
 													}
 
-													vg_graph_finit(&vg);
+													dym_array_finit_AR_WRAPPER_CONTEXT(&_assemblyTasks);
+													fasta_free_seq(&po.RefSeq);
+													fprintf(stderr, "Merging the results...\n");
+													vc_array_merge(&po.VCArray, po.VCSubArrays, numThreads);
+
+													int i = 0;
+#pragma omp parallel for shared(po)
+													for (i = 0; i < (int)numThreads; ++i) {
+														dym_array_finit_ONE_READ(po.ReadSubArrays + i);
+														vc_array_finit(po.VCSubArrays + i);
+													}
+
+													utils_free(po.ReadSubArrays);
 												}
 
-												vc_array_print(po.VCFFileHandle, po.RefSeqFile, &po.VCArray);
+												utils_free(po.VCSubArrays);
 											}
 
-											vc_array_finit(&po.VCArray);
-											if (po.VCFFileHandle != NULL && po.VCFFileHandle != stdout)
-												fclose(po.VCFFileHandle);
+											utils_free(_edgeLAs);
+											utils_free(_vertexLAs);
+
+											if (po.VCFFileHandle != NULL) {
+												if (ret == ERR_SUCCESS) {
+													VARIANT_GRAPH vg;
+
+													fprintf(stderr, "Creating variant graph...\n");
+													ret = vg_graph_init(po.VCArray.Data, gen_array_size(&po.VCArray), po.Threshold, &vg);
+													if (ret == ERR_SUCCESS) {
+														ret = vg_graph_add_paired(&vg);
+														if (ret == ERR_SUCCESS) {
+															vg_graph_color(&vg);
+															vg_graph_print(stdout, &vg);
+															vg_graph_finalize(&vg);
+														}
+
+														vg_graph_finit(&vg);
+													}
+
+													vc_array_print(po.VCFFileHandle, po.RefSeqFile, &po.VCArray);
+												}
+
+												vc_array_finit(&po.VCArray);
+												if (po.VCFFileHandle != NULL && po.VCFFileHandle != stdout)
+													fclose(po.VCFFileHandle);
+											}
+
 										}
 
+										fasta_free(&seqFile);
 									}
-
-									fasta_free(&seqFile);
 								}
-							} else printf("fix_reads(): %u\n", ret);
 
-							fprintf(stderr, "Read coverage: %lf\n", _readBaseCount / _totalRegionLength );
+							}
+
+							fprintf(stderr, "Read coverage: %lf\n", _readBaseCount / _totalRegionLength);
 							paired_reads_finit();
 						}
 					}
