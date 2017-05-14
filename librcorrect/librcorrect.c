@@ -5,7 +5,6 @@
 #include "err.h"
 #include "utils.h"
 #include "reads.h"
-#include "input-file.h"
 #include "fml.h"
 
 
