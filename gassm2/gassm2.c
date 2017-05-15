@@ -32,28 +32,26 @@ static PUTILS_LOOKASIDE *_edgeLAs;
 
 
 
+#define program_option_init(aOptionName, aOptionDescription, aOptionType, aDefaultValue)	\
+	{	\
+		option_add_##aOptionType(aOptionName, aDefaultValue);	\
+		option_set_description_const(aOptionName, aOptionDescription);	\
+	}	\
+
+
+
 static ERR_VALUE _init_default_values()
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = option_add_UInt32(PROGRAM_OPTION_KMERSIZE, 31);
-	if (ret == ERR_SUCCESS)
-		ret = option_add_String(PROGRAM_OPTION_SEQFILE, "\0");
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt64(PROGRAM_OPTION_SEQSTART, (uint64_t)-1);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_SEQLEN, 2000);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_TEST_STEP, 1500);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_THRESHOLD, 2);
-	
-	if (ret == ERR_SUCCESS)
-		ret = option_add_String(PROGRAM_OPTION_READFILE, "\0");
+	ret = ERR_SUCCESS;
+	 program_option_init(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC, UInt32, 31);
+	program_option_init(PROGRAM_OPTION_SEQFILE, PROGRAM_OPTION_SEQFILE_DESC, String, "\0");
+	program_option_init(PROGRAM_OPTION_SEQSTART, PROGRAM_OPTION_SEQSTART_DESC, UInt64, (uint64_t)-1);
+	program_option_init(PROGRAM_OPTION_SEQLEN, PROGRAM_OPTION_SEQLEN_DESC, UInt32, 2000);
+	program_option_init(PROGRAM_OPTION_TEST_STEP, PROGRAM_OPTION_TEST_STEP_DESC, UInt32, 1500);
+	program_option_init(PROGRAM_OPTION_THRESHOLD, PROGRAM_OPTION_THRESHOLD_DESC, UInt32, 2);
+	program_option_init(PROGRAM_OPTION_READFILE, PROGRAM_OPTION_READFILE_DESC, String, "\0");
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_String(PROGRAM_OPTION_OUTPUT_DIRECTORY, ".");
