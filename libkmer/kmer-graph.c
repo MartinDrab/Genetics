@@ -471,7 +471,7 @@ static void _init_quality_table(uint8_t *Table)
 	memset(Table + 1, 0, 14 * sizeof(char));
 	memset(Table + 15, 25, 5 * sizeof(char));
 	memset(Table + 20, 50, 5 * sizeof(char));
-	memset(Table + 25, 75, 10 * sizeof(char));
+	memset(Table + 25, 75, 5 * sizeof(char));
 
 	return;
 }
