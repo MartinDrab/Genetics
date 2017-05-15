@@ -92,16 +92,6 @@ static ERR_VALUE _init_default_values()
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(PROGRAM_OPTION_READ_STRIP, 5);
 
-	option_set_description_const(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC);
-	option_set_description_const(PROGRAM_OPTION_SEQFILE, PROGRAM_OPTION_SEQFILE_DESC);
-	option_set_description_const(PROGRAM_OPTION_SEQSTART, PROGRAM_OPTION_SEQSTART_DESC);
-	option_set_description_const(PROGRAM_OPTION_SEQLEN, PROGRAM_OPTION_SEQLEN_DESC);
-	option_set_description_const(PROGRAM_OPTION_TEST_STEP, PROGRAM_OPTION_TEST_STEP_DESC);
-	option_set_description_const(PROGRAM_OPTION_THRESHOLD, PROGRAM_OPTION_THRESHOLD_DESC);
-	option_set_description_const(PROGRAM_OPTION_READFILE, PROGRAM_OPTION_READFILE_DESC);
-	option_set_description_const(PROGRAM_OPTION_OUTPUT_DIRECTORY, PROGRAM_OPTION_OUTPUT_DIRECTORY_DESC);
-	option_set_description_const(PROGRAM_OPTION_VCFFILE, PROGRAM_OPTION_VCFFILE_DESC);
-
 	option_set_shortcut(PROGRAM_OPTION_KMERSIZE, 'k');
 	option_set_shortcut(PROGRAM_OPTION_SEQFILE, 'f');
 	option_set_shortcut(PROGRAM_OPTION_SEQSTART, 'S');
@@ -478,17 +468,13 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 
 						_print_graph(g, Options, Task, "f1");
 						_print_graph(g, Options, Task, "f2");
-//						kmer_graph_resolve_read_narrowings(g);
-						if (ParseOptions->MergeBubbles) {
-							boolean changed = FALSE;
+							
+						boolean changed = FALSE;
 
-							do {
-								changed = FALSE;
-								ret = kmer_graph_detect_uncertainities(g, Task->Reference, &changed);
-							} while (ret == ERR_SUCCESS && changed);
-
-//							kmer_graph_resolve_triangles(g, Options->Threshold);
-						}
+						do {
+							changed = FALSE;
+							ret = kmer_graph_detect_uncertainities(g, Task->Reference, &changed);
+						} while (ret == ERR_SUCCESS && changed);
 
 						if (ret == ERR_SUCCESS)
 							ret = _compare_alternate_sequences(Options, g, Task, VCArray);
@@ -967,6 +953,16 @@ int main(int argc, char *argv[])
 						fprintf(stderr, "Min. read position quality: %u\n", po.ReadPosQuality);
 						fprintf(stderr, "OpenMP thread count:        %i\n", po.OMPThreads);
 						fprintf(stderr, "Output VCF file:            %s\n", po.VCFFile);
+						fprintf(stderr, "Read end strip:             %u\n", po.ReadStrip);
+						fprintf(stderr, "Step size:                  %u\n", po.TestStep);
+						fprintf(stderr, "backward penalty:           %u\n", po.ParseOptions.BackwardRefseqPenalty);
+						fprintf(stderr, "Missing edge penaly:        %u\n", po.ParseOptions.MissingEdgePenalty);
+						fprintf(stderr, "Short variant optimization: %u\n", po.ParseOptions.OptimizeShortVariants);
+						fprintf(stderr, "Connect reference:          %u\n", po.ParseOptions.ConnectReads);
+						fprintf(stderr, "Connect reads:              %u\n", po.ParseOptions.ConnectRefSeq);
+						fprintf(stderr, "Helper vertices:            %u\n", po.ParseOptions.HelperVertices);
+						fprintf(stderr, "Linear shrink:              %u\n", po.ParseOptions.LinearShrink);
+						fprintf(stderr, "Read threshold:             %u\n", po.ParseOptions.ReadThreshold);
 
 						fprintf(stderr, "Filtering out reads with MAPQ less than %u and stripping %u bases from read ends...\n", po.ReadPosQuality, po.ReadStrip);
 						input_filter_bad_reads(po.Reads, &po.ReadCount, po.ReadPosQuality, po.ReadStrip);
