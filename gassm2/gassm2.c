@@ -884,7 +884,9 @@ static void _ar_wrapper(PAR_WRAPPER_CONTEXT Context, long WorkIndex, size_t Thre
 	ga.EdgeAllocatorContext = el;
 	ga.EdgeAllocator = _lookaside_edge_alloc;
 	ga.EdgeFreer = _lookaside_edge_free;
-	process_active_region(&ga, task->Options, task->RegionStart, task->Reference, task->Options->ReadSubArrays + ThreadNo, task->Options->VCSubArrays + ThreadNo);
+	if (task->Options->RegionStart == (uint64_t)-1 || in_range(task->RegionStart, task->Options->RegionLength, task->Options->RegionStart))
+		process_active_region(&ga, task->Options, task->RegionStart, task->Reference, task->Options->ReadSubArrays + ThreadNo, task->Options->VCSubArrays + ThreadNo);
+	
 	done = utils_atomic_increment(&_activeRegionProcessed);
 	if (done % (_activeRegionCount / 10000) == 0)
 		fprintf(stderr, "%u %%\r", done * 10000 / _activeRegionCount);
