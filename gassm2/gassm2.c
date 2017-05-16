@@ -372,15 +372,17 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 	char graphName[128];
 
 	ret = ERR_SUCCESS;
-	directory = "succ";
+	if (Graph->TypedEdgeCount[kmetRead] + Graph->TypedEdgeCount[kmetVariant] > 0) {
+		directory = "succ";
 #pragma warning (disable : 4996)											
-	sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-k%u-%s.graph", Options->OutputDirectoryBase, directory, Task->Name, kmer_graph_get_kmer_size(Graph), Suffix);
-	unlink(graphName);
-	if (Options->VCFFileHandle != NULL) {
-		ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
-		if (ret == ERR_SUCCESS) {
-			kmer_graph_print(f, Graph);
-			utils_fclose(f);
+		sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-k%u-%s.graph", Options->OutputDirectoryBase, directory, Task->Name, kmer_graph_get_kmer_size(Graph), Suffix);
+		unlink(graphName);
+		if (Options->VCFFileHandle != NULL) {
+			ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
+			if (ret == ERR_SUCCESS) {
+				kmer_graph_print(f, Graph);
+				utils_fclose(f);
+			}
 		}
 	}
 
@@ -455,16 +457,21 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 			dym_array_init_KMER_EDGE_PAIR(&ep, 140);
 			dym_array_init_size_t(&refIndices, 140);
 			dym_array_init_size_t(&readIndices, 140);
+
 			ret = assembly_parse_reference(&state);
+			_print_graph(g, Options, Task, "f1");
 			if (ret == ERR_SUCCESS)
 				ret = assembly_parse_reads(&state);
-			
+
+			_print_graph(g, Options, Task, "f2");
 			if (ret == ERR_SUCCESS)
 				ret = assembly_add_helper_vertices(&state);
 				
+			_print_graph(g, Options, Task, "f3");
 			if (ret == ERR_SUCCESS)
 				ret = assembly_create_long_edges(&state, &ep);
 
+			_print_graph(g, Options, Task, "f4");
 			if (ret == ERR_SUCCESS) {
 				g->DeleteEdgeCallback = _on_delete_edge;
 				g->DeleteEdgeCallbackContext = &ep;
@@ -473,21 +480,23 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 				g->DeleteEdgeCallback = NULL;
 			}
 
+			_print_graph(g, Options, Task, "f5");
 			if (ret == ERR_SUCCESS && g->TypedEdgeCount[kmetRead] > 0) {
 				size_t changeCount = 0;
 
 				ret = kmer_graph_connect_reads_by_pairs(g, ParseOptions->ReadThreshold, &ep, &changeCount);
+				_print_graph(g, Options, Task, "f6");
 				if (ret == ERR_SUCCESS) {
 					kmer_graph_compute_weights(g);
 					kmer_graph_delete_edges_under_threshold(g, ParseOptions->ReadThreshold);
 					kmer_graph_delete_trailing_things(g, &deletedThings);
 				}
 				
-				if (ret = ERR_SUCCESS && ParseOptions->LinearShrink)
+				_print_graph(g, Options, Task, "f7");
+				if (ret == ERR_SUCCESS && ParseOptions->LinearShrink)
 					kmer_graph_delete_1to1_vertices(g);
 
-				_print_graph(g, Options, Task, "f1");
-				_print_graph(g, Options, Task, "f2");
+				_print_graph(g, Options, Task, "f8");
 				if (ret == ERR_SUCCESS) {
 					boolean changed = FALSE;
 
@@ -497,6 +506,7 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 					} while (ret == ERR_SUCCESS && changed);
 				}
 
+				_print_graph(g, Options, Task, "f9");
 				if (ret == ERR_SUCCESS)
 					ret = _compare_alternate_sequences(Options, g, Task, VCArray);
 			}
