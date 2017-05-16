@@ -816,7 +816,7 @@ static void _sort_reads(const KMER_GRAPH *Graph, PONE_READ Reads, size_t Count)
 /*                      PUBLIC FUNCTIONS                                */
 /************************************************************************/
 
-ERR_VALUE kmer_graph_parse_ref_sequence(PASSEMBLY_STATE State)
+ERR_VALUE assembly_parse_reference(PASSEMBLY_STATE State)
 {
 	PKMER sourceKMer = NULL;
 	PKMER destKMer = NULL;
@@ -898,7 +898,7 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PASSEMBLY_STATE State)
 }
 
 
-ERR_VALUE kmer_graph_parse_reads(PASSEMBLY_STATE State, PGEN_ARRAY_KMER_EDGE_PAIR PairArray)
+ERR_VALUE assembly_parse_reads(PASSEMBLY_STATE State, PGEN_ARRAY_KMER_EDGE_PAIR PairArray)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	PONE_READ currentRead = NULL;

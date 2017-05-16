@@ -447,12 +447,12 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 	if (ret == ERR_SUCCESS) {
 		ret = assembly_state_init(g, ParseOptions, Task->Reads, Task->ReadCount, &state);
 		if (ret == ERR_SUCCESS) {
-			ret = kmer_graph_parse_ref_sequence(&state);
+			ret = assembly_parse_reference(&state);
 			if (ret == ERR_SUCCESS) {
 				GEN_ARRAY_KMER_EDGE_PAIR ep;
 
 				dym_array_init_KMER_EDGE_PAIR(&ep, 140);
-				ret = kmer_graph_parse_reads(&state, &ep);
+				ret = assembly_parse_reads(&state, &ep);
 				if (ret == ERR_SUCCESS) {
 					size_t deletedThings = 0;
 					GEN_ARRAY_size_t readIndices;
