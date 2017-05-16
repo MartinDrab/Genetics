@@ -37,6 +37,11 @@
 #define PROGRAM_OPTION_READ_STRIP						"read-strip"
 #define PROGRAM_OPTION_NO_SHORT_VARIANTS				"no-short-variants"
 
+#define PROGRAM_OPTION_PLOT_START						"plot-start"
+#define PROGRAM_OPTION_PLOT_END							"plot-end"
+#define PROGRAM_OPTION_PLOT_STEP						"plot-step"
+
+
 /************************************************************************/
 /*                  OPTION DESCRIPTION                                  */
 /************************************************************************/

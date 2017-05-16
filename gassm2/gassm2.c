@@ -52,15 +52,14 @@ static ERR_VALUE _init_default_values()
 	program_option_init(PROGRAM_OPTION_TEST_STEP, PROGRAM_OPTION_TEST_STEP_DESC, UInt32, 1500);
 	program_option_init(PROGRAM_OPTION_THRESHOLD, PROGRAM_OPTION_THRESHOLD_DESC, UInt32, 2);
 	program_option_init(PROGRAM_OPTION_READFILE, PROGRAM_OPTION_READFILE_DESC, String, "\0");
+	program_option_init(PROGRAM_OPTION_PLOT_START, PROGRAM_OPTION_PLOT_START, UInt64, (uint64_t)-1);
+	program_option_init(PROGRAM_OPTION_PLOT_END, PROGRAM_OPTION_PLOT_END, UInt64, (uint64_t)-1);
+	program_option_init(PROGRAM_OPTION_PLOT_STEP, PROGRAM_OPTION_PLOT_STEP, UInt32, 0);
+	program_option_init(PROGRAM_OPTION_VCFFILE, PROGRAM_OPTION_VCFFILE_DESC, String, "result.vcf");
+	program_option_init(PROGRAM_OPTION_OMP_THREADS, PROGRAM_OPTION_OMP_THREADS, Int32, omp_get_num_procs());
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_String(PROGRAM_OPTION_OUTPUT_DIRECTORY, ".");
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_String(PROGRAM_OPTION_VCFFILE, "\0");
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Int32(PROGRAM_OPTION_OMP_THREADS, omp_get_num_procs());
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt8(PROGRAM_OPTION_READ_POS_QUALITY, 10);
@@ -112,7 +111,17 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	memset(Options, 0, sizeof(PROGRAM_OPTIONS));
-	ret = option_get_UInt32(PROGRAM_OPTION_KMERSIZE, &Options->KMerSize);
+	
+	ret = option_get_UInt64(PROGRAM_OPTION_PLOT_START, &Options->ParseOptions.PlotOptions.PlotRefStart);
+	if (ret == ERR_SUCCESS)
+		ret = option_get_UInt64(PROGRAM_OPTION_PLOT_END, &Options->ParseOptions.PlotOptions.PlotRefEnd);
+	
+	if (ret == ERR_SUCCESS)
+		ret = option_get_UInt32(PROGRAM_OPTION_PLOT_STEP, &Options->ParseOptions.PlotOptions.PlotStep);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_UInt32(PROGRAM_OPTION_KMERSIZE, &Options->KMerSize);
+	
 	if (ret == ERR_SUCCESS)
 		ret = option_get_UInt64(PROGRAM_OPTION_SEQSTART, &Options->RegionStart);
 

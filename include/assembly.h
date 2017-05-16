@@ -7,6 +7,12 @@
 #include "reads.h"
 
 
+typedef struct _PLOT_OPTIONS {
+	uint64_t PlotRefStart;
+	uint64_t PlotRefEnd;
+	int PlotStep;
+} PLOT_OPTIONS, *PPLOT_OPTIONS;
+
 typedef struct _PARSE_OPTIONS {
 	boolean OptimizeShortVariants;
 	boolean ConnectRefSeq;
@@ -20,6 +26,7 @@ typedef struct _PARSE_OPTIONS {
 	const char *Reference;
 	uint64_t RegionStart;
 	uint32_t RegionLength;
+	PLOT_OPTIONS PlotOptions;
 } PARSE_OPTIONS, *PPARSE_OPTIONS;
 
 
