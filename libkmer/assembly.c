@@ -977,6 +977,42 @@ ERR_VALUE assembly_add_helper_vertices(PASSEMBLY_STATE State)
 	return ret;
 }
 
+
+ERR_VALUE assembly_create_long_edges(PASSEMBLY_STATE State, PGEN_ARRAY_KMER_EDGE_PAIR PairArray)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	PONE_READ currentRead;
+	const size_t ReadCount = State->ReadCount;
+	PKMER_GRAPH Graph = State->Graph;
+	PKMER_VERTEX **paths = State->Paths;
+	PKMER_EDGE **edgePaths = State->EdgePaths;
+	size_t *pathLengths = State->PathLengths;
+	uint8_t **flagPaths = State->FlagPaths;
+
+	currentRead = State->Reads;
+	for (size_t i = 0; i < ReadCount; ++i) {
+		ret = _mark_long_edge_flags(&State->ParseOptions, paths[i], pathLengths[i], flagPaths + i);
+		if (ret != ERR_SUCCESS)
+			break;
+
+		++currentRead;
+	}
+
+	if (ret == ERR_SUCCESS) {
+		currentRead = State->Reads;
+		for (size_t i = 0; i < ReadCount; ++i) {
+			ret = _create_long_read_edges(Graph, paths[i], edgePaths[i], flagPaths[i], pathLengths[i], currentRead, currentRead->ReadIndex, PairArray);
+			if (ret != ERR_SUCCESS)
+				break;
+
+			++currentRead;
+		}
+	}
+
+	return ret;
+}
+
+
 ERR_VALUE assembly_state_init(PKMER_GRAPH Graph, const PARSE_OPTIONS *ParseOptions, PONE_READ Reads, size_t ReadCount, PASSEMBLY_STATE State)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
