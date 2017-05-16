@@ -816,10 +816,12 @@ static void _sort_reads(const KMER_GRAPH *Graph, PONE_READ Reads, size_t Count)
 /*                      PUBLIC FUNCTIONS                                */
 /************************************************************************/
 
-ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const PARSE_OPTIONS *ParseOptions)
+ERR_VALUE kmer_graph_parse_ref_sequence(PASSEMBLY_STATE State)
 {
 	PKMER sourceKMer = NULL;
 	PKMER destKMer = NULL;
+	PKMER_GRAPH Graph = State->Graph;
+	const PARSE_OPTIONS *ParseOptions = &State->ParseOptions;
 	const uint32_t kmerSize = kmer_graph_get_kmer_size(Graph);
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	PKMER_VERTEX sourceVertex = NULL;

@@ -447,7 +447,7 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 	if (ret == ERR_SUCCESS) {
 		ret = assembly_state_init(g, ParseOptions, Task->Reads, Task->ReadCount, &state);
 		if (ret == ERR_SUCCESS) {
-			ret = kmer_graph_parse_ref_sequence(g, ParseOptions);
+			ret = kmer_graph_parse_ref_sequence(&state);
 			if (ret == ERR_SUCCESS) {
 				GEN_ARRAY_KMER_EDGE_PAIR ep;
 
