@@ -896,93 +896,56 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const PARSE_OPTIONS *
 }
 
 
-ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_t ReadCount, const size_t Threshold, const PARSE_OPTIONS *Options, PGEN_ARRAY_KMER_EDGE_PAIR PairArray)
+ERR_VALUE kmer_graph_parse_reads(PASSEMBLY_STATE State, PGEN_ARRAY_KMER_EDGE_PAIR PairArray)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	PONE_READ currentRead = NULL;
+	PKMER_GRAPH Graph = State->Graph;
 	const size_t kmerSize = kmer_graph_get_kmer_size(Graph);
-	PKMER_VERTEX **paths = NULL;
-	PKMER_EDGE **edgePaths = NULL;
-	uint8_t **flagPaths = NULL;
-	size_t *pathLengths = 0;
+	const PARSE_OPTIONS *Options = &State->ParseOptions;
+	const size_t ReadCount = State->ReadCount;
+	PONE_READ Reads = State->Reads;
+	PKMER_VERTEX **paths = State->Paths;
+	PKMER_EDGE **edgePaths = State->EdgePaths;
+	uint8_t **flagPaths = State->FlagPaths;
+	size_t *pathLengths = State->PathLengths;
 
 	_sort_reads(Graph, Reads, ReadCount);
-	ret = utils_calloc_PPKMER_VERTEX(ReadCount, &paths);
-	if (ret == ERR_SUCCESS) {
-		ret = utils_calloc(ReadCount, sizeof(size_t), &pathLengths);
-		if (ret == ERR_SUCCESS) {
-			ret = utils_calloc_PPKMER_EDGE(ReadCount, &edgePaths);
-			if (ret == ERR_SUCCESS) {
-				ret = utils_calloc_puint8_t(ReadCount, &flagPaths);
-				if (ret == ERR_SUCCESS) {
-					for (size_t i = 0; i < ReadCount; ++i) {
-						paths[i] = NULL;
-						pathLengths[i] = 0;
-						edgePaths[i] = NULL;
-						flagPaths[i] = NULL;
-					}
 
-					currentRead = Reads;
-					for (size_t i = 0; i < ReadCount; ++i) {
-						ret = _kmer_graph_parse_read_v2(Options, Graph, currentRead, currentRead->ReadIndex, paths + i, pathLengths + i, edgePaths + i);
-						if (ret != ERR_SUCCESS)
-							break;
+	currentRead = Reads;
+	for (size_t i = 0; i < ReadCount; ++i) {
+		ret = _kmer_graph_parse_read_v2(Options, Graph, currentRead, currentRead->ReadIndex, paths + i, pathLengths + i, edgePaths + i);
+		if (ret != ERR_SUCCESS)
+			break;
 						
-						++currentRead;
-					}
+		++currentRead;
+	}
 
-					if (ret == ERR_SUCCESS) {						
-						currentRead = Reads;
-						for (size_t i = 0; i < ReadCount; ++i) {
-							if (Options->HelperVertices)
-								ret = _add_read_helper_vertices(Graph, paths + i, edgePaths + i, pathLengths + i);
-							
-							if (ret == ERR_SUCCESS)
-								ret = _mark_long_edge_flags(Options, paths[i], pathLengths[i], flagPaths + i);
-
-							if (ret != ERR_SUCCESS)
-								break;
-
-							++currentRead;
-						}
-
-						if (ret == ERR_SUCCESS) {
-							currentRead = Reads;
-							for (size_t i = 0; i < ReadCount; ++i) {
-								ret = _create_long_read_edges(Graph, paths[i], edgePaths[i], flagPaths[i], pathLengths[i], currentRead, currentRead->ReadIndex, PairArray);
-								if (ret != ERR_SUCCESS)
-									break;
-
-								++currentRead;
-							}
-						}
-					}
-
-					for (size_t i = 0; i < ReadCount; ++i) {
-						if (flagPaths[i] != NULL)
-							utils_free(flagPaths[i]);
-					}
-
-					utils_free(flagPaths);
-				}
-
-				for (size_t i = 0; i < ReadCount; ++i) {
-					if (edgePaths[i] != NULL)
-						utils_free(edgePaths[i]);
-				}
-
-				utils_free(edgePaths);
-			}
-
-			utils_free(pathLengths);
-		}
-
+	if (ret == ERR_SUCCESS) {						
+		currentRead = Reads;
 		for (size_t i = 0; i < ReadCount; ++i) {
-			if (paths[i] != NULL)
-				utils_free(paths[i]);
+			if (Options->HelperVertices)
+				ret = _add_read_helper_vertices(Graph, paths + i, edgePaths + i, pathLengths + i);
+							
+			if (ret == ERR_SUCCESS)
+				ret = _mark_long_edge_flags(Options, paths[i], pathLengths[i], flagPaths + i);
+
+			if (ret != ERR_SUCCESS)
+				break;
+
+			++currentRead;
 		}
 
-		utils_free(paths);
+		if (ret == ERR_SUCCESS) {
+			currentRead = Reads;
+			for (size_t i = 0; i < ReadCount; ++i) {
+				ret = _create_long_read_edges(Graph, paths[i], edgePaths[i], flagPaths[i], pathLengths[i], currentRead, currentRead->ReadIndex, PairArray);
+				if (ret != ERR_SUCCESS)
+					break;
+
+				++currentRead;
+			}
+		}
 	}
 
 	return ret;
@@ -997,7 +960,6 @@ ERR_VALUE assembly_state_init(PKMER_GRAPH Graph, const PARSE_OPTIONS *ParseOptio
 	State->Reads = Reads;
 	State->ReadCount = ReadCount;
 	State->ParseOptions = *ParseOptions;
-	_sort_reads(Graph, State->Reads, State->ReadCount);
 	ret = utils_calloc_PPKMER_VERTEX(ReadCount, &State->Paths);
 	if (ret == ERR_SUCCESS) {
 		ret = utils_calloc(ReadCount, sizeof(size_t), &State->PathLengths);
@@ -1005,6 +967,15 @@ ERR_VALUE assembly_state_init(PKMER_GRAPH Graph, const PARSE_OPTIONS *ParseOptio
 			ret = utils_calloc_PPKMER_EDGE(ReadCount, &State->EdgePaths);
 			if (ret == ERR_SUCCESS) {
 				ret = utils_calloc_puint8_t(ReadCount, &State->FlagPaths);
+				if (ret == ERR_SUCCESS) {
+					for (size_t i = 0; i < State->ReadCount; ++i) {
+						State->Paths[i] = NULL;
+						State->PathLengths[i] = 0;
+						State->EdgePaths[i] = NULL;
+						State->FlagPaths[i] = NULL;
+					}
+				}
+
 				if (ret != ERR_SUCCESS) {
 					for (size_t i = 0; i < State->ReadCount; ++i) {
 						if (State->EdgePaths[i] != NULL)

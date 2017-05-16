@@ -441,71 +441,75 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 {
 	PKMER_GRAPH g = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	ASSEMBLY_STATE state;
 
 	ret = kmer_graph_create(KMerSize, 2500, 6000, &g);
 	if (ret == ERR_SUCCESS) {
-		if (Allocator != NULL)
-//			g->Allocator = *Allocator;
-			ret = kmer_graph_parse_ref_sequence(g, ParseOptions);
+		ret = assembly_state_init(g, ParseOptions, Task->Reads, Task->ReadCount, &state);
 		if (ret == ERR_SUCCESS) {
-			GEN_ARRAY_KMER_EDGE_PAIR ep;
-
-			dym_array_init_KMER_EDGE_PAIR(&ep, 140);
-			ret = kmer_graph_parse_reads(g, Task->Reads, Task->ReadCount, Options->Threshold, ParseOptions, &ep);
+			ret = kmer_graph_parse_ref_sequence(g, ParseOptions);
 			if (ret == ERR_SUCCESS) {
-				size_t deletedThings = 0;
-				GEN_ARRAY_size_t readIndices;
-				GEN_ARRAY_size_t refIndices;
+				GEN_ARRAY_KMER_EDGE_PAIR ep;
 
-				dym_array_init_size_t(&refIndices, 140);
-				dym_array_init_size_t(&readIndices, 140);
+				dym_array_init_KMER_EDGE_PAIR(&ep, 140);
+				ret = kmer_graph_parse_reads(&state, &ep);
+				if (ret == ERR_SUCCESS) {
+					size_t deletedThings = 0;
+					GEN_ARRAY_size_t readIndices;
+					GEN_ARRAY_size_t refIndices;
 
-				g->DeleteEdgeCallback = _on_delete_edge;
-				g->DeleteEdgeCallbackContext = &ep;
-				kmer_graph_delete_edges_under_threshold(g, 0);
-				kmer_graph_delete_trailing_things(g, &deletedThings);
-				g->DeleteEdgeCallback = NULL;
-				if (g->TypedEdgeCount[kmetRead] > 0) {
-					size_t changeCount = 0;
-					ret = kmer_graph_connect_reads_by_pairs(g, ParseOptions->ReadThreshold, &ep, &changeCount);
-					if (ret == ERR_SUCCESS) {
-						kmer_graph_compute_weights(g);
-						kmer_graph_delete_edges_under_threshold(g, ParseOptions->ReadThreshold);
-						kmer_graph_delete_trailing_things(g, &deletedThings);
-						if (ParseOptions->LinearShrink)
-							kmer_graph_delete_1to1_vertices(g);
+					dym_array_init_size_t(&refIndices, 140);
+					dym_array_init_size_t(&readIndices, 140);
 
-						_print_graph(g, Options, Task, "f1");
-						_print_graph(g, Options, Task, "f2");
-							
-						boolean changed = FALSE;
+					g->DeleteEdgeCallback = _on_delete_edge;
+					g->DeleteEdgeCallbackContext = &ep;
+					kmer_graph_delete_edges_under_threshold(g, 0);
+					kmer_graph_delete_trailing_things(g, &deletedThings);
+					g->DeleteEdgeCallback = NULL;
+					if (g->TypedEdgeCount[kmetRead] > 0) {
+						size_t changeCount = 0;
+						ret = kmer_graph_connect_reads_by_pairs(g, ParseOptions->ReadThreshold, &ep, &changeCount);
+						if (ret == ERR_SUCCESS) {
+							kmer_graph_compute_weights(g);
+							kmer_graph_delete_edges_under_threshold(g, ParseOptions->ReadThreshold);
+							kmer_graph_delete_trailing_things(g, &deletedThings);
+							if (ParseOptions->LinearShrink)
+								kmer_graph_delete_1to1_vertices(g);
 
-						do {
-							changed = FALSE;
-							ret = kmer_graph_detect_uncertainities(g, Task->Reference, &changed);
-						} while (ret == ERR_SUCCESS && changed);
+							_print_graph(g, Options, Task, "f1");
+							_print_graph(g, Options, Task, "f2");
 
-						if (ret == ERR_SUCCESS)
-							ret = _compare_alternate_sequences(Options, g, Task, VCArray);
-						else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
+							boolean changed = FALSE;
+
+							do {
+								changed = FALSE;
+								ret = kmer_graph_detect_uncertainities(g, Task->Reference, &changed);
+							} while (ret == ERR_SUCCESS && changed);
+
+							if (ret == ERR_SUCCESS)
+								ret = _compare_alternate_sequences(Options, g, Task, VCArray);
+							else printf("ERROR: kmer_graph_detect_uncertainities(): %u\n", ret);
+						}
+						else printf("kmer_graph_connect_reads_by_pairs(): %u\n", ret);
 					}
-					else printf("kmer_graph_connect_reads_by_pairs(): %u\n", ret);
 				}
+				else printf("kmer_graph_parse_reads(): %u\n", ret);
+
+				PKMER_EDGE_PAIR p = ep.Data;
+
+				for (size_t i = 0; i < gen_array_size(&ep); ++i) {
+					if (p->Edges != NULL)
+						utils_free(p->Edges);
+
+					++p;
+				}
+
+				dym_array_finit_KMER_EDGE_PAIR(&ep);
 			}
-			else printf("kmer_graph_parse_reads(): %u\n", ret);
-
-			PKMER_EDGE_PAIR p = ep.Data;
-
-			for (size_t i = 0; i < gen_array_size(&ep); ++i) {
-				if (p->Edges != NULL)
-					utils_free(p->Edges);
-
-				++p;
-			}
-
-			dym_array_finit_KMER_EDGE_PAIR(&ep);
+			else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
+		
+			assembly_state_finit(&state);
 		}
-		else printf("kmer_graph_parse_ref_sequence(): %u\n", ret);
 
 		kmer_graph_destroy(g);
 	} else printf("kmer_graph_create(): %u\n", ret);

@@ -42,7 +42,7 @@ typedef struct _ASSEMBLY_STATE {
 
 
 ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const PARSE_OPTIONS *ParseOptions);
-ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_t ReadCount, const size_t Threshold, const PARSE_OPTIONS *Options, PGEN_ARRAY_KMER_EDGE_PAIR PairArray);
+ERR_VALUE kmer_graph_parse_reads(PASSEMBLY_STATE State, PGEN_ARRAY_KMER_EDGE_PAIR PairArray);
 ERR_VALUE assembly_state_init(PKMER_GRAPH Graph, const PARSE_OPTIONS *ParseOptions, PONE_READ Reads, size_t ReadCount, PASSEMBLY_STATE State);
 void assembly_state_finit(PASSEMBLY_STATE State);
 
