@@ -816,7 +816,7 @@ static void _sort_reads(const KMER_GRAPH *Graph, PONE_READ Reads, size_t Count)
 /*                      PUBLIC FUNCTIONS                                */
 /************************************************************************/
 
-ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, const size_t RefSeqLen, const PARSE_OPTIONS *ParseOptions)
+ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const PARSE_OPTIONS *ParseOptions)
 {
 	PKMER sourceKMer = NULL;
 	PKMER destKMer = NULL;
@@ -824,6 +824,8 @@ ERR_VALUE kmer_graph_parse_ref_sequence(PKMER_GRAPH Graph, const char *RefSeq, c
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	PKMER_VERTEX sourceVertex = NULL;
 	PKMER_VERTEX destVertex = NULL;
+	const char *RefSeq = ParseOptions->Reference;
+	const size_t RefSeqLen = ParseOptions->RegionLength;
 
 	ret = pointer_array_reserve_KMER_VERTEX(&Graph->RefVertices, RefSeqLen + 1);
 	if (ret == ERR_SUCCESS) {

@@ -446,7 +446,7 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 	if (ret == ERR_SUCCESS) {
 		if (Allocator != NULL)
 //			g->Allocator = *Allocator;
-			ret = kmer_graph_parse_ref_sequence(g, Task->Reference, Task->ReferenceLength, ParseOptions);
+			ret = kmer_graph_parse_ref_sequence(g, ParseOptions);
 		if (ret == ERR_SUCCESS) {
 			GEN_ARRAY_KMER_EDGE_PAIR ep;
 
