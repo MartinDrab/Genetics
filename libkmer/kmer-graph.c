@@ -349,6 +349,7 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 		"None",
 		"Max",
 	};
+	/*
 	fprintf(Stream, "\t/**Edge(\n");
 	fprintf(Stream, "\t\tSource(");
 	kmer_print(Stream, &e->Source->KMer);
@@ -367,7 +368,8 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 	}
 
 	fprintf(Stream, "\t\t)\n");
-	fprintf(Stream, "\t)**/\n");
+*/
+//	fprintf(Stream, "\t)**/\n");
 	
 	fprintf(Stream, "\t");
 	kmer_print(Stream, &e->Source->KMer);
