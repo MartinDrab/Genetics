@@ -452,7 +452,13 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 				GEN_ARRAY_KMER_EDGE_PAIR ep;
 
 				dym_array_init_KMER_EDGE_PAIR(&ep, 140);
-				ret = assembly_parse_reads(&state, &ep);
+				ret = assembly_parse_reads(&state);
+				if (ret == ERR_SUCCESS)
+					ret = assembly_add_helper_vertices(&state);
+				
+				if (ret == ERR_SUCCESS)
+					ret = assembly_create_long_edges(&state, &ep);
+
 				if (ret == ERR_SUCCESS) {
 					size_t deletedThings = 0;
 					GEN_ARRAY_size_t readIndices;

@@ -898,7 +898,7 @@ ERR_VALUE assembly_parse_reference(PASSEMBLY_STATE State)
 }
 
 
-ERR_VALUE assembly_parse_reads(PASSEMBLY_STATE State, PGEN_ARRAY_KMER_EDGE_PAIR PairArray)
+ERR_VALUE assembly_parse_reads(PASSEMBLY_STATE State)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	PONE_READ currentRead = NULL;
@@ -920,33 +920,6 @@ ERR_VALUE assembly_parse_reads(PASSEMBLY_STATE State, PGEN_ARRAY_KMER_EDGE_PAIR 
 			break;
 						
 		++currentRead;
-	}
-
-	if (ret == ERR_SUCCESS) {						
-		currentRead = Reads;
-		for (size_t i = 0; i < ReadCount; ++i) {
-			if (Options->HelperVertices)
-				ret = _add_read_helper_vertices(Graph, paths + i, edgePaths + i, pathLengths + i);
-							
-			if (ret == ERR_SUCCESS)
-				ret = _mark_long_edge_flags(Options, paths[i], pathLengths[i], flagPaths + i);
-
-			if (ret != ERR_SUCCESS)
-				break;
-
-			++currentRead;
-		}
-
-		if (ret == ERR_SUCCESS) {
-			currentRead = Reads;
-			for (size_t i = 0; i < ReadCount; ++i) {
-				ret = _create_long_read_edges(Graph, paths[i], edgePaths[i], flagPaths[i], pathLengths[i], currentRead, currentRead->ReadIndex, PairArray);
-				if (ret != ERR_SUCCESS)
-					break;
-
-				++currentRead;
-			}
-		}
 	}
 
 	return ret;

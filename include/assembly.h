@@ -42,7 +42,7 @@ typedef struct _ASSEMBLY_STATE {
 
 
 ERR_VALUE assembly_parse_reference(PASSEMBLY_STATE State);
-ERR_VALUE assembly_parse_reads(PASSEMBLY_STATE State, PGEN_ARRAY_KMER_EDGE_PAIR PairArray);
+ERR_VALUE assembly_parse_reads(PASSEMBLY_STATE State);
 ERR_VALUE assembly_add_helper_vertices(PASSEMBLY_STATE State);
 ERR_VALUE assembly_create_long_edges(PASSEMBLY_STATE State, PGEN_ARRAY_KMER_EDGE_PAIR PairArray);
 
