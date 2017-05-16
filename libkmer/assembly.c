@@ -913,7 +913,6 @@ ERR_VALUE assembly_parse_reads(PASSEMBLY_STATE State, PGEN_ARRAY_KMER_EDGE_PAIR 
 	size_t *pathLengths = State->PathLengths;
 
 	_sort_reads(Graph, Reads, ReadCount);
-
 	currentRead = Reads;
 	for (size_t i = 0; i < ReadCount; ++i) {
 		ret = _kmer_graph_parse_read_v2(Options, Graph, currentRead, currentRead->ReadIndex, paths + i, pathLengths + i, edgePaths + i);
@@ -953,6 +952,30 @@ ERR_VALUE assembly_parse_reads(PASSEMBLY_STATE State, PGEN_ARRAY_KMER_EDGE_PAIR 
 	return ret;
 }
 
+
+ERR_VALUE assembly_add_helper_vertices(PASSEMBLY_STATE State)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	PONE_READ currentRead;
+	const size_t ReadCount = State->ReadCount;
+	PKMER_GRAPH Graph = State->Graph;
+	PKMER_VERTEX **paths = State->Paths;
+	PKMER_EDGE **edgePaths = State->EdgePaths;
+	size_t *pathLengths = State->PathLengths;
+
+	if (State->ParseOptions.HelperVertices) {
+		currentRead = State->Reads;
+		for (size_t i = 0; i < ReadCount; ++i) {
+			ret = _add_read_helper_vertices(Graph, paths + i, edgePaths + i, pathLengths + i);
+			if (ret != ERR_SUCCESS)
+				break;
+
+			++currentRead;
+		}
+	}
+
+	return ret;
+}
 
 ERR_VALUE assembly_state_init(PKMER_GRAPH Graph, const PARSE_OPTIONS *ParseOptions, PONE_READ Reads, size_t ReadCount, PASSEMBLY_STATE State)
 {
