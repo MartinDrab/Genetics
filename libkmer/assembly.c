@@ -985,3 +985,75 @@ ERR_VALUE kmer_graph_parse_reads(PKMER_GRAPH Graph, PONE_READ Reads, const size_
 
 	return ret;
 }
+
+
+ERR_VALUE assembly_state_init(PKMER_GRAPH Graph, const PARSE_OPTIONS *ParseOptions, PONE_READ Reads, size_t ReadCount, PASSEMBLY_STATE State)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	State->Graph = Graph;
+	State->Reads = Reads;
+	State->ReadCount = ReadCount;
+	State->ParseOptions = *ParseOptions;
+	_sort_reads(Graph, State->Reads, State->ReadCount);
+	ret = utils_calloc_PPKMER_VERTEX(ReadCount, &State->Paths);
+	if (ret == ERR_SUCCESS) {
+		ret = utils_calloc(ReadCount, sizeof(size_t), &State->PathLengths);
+		if (ret == ERR_SUCCESS) {
+			ret = utils_calloc_PPKMER_EDGE(ReadCount, &State->EdgePaths);
+			if (ret == ERR_SUCCESS) {
+				ret = utils_calloc_puint8_t(ReadCount, &State->FlagPaths);
+				if (ret != ERR_SUCCESS) {
+					for (size_t i = 0; i < State->ReadCount; ++i) {
+						if (State->EdgePaths[i] != NULL)
+							utils_free(State->EdgePaths[i]);
+					}
+
+					utils_free(State->EdgePaths);
+				}
+			}
+
+			if (ret != ERR_SUCCESS)
+				utils_free(State->PathLengths);
+		}
+
+		if (ret != ERR_SUCCESS) {
+			for (size_t i = 0; i < State->ReadCount; ++i) {
+				if (State->Paths[i] != NULL)
+					utils_free(State->Paths[i]);
+			}
+
+			utils_free(State->Paths);
+		}
+	}
+
+	return ret;
+}
+
+
+void assembly_state_finit(PASSEMBLY_STATE State)
+{
+
+	for (size_t i = 0; i < State->ReadCount; ++i) {
+		if (State->FlagPaths[i] != NULL)
+			utils_free(State->FlagPaths[i]);
+	}
+
+	utils_free(State->FlagPaths);
+	for (size_t i = 0; i < State->ReadCount; ++i) {
+		if (State->EdgePaths[i] != NULL)
+			utils_free(State->EdgePaths[i]);
+	}
+
+	utils_free(State->EdgePaths);
+	utils_free(State->PathLengths);
+
+	for (size_t i = 0; i < State->ReadCount; ++i) {
+		if (State->Paths[i] != NULL)
+			utils_free(State->Paths[i]);
+	}
+
+	utils_free(State->Paths);
+
+	return;
+}
