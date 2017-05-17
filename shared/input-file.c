@@ -410,7 +410,11 @@ void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQua
 
 	r = Reads;
 	for (size_t i = 0; i < inputSetSize - 1; ++i) {
-		if (r->PosQuality < MinQuality || r->Pos == (uint64_t)-1) {
+		if (r->PosQuality < MinQuality || r->Pos == (uint64_t)-1 ||
+			r->Extension->Flags.Bits.Unmapped ||
+			r->Extension->Flags.Bits.Supplementary ||
+			r->Extension->Flags.Bits.Duplicate ||
+			r->Extension->Flags.Bits.SecondaryAlignment) {
 			_read_destroy_structure(r);
 			*r = Reads[readSetSize - 1];
 			--readSetSize;
