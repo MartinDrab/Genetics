@@ -253,7 +253,7 @@ ERR_VALUE read_create_from_fastq(const char *Block, const char **NewBlock, PONE_
 
 void read_write_sam(FILE *Stream, const ONE_READ *Read)
 {
-	fprintf(Stream, "%s\t%u\t%s\t%" PRId64 "\t%u\t%s\t%s\t%" PRId64 "\t%i\t%.*s\t%.*s\n", Read->Extension->TemplateName, Read->Extension->Flags, Read->Extension->RName, Read->Pos + 1, Read->PosQuality, Read->Extension->CIGAR, Read->Extension->RNext, Read->Extension->PNext, Read->Extension->TLen, (int)Read->ReadSequenceLen, Read->ReadSequence, (int)Read->ReadSequenceLen, Read->Quality);
+	fprintf(Stream, "%s\t%u\t%s\t%" PRId64 "\t%u\t%s\t%s\t%" PRId64 "\t%i\t%.*s\t%.*s\n", Read->Extension->TemplateName, Read->Extension->Flags.Value, Read->Extension->RName, Read->Pos + 1, Read->PosQuality, Read->Extension->CIGAR, Read->Extension->RNext, Read->Extension->PNext, Read->Extension->TLen, (int)Read->ReadSequenceLen, Read->ReadSequence, (int)Read->ReadSequenceLen, Read->Quality);
 
 	return;
 }
@@ -278,7 +278,7 @@ ERR_VALUE read_create_from_sam_line(const char *Line, PONE_READ Read)
 		Line = _sam_read_uint_field(Line, &tmp32);
 		if (Line != NULL && *Line == '\t') {
 			++Line;
-			Read->Extension->Flags = tmp32;
+			Read->Extension->Flags.Value = tmp32;
 		} else ret = ERR_SAM_INVALID_FLAG;
 	}
 

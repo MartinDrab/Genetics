@@ -32,8 +32,27 @@ typedef struct _ONE_READ_PAIRED_LIST {
 	struct _ONE_READ *Next;
 } ONE_READ_PAIRED_LIST, *PONE_READ_PAIRED_LIST;
 
+
+typedef union _READ_FLAGS {
+	struct {
+		uint16_t Paired : 1;
+		uint16_t ProperlyAligned : 1;
+		uint16_t Unmapped : 1;
+		uint16_t NextUnmapped : 1;
+		uint16_t ReverseComplement : 1;
+		uint16_t NextReverseComplement : 1;
+		uint16_t First : 1;
+		uint16_t Last : 1;
+		uint16_t SecondaryAlignment : 1;
+		uint16_t NotPassingFilters : 1;
+		uint16_t Duplicate : 1;
+		uint16_t Supplementary : 1;
+	} Bits;
+	uint16_t Value ;
+} READ_FLAGS, *PREAD_FLAGS;
+
 typedef struct _ONE_READ_EXTENSION {
-	uint16_t Flags;
+	READ_FLAGS Flags;
 	char *CIGAR;
 	char *RName;
 	char *RNext;
