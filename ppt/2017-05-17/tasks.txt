@@ -1,0 +1,3 @@
+ * vyhazovat ready s duplicitnim bitem (a resit is suplementarni)
+ * distribuce clipnutych readu
+ * udelat distribuce charakteristik FP a FN alespon u SNPs (mozne kriterium redukce FP)
