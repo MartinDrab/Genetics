@@ -143,33 +143,45 @@ static ERR_VALUE _vertex_copy(PKMER_GRAPH Graph, const KMER_VERTEX *Vertex, PKME
 
 static ERR_VALUE _edge_create(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_VERTEX Dest, const EKMerEdgeType Type, PKMER_EDGE *Edge)
 {
+	PREAD_INFO ri = NULL;
 	PKMER_EDGE tmp = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	tmp = Graph->Allocator.EdgeAllocator(Graph, Graph->Allocator.EdgeAllocatorContext);
-	if (tmp != NULL) {
-		tmp->Source = Source;
-		tmp->Dest = Dest;
-		tmp->Type = Type;
-		tmp->Order = 0;
-		tmp->Seq = NULL;
-		tmp->SeqLen = 0;
-		tmp->Seq1Weight = 0;
-		tmp->SeqType = kmetNone;
-		read_info_init(&tmp->ReadInfo);
-		tmp->MarkedForDelete = FALSE;
-		dym_array_init_size_t(&tmp->Paths, 140);
-		tmp->Finished = FALSE;
-		dym_array_init_FOUND_SEQUENCE_VARIANT(&tmp->Variants, 140);
-		pointer_array_init_VARIANT_CALL(&tmp->VCs, 140);
-		tmp->LongData.LongEdge = FALSE;
-		tmp->LongData.RefSeqEnd = 0;
-		tmp->LongData.RefSeqStart = 0;
-		dym_array_init_size_t(&tmp->Weights, 140);
-		pointer_array_init_READ_INFO(&tmp->ReadIndices, 140);
-		*Edge = tmp;
-		ret = ERR_SUCCESS;
-	} else ret = ERR_OUT_OF_MEMORY;
+	ret = utils_malloc(sizeof(READ_INFO), &ri);
+	if (ret == ERR_SUCCESS) {
+		read_info_init(ri);
+		tmp = Graph->Allocator.EdgeAllocator(Graph, Graph->Allocator.EdgeAllocatorContext);
+		if (tmp != NULL) {
+			tmp->Source = Source;
+			tmp->Dest = Dest;
+			tmp->Type = Type;
+			tmp->Order = 0;
+			tmp->Seq = NULL;
+			tmp->SeqLen = 0;
+			tmp->Seq1Weight = 0;
+			tmp->SeqType = kmetNone;
+			read_info_init(&tmp->ReadInfo);
+			tmp->MarkedForDelete = FALSE;
+			dym_array_init_size_t(&tmp->Paths, 140);
+			tmp->Finished = FALSE;
+			dym_array_init_FOUND_SEQUENCE_VARIANT(&tmp->Variants, 140);
+			pointer_array_init_VARIANT_CALL(&tmp->VCs, 140);
+			tmp->LongData.LongEdge = FALSE;
+			tmp->LongData.RefSeqEnd = 0;
+			tmp->LongData.RefSeqStart = 0;
+			dym_array_init_size_t(&tmp->Weights, 140);
+			pointer_array_init_READ_INFO(&tmp->ReadIndices, 140);
+			pointer_array_reserve_READ_INFO(&tmp->ReadIndices, 1);
+			pointer_array_push_back_no_alloc_READ_INFO(&tmp->ReadIndices, ri);
+			*Edge = tmp;
+			ret = ERR_SUCCESS;
+		} else ret = ERR_OUT_OF_MEMORY;
+	
+		if (ret != ERR_SUCCESS) {
+			read_info_finit(ri);
+			utils_free(ri);
+		}
+	}
 
 	return ret;
 }
@@ -2174,4 +2186,17 @@ void kmer_graph_pair_variants(PKMER_GRAPH Graph)
 	}
 
 	return;
+}
+
+
+ERR_VALUE kmer_edge_add_read(PKMER_EDGE Edge, size_t ReadIndex, size_t ReadPosition, uint8_t Quality)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = read_info_add(&Edge->ReadInfo, ReadIndex, ReadPosition, Quality);
+	if (ret == ERR_SUCCESS)
+		ret = read_info_add(Edge->ReadIndices.Data[0], ReadIndex, ReadPosition, Quality);
+
+
+	return ret;
 }

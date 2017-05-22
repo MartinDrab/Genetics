@@ -388,7 +388,7 @@ static ERR_VALUE _create_short_edge(PKMER_GRAPH Graph, PKMER_VERTEX U, PKMER_VER
 		ret = ERR_SUCCESS;
 
 	if (ret == ERR_SUCCESS)
-		ret = read_info_add(&e->ReadInfo, ReadIndex, ReadPosition, ReadQuality);
+		ret = kmer_edge_add_read(e, ReadIndex, ReadPosition, ReadQuality);
 
 	*Edge = e;
 
