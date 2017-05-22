@@ -166,6 +166,7 @@ static ERR_VALUE _edge_create(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_VERT
 		tmp->LongData.RefSeqEnd = 0;
 		tmp->LongData.RefSeqStart = 0;
 		dym_array_init_size_t(&tmp->Weights, 140);
+		pointer_array_init_READ_INFO(&tmp->ReadIndices, 140);
 		*Edge = tmp;
 		ret = ERR_SUCCESS;
 	} else ret = ERR_OUT_OF_MEMORY;
@@ -176,6 +177,14 @@ static ERR_VALUE _edge_create(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_VERT
 
 static void _edge_destroy(PKMER_GRAPH Graph, PKMER_EDGE Edge)
 {
+	for (size_t i = 0; i < pointer_array_size(&Edge->ReadIndices); ++i) {
+		PREAD_INFO ri = Edge->ReadIndices.Data[i];
+
+		read_info_finit(ri);
+		utils_free(ri);
+	}
+
+	pointer_array_finit_READ_INFO(&Edge->ReadIndices);
 	dym_array_finit_size_t(&Edge->Weights);
 	found_sequence_variant_array_free(Edge->Variants.Data, gen_array_size(&Edge->Variants));
 	pointer_array_finit_VARIANT_CALL(&Edge->VCs);
@@ -473,7 +482,7 @@ static void _init_quality_table(uint8_t *Table)
 	memset(Table + 1, 0, 14 * sizeof(char));
 	memset(Table + 15, 25, 5 * sizeof(char));
 	memset(Table + 20, 50, 5 * sizeof(char));
-	memset(Table + 25, 75, 5 * sizeof(char));
+	memset(Table + 25, 75, 10 * sizeof(char));
 
 	return;
 }

@@ -990,13 +990,14 @@ void vg_graph_finalize(PVARIANT_GRAPH Graph)
 {
 	PVARIANT_GRAPH_VERTEX v = Graph->Vertices.ByType.Alternative;
 
+	/*
 	for (size_t i = 0; i < Graph->VerticesArraySize; ++i) {
 		if (!_vg_vertex_exists(Graph, v))
 			v->Variant->Valid = FALSE;
 
 		++v;
 	}
-
+	*/
 	for (size_t i = 0; i < gen_array_size(&Graph->ComponentIndices) - 1; ++i) {
 		const size_t startIndex = Graph->ComponentIndices.Data[i];
 		const size_t endIndex = Graph->ComponentIndices.Data[i + 1];

@@ -23,6 +23,10 @@ typedef struct _READ_INFO {
 	GEN_ARRAY_TYPE(READ_INFO_ENTRY) Array;
 } READ_INFO, *PREAD_INFO;
 
+POINTER_ARRAY_TYPEDEF(READ_INFO);
+POINTER_ARRAY_IMPLEMENTATION(READ_INFO);
+
+
 
 ERR_VALUE read_info_to_indices(const READ_INFO *Info, PGEN_ARRAY_size_t Indices);
 void read_info_sort(PREAD_INFO ReadInfo);
