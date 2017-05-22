@@ -2043,11 +2043,13 @@ ERR_VALUE kmer_graph_resolve_triangles(PKMER_GRAPH Graph, const size_t Threshold
 */
 
 
-void kmer_graph_compute_weights(PKMER_GRAPH Graph)
+ERR_VALUE kmer_graph_compute_weights(PKMER_GRAPH Graph)
 {
 	void *iter = NULL;
 	PKMER_EDGE e = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
+	ret = ERR_SUCCESS;
 	if (kmer_edge_table_first(Graph->EdgeTable, &iter, &e) == ERR_SUCCESS) {
 		do {
 			size_t wLen = e->SeqLen + 1;
@@ -2058,13 +2060,32 @@ void kmer_graph_compute_weights(PKMER_GRAPH Graph)
 			assert(e->Seq1Weight == 0);
 //			assert(e->SeqLen == 0 || e->LongData.LongEdge);
 			e->Seq1Weight = read_info_weight(&e->ReadInfo, Graph->QualityTable);
-			dym_array_reserve_size_t(&e->Weights, wLen);
-			for (size_t i = 0; i < wLen; ++i)
-				dym_array_push_back_no_alloc_size_t(&e->Weights, e->Seq1Weight);
-		} while (kmer_edge_table_next(Graph->EdgeTable, iter, &iter, &e) == ERR_SUCCESS);
+			ret = dym_array_reserve_size_t(&e->Weights, wLen);
+			if (ret == ERR_SUCCESS) {
+				for (size_t i = 0; i < wLen; ++i)
+					dym_array_push_back_no_alloc_size_t(&e->Weights, e->Seq1Weight);
+
+				ret = pointer_array_reserve_READ_INFO(&e->ReadIndices, wLen);
+				if (ret == ERR_SUCCESS) {
+					for (size_t i = 0; i < wLen; ++i) {
+						PREAD_INFO ri = NULL;
+
+						ret = utils_malloc(sizeof(READ_INFO), &ri);
+						if (ret == ERR_SUCCESS) {
+							read_info_init(ri);
+							pointer_array_push_back_no_alloc_READ_INFO(&e->ReadIndices, ri);
+							ret = read_info_assign(ri, &e->ReadInfo.Array);
+						}
+
+						if (ret != ERR_SUCCESS)
+							break;
+					}
+				}
+			}
+		} while (ret == ERR_SUCCESS && kmer_edge_table_next(Graph->EdgeTable, iter, &iter, &e) == ERR_SUCCESS);
 	}
 
-	return;
+	return ret;
 }
 
 
