@@ -425,7 +425,7 @@ static ERR_VALUE _create_long_edge(PKMER_GRAPH Graph, PKMER_VERTEX U, PKMER_VERT
 	}
 
 	if (ret == ERR_SUCCESS) {
-		ret = read_info_add(&e->ReadInfo, ReadIndex, Read->Offset + StartIndex, 0);
+		ret = kmer_edge_add_read(e, ReadIndex, Read->Offset + StartIndex, 0);
 		*NewEdge = e;
 	}
 

@@ -143,13 +143,9 @@ static ERR_VALUE _vertex_copy(PKMER_GRAPH Graph, const KMER_VERTEX *Vertex, PKME
 
 static ERR_VALUE _edge_create(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_VERTEX Dest, const EKMerEdgeType Type, PKMER_EDGE *Edge)
 {
-	PREAD_INFO ri = NULL;
 	PKMER_EDGE tmp = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_malloc(sizeof(READ_INFO), &ri);
-	if (ret == ERR_SUCCESS) {
-		read_info_init(ri);
 		tmp = Graph->Allocator.EdgeAllocator(Graph, Graph->Allocator.EdgeAllocatorContext);
 		if (tmp != NULL) {
 			tmp->Source = Source;
@@ -171,18 +167,10 @@ static ERR_VALUE _edge_create(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_VERT
 			tmp->LongData.RefSeqStart = 0;
 			dym_array_init_size_t(&tmp->Weights, 140);
 			pointer_array_init_READ_INFO(&tmp->ReadIndices, 140);
-			pointer_array_reserve_READ_INFO(&tmp->ReadIndices, 1);
-			pointer_array_push_back_no_alloc_READ_INFO(&tmp->ReadIndices, ri);
 			*Edge = tmp;
 			ret = ERR_SUCCESS;
 		} else ret = ERR_OUT_OF_MEMORY;
 	
-		if (ret != ERR_SUCCESS) {
-			read_info_finit(ri);
-			utils_free(ri);
-		}
-	}
-
 	return ret;
 }
 
@@ -1192,7 +1180,17 @@ ERR_VALUE kmer_graph_merge_edges(PKMER_GRAPH Graph, PKMER_EDGE Source, PKMER_EDG
 						dym_array_push_back_array_size_t(&newEdge->Weights, &Dest->Weights);
 						newEdge->SeqType = newEdge->SeqType;
 						newEdge->Seq1Weight = max(Source->Seq1Weight, Dest->Seq1Weight);
-						ret = read_info_merge(&newEdge->ReadInfo, &Source->ReadInfo, &Dest->ReadInfo);
+						ret = pointer_array_reserve_READ_INFO(&newEdge->ReadIndices, gen_array_size(&newEdge->Weights));
+						if (ret == ERR_SUCCESS) {
+							pointer_array_push_back_array_READ_INFO(&newEdge->ReadIndices, &Source->ReadIndices);
+							pointer_array_push_back_array_READ_INFO(&newEdge->ReadIndices, &Dest->ReadIndices);
+							pointer_array_clear_READ_INFO(&Source->ReadIndices);
+							pointer_array_clear_READ_INFO(&Dest->ReadIndices);
+						}
+
+						if (ret == ERR_SUCCESS)
+							ret = read_info_merge(&newEdge->ReadInfo, &Source->ReadInfo, &Dest->ReadInfo);
+						
 						if (ret == ERR_SUCCESS) {
 							kmer_graph_delete_edge(Graph, Source);
 							kmer_graph_delete_edge(Graph, Dest);
@@ -2194,9 +2192,7 @@ ERR_VALUE kmer_edge_add_read(PKMER_EDGE Edge, size_t ReadIndex, size_t ReadPosit
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	ret = read_info_add(&Edge->ReadInfo, ReadIndex, ReadPosition, Quality);
-	if (ret == ERR_SUCCESS)
-		ret = read_info_add(Edge->ReadIndices.Data[0], ReadIndex, ReadPosition, Quality);
-
 
 	return ret;
 }
+
