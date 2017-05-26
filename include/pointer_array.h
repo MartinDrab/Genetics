@@ -42,7 +42,7 @@
 	POINTER_ARRAY_CLEAN_COPY_FUNCTION(aDataType)								\
 	POINTER_ARRAY_REMOVE_BY_ITEM_FAST(aDataType)								\
 	POINTER_ARRAY_REMOVE_FUNCTION(aDataType)									\
-
+	POINTER_ARRAY_PUSH_BACK_ARRAY_NO_ALLOC_FUNCTION(aDataType)					\
 
 #define POINTER_ARRAY_ALLOC_FUNCTION(aDataType)						\
 	INLINE_FUNCTION ERR_VALUE pointer_array_alloc_data_##aDataType(const size_t Count, aDataType ***Data)	\
@@ -196,6 +196,16 @@
 		}												\
 														\
 		return ret;										\
+	}													\
+
+#define POINTER_ARRAY_PUSH_BACK_ARRAY_NO_ALLOC_FUNCTION(aDataType)	\
+	INLINE_FUNCTION void pointer_array_push_back_array_no_alloc_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Target, const POINTER_ARRAY_TYPE(aDataType) *Source)	\
+	{																								\
+		assert(Target->AllocLength >= Target->ValidLength + Source->ValidLength);						\
+		memcpy(Target->Data + Target->ValidLength, Source->Data, Source->ValidLength*sizeof(aDataType*));	\
+		Target->ValidLength += Source->ValidLength;	\
+														\
+		return;										\
 	}													\
 
 #define POINTER_ARRAY_CONTAINS_FUNCTION(aDataType)	\

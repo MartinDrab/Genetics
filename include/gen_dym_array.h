@@ -41,7 +41,7 @@
 	GEN_ARRAY_PUSH_BACK_ARRAY_FUNCTION(aDataType)							\
 	GEN_ARRAY_CONTAINS_FUNCTION(aDataType)									\
 	GEN_ARRAY_REMOVE_FUNCTION(aDataType)									\
-
+	GEN_ARRAY_PUSH_BACK_ARRAY_NO_ALLOC_FUNCTION(aDataType)					\
 
 
 #define GEN_ARRAY_ALLOC_FUNCTION(aDataType)						\
@@ -196,6 +196,16 @@
 		}												\
 														\
 		return ret;										\
+	}													\
+
+#define GEN_ARRAY_PUSH_BACK_ARRAY_NO_ALLOC_FUNCTION(aDataType)	\
+	INLINE_FUNCTION void dym_array_push_back_array_no_alloc_##aDataType(GEN_ARRAY_PTYPE(aDataType) Target, const GEN_ARRAY_TYPE(aDataType) *Source)	\
+	{																								\
+		assert(Target->AllocLength >= Target->ValidLength + Source->ValidLength);						\
+		memcpy(Target->Data + Target->ValidLength, Source->Data, Source->ValidLength*sizeof(aDataType));	\
+		Target->ValidLength += Source->ValidLength;	\
+														\
+		return;										\
 	}													\
 
 #define GEN_ARRAY_CONTAINS_FUNCTION(aDataType)	\

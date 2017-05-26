@@ -130,13 +130,20 @@ static void _build_distance_graph(const PARSE_OPTIONS *Options, PKMER_GRAPH Grap
 
 					if (kmer_graph_get_edge(Graph, &y->KMer, &v->KMer) == NULL)
 						distance += Options->MissingEdgePenalty;
+
+					for (size_t l = cdr->Index + 1; l < ndr->Index - 1; ++l) {
+						x = Vertices[l]->Data[0];
+						y = Vertices[l + 1]->Data[0];
+						if (kmer_graph_get_edge(Graph, &x->KMer, &y->KMer) == NULL)
+							distance += Options->MissingEdgePenalty;
+					}
 				} else {
 					if (kmer_graph_get_edge(Graph, &u->KMer, &v->KMer) == NULL)
 						distance += Options->MissingEdgePenalty;
 				}
 
-				if (u->RefSeqPosition > v->RefSeqPosition)
-					distance += Options->BackwardRefseqPenalty;
+				if (u->RefSeqPosition >= v->RefSeqPosition)
+					distance += (ndr->Index - cdr->Index)*Options->BackwardRefseqPenalty;
 
 				if (cdr->Distance + distance < ndr->Distance) {
 					ndr->Distance = cdr->Distance + distance;
@@ -587,9 +594,9 @@ static ERR_VALUE _create_long_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertic
 						p.V = Edges[i];
 						p.ReadDistance = seqIndex - readGapSeqStart - 1;
 						p.ConnectingEdge = connectingEdge;
+						connectingEdge->LongData.LongEdge = TRUE;
 						if (p.U->Dest->Type == kmvtRefSeqMiddle) {
 							p.ConnectingEdge->Source->LongEdgeAllowed |= (permitLongEdge);
-							connectingEdge->LongData.LongEdge = TRUE;
 							connectingEdge->LongData.RefSeqEnd = p.U->Dest->RefSeqPosition;
 							connectingEdge->LongData.RefSeqStart = p.V->Source->RefSeqPosition + 1;
 						}

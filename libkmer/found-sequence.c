@@ -392,7 +392,13 @@ void vc_array_print(FILE *Stream, const char *ReferenceFile, const GEN_ARRAY_VAR
 				default: assert(FALSE); break;
 			}
 
-			fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\tRW=%u;RC=%u;AW=%u;AC=%u\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, (uint32_t)tmp->RefWeight, (uint32_t)gen_array_size(&tmp->RefReads), (uint32_t)tmp->AltWeight, (uint32_t)gen_array_size(&tmp->AltReads), genotype, tmp->PhasedPos);
+			size_t refLen = strlen(tmp->Ref);
+			size_t altLen = strlen(tmp->Alt);
+
+			if (refLen == altLen) {
+				for (size_t j = 0; j < refLen; ++j)
+					fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%c\t%c\t60\tPASS\tRW=%u;RC=%u;AW=%u;AC=%u\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos + j, tmp->ID, tmp->Ref[j], tmp->Alt[j], (uint32_t)tmp->RefWeight, (uint32_t)gen_array_size(&tmp->RefReads), (uint32_t)tmp->AltWeight, (uint32_t)gen_array_size(&tmp->AltReads), genotype, tmp->PhasedPos);
+			} else fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\tRW=%u;RC=%u;AW=%u;AC=%u\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, (uint32_t)tmp->RefWeight, (uint32_t)gen_array_size(&tmp->RefReads), (uint32_t)tmp->AltWeight, (uint32_t)gen_array_size(&tmp->AltReads), genotype, tmp->PhasedPos);
 		}
 
 		++tmp;

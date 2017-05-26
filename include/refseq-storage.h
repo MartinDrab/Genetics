@@ -172,4 +172,21 @@ INLINE_FUNCTION ERR_VALUE rs_storage_create_string(const REFSEQ_STORAGE *Storage
 }
 
 
+INLINE_FUNCTION ERR_VALUE rs_storage_create_string_with_offset(const REFSEQ_STORAGE *Storage, size_t Offset, char **String)
+{
+	char *tmpString = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = utils_calloc(Storage->ValidLength + 1 - Offset, sizeof(char), (void **)&tmpString);
+	if (ret == ERR_SUCCESS) {
+		memcpy(tmpString, Storage->Sequence + Offset, (Storage->ValidLength - Offset) * sizeof(char));
+		tmpString[Storage->ValidLength - Offset] = '\0';
+		*String = tmpString;
+	}
+
+	return ret;
+}
+
+
+
 #endif

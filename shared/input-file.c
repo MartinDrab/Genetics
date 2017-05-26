@@ -432,7 +432,11 @@ void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQua
 	int i = 0;
 #pragma omp parallel for shared(Reads)
 	for (i = 0; i < (int)readSetSize; ++i) {
-		read_split(Reads + i);
+		PONE_READ r = Reads + i;
+
+		read_split(r);
+		for (size_t j = 0; j < r->ReadSequenceLen; ++j)
+			r->Quality[j] = min(r->Quality[j], r->PosQuality);
 	}
 
 	*Count = readSetSize;

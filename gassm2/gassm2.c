@@ -519,13 +519,15 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 
 					do {
 						changed = FALSE;
-						ret = kmer_graph_detect_uncertainities(g, Task->Reference, &changed);
+						kmer_graph_check_weights(g);
+						ret = kmer_graph_detect_uncertainities(g, VCArray, Options->RefSeq.Name, &changed);
+						kmer_graph_check_weights(g);
 					} while (ret == ERR_SUCCESS && changed);
 				}
 
 				_print_graph(g, Options, Task, GRAPH_PRINT_VARIANTS);
-				if (ret == ERR_SUCCESS)
-					ret = _compare_alternate_sequences(Options, g, Task, VCArray);
+//				if (ret == ERR_SUCCESS)
+//					ret = _compare_alternate_sequences(Options, g, Task, VCArray);
 			}
 		
 			PKMER_EDGE_PAIR p = ep.Data;

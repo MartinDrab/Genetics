@@ -179,7 +179,7 @@ WHile (I < FFilteredTest.Count) Do
     FFilteredTest.Delete(I);
     Dec(I);
     end
-  Else If r2.AW DIv r2.AC  < FMinAQFilter Then
+  Else If (r2.AC = 0) Or (r2.AW DIv r2.AC < FMinAQFilter) Then
     begin
     FFilteredTest.Delete(I);
     Dec(I);
