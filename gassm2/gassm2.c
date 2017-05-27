@@ -220,166 +220,6 @@ typedef enum _EExperimentResult {
 } EExperimentResult, *PEExperimentResult;
 
 
-
-static ERR_VALUE _process_variant_call(const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *Task, const size_t RefSeqStart, const size_t RefSeqEnd, const char *AltSeq, const size_t AltSeqLen, const GEN_ARRAY_size_t *RSWeights, const GEN_ARRAY_size_t *ReadWeights, const GEN_ARRAY_size_t *RefIndices, const GEN_ARRAY_size_t *AltIndices, void *Context, PGEN_ARRAY_VARIANT_CALL VCArray)
-{
-	VARIANT_CALL vc;
-	char *altSeqStart = NULL;
-	size_t rsPos = Task->RegionStart + RefSeqStart + 1;
-	size_t rsLen = RefSeqEnd - RefSeqStart;
-	size_t altLen = AltSeqLen;
-	char *altSeq = NULL;
-	const char *refSeq = Task->Reference + RefSeqStart;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	int rfwStartIndex = 1;
-	int rfwEndIndex = 1;
-	int rewStartIndex = 1;
-	int rewEndIndex = 1;
-
-	assert(gen_array_size(RSWeights) >= RefSeqEnd - RefSeqStart);
-	assert(gen_array_size(ReadWeights) >= AltSeqLen);
-	ret = utils_calloc(altLen + 2, sizeof(char), &altSeq);
-	if (ret == ERR_SUCCESS) {
-		altSeqStart = altSeq;
-		memcpy(altSeq + 1, AltSeq, altLen*sizeof(char));
-		*altSeq = *(refSeq - 1);
-		++altSeq;
-		altSeq[altLen] = '\0';
-
-		char *opString = NULL;
-		size_t opStringLen = 0;
-		ret = ssw_clever(refSeq, rsLen, altSeq, altLen, 2, -1, -1, &opString, &opStringLen);;
-		if (ret == ERR_SUCCESS) {
-			const char *opIt = opString;
-			const char *tmpRS = refSeq;
-			const char *tmpAltS = altSeq;
-			boolean nothing = TRUE;
-
-			while (ret == ERR_SUCCESS) {
-				switch (*opIt) {
-					case 'X':
-						++tmpRS;
-						++rfwEndIndex;
-						++rewEndIndex;
-						++tmpAltS;
-						nothing = FALSE;
-						break;
-					case '\0':
-					case 'M':
-						if (!nothing) {
-							size_t rLen = tmpRS - refSeq;
-							size_t aLen = tmpAltS - altSeq;
-							
-							if (rLen == 0 || aLen == 0 ||
-								((rLen > 1 || aLen > 1) && *refSeq != *altSeq)) {
-								--rsPos;
-								--rfwStartIndex;
-								--rewStartIndex;
-								--refSeq;
-								--altSeq;
-								++rLen;
-								++aLen;
-							}
-
-							ret = variant_call_init(Options->RefSeq.Name, rsPos, ".", refSeq, rLen, altSeq, aLen, 60, RefIndices, AltIndices, &vc);
-							if (ret == ERR_SUCCESS) {								
-								size_t index = 0;
-								
-//								while (opString[index] == 'M')
-//									++index;
-
-								vc.Context = Context;
-								vc.RefWeight = 0;
-								for (int i = rfwStartIndex; i < rfwEndIndex + index; ++i) {
-									if (i >= 0)
-										vc.RefWeight = max(RSWeights->Data[i], vc.RefWeight);
-								}
-
-								vc.AltWeight = 0;
-								for (int i = rewStartIndex; i < rewEndIndex + index; ++i) {
-									if (i >= 0)
-										vc.AltWeight = max(ReadWeights->Data[i], vc.AltWeight);
-								}
-
-								ret = vc_array_add(VCArray, &vc);
-								if (ret != ERR_SUCCESS) {
-									variant_call_finit(&vc);
-									if (ret == ERR_ALREADY_EXISTS)
-										ret = ERR_SUCCESS;
-								}
-							}
-
-							rsPos += (tmpRS - refSeq);
-							rfwStartIndex = rfwEndIndex;
-							rewStartIndex = rewEndIndex;
-							refSeq = tmpRS;
-							altSeq = tmpAltS;
-							nothing = TRUE;
-						} else {
-							rsPos++;
-							++rfwStartIndex;
-							++rewStartIndex;
-							refSeq++;
-							altSeq++;
-						}
-
-						++tmpRS;
-						++tmpAltS;
-						++rfwEndIndex;
-						++rewEndIndex;
-						break;
-					case 'I':
-						++tmpAltS;
-						++rewEndIndex;
-						nothing = FALSE;
-						break;
-					case 'D':
-						++tmpRS;
-						++rfwEndIndex;
-						nothing = FALSE;
-						break;
-				}
-
-				if (*opIt == '\0')
-					break;
-
-				++opIt;
-			}
-			
-			utils_free(opString);
-		}
-
-		utils_free(altSeqStart);
-	}
-
-	return ret;
-}
-
-
-static ERR_VALUE _process_variant_calls(const PROGRAM_OPTIONS *Options, PGEN_ARRAY_VARIANT_CALL VCArray, const ASSEMBLY_TASK *Task, const GEN_ARRAY_FOUND_SEQUENCE_VARIANT *VariantArray, const size_t Threshold)
-{
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	const size_t variantCount = gen_array_size(VariantArray);
-	const FOUND_SEQUENCE_VARIANT *var = VariantArray->Data;
-	const size_t realThreshold = Threshold * 100;
-
-	ret = ERR_SUCCESS;
-	for (size_t i = 0; i < variantCount; ++i) {
-		size_t rsPos = var->RefSeqStart + Task->RegionStart + 1;
-		size_t rsLen = var->RefSeqEnd - var->RefSeqStart;
-		char *altSeq = NULL;
-		const char *refSeq = Task->Reference + var->RefSeqStart;
-
-		if (var->Seq1Weight > realThreshold && var->Seq1Type == kmetRead)
-			ret = _process_variant_call(Options, Task, var->RefSeqStart, var->RefSeqEnd, var->Seq1, var->Seq1Len, &var->RefWeights, &var->ReadWeights, &var->RefReadIndices, &var->ReadIndices, var->Context, VCArray);
-
-		++var;
-	}
-
-	return ret;
-}
-
-
 static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *Task, uint16_t Flag)
 {
 	FILE *f = NULL;
@@ -402,30 +242,6 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 			}
 		}
 	}
-
-	return ret;
-}
-
-
-static ERR_VALUE _compare_alternate_sequences(const PROGRAM_OPTIONS *Options, PKMER_GRAPH Graph, const ASSEMBLY_TASK *Task, PGEN_ARRAY_VARIANT_CALL VCArray)
-{
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	GEN_ARRAY_FOUND_SEQUENCE_VARIANT variants;
-
-	kmer_graph_pair_variants(Graph);
-	dym_array_init_FOUND_SEQUENCE_VARIANT(&variants, 140);
-	ret = kmer_graph_get_variants(Graph, &variants);
-	if (ret == ERR_SUCCESS) {
-		if (Graph->TypedEdgeCount[kmetVariant] > 0)
-			_process_variant_calls(Options, VCArray, Task, &variants, Options->Threshold);
-		
-		vc_array_map_to_edges(VCArray);
-		_print_graph(Graph, Options, Task, GRAPH_PRINT_RESULT);
-		if (Graph->TypedEdgeCount[kmetRead] > 0)
-			ret = ERR_TOO_COMPLEX;
-	}
-
-	dym_array_finit_FOUND_SEQUENCE_VARIANT(&variants);
 
 	return ret;
 }
@@ -526,8 +342,6 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 				}
 
 				_print_graph(g, Options, Task, GRAPH_PRINT_VARIANTS);
-//				if (ret == ERR_SUCCESS)
-//					ret = _compare_alternate_sequences(Options, g, Task, VCArray);
 			}
 		
 			PKMER_EDGE_PAIR p = ep.Data;
