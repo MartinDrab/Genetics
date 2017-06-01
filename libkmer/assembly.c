@@ -301,12 +301,14 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 	}
 		
 		if (ret == ERR_SUCCESS) {
-			size_t i = 1;
+			int i = 1;
+			int optimizationIndex = -1;
 
 			kmer_advance(kmer, Read->ReadSequence[KMerSize]);
-			while (i < NumberOfSets) {
+			while (i < (int)NumberOfSets) {
 				ret = _assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
-				if (ret == ERR_SUCCESS && Options->OptimizeShortVariants && NumberOfSets - i > 12) {
+				if (ret == ERR_SUCCESS && Options->OptimizeShortVariants && 
+					NumberOfSets - i > 12 && optimizationIndex < i - 1) {
 					PPOINTER_ARRAY_KMER_VERTEX currVertices = Vertices[i];
 					PPOINTER_ARRAY_KMER_VERTEX prevVertices = Vertices[i - 1];
 
@@ -316,6 +318,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 					if (pointer_array_size(Vertices[i - 1]) == 1 &&
 						pointer_array_size(Vertices[i]) == 1 &&
 						rsv->Type == kmvtRefSeqMiddle &&
+						rsv->RefSeqPosition < Options->RegionLength - 1 &&
 						rev->RefSeqPosition - 1 != rsv->RefSeqPosition) {
 						size_t opStringSize = 0;
 						char *opString = NULL;
@@ -332,7 +335,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 								++matchIndex;
 
 							oneType = (matchIndex < opStringSize && opString[matchIndex] == 'M');
-							if (oneType && matchIndex < 10) {
+							if (oneType && matchIndex < 4 && opString[matchIndex] == opString[matchIndex + 1]) {
 								switch (typeChar) {
 									case 'I': {
 										for (size_t j = 0; j < matchIndex - 1; ++j) {
@@ -343,12 +346,14 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 
 										kmer_init_from_kmer(kmer, &rsv->KMer);
 										rev->ReadStartAllowed = FALSE;
+										optimizationIndex = i;
 									} break;
 									case 'D': {
 										if (rsv->RefSeqPosition + matchIndex + 1 < Options->RegionLength) {
 											kmer_init_from_kmer(kmer, &Graph->RefVertices.Data[rsv->RefSeqPosition + matchIndex + 1]->KMer);
 											--count;
 											_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
+											optimizationIndex = i;
 										}
 									} break;
 									case 'X': {
@@ -361,6 +366,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 
 											kmer_init_from_kmer(kmer, &Graph->RefVertices.Data[rsv->RefSeqPosition + matchIndex]->KMer);
 											rev->ReadStartAllowed = FALSE;
+											optimizationIndex = i;
 										}
 									} break;
 									default:
