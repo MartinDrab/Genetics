@@ -152,6 +152,8 @@ static void _build_distance_graph(const PARSE_OPTIONS *Options, PKMER_GRAPH Grap
 
 				if (u->RefSeqPosition >= v->RefSeqPosition)
 					distance += (ndr->Index - cdr->Index)*Options->BackwardRefseqPenalty;
+				else if (v->RefSeqPosition - u->RefSeqPosition >= 50)
+					distance += (v->RefSeqPosition - u->RefSeqPosition)*Options->BackwardRefseqPenalty;
 
 				if (cdr->Distance + distance < ndr->Distance) {
 					ndr->Distance = cdr->Distance + distance;
@@ -316,7 +318,6 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 					PKMER_VERTEX rev = currVertices->Data[0];
 
 					if (pointer_array_size(Vertices[i - 1]) == 1 &&
-						pointer_array_size(Vertices[i]) == 1 &&
 						rsv->Type == kmvtRefSeqMiddle &&
 						rsv->RefSeqPosition < Options->RegionLength - 1 &&
 						rev->RefSeqPosition - 1 != rsv->RefSeqPosition) {
