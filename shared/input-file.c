@@ -405,29 +405,28 @@ static int _read_comparator(const void *A, const void *B)
 void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQuality, const size_t ReadStrip)
 {
 	ONE_READ *r = NULL;
-	const size_t inputSetSize = *Count;
-	size_t readSetSize = inputSetSize;
+	size_t readSetSize = *Count;
 
-	r = Reads;
-	for (size_t i = 0; i < inputSetSize - 1; ++i) {
-		if (r->PosQuality < MinQuality || r->Pos == (uint64_t)-1 ||
-			r->Extension->Flags.Bits.Unmapped ||
-			r->Extension->Flags.Bits.Supplementary ||
-			r->Extension->Flags.Bits.Duplicate ||
-			r->Extension->Flags.Bits.SecondaryAlignment) {
-			_read_destroy_structure(r);
-			*r = Reads[readSetSize - 1];
-			--readSetSize;
-		} else {
-			r->ReadIndex = r - Reads;
-			++r;
+	{
+		size_t i = 0;
+
+		r = Reads;
+		while (i < readSetSize) {
+			if (r->PosQuality < MinQuality || r->Pos == (uint64_t)-1 ||
+				r->Extension->Flags.Bits.Unmapped ||
+				r->Extension->Flags.Bits.Supplementary ||
+				r->Extension->Flags.Bits.Duplicate ||
+				r->Extension->Flags.Bits.SecondaryAlignment) {
+				_read_destroy_structure(r);
+				*r = Reads[readSetSize - 1];
+				--readSetSize;
+			} else {
+				r->ReadIndex = i;
+				++r;
+				++i;
+			}
 		}
 	}
-
-	if (r->PosQuality < MinQuality || r->Pos == (uint64_t)-1) {
-		_read_destroy_structure(r);
-		--readSetSize;
-	} else r->ReadIndex = readSetSize - 1;
 
 	int i = 0;
 #pragma omp parallel for shared(Reads)

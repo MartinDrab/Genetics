@@ -144,6 +144,7 @@ ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const KMER *KMer, void *Data)
 			ret = ERR_OUT_OF_MEMORY;
 			break;
 		default:
+			assert(FALSE);
 			break;
 	}
 

@@ -430,10 +430,31 @@ static void _init_quality_table(uint8_t *Table)
 	memset(Table + 1, 0, 14 * sizeof(char));
 	memset(Table + 15, 25, 5 * sizeof(char));
 	memset(Table + 20, 50, 5 * sizeof(char));
-	memset(Table + 25, 75, 5 * sizeof(char));
+	memset(Table + 25, 75, 10 * sizeof(char));
 
 	return;
 }
+
+
+static void kmer_graph_check(const KMER_GRAPH *Graph)
+{
+	void *it = NULL;
+	PKMER_LIST l = NULL;
+
+	if (kmer_table_first(Graph->KmerListTable, &it, &l) == ERR_SUCCESS) {
+		do {
+			for (size_t i = 0; i < pointer_array_size(&l->Vertices); ++i) {
+				assert(kmer_seq_equal(&l->Kmer, &(l->Vertices.Data[0]->KMer)));
+			}
+
+		} while (kmer_table_next(Graph->KmerListTable, it, &it, &l) == ERR_SUCCESS);
+	}
+
+
+	return;
+}
+
+
 
 /************************************************************************/
 /*                     PUBLIC FUNCTIONS                                 */
@@ -900,6 +921,7 @@ ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EK
 				if (ret == ERR_SUCCESS)
 					ret = pointer_array_push_back_KMER_VERTEX(&list->Vertices, v);
 				
+				assert(kmer_seq_equal(&list->Kmer, &v->KMer));
 				if (ret == ERR_SUCCESS) {
 					Graph->NumberOfVertices++;
 					v->Lists.Graph = Graph;
@@ -1018,6 +1040,11 @@ ERR_VALUE kmer_graph_get_vertices(const KMER_GRAPH *Graph, const KMER *KMer, PPO
 	KMER_STACK_ALLOC(lk, 0, kmer_get_size(KMer), KMer->Bases);
 	l = (PKMER_LIST)kmer_table_get(Graph->KmerListTable, lk);
 	if (l != NULL) {
+		for (size_t i = 0; i < pointer_array_size(&l->Vertices); ++i) {
+			assert(kmer_seq_equal(KMer, &l->Vertices.Data[i]->KMer));
+			assert(kmer_seq_equal(&l->Kmer, &l->Vertices.Data[i]->KMer));
+		}
+
 		*VertexArray = &l->Vertices;
 		ret = ERR_SUCCESS;
 	}
@@ -1063,10 +1090,8 @@ ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex)
 				PKMER lk = NULL;
 
 				KMER_STACK_ALLOC(lk, 0, kmer_get_size(&Vertex->KMer), Vertex->KMer.Bases);
-				list = kmer_table_get(Graph->KmerListTable, lk);
-				if (list != NULL)
-					pointer_array_remove_KMER_VERTEX(&list->Vertices, Vertex);
-
+				list = (PKMER_LIST)kmer_table_get(Graph->KmerListTable, lk);
+				pointer_array_remove_KMER_VERTEX(&list->Vertices, Vertex);
 				ret = kmer_table_delete(Graph->VertexTable, &Vertex->KMer);
 				--Graph->NumberOfVertices;
 			}

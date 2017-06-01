@@ -243,16 +243,20 @@
 	}																	\
 
 #define POINTER_ARRAY_REMOVE_FUNCTION(aDataType)	\
-	INLINE_FUNCTION void pointer_array_remove_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const aDataType *Item)	\
+	INLINE_FUNCTION boolean pointer_array_remove_##aDataType(POINTER_ARRAY_PTYPE(aDataType) Array, const aDataType *Item)	\
 	{																	\
+		boolean ret = FALSE;											\
+																		\
 		for (size_t i = 0; i < Array->ValidLength; ++i) {				\
 			if (memcmp(Array->Data + i, &Item, sizeof(Item)) == 0) {	\
 				memmove(Array->Data + i, Array->Data + i + 1, sizeof(Item)*(Array->ValidLength - (i + 1)));	\
 				--Array->ValidLength;									\
+				ret = TRUE;												\
+				break;													\
 			}															\
 		}																\
 																		\
-		return;														\
+		return ret;														\
 	}																	\
 
 

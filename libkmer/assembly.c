@@ -104,6 +104,22 @@ static void _finit_distance_arrays(PGEN_ARRAY_DISTANCE_RECORD Distances, const s
 }
 
 
+static size_t _missing_edge_price(const PARSE_OPTIONS *Options, PKMER_GRAPH Graph, const KMER_VERTEX *Source, const KMER_VERTEX *Dest)
+{
+	size_t ret = Options->MissingEdgePenalty;
+	const KMER_EDGE *e = NULL;
+
+	e = kmer_graph_get_edge(Graph, &Source->KMer, &Dest->KMer);
+	if (e != NULL) {
+		if (e->Type == kmetReference || read_info_weight(&e->ReadInfo, Graph->QualityTable) > 100*Options->ReadThreshold)
+			ret = 0;
+	}
+
+
+	return ret;
+}
+
+
 static void _build_distance_graph(const PARSE_OPTIONS *Options, PKMER_GRAPH Graph, PGEN_ARRAY_DISTANCE_RECORD Distances, const size_t DistanceCount, PPOINTER_ARRAY_KMER_VERTEX *Vertices, const size_t NumberOfVertices)
 {
 	PGEN_ARRAY_DISTANCE_RECORD currentD = Distances;
@@ -125,22 +141,14 @@ static void _build_distance_graph(const PARSE_OPTIONS *Options, PKMER_GRAPH Grap
 				if (ndr->Index - cdr->Index > 1) {
 					x = Vertices[cdr->Index + 1]->Data[0];
 					y = Vertices[ndr->Index - 1]->Data[0];
-					if (kmer_graph_get_edge(Graph, &u->KMer, &x->KMer) == NULL)
-						distance += Options->MissingEdgePenalty;
-
-					if (kmer_graph_get_edge(Graph, &y->KMer, &v->KMer) == NULL)
-						distance += Options->MissingEdgePenalty;
-
+					distance += _missing_edge_price(Options, Graph, u, x);
+					distance += _missing_edge_price(Options, Graph, y, v);
 					for (size_t l = cdr->Index + 1; l < ndr->Index - 1; ++l) {
 						x = Vertices[l]->Data[0];
 						y = Vertices[l + 1]->Data[0];
-						if (kmer_graph_get_edge(Graph, &x->KMer, &y->KMer) == NULL)
-							distance += Options->MissingEdgePenalty;
+						distance += _missing_edge_price(Options, Graph, x, y);
 					}
-				} else {
-					if (kmer_graph_get_edge(Graph, &u->KMer, &v->KMer) == NULL)
-						distance += Options->MissingEdgePenalty;
-				}
+				} else distance += _missing_edge_price(Options, Graph, u, v);
 
 				if (u->RefSeqPosition >= v->RefSeqPosition)
 					distance += (ndr->Index - cdr->Index)*Options->BackwardRefseqPenalty;
@@ -279,19 +287,18 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 
 	KMER_STACK_ALLOC(kmer, 0, KMerSize, Read->ReadSequence);
 	ret = _assign_vertice_set_to_kmer(Graph, kmer, Vertices, 0, Options, &count);
-	if (ret == ERR_SUCCESS) {
-		{
-			const KMER_VERTEX *tmp = Vertices[0]->Data[0];
+	if (ret == ERR_SUCCESS) { {
+		const KMER_VERTEX *tmp = Vertices[0]->Data[0];
 
-			if (tmp->Type == kmvtRead && !tmp->ReadStartAllowed) {
-				PKMER dummyKMer = NULL;
+		if (tmp->Type == kmvtRead && !tmp->ReadStartAllowed) {
+			PKMER dummyKMer = NULL;
 
-				count--;
-				KMER_STACK_ALLOC(dummyKMer, 0, KMerSize, NULL);
-				memset(dummyKMer->Bases, 'H', kmer_get_size(dummyKMer));
-				ret = _assign_vertice_set_to_kmer(Graph, dummyKMer, Vertices, 0, Options, &count);
-			}
+			count--;
+			KMER_STACK_ALLOC(dummyKMer, 0, KMerSize, NULL);
+			memset(dummyKMer->Bases, 'H', kmer_get_size(dummyKMer));
+			ret = _assign_vertice_set_to_kmer(Graph, dummyKMer, Vertices, 0, Options, &count);
 		}
+	}
 		
 		if (ret == ERR_SUCCESS) {
 			size_t i = 1;
@@ -299,9 +306,12 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 			kmer_advance(kmer, Read->ReadSequence[KMerSize]);
 			while (i < NumberOfSets) {
 				ret = _assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
-				if (ret == ERR_SUCCESS && Options->OptimizeShortVariants && NumberOfSets - i > 10) {
-					const KMER_VERTEX *rsv = Vertices[i - 1]->Data[0];
-					PKMER_VERTEX rev = Vertices[i]->Data[0];
+				if (ret == ERR_SUCCESS && Options->OptimizeShortVariants && NumberOfSets - i > 12) {
+					PPOINTER_ARRAY_KMER_VERTEX currVertices = Vertices[i];
+					PPOINTER_ARRAY_KMER_VERTEX prevVertices = Vertices[i - 1];
+
+					const KMER_VERTEX *rsv = prevVertices->Data[0];
+					PKMER_VERTEX rev = currVertices->Data[0];
 
 					if (pointer_array_size(Vertices[i - 1]) == 1 &&
 						pointer_array_size(Vertices[i]) == 1 &&
@@ -312,25 +322,20 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 						const char *ref = Options->Reference + rsv->RefSeqPosition + 1;
 						const char *alt = Read->ReadSequence + KMerSize + i - 1;
 
-						ret = ssw_clever(ref, 6, alt, 6, 2, -1, -1, &opString, &opStringSize);
+						ret = ssw_clever(ref, 10, alt, 10, 2, -1, -1, &opString, &opStringSize);
 						if (ret == ERR_SUCCESS) {
-							while (opStringSize > 0 && opString[opStringSize - 1] == 'M')
-								opStringSize--;
+							boolean oneType = TRUE;
+							char typeChar = opString[0];
+							size_t matchIndex = 0;
 
-							if (opStringSize > 0 && opStringSize <= 3) {
-								boolean oneType = TRUE;
-								char typeChar = opString[0];
+							while (matchIndex < opStringSize && opString[matchIndex] != 'M' && opString[matchIndex] == typeChar)
+								++matchIndex;
 
-								for (size_t i = 1; i < opStringSize; ++i) {
-									oneType = opString[i] == typeChar;
-									if (!oneType)
-										break;
-								}
-
-								if (oneType) {
-									switch (typeChar) {
+							oneType = (matchIndex < opStringSize && opString[matchIndex] == 'M');
+							if (oneType && matchIndex < 10) {
+								switch (typeChar) {
 									case 'I': {
-										for (size_t j = 0; j < opStringSize - 1; ++j) {
+										for (size_t j = 0; j < matchIndex - 1; ++j) {
 											kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
 											++i;
 											_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
@@ -340,27 +345,26 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 										rev->ReadStartAllowed = FALSE;
 									} break;
 									case 'D': {
-										if (rsv->RefSeqPosition + opStringSize + 1 < Options->RegionLength) {
-											Vertices[i]->Data[0] = Graph->RefVertices.Data[rsv->RefSeqPosition + opStringSize + 1];
-											kmer_init_from_kmer(kmer, &Graph->RefVertices.Data[rsv->RefSeqPosition + opStringSize + 1]->KMer);
+										if (rsv->RefSeqPosition + matchIndex + 1 < Options->RegionLength) {
+											kmer_init_from_kmer(kmer, &Graph->RefVertices.Data[rsv->RefSeqPosition + matchIndex + 1]->KMer);
+											--count;
+											_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
 										}
 									} break;
 									case 'X': {
-										if (rsv->RefSeqPosition + opStringSize < Options->RegionLength) {
-											for (size_t j = 0; j < opStringSize - 1; ++j) {
+										if (rsv->RefSeqPosition + matchIndex < Options->RegionLength) {
+											for (size_t j = 0; j < matchIndex - 1; ++j) {
 												kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
 												++i;
 												_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
 											}
 
-											kmer_init_from_kmer(kmer, &Graph->RefVertices.Data[rsv->RefSeqPosition + opStringSize]->KMer);
+											kmer_init_from_kmer(kmer, &Graph->RefVertices.Data[rsv->RefSeqPosition + matchIndex]->KMer);
 											rev->ReadStartAllowed = FALSE;
 										}
 									} break;
 									default:
-										assert(FALSE);
 										break;
-									}
 								}
 							}
 
@@ -919,7 +923,7 @@ ERR_VALUE assembly_parse_reads(PASSEMBLY_STATE State)
 	uint8_t **flagPaths = State->FlagPaths;
 	size_t *pathLengths = State->PathLengths;
 
-	_sort_reads(Graph, Reads, ReadCount);
+//	_sort_reads(Graph, Reads, ReadCount);
 	currentRead = Reads;
 	for (size_t i = 0; i < ReadCount; ++i) {
 		ret = _kmer_graph_parse_read_v2(Options, Graph, currentRead, currentRead->ReadIndex, paths + i, pathLengths + i, edgePaths + i);
