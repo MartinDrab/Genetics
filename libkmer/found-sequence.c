@@ -298,13 +298,13 @@ ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL S
 
 				size_t minSourceIndex = 0;
 				uint64_t minValue = (uint64_t)-1;
-				const VARIANT_CALL *minVc = NULL;
+				PVARIANT_CALL minVc = NULL;
 				
 				while (ret == ERR_SUCCESS && remainingCount > 0) {
 					minValue = (uint64_t)-1;
 					for (size_t i = 0; i < SourceCount; ++i) {
 						if (indices[i] < counts[i]) {
-							const VARIANT_CALL *vc = dym_array_const_item_VARIANT_CALL(Sources + i, indices[i]);
+							PVARIANT_CALL vc = dym_array_item_VARIANT_CALL(Sources + i, indices[i]);
 
 							if (vc->Pos < minValue) {
 								minValue = vc->Pos;
