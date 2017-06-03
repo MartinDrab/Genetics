@@ -1615,9 +1615,6 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 	assert(pointer_array_size(RefReads) == gen_array_size(RSWeights));
 	assert(pointer_array_size(AltReads) == gen_array_size(ReadWeights));
 
-	if (pointer_array_size(RSWeights) == 8)
-		__debugbreak();
-
 	while (RefLen != 0 || AltLen != 0) {
 		ret = ssw_clever(Ref, RefLen, Alt, AltLen, 2, -1, -1, &opString, &opStringLen);;
 		if (ret == ERR_SUCCESS) {
