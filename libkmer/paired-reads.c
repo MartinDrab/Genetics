@@ -158,7 +158,7 @@ void paired_reads_fix_overlaps(boolean Strip)
 					!in_range(r1->Pos, r1->ReadSequenceLen, r2->Pos + r2->ReadSequenceLen)) {
 					size_t mismatchCount = 0;
 					boolean matches = FALSE;
-					size_t overlapLength = r1->Pos + r1->ReadSequenceLen - r2->Pos;
+					uint32_t overlapLength = (uint32_t)(r1->Pos + r1->ReadSequenceLen - r2->Pos);
 					const char *or1 = r1->ReadSequence + r1->ReadSequenceLen - overlapLength;
 					const uint8_t *oq1 = r1->Quality + r1->ReadSequenceLen - overlapLength;
 					const char *or2 = r2->ReadSequence;
@@ -180,7 +180,7 @@ void paired_reads_fix_overlaps(boolean Strip)
 
 						if (Strip) {
 							if (overlapLength < r2->ReadSequenceLen) {
-								size_t r2Move = overlapLength;
+								uint32_t r2Move = overlapLength;
 								const char *tmp = r2->ReadSequence + overlapLength;
 								const char *tmp2 = or1 + overlapLength;
 
@@ -196,7 +196,7 @@ void paired_reads_fix_overlaps(boolean Strip)
 								r1->ReadSequence[r1->ReadSequenceLen] = '\0';
 								r1->Quality[r1->ReadSequenceLen] = '\0';
 							} else {
-								r1->ReadSequenceLen -= (r1->Pos + r1->ReadSequenceLen - r2->Pos);
+								r1->ReadSequenceLen -= (uint32_t)(r1->Pos + r1->ReadSequenceLen - r2->Pos);
 								while (*or1 == *or2) {
 									++or1;
 									++or2;

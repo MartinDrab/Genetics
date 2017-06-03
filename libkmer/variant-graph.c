@@ -766,11 +766,11 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 		vc = Graph->Vertices.ByType.Reference[i].Variant;
 		v = Graph->Vertices.ByType.Reference + i;
 		if (_vg_vertex_exists(Graph, v))
-			fprintf(Stream, "\tV%Iu_1[label=\"Pos: %" PRId64 "\\nCount: %Iu; Weight: %u\\nType: %s\",style=filled,color=%s];\n", i, vc->Pos, v->ReadCount, v->Weight, typeNames[v->Type], colors[v->Color]);
+			fprintf(Stream, "\tV%zu_1[label=\"Pos: %" PRId64 "\\nCount: %zu; Weight: %zu\\nType: %s\",style=filled,color=%s];\n", i, vc->Pos, v->ReadCount, v->Weight, typeNames[v->Type], colors[v->Color]);
 
 		v = Graph->Vertices.ByType.Alternative + i;
 		if (_vg_vertex_exists(Graph, v))
-			fprintf(Stream, "\tV%Iu_2[label=\"Pos: %" PRId64 "\\nCount: %Iu;Weight: %u\\nType: %s\",style=filled,color=%s];\n", i, vc->Pos, v->ReadCount, v->Weight, typeNames[v->Type], colors[v->Color]);
+			fprintf(Stream, "\tV%zu_2[label=\"Pos: %" PRId64 "\\nCount: %zu;Weight: %zu\\nType: %s\",style=filled,color=%s];\n", i, vc->Pos, v->ReadCount, v->Weight, typeNames[v->Type], colors[v->Color]);
 
 		if (_vg_vertex_exists(Graph, Graph->Vertices.ByType.Reference + i) && 
 			_vg_vertex_exists(Graph, Graph->Vertices.ByType.Alternative + i))

@@ -472,7 +472,7 @@ static ERR_VALUE _obtain_files(PPOINTER_ARRAY_char Array, const size_t MaxCount,
 
 KHASH_MAP_INIT_STR(kc, size_t)
 
-ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t KMerSize, const ONE_READ *Reads, const size_t ReadCount)
+ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t KMerSize, PONE_READ Reads, const size_t ReadCount)
 {
 	int err;
 	size_t maxValue = 0;
@@ -484,7 +484,7 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 
 	ret = utils_calloc(KMerSize + 1, sizeof(char), &kmerString);
 	if (ret == ERR_SUCCESS) {
-		const ONE_READ *r = Reads;
+		PONE_READ r = Reads;
 		
 		kmerString[KMerSize] = '\0';
 		for (size_t i = 0; i < ReadCount; ++i) {			
@@ -556,7 +556,7 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 
 	for (size_t i = kh_begin(table); i < kh_end(table); ++i) {
 		if (kh_exist(table, i))
-			utils_free(kh_key(table, i));
+			utils_free((void *)kh_key(table, i));
 	}
 
 	kh_destroy(kc, table);

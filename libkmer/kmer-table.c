@@ -152,7 +152,7 @@ ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const KMER *KMer, void *Data)
 }
 
 
-ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const PKMER KMer)
+ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const KMER *KMer)
 {
 	khiter_t it;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;

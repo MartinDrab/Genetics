@@ -38,7 +38,7 @@ ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t Size, const KMER
 void kmer_table_destroy(PKMER_TABLE Table);
 void kmer_table_print(FILE *Stream, const PKMER_TABLE Table);
 
-ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const PKMER KMer);
+ERR_VALUE kmer_table_delete(PKMER_TABLE Table, const KMER *KMer);
 ERR_VALUE kmer_table_insert(PKMER_TABLE Table, const KMER *KMer, void *Data);
 void *kmer_table_get(const struct _KMER_TABLE *Table, const struct _KMER *KMer);
 

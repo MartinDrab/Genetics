@@ -24,7 +24,7 @@ typedef struct _KMER_EDGE {
 	/** Edge creation order. */
 	unsigned int Order;
 	EKMerEdgeType Type;
-	char *Seq;
+	const char *Seq;
 	size_t SeqLen;
 	EKMerEdgeType SeqType;
 	size_t Seq1Weight;

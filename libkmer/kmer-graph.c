@@ -187,7 +187,7 @@ static void _edge_destroy(PKMER_GRAPH Graph, PKMER_EDGE Edge)
 	pointer_array_finit_VARIANT_CALL(&Edge->VCs);
 	read_info_finit(&Edge->ReadInfo);
 	if (Edge->Seq != NULL)
-		utils_free(Edge->Seq);
+		utils_free((void *)Edge->Seq);
 
 	Graph->Allocator.EdgeFreer(Graph, Edge, Graph->Allocator.EdgeAllocatorContext);
 
@@ -429,8 +429,8 @@ static void _init_quality_table(uint8_t *Table)
 	Table[0] = 0;
 	memset(Table + 1, 0, 14 * sizeof(char));
 	memset(Table + 15, 25, 5 * sizeof(char));
-	memset(Table + 20, 50, 5 * sizeof(char));
-	memset(Table + 25, 75, 10 * sizeof(char));
+	memset(Table + 20, 50, 10 * sizeof(char));
+	memset(Table + 30, 75, 10 * sizeof(char));
 
 	return;
 }
@@ -641,7 +641,7 @@ void kmer_graph_destroy(PKMER_GRAPH Graph)
 void kmer_graph_print(FILE *Stream, const KMER_GRAPH *Graph)
 {
 	void *it = NULL;
-	const KMER_VERTEX *v = NULL;
+	KMER_VERTEX *v = NULL;
 
 	fprintf(Stream, "digraph G {\n");
 	fprintf(Stream, "\t/* number of vertices: %u */\n", Graph->NumberOfVertices);
@@ -1142,9 +1142,12 @@ ERR_VALUE kmer_graph_merge_edges(PKMER_GRAPH Graph, PKMER_EDGE Source, PKMER_EDG
 
 			ret = kmer_graph_add_edge_ex(Graph, u, w, type, &newEdge);
 			if (ret == ERR_SUCCESS) {
+				char *newSeq = NULL;
+
 				newEdge->MarkedForDelete = mfd;
-				ret = _capture_edge_sequence(Source, NULL, Dest, &newEdge->Seq, &newEdge->SeqLen);
+				ret = _capture_edge_sequence(Source, NULL, Dest, &newSeq, &newEdge->SeqLen);
 				if (ret == ERR_SUCCESS) {
+					newEdge->Seq = newSeq;
 					ret = dym_array_reserve_size_t(&newEdge->Weights, newEdge->SeqLen + 1);
 					if (ret == ERR_SUCCESS) {						
 						dym_array_push_back_array_no_alloc_size_t(&newEdge->Weights, &Source->Weights);
@@ -1687,7 +1690,9 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 						Ref = tmpRS;
 						Alt = tmpAltS;
 						nothing = TRUE;
-					} else {
+					}
+
+					while ((RefLen > 0 || AltLen > 0) && *Alt == *Ref) {
 						Pos++;
 						++rfwStartIndex;
 						++rewStartIndex;
