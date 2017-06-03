@@ -995,6 +995,9 @@ void vg_graph_finalize(PVARIANT_GRAPH Graph)
 		if (!_vg_vertex_exists(Graph, v))
 			v->Variant->Valid = FALSE;
 
+		if (strlen(v->Variant->Ref) >= 40)
+			v->Variant->Valid = FALSE;
+
 		++v;
 	}
 	
