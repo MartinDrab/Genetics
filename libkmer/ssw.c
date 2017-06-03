@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include "err.h"
 #include "utils.h"
-#include "found-sequence.h"
 #include "ssw.h"
 
 /************************************************************************/
