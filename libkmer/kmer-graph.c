@@ -1606,15 +1606,17 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 	--AltLen;
 	--RefLen;
 	++Pos;
+
+	const char *tmpRS = Ref;
+	const char *tmpAltS = Alt;
+
 	assert(gen_array_size(RSWeights) >= RefLen);
 	assert(gen_array_size(ReadWeights) >= AltLen);
 	assert(pointer_array_size(RefReads) == gen_array_size(RSWeights));
 	assert(pointer_array_size(AltReads) == gen_array_size(ReadWeights));
-	ret = ssw_clever(Ref, RefLen, Alt, AltLen, 2, -1, -1, &opString, &opStringLen);;
+	ret = ssw_clever(tmpRS, RefLen - (tmpRS - Ref), tmpAltS, AltLen - (tmpAltS - Alt), 2, -1, -1, &opString, &opStringLen);;
 	if (ret == ERR_SUCCESS) {
 		const char *opIt = opString;
-		const char *tmpRS = Ref;
-		const char *tmpAltS = Alt;
 		boolean nothing = TRUE;
 
 		while (ret == ERR_SUCCESS) {
