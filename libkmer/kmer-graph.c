@@ -1590,7 +1590,7 @@ static ERR_VALUE _follow_line(PKMER_EDGE Start, char **Seq, size_t *SeqLen, PKME
 }
 
 
-static ERR_VALUE _create_variants(const char *Chrom, uint64_t Pos, const char *Ref, size_t RefLen, const char *Alt, size_t AltLen, const GEN_ARRAY_size_t *RSWeights, const GEN_ARRAY_size_t *ReadWeights, const POINTER_ARRAY_READ_INFO *RefReads, const POINTER_ARRAY_READ_INFO *AltReads, void *Context, PGEN_ARRAY_VARIANT_CALL VCArray)
+static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, uint64_t Pos, const char *Ref, size_t RefLen, const char *Alt, size_t AltLen, const GEN_ARRAY_size_t *RSWeights, const GEN_ARRAY_size_t *ReadWeights, const POINTER_ARRAY_READ_INFO *RefReads, const POINTER_ARRAY_READ_INFO *AltReads, void *Context, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	VARIANT_CALL vc;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -1654,6 +1654,7 @@ static ERR_VALUE _create_variants(const char *Chrom, uint64_t Pos, const char *R
 						if (ret == ERR_SUCCESS) {
 							size_t total = 0;
 							
+							vc.KMerSize = KMerSize;
 							vc.Context = Context;
 							for (int i = rfwStartIndex; i < rfwEndIndex + 1; ++i)
 								total += RSWeights->Data[i];
@@ -1869,7 +1870,7 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT
 							for (size_t i = 0; i < pointer_array_size(&es1); ++i)
 								pointer_array_clear_READ_INFO(&(es1.Data[i]->ReadIndices));
 							
-							_create_variants(CHrom, v->AbsPos, s1.Sequence, s1.ValidLength, s2.Sequence, s2.ValidLength, &w1, &w2, &rp1, &rp2, NULL, VCArray);
+							_create_variants(kmer_graph_get_kmer_size(Graph), CHrom, v->AbsPos, s1.Sequence, s1.ValidLength, s2.Sequence, s2.ValidLength, &w1, &w2, &rp1, &rp2, NULL, VCArray);
 							kmer_graph_delete_edge(Graph, path1Start);
 							kmer_graph_delete_edge(Graph, path2Start);
 							ret = kmer_graph_add_edge_ex(Graph, v, path1Vertex, kmetVariant, &e);
