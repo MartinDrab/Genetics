@@ -10,18 +10,6 @@ Uses
   VCFRecord;
 
 Type
-  EVCFIncidentType = (
-    vcfitTruePositive,
-    vcfitFalseNegative,
-    vcfitFalsePositive
-  );
-  EVCFIncidentTypeSet = Set Of EVCFIncidentType;
-
-  TVCFIncident = Record
-    IncidentType : EVCFIncidentType;
-    VCFRecord : TVCFRecord;
-    end;
-
   TMainFrm = class(TForm)
     MainPanel: TPanel;
     SetsAndFilesGroupBox: TGroupBox;
@@ -51,6 +39,7 @@ Type
     MinAQFilterEdit: TEdit;
     Label3: TLabel;
     Label4: TLabel;
+    StatisticsButton: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FilterCheckBoxClick(Sender: TObject);
@@ -61,6 +50,7 @@ Type
     procedure ResultListViewAdvancedCustomDrawItem(Sender: TCustomListView;
       Item: TListItem; State: TCustomDrawState; Stage: TCustomDrawStage;
       var DefaultDraw: Boolean);
+    procedure StatisticsButtonClick(Sender: TObject);
   Private
     FTruthFile : TVCFFile;
     FTestFile : TVCFFile;
@@ -87,6 +77,9 @@ Var
   MainFrm: TMainFrm;
 
 Implementation
+
+Uses
+  StatisticsFrm;
 
 Procedure TMainFrm.BuildFilterSet;
 begin
@@ -287,6 +280,15 @@ With Item Do
   SubItems.Add(r.Format);
   SubItems.Add(r.Sample);
 
+  end;
+end;
+
+Procedure TMainFrm.StatisticsButtonClick(Sender: TObject);
+begin
+With TStatisticsForm.Create(Self, FFilteredTruth, FFilteredTest, FIncidents) Do
+  begin
+  ShowModal;
+  Free;
   end;
 end;
 

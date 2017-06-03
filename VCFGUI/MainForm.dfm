@@ -275,6 +275,15 @@ object MainFrm: TMainFrm
         TabOrder = 1
         OnClick = HideButtonClick
       end
+      object StatisticsButton: TButton
+        Left = 385
+        Top = 6
+        Width = 65
+        Height = 33
+        Caption = 'Statistics...'
+        TabOrder = 2
+        OnClick = StatisticsButtonClick
+      end
     end
   end
   object TruthSetOpenDialog: TOpenDialog

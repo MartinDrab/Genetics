@@ -6,6 +6,13 @@ Uses
   Classes, Generics.Collections;
 
 Type
+  EVCFIncidentType = (
+    vcfitTruePositive,
+    vcfitFalseNegative,
+    vcfitFalsePositive
+  );
+  EVCFIncidentTypeSet = Set Of EVCFIncidentType;
+
   EVCFRecordType = (
     vcfrtSNP,
     vcfrtInsertion,
@@ -75,6 +82,10 @@ Type
         Property Count : Integer Read GetRecordCount;
       end;
 
+  TVCFIncident = Record
+    IncidentType : EVCFIncidentType;
+    VCFRecord : TVCFRecord;
+    end;
 
 Implementation
 

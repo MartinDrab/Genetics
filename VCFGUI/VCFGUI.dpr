@@ -3,7 +3,8 @@ program VCFGUI;
 uses
   Vcl.Forms,
   MainForm in 'MainForm.pas' {MainFrm},
-  VCFRecord in 'VCFRecord.pas';
+  VCFRecord in 'VCFRecord.pas',
+  StatisticsFrm in 'StatisticsFrm.pas' {StatisticsForm};
 
 {$R *.res}
 

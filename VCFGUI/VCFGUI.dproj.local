@@ -8,5 +8,8 @@
     <Transaction>2017/05/03 16:43:29.000.879,C:\Users\Martin\Documents\RAD Studio\Projects\Project1.dproj=D:\MFF\Diplomka\Genetics\VCFGUI\VCFGUI.dproj</Transaction>
     <Transaction>2017/05/08 23:40:58.000.847,=D:\MFF\Diplomka\Genetics\VCFGUI\Unit1.pas</Transaction>
     <Transaction>2017/05/08 23:41:09.000.422,D:\MFF\Diplomka\Genetics\VCFGUI\VCFRecord.pas=D:\MFF\Diplomka\Genetics\VCFGUI\Unit1.pas</Transaction>
+    <Transaction>2017/06/01 19:42:45.367,=D:\MFF\Diplomka\Genetics\VCFGUI\Unit1.pas</Transaction>
+    <Transaction>2017/06/01 19:43:02.969,D:\MFF\Diplomka\Genetics\VCFGUI\StatisticsFrm.pas=D:\MFF\Diplomka\Genetics\VCFGUI\Unit1.pas</Transaction>
+    <Transaction>2017/06/01 19:43:02.969,D:\MFF\Diplomka\Genetics\VCFGUI\StatisticsFrm.dfm=D:\MFF\Diplomka\Genetics\VCFGUI\Unit1.dfm</Transaction>
   </Transactions>
 </BorlandProject>
