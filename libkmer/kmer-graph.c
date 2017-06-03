@@ -1607,20 +1607,22 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 	--RefLen;
 	++Pos;
 
-	const char *tmpRS = Ref;
-	const char *tmpAltS = Alt;
-
 	assert(gen_array_size(RSWeights) >= RefLen);
 	assert(gen_array_size(ReadWeights) >= AltLen);
 	assert(pointer_array_size(RefReads) == gen_array_size(RSWeights));
 	assert(pointer_array_size(AltReads) == gen_array_size(ReadWeights));
-	ret = ssw_clever(tmpRS, RefLen - (tmpRS - Ref), tmpAltS, AltLen - (tmpAltS - Alt), 2, -1, -1, &opString, &opStringLen);;
-	if (ret == ERR_SUCCESS) {
-		const char *opIt = opString;
-		boolean nothing = TRUE;
 
-		while (ret == ERR_SUCCESS) {
-			switch (*opIt) {
+	while (RefLen != 0 || AltLen != 0) {
+		ret = ssw_clever(Ref, RefLen, Alt, AltLen, 2, -1, -1, &opString, &opStringLen);;
+		if (ret == ERR_SUCCESS) {
+			const char *opIt = opString;
+			boolean nothing = TRUE;
+			const char *tmpRS = Ref;
+			const char *tmpAltS = Alt;
+			boolean found = FALSE;
+
+			while (!found) {
+				switch (*opIt) {
 				case 'X':
 					++tmpRS;
 					++rfwEndIndex;
@@ -1643,19 +1645,17 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 						GEN_ARRAY_size_t altIndices;
 
 						dym_array_init_size_t(&refIndices, 140);
-						for (int i = rfwStartIndex; i < rfwEndIndex + 1; ++i) {
+						for (int i = rfwStartIndex; i < rfwEndIndex + 1; ++i)
 							read_info_to_indices(RefReads->Data[i], &refIndices);
-						}
 
 						dym_array_init_size_t(&altIndices, 140);
-						for (int i = rewStartIndex; i < rewEndIndex + 1; ++i) {
+						for (int i = rewStartIndex; i < rewEndIndex + 1; ++i)
 							read_info_to_indices(AltReads->Data[i], &altIndices);
-						}
 
 						ret = variant_call_init(Chrom, Pos + 1 - offset, ".", Ref - offset, rLen + offset, Alt - offset, aLen + offset, 60, &refIndices, &altIndices, &vc);
 						if (ret == ERR_SUCCESS) {
 							size_t total = 0;
-							
+
 							vc.KMerSize = KMerSize;
 							vc.Context = Context;
 							for (int i = rfwStartIndex; i < rfwEndIndex + 1; ++i)
@@ -1680,6 +1680,8 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 						dym_array_finit_size_t(&refIndices);
 
 						Pos += (tmpRS - Ref);
+						RefLen -= rLen;
+						AltLen -= aLen;
 						rfwStartIndex = rfwEndIndex;
 						rewStartIndex = rewEndIndex;
 						Ref = tmpRS;
@@ -1691,12 +1693,13 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 						++rewStartIndex;
 						Ref++;
 						Alt++;
+						--RefLen;
+						--AltLen;
+						++rfwEndIndex;
+						++rewEndIndex;
 					}
 
-					++tmpRS;
-					++tmpAltS;
-					++rfwEndIndex;
-					++rewEndIndex;
+					found = TRUE;
 					break;
 				case 'I':
 					++tmpAltS;
@@ -1718,6 +1721,7 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 
 			utils_free(opString);
 		}
+	}
 
 	return ret;
 }
