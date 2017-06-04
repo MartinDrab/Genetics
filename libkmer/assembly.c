@@ -637,7 +637,7 @@ static ERR_VALUE _create_long_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertic
 				readGapSeqStart = seqIndex;
 				gapStartE = Edges[i];
 				longEdgeType = kmetRead;
-				if (w->Type == kmvtRefSeqMiddle && (lastRefSeqPos > w->RefSeqPosition))
+				if (w->Type == kmvtRefSeqMiddle && (lastRefSeqPos > w->RefSeqPosition || (lastRefSeqPos != 0 && lastRefSeqPos + 40 < w->RefSeqPosition)))
 					permitLongEdge = TRUE;
 			}
 
