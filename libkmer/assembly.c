@@ -152,7 +152,7 @@ static void _build_distance_graph(const PARSE_OPTIONS *Options, PKMER_GRAPH Grap
 
 				if (u->RefSeqPosition >= v->RefSeqPosition)
 					distance += (ndr->Index - cdr->Index)*Options->BackwardRefseqPenalty;
-				else if (v->RefSeqPosition - u->RefSeqPosition >= 50)
+				else if (v->RefSeqPosition - u->RefSeqPosition >= kmer_graph_get_kmer_size(Graph) + 30)
 					distance += (v->RefSeqPosition - u->RefSeqPosition)*Options->BackwardRefseqPenalty;
 
 				if (cdr->Distance + distance < ndr->Distance) {
@@ -637,7 +637,7 @@ static ERR_VALUE _create_long_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertic
 				readGapSeqStart = seqIndex;
 				gapStartE = Edges[i];
 				longEdgeType = kmetRead;
-				if (w->Type == kmvtRefSeqMiddle && (lastRefSeqPos > w->RefSeqPosition || (lastRefSeqPos != 0 && lastRefSeqPos + 40 < w->RefSeqPosition)))
+				if (w->Type == kmvtRefSeqMiddle && (lastRefSeqPos > w->RefSeqPosition || (lastRefSeqPos != 0 && lastRefSeqPos + kmer_graph_get_kmer_size(Graph) + 30 < w->RefSeqPosition)))
 					permitLongEdge = TRUE;
 			}
 
