@@ -1009,6 +1009,38 @@ ERR_VALUE assembly_create_long_edges(PASSEMBLY_STATE State, PGEN_ARRAY_KMER_EDGE
 }
 
 
+ERR_VALUE assembly_variants_to_edges(PASSEMBLY_STATE State, const GEN_ARRAY_VARIANT_CALL *VCArray)
+{
+	PKMER_EDGE e = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = ERR_SUCCESS;
+	e = _get_refseq_or_variant_edge(State->Graph->StartingVertex);
+	while (ret == ERR_SUCCESS && e != NULL) {
+		if (e->Type == kmetVariant) {
+			const uint64_t startPos = e->Source->AbsPos + 1;
+			const uint64_t endPos = e->Dest->AbsPos + 1;
+			const VARIANT_CALL *vc = VCArray->Data;
+
+			for (size_t i = 0; i < gen_array_size(VCArray); ++i) {
+				if (startPos <= vc->Pos && vc->Pos < endPos) {
+					ret = pointer_array_push_back_VARIANT_CALL(&e->VCs, vc);
+					if (ret != ERR_SUCCESS)
+						break;
+				}
+
+				++vc;
+			}
+		}
+
+		e = _get_refseq_or_variant_edge(e->Dest);
+	}
+
+	return ret;
+}
+
+
+
 ERR_VALUE assembly_state_init(PKMER_GRAPH Graph, const PARSE_OPTIONS *ParseOptions, PONE_READ Reads, size_t ReadCount, PASSEMBLY_STATE State)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;

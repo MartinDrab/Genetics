@@ -51,6 +51,9 @@ static PUTILS_LOOKASIDE *_edgeLAs;
 #define GRAPH_PRINT_VARIANTS			0x100
 #define GRAPH_PRINT_RESULT				0x200
 
+#define GRAPH_PRINT_ALL	(														\
+	GRAPH_PRINT_LONG_EDGES | GRAPH_PRINT_THRESHOLD_1 | GRAPH_PRINT_CONNECT |	\
+	GRAPH_PRINT_THRESHOLD_2 | GRAPH_PRINT_SHRINK | GRAPH_PRINT_VARIANTS)		\
 
 static ERR_VALUE _init_default_values()
 {
@@ -69,7 +72,7 @@ static ERR_VALUE _init_default_values()
 	program_option_init(PROGRAM_OPTION_PLOT_STEP, PROGRAM_OPTION_PLOT_STEP, UInt32, 0);
 	program_option_init(PROGRAM_OPTION_VCFFILE, PROGRAM_OPTION_VCFFILE_DESC, String, "result.vcf");
 	program_option_init(PROGRAM_OPTION_OMP_THREADS, PROGRAM_OPTION_OMP_THREADS, Int32, omp_get_num_procs());
-	program_option_init(PROGRAM_OPTION_PLOT_FLAGS, PROGRAM_OPTION_PLOT_FLAGS, UInt16, GRAPH_PRINT_RESULT | GRAPH_PRINT_SHRINK);
+	program_option_init(PROGRAM_OPTION_PLOT_FLAGS, PROGRAM_OPTION_PLOT_FLAGS, UInt16, GRAPH_PRINT_ALL);
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_String(PROGRAM_OPTION_OUTPUT_DIRECTORY, ".");
@@ -230,9 +233,18 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 	ret = ERR_SUCCESS;
 	if ((Options->ParseOptions.PlotOptions.PlotFlags & Flag) &&
 		Graph->TypedEdgeCount[kmetRead] + Graph->TypedEdgeCount[kmetVariant] > 0) {
+		const char *flagNames[] = {
+			"ref", "reads", "helper", "long", "th1",
+			"conn", "th2", "shrink", "vars", "res"
+		};
+		uint32_t flagPos = 0;
+
+		while ((Flag & (1 << flagPos)) == 0)
+			++flagPos;
+
 		directory = "succ";
 #pragma warning (disable : 4996)											
-		sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-k%u-%.3u.graph", Options->OutputDirectoryBase, directory, Task->Name, kmer_graph_get_kmer_size(Graph), Flag);
+		sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-k%u-%s.graph", Options->OutputDirectoryBase, directory, Task->Name, kmer_graph_get_kmer_size(Graph), flagNames[flagPos]);
 		unlink(graphName);
 		if (Options->VCFFileHandle != NULL) {
 			ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
@@ -343,6 +355,9 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 						kmer_graph_check_weights(g);
 					} while (ret == ERR_SUCCESS && changed);
 				}
+
+				if (ret == ERR_SUCCESS)
+					ret = assembly_variants_to_edges(&state, VCArray);
 
 				_print_graph(g, Options, Task, GRAPH_PRINT_VARIANTS);
 				if (g->TypedEdgeCount[kmetRead] > 0)
