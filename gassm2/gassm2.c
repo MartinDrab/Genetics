@@ -293,6 +293,9 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 
 			ret = assembly_parse_reference(&state);
 			_print_graph(g, Options, Task, GRAPH_PRINT_REFERENCE);
+			if (ret == ERR_REF_REPEATS)
+				ret = ERR_SUCCESS;
+			
 			if (ret == ERR_SUCCESS)
 				ret = assembly_parse_reads(&state);
 
@@ -342,6 +345,8 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 				}
 
 				_print_graph(g, Options, Task, GRAPH_PRINT_VARIANTS);
+				if (g->TypedEdgeCount[kmetRead] > 0)
+					ret = ERR_TOO_COMPLEX;
 			}
 		
 			PKMER_EDGE_PAIR p = ep.Data;
@@ -382,10 +387,9 @@ static ERR_VALUE _compute_graphs(const KMER_GRAPH_ALLOCATOR *Allocator, const PR
 				vc_array_intersection(&lowerArray, &lowerArray, VCArray);
 		}
 
-
 		vc_array_clear(&lowerArray);
 		vc_array_clear(&higherArray);
-		if (ret != ERR_TOO_COMPLEX)
+		if (ret != ERR_REF_REPEATS && ret != ERR_TOO_COMPLEX)
 			break;
 
 		kmerSize += step;

@@ -14,7 +14,7 @@
 ERR_VALUE variant_call_init(const char *Chrom, uint64_t Pos, const char *ID, const char *Ref, size_t RefLen, const char *Alt, size_t AltLen, const uint8_t Qual, const GEN_ARRAY_size_t *RefReads, const GEN_ARRAY_size_t *AltReads, PVARIANT_CALL VC);
 void variant_call_finit(PVARIANT_CALL VC);
 boolean variant_call_equal(const VARIANT_CALL *VC1, const VARIANT_CALL *VC2);
-ERR_VALUE vc_array_add(PGEN_ARRAY_VARIANT_CALL Array, const VARIANT_CALL *VC);
+ERR_VALUE vc_array_add(PGEN_ARRAY_VARIANT_CALL Array, const VARIANT_CALL *VC, PVARIANT_CALL *Existing);
 void vc_array_clear(PGEN_ARRAY_VARIANT_CALL Array);
 void vc_array_finit(PGEN_ARRAY_VARIANT_CALL Array);
 void vc_array_print(FILE *Stream, const char *ReferenceFile, const GEN_ARRAY_VARIANT_CALL *Array);

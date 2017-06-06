@@ -836,6 +836,7 @@ static void _sort_reads(const KMER_GRAPH *Graph, PONE_READ Reads, size_t Count)
 
 ERR_VALUE assembly_parse_reference(PASSEMBLY_STATE State)
 {
+	boolean refRepeats = FALSE;
 	PKMER sourceKMer = NULL;
 	PKMER destKMer = NULL;
 	PKMER_GRAPH Graph = State->Graph;
@@ -870,6 +871,7 @@ ERR_VALUE assembly_parse_reference(PASSEMBLY_STATE State)
 					ret = kmer_graph_add_vertex_ex(Graph, destKMer, kmvtRefSeqMiddle, &destVertex);
 					if (ret == ERR_ALREADY_EXISTS) {
 						do {
+							refRepeats = TRUE;
 							kmer_set_number(destKMer, kmer_get_number(destKMer) + 1);
 							ret = kmer_graph_add_vertex_ex(Graph, destKMer, kmvtRefSeqMiddle, &destVertex);
 						} while (ret == ERR_ALREADY_EXISTS);
@@ -911,6 +913,9 @@ ERR_VALUE assembly_parse_reference(PASSEMBLY_STATE State)
 	
 		kmer_free(sourceKMer);
 	}
+
+	if (ret == ERR_SUCCESS && refRepeats)
+		ret = ERR_REF_REPEATS;
 
 	return ret;
 }

@@ -70,5 +70,7 @@ typedef int ERR_VALUE;
 #define ERR_FASTQ_NO_QUALITY					60
 #define ERR_FASTQ_LEN_MISMATCH					61
 
+#define ERR_REF_REPEATS							62
+
 
 #endif 

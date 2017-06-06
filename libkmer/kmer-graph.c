@@ -1671,7 +1671,7 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 								total += ReadWeights->Data[i];
 
 							vc.AltWeight = (total / (rewEndIndex + 1 - rewStartIndex));
-							ret = vc_array_add(VCArray, &vc);
+							ret = vc_array_add(VCArray, &vc, NULL);
 							if (ret != ERR_SUCCESS) {
 								variant_call_finit(&vc);
 								if (ret == ERR_ALREADY_EXISTS)

@@ -108,7 +108,7 @@ boolean variant_call_equal(const VARIANT_CALL *VC1, const VARIANT_CALL *VC2)
 }
 
 
-ERR_VALUE vc_array_add(PGEN_ARRAY_VARIANT_CALL Array, const VARIANT_CALL *VC)
+ERR_VALUE vc_array_add(PGEN_ARRAY_VARIANT_CALL Array, const VARIANT_CALL *VC, PVARIANT_CALL *Existing)
 {
 	VARIANT_CALL *tmp = Array->Data;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -120,7 +120,12 @@ ERR_VALUE vc_array_add(PGEN_ARRAY_VARIANT_CALL Array, const VARIANT_CALL *VC)
 				variant_call_finit(tmp);
 				memcpy(tmp, VC, sizeof(VARIANT_CALL));
 				ret = ERR_SUCCESS;
-			}  else ret = ERR_ALREADY_EXISTS;
+			} else {
+				if (Existing != NULL)
+					*Existing = tmp;
+				
+				ret = ERR_ALREADY_EXISTS;
+			}break;
 			break;
 		}
 
@@ -317,7 +322,7 @@ ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL S
 					}
 
 					if (minValue != (uint64_t)-1) {
-						ret = vc_array_add(Dest, minVc);
+						ret = vc_array_add(Dest, minVc, NULL);
 						if (ret == ERR_ALREADY_EXISTS) {
 							variant_call_finit(minVc);
 							ret = ERR_SUCCESS;
@@ -375,7 +380,7 @@ ERR_VALUE vc_array_intersection(GEN_ARRAY_VARIANT_CALL *A1, const GEN_ARRAY_VARI
 					tmp.KMerSize = min(v1->KMerSize, v2->KMerSize);
 					tmp.RefWeight = v1->RefWeight;
 					tmp.AltWeight = v1->AltWeight;
-					if (vc_array_add(Intersection, &tmp) != ERR_SUCCESS)
+					if (vc_array_add(Intersection, &tmp, NULL) != ERR_SUCCESS)
 						variant_call_finit(&tmp);
 				}
 			}
