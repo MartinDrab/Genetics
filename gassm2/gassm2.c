@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <math.h>
+#include <direct.h>
 #include "tinydir.h"
 #include "err.h"
 #include "utils.h"
@@ -227,8 +228,8 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 {
 	FILE *f = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	const char *directory = NULL;
-	char graphName[128];
+	char directory[261];
+	char graphName[261];
 
 	ret = ERR_SUCCESS;
 	if ((Options->ParseOptions.PlotOptions.PlotFlags & Flag) &&
@@ -242,9 +243,10 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 		while ((Flag & (1 << flagPos)) == 0)
 			++flagPos;
 
-		directory = "succ";
+		memset(directory, 0, sizeof(directory));
 #pragma warning (disable : 4996)											
-		sprintf(graphName, "%s" PATH_SEPARATOR "%s" PATH_SEPARATOR "%s-k%u-%s.graph", Options->OutputDirectoryBase, directory, Task->Name, kmer_graph_get_kmer_size(Graph), flagNames[flagPos]);
+		snprintf(directory, sizeof(directory), "%s " PATH_SEPARATOR "succ" PATH_SEPARATOR "%s", Options->OutputDirectoryBase, Task->Name);
+		snprintf(graphName, sizeof(graphName), "%s" PATH_SEPARATOR "%s-k%u-%s.graph", directory, Task->Name, kmer_graph_get_kmer_size(Graph), flagNames[flagPos]);
 		unlink(graphName);
 		if (Options->VCFFileHandle != NULL) {
 			ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
@@ -933,7 +935,7 @@ int main(int argc, char *argv[])
 															++pa;
 														}
 
-														kt_for(po.OMPThreads, _ar_wrapper, _assemblyTasks.Data, gen_array_size(&_assemblyTasks));
+														kt_for(po.OMPThreads, _ar_wrapper, _assemblyTasks.Data, (long)gen_array_size(&_assemblyTasks));
 														input_free_regions(regions, regionCount);
 													}
 
