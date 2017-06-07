@@ -16,3 +16,4 @@ Genetics.opensdf
 *.gz
 VCFGUI/__history
 VCFGUI/Win32
+/doc/dp/thesis.pdf
