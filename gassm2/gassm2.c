@@ -245,7 +245,8 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 
 		memset(directory, 0, sizeof(directory));
 #pragma warning (disable : 4996)											
-		snprintf(directory, sizeof(directory), "%s " PATH_SEPARATOR "succ" PATH_SEPARATOR "%s", Options->OutputDirectoryBase, Task->Name);
+		snprintf(directory, sizeof(directory), "%s" PATH_SEPARATOR "succ" PATH_SEPARATOR "%s", Options->OutputDirectoryBase, Task->Name);
+		 mkdir(directory);
 		snprintf(graphName, sizeof(graphName), "%s" PATH_SEPARATOR "%s-k%u-%s.graph", directory, Task->Name, kmer_graph_get_kmer_size(Graph), flagNames[flagPos]);
 		unlink(graphName);
 		if (Options->VCFFileHandle != NULL) {
