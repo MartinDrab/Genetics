@@ -76,6 +76,7 @@ static ERR_VALUE _vertex_create(PKMER_GRAPH Graph, const KMER *KMer, const EKMer
 
 	tmp = Graph->Allocator.VertexAllocator(Graph, Graph->Allocator.VertexAllocatorContext);
 	if (tmp != NULL) {
+		tmp->Unique = TRUE;
 		kmer_init_from_kmer(&tmp->KMer, KMer);;
 		tmp->Type = Type;
 		tmp->LongEdgeAllowed = FALSE;
@@ -231,7 +232,7 @@ static ERR_VALUE _vertex_table_on_copy(struct _KMER_TABLE *Table, void *ItemData
 
 static void _vertex_table_on_print(struct _KMER_TABLE *Table, void *ItemData, FILE *Stream)
 {
-	char *colors[] = {"yellow", "lightgreen", "blue", "red", "white"};
+	char *colors[] = { "yellow", "lightgreen", "blue", "red", "white" };
 	PKMER_VERTEX v = (PKMER_VERTEX)ItemData;
 
 	fprintf(Stream, "\t");
@@ -240,10 +241,14 @@ static void _vertex_table_on_print(struct _KMER_TABLE *Table, void *ItemData, FI
 	if (!v->Helper)
 		kmer_print(Stream, &v->KMer);
 	else fprintf(Stream, "Helper_%u", kmer_get_number(&v->KMer));
-	
+
 	if (v->Type == kmvtRefSeqMiddle || v->Type == kmvtRefSeqStart ||
-		v->Type == kmvtRefSeqEnd)
-	fprintf(Stream, "\\nPOS: %" PRId64 , v->AbsPos);
+		v->Type == kmvtRefSeqEnd) {
+		fprintf(Stream, "\\nPOS: %" PRId64, v->AbsPos);
+		fprintf(Stream, "\\n%s", v->Unique ? "unique" : "repeat");
+	}
+
+
 	fprintf(Stream, "\",style=filled,color=%s]", colors[v->Type]);
 	fprintf(Stream, ";\n");
 
@@ -336,16 +341,35 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 	switch (e->Type) {
 		case kmetReference:
 			fprintf(Stream, "green");
-			fprintf(Stream, ",label=\"W: %Iu (%Iu); L: %Iu\";", e->Seq1Weight, read_info_get_count(&e->ReadInfo), e->SeqLen);
+			fprintf(Stream, ",label=\"W: %Iu (%Iu); L: %Iu", e->Seq1Weight, read_info_get_count(&e->ReadInfo), e->SeqLen);
+			if (e->LongData.LongEdge || e->SeqLen == 0) {
+				fprintf(Stream, "\\n(");
+				for (size_t i = 0; i < read_info_get_count(&e->ReadInfo); ++i)
+					fprintf(Stream, "%zu:%u ", e->ReadInfo.Array.Data[i].ReadIndex, e->ReadInfo.Array.Data[i].Quality);
+			
+				fprintf(Stream, ")");;
+			}
+
+			fprintf(Stream, "\"");
 			break;
 		case kmetRead:
 			if (!e->LongData.LongEdge) {
 				fprintf(Stream, "red");
-				fprintf(Stream, ",label=\"W: %Iu (%Iu); L: %Iu\"", e->Seq1Weight, read_info_get_count(&e->ReadInfo), e->SeqLen);
+				fprintf(Stream, ",label=\"W: %Iu (%Iu); L: %Iu", e->Seq1Weight, read_info_get_count(&e->ReadInfo), e->SeqLen);
 			} else {
 				fprintf(Stream, "purple");
-				fprintf(Stream, ",label=\"W: %Iu (%Iu); L: %Iu\n%u-%u\"", e->Seq1Weight, read_info_get_count(&e->ReadInfo), e->SeqLen, e->LongData.RefSeqEnd, e->LongData.RefSeqStart);
+				fprintf(Stream, ",label=\"W: %Iu (%Iu); L: %Iu\n%u-%u", e->Seq1Weight, read_info_get_count(&e->ReadInfo), e->SeqLen, e->LongData.RefSeqEnd, e->LongData.RefSeqStart);
 			}
+
+			if (e->LongData.LongEdge || e->SeqLen == 0) {
+				fprintf(Stream, "\\n(");
+				for (size_t i = 0; i < read_info_get_count(&e->ReadInfo); ++i)
+					fprintf(Stream, "%zu:%u ", e->ReadInfo.Array.Data[i].ReadIndex, e->ReadInfo.Array.Data[i].Quality);
+
+				fprintf(Stream, ")");;
+			}
+
+			fprintf(Stream, "\"");
 			break;
 		case kmetVariant: {
 			const VARIANT_CALL **var = e->VCs.Data;
@@ -355,6 +379,14 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 			for (size_t i = 0; i < pointer_array_size(&e->VCs); ++i) {
 				fprintf(Stream, "%" PRId64 "\\t%s\\t%s\\t%Iu-%Iu\\n", (uint64_t)(*var)->Pos, (*var)->Ref, (*var)->Alt, (*var)->RefWeight, (*var)->AltWeight);
 				++var;
+			}
+
+			if (e->LongData.LongEdge || e->SeqLen == 0) {
+				fprintf(Stream, "\\n(");
+				for (size_t i = 0; i < read_info_get_count(&e->ReadInfo); ++i)
+					fprintf(Stream, "%zu:%u ", e->ReadInfo.Array.Data[i].ReadIndex, e->ReadInfo.Array.Data[i].Quality);
+
+				fprintf(Stream, ")");;
 			}
 
 			fprintf(Stream, "\"");

@@ -874,6 +874,8 @@ ERR_VALUE assembly_parse_reference(PASSEMBLY_STATE State)
 							refRepeats = TRUE;
 							kmer_set_number(destKMer, kmer_get_number(destKMer) + 1);
 							ret = kmer_graph_add_vertex_ex(Graph, destKMer, kmvtRefSeqMiddle, &destVertex);
+							if (ret == ERR_ALREADY_EXISTS)
+								destVertex->Unique = FALSE;
 						} while (ret == ERR_ALREADY_EXISTS);
 					}
 
