@@ -244,7 +244,7 @@ static void _vertex_table_on_print(struct _KMER_TABLE *Table, void *ItemData, FI
 
 	if (v->Type == kmvtRefSeqMiddle || v->Type == kmvtRefSeqStart ||
 		v->Type == kmvtRefSeqEnd) {
-		fprintf(Stream, "\\nPOS: %" PRId64, v->AbsPos);
+		fprintf(Stream, "\\nPOS: %" PRId64 " (%u)", v->AbsPos + 1, v->RefSeqPosition);
 		fprintf(Stream, "\\n%s", v->Unique ? "unique" : "repeat");
 	}
 

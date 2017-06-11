@@ -77,7 +77,9 @@ k_5 = ((A, G, T, A, A), 0)
 k_6 = ((G, T, A, A, T), 0)
 $$
 
-In the graph, there already are vertices representing k-mers $k_0$ and $k_6$. For other others, new vertices are created. Finally, edges are added (if necessary) to show the k-mers order within the read.
+In the graph, there already are vertices representing k-mers $k_0$ and $k_6$. For other others, new vertices are created. Finally, edges are added (if necessary) to show the k-mers order within the read. The figure also suggests how to retrieve the sequence covered by the read – just by following the edges and using the last base of all the k-mers except the first one. 
+
+This is actually an ideal case.
 
 \begin{figure}
 	\centering
