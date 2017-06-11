@@ -29,16 +29,16 @@ $$
 
 Figure \ref{fig:ref-my} displays a graph created by transformation of an active region \texttt{ATCTGTATATATG} with k-mer size of 5. The algorithm derives the following k-mers:
 $$
-k_0 = ((B, A, T, C, T), 0)
-k_1 = ((A, T, C, T, G), 0)
-k_2 = ((T, C, T, G, T), 0)
-k_3 = ((C, T, G, T, A), 0)
-k_4 = ((T, G, T, A, T), 0)
-k_5 = ((G, T, A, T, A), 0)
-k_6 = ((T, A, T, A, T), 0)
-k_7 = ((A, T, A, T, A), 0)
-k_8 = ((T, A, T, A, T), 1)
-k_9 = ((A, T, A, T, G), 0)
+k_0 = ((B, A, T, C, T), 0) \\
+k_1 = ((A, T, C, T, G), 0) \\
+k_2 = ((T, C, T, G, T), 0) \\
+k_3 = ((C, T, G, T, A), 0) \\
+k_4 = ((T, G, T, A, T), 0) \\
+k_5 = ((G, T, A, T, A), 0) \\
+k_6 = ((T, A, T, A, T), 0) \\
+k_7 = ((A, T, A, T, A), 0) \\
+k_8 = ((T, A, T, A, T), 1) \\
+k_9 = ((A, T, A, T, G), 0) \\
 k_{10} = ((T, A, T, G, E), 0)
 $$
 
@@ -67,15 +67,15 @@ Basic idea behind this step is farily simple and similar to the approach used in
 \subsection{The Idea}
 
 Figure \ref{fig:read-idea} shows a graph created by transforming a region of \texttt{ACCGTGGTAAT} and adding a read \texttt{ACCGTAGTAAT} to the resulting graph. The read is divided into the following k-mers
-$$
-k_0 = ((A, C, C, G, T), 0)
-k_1 = ((C, C, G, T, A), 0)
-k_2 = ((C, G, T, A, G), 0)
-k_3 = ((G, T, A, G, T), 0)
-k_4 = (T, A, G, T, A), 0)
-k_5 = ((A, G, T, A, A), 0)
+\begin{gather}
+k_0 = ((A, C, C, G, T), 0) \\
+k_1 = ((C, C, G, T, A), 0) \\
+k_2 = ((C, G, T, A, G), 0) \\
+k_3 = ((G, T, A, G, T), 0) \\
+k_4 = (T, A, G, T, A), 0) \\
+ k_5 = ((A, G, T, A, A), 0) \\
 k_6 = ((G, T, A, A, T), 0)
-$$
+\end{gather}
 
 In the graph, there already are vertices representing k-mers $k_0$ and $k_6$. For other others, new vertices are created. Finally, edges are added (if necessary) to show the k-mers order within the read. The figure also suggests how to retrieve the sequence covered by the read – just by following the edges and using the last base of all the k-mers except the first one. 
 
@@ -90,17 +90,14 @@ This is actually an ideal case.
 
 Unfortunately, this idea does not work in our case. Introduction of the k-mer context numbers prevented loops in the graph derived from the reference. But since multiple k-mers representing the same sequence may exist, it is not always possible to easily determine which of the vertices should be assigned to individual k-mers of the read. For example, if looking at the graph from Figure \ref{fig:ref-my}, it is not clear which vertex (or vertices) should be assigned to a k-mer with \texttt{TATAT} sequence. 
 
-\subsection{The Idea Modified}
-
-To solve this issue, we decided to complicate the basic idea a little. The read, defined as a nucleotide sequence $(r_0, ..., r_{m-1}) is still divided into k-mers k_{i} = ((r_i, ..., r_i+k-1), 0)$, 0 <= i <= m-k, howerver, each k-mer is assigned to a set of vertices, rather than the single one. All vertices in such set represent k-mers with equal sequence. Then, it is required to select the best candidate from each set and set the read path through it.
-
-Let's denote the set associated with the k-mer $k_{i}$ as $M_{i}$. If the set is empty, a new vertex is created to represent the k-mer in the graph and is inserted into it. The following properties hold:
+We decided to solve the issue by transforming the basic idea into the following steps:
 \begin{itemize}
-\item If $|M_{i}| > 1$, all vertices in it were added to the graph during the reference transformation step, and their k-mers differ only in their context numbers.
-\item If $|M_{i}| = 1$, the contained vertex may come iether from the reference or from a read added beforehand to the graph.
+\item divide the read into sequence of k-mers,
+\item assign a set of vertices to each k-mer, so that all vertices in the set represent k-mers euqal to the read k-mer by sequence,
+\item from each set, select a vertex to represent the k-mer of the read,
+\item connect the vertices representing the read to respect the order of the k-mers in the read.
 \end{itemize}
 
-The $M_i$ sets of size 1 are not very interesting since selecting a representative from such set is a trivial task. To do the selection for larger sets, a separate graph needs to be built.
+\subsection{Transforming the Read into K-mers}
 
-\subsection{The Selection Process}
 
