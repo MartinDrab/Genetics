@@ -240,14 +240,14 @@ static void _vertex_table_on_print(struct _KMER_TABLE *Table, void *ItemData, FI
 	fprintf(Stream, "[label=\"");
 	if (!v->Helper)
 		kmer_print(Stream, &v->KMer);
-	else fprintf(Stream, "Helper_%u", kmer_get_number(&v->KMer));
-
+	else fprintf(Stream, "Helper#%u", kmer_get_number(&v->KMer));
+	
 	if (v->Type == kmvtRefSeqMiddle || v->Type == kmvtRefSeqStart ||
 		v->Type == kmvtRefSeqEnd) {
+		fprintf(Stream, "\\nRef");
 		fprintf(Stream, "\\nPOS: %" PRId64 " (%u)", v->AbsPos + 1, v->RefSeqPosition);
 		fprintf(Stream, "\\n%s", v->Unique ? "unique" : "repeat");
-	}
-
+	} else fprintf(Stream, "\\nRead");
 
 	fprintf(Stream, "\",style=filled,color=%s]", colors[v->Type]);
 	fprintf(Stream, ";\n");
@@ -1569,6 +1569,8 @@ ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Thre
 	pointer_array_finit_EDGE_REMOVE_CONTEXT(&removeContexts);
 
 	kmer_graph_delete_trailing_things(Graph, &dummy);
+	if (ret != ERR_SUCCESS)
+		fprintf(stderr, __FUNCTION__ "%u\n", ret);
 
 	return ret;
 }
@@ -1967,6 +1969,8 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT
 
 	kmer_graph_delete_trailing_things(Graph, &dummy);
 //	kmer_graph_delete_1to1_vertices(Graph);
+	if (ret != ERR_SUCCESS)
+		fprintf(stderr, __FUNCTION__ "%u\n", ret);
 
 	return ret;
 }

@@ -232,8 +232,7 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 	char graphName[261];
 
 	ret = ERR_SUCCESS;
-	if ((Options->ParseOptions.PlotOptions.PlotFlags & Flag) &&
-		Graph->TypedEdgeCount[kmetRead] + Graph->TypedEdgeCount[kmetVariant] > 0) {
+	if ((Options->ParseOptions.PlotOptions.PlotFlags & Flag)) {
 		const char *flagNames[] = {
 			"ref", "reads", "helper", "long", "th1",
 			"conn", "th2", "shrink", "vars", "res"
@@ -246,15 +245,26 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 		memset(directory, 0, sizeof(directory));
 #pragma warning (disable : 4996)											
 		snprintf(directory, sizeof(directory), "%s" PATH_SEPARATOR "succ" PATH_SEPARATOR "%s", Options->OutputDirectoryBase, Task->Name);
-		 mkdir(directory);
-		snprintf(graphName, sizeof(graphName), "%s" PATH_SEPARATOR "%s-k%u-%s.graph", directory, Task->Name, kmer_graph_get_kmer_size(Graph), flagNames[flagPos]);
-		unlink(graphName);
-		if (Options->VCFFileHandle != NULL) {
-			ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
-			if (ret == ERR_SUCCESS) {
-				kmer_graph_print(f, Graph);
-				utils_fclose(f);
+		int err = mkdir(directory);
+
+		if (err == 0 || errno == EEXIST) {
+			if (Graph->TypedEdgeCount[kmetRead] + Graph->TypedEdgeCount[kmetVariant] > 0)
+				snprintf(graphName, sizeof(graphName), "%s" PATH_SEPARATOR "%s-k%u-%s.graph", directory, Task->Name, kmer_graph_get_kmer_size(Graph), flagNames[flagPos]);
+			else snprintf(graphName, sizeof(graphName), "%s" PATH_SEPARATOR "NR-%s-k%u-%s.graph", directory, Task->Name, kmer_graph_get_kmer_size(Graph), flagNames[flagPos]);
+
+			unlink(graphName);
+			if (Options->VCFFileHandle != NULL) {
+				ret = utils_fopen(graphName, FOPEN_MODE_WRITE, &f);
+				if (ret == ERR_SUCCESS) {
+					kmer_graph_print(f, Graph);
+					utils_fclose(f);
+				} else {
+					fprintf(stderr, __FUNCTION__ ": %u\n", ret);
+				}
 			}
+		}
+		else {
+			fprintf(stderr, __FUNCTION__ ": %i:%u (%s)\n", errno, GetLastError(), directory);
 		}
 	}
 
@@ -628,7 +638,7 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 				coverage = baseCount / Options->RegionLength;
 			}
 			
-			sprintf(taskName, "%08" PRIu64 " r%Iu", (uint64_t)RegionStart, gen_array_size(FilteredReads));
+			sprintf(taskName, "%08" PRIu64 "-r%Iu", (uint64_t)RegionStart, gen_array_size(FilteredReads));
 			assembly_task_init(&task, RefSeq, Options->RegionLength, NULL, 0, NULL, 0, FilteredReads->Data, gen_array_size(FilteredReads));
 			assembly_task_set_name(&task, taskName);
 			task.RegionStart = RegionStart;

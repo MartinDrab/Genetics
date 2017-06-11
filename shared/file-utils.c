@@ -105,8 +105,7 @@ ERR_VALUE utils_fopen(const char *FileName, const uint32_t Mode, FILE **Stream)
 	if (tmpStream != NULL) {
 		*Stream = tmpStream;
 		ret = ERR_SUCCESS;
-	}
-	else ret = ERR_IO_ERROR;
+	} else ret = ERR_IO_ERROR;
 
 	return ret;
 }
