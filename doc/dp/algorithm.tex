@@ -65,6 +65,7 @@ Although we solved the loop problem, for now, by not allowing them to appear, an
 Basic idea behind this step is farily simple and similar to the approach used in the previous one. The read being added is divided into a sequence of k-mers. If a k-mer is not represented by any existing graph vertex, a new vertex is created for it. In other cases, existing vertices are used. Again, vertices representing adjacent k-mers in the read are connected by edges. 
 
 \subsection{The Idea}
+\label{subsec:idea}
 
 Figure \ref{fig:read-idea} shows a graph created by transforming a region of \texttt{ACCGTGGTAAT} and adding a read \texttt{ACCGTAGTAAT} to the resulting graph. The read is divided into the following k-mers
 \begin{gather}
@@ -79,7 +80,7 @@ k_6 = ((G, T, A, A, T), 0)
 
 In the graph, there already are vertices representing k-mers $k_0$ and $k_6$. For other others, new vertices are created. Finally, edges are added (if necessary) to show the k-mers order within the read. The figure also suggests how to retrieve the sequence covered by the read – just by following the edges and using the last base of all the k-mers except the first one. 
 
-This is actually an ideal case.
+Figure \ref{fig:read-idea} reflects an ideal state, meaning that all places where the read differs from the reference are covered by distinct k-mers, and distance between each two of them is greater than $k$. If these conditions are met, each single $n$-base long difference (SNP, insertion or deletion) adds exactly $k$ new vertices to the graph. However, it may happen that some of the k-mers covering a difference colide by sequence with either k-mers of the reference, or k-mers of other reads covering totally different place of the active region. To minimize such unfortunate cases, additional graph transformations need to be made after all the reads are added to the graph.
 
 \begin{figure}
 	\centering
@@ -92,7 +93,7 @@ Unfortunately, this idea does not work in our case. Introduction of the k-mer co
 
 We decided to solve the issue by transforming the basic idea into the following steps:
 \begin{itemize}
-\item divide the read into sequence of k-mers,
+\item divide the read into sequence of k-mers (a short variant optimization may be applied),
 \item assign a set of vertices to each k-mer, so that all vertices in the set represent k-mers euqal to the read k-mer by sequence,
 \item from each set, select a vertex to represent the k-mer of the read,
 \item connect the vertices representing the read to respect the order of the k-mers in the read.
@@ -100,4 +101,46 @@ We decided to solve the issue by transforming the basic idea into the following 
 
 \subsection{Transforming the Read into K-mers}
 
+Let's define a read of length $n$ as a sequence $(r_0, ..., r_n)$ of bases. If the short variant optimization is not applied, the sequence is divided into individual k-mers $k_0, ..., k_n-k$ in the same way as for the reference case, except that no extra k-mers are created. They look as follows:
+\begin{gather}
+k_0 = ((r_0, ..., r_k-1), 0) \\
+... \\
+k_{n-k} = ((r_{n_k}, ..., r_{n-1}), 0)
+\end{gather}
+
+Then, the next step is applied (\ref{subsec:assign-sets}).
+
+As described in \ref{subsec:idea}, in an ideal case, an $n$ base long difference from the reference produces $n + k - 1$ k-mers different from all reference k-mers. To reduce the probablity taht some of the k-mers actually colides with either the reference, or another read, the short variant optimization may be applied. The optimization reduces the number of k-mers representing to:
+\begin{itemize}
+\item $n$ for for an insertion,
+\item zero for a deletion,
+\item $1$ for a SNP.
+\end{itemize}
+
+The optimization assumes that when recovering a sequence from the graph, only the last base of each k-mer, wth an exception of the starting one, is used. So, only k-mers covering the difference by their last base need to be added; reference k-mers may be used for the rest in case the difference is followed by some number of bases equal to the reference. 
+
+Figure \ref{fig:read-optimization} shows how the graph is optimized for a read containing SNP. The reference and read sequences are taken from Figure \ref{read-idea}. Since, the difference has 1 base in length, only one k-mer (\texttt{CCTGA\_0}) is used to represent it. The k-mer is followed by reference k-mers. As can be seen, their last base is equal to one of k-mers from Figure \ref{read-idea}.
+
+\begin{figure}
+	\centering
+	\includegraphics{img/read-optimization.pdf}
+	\caption{Short Variant optimization}
+	\label{fig:read-optimization}
+\end{figure}
+
+The short variant optimization is applied for k-mer $k_i$ if the following holds:
+\begin{itemize}
+\item There is only one vertex $v_{Ref_{j-1}}$ for $k_{i-1}$ and that vertex was added during the reference transformation phase,
+\item There is at most one vertex for $k_i$ that either is a result of a read addition, or is a reference one but do not immediately follows  $v_{Ref_{j-1}}$ in the reference.
+
+Such conditions are met when the read differs from the reference at base $r_{i+k-1}$. To determine whether the difference is only a short one, the Smith-Waterman algorithm is applied. If this is the case, the action depends on the difference type:
+\begin{itemize}
+\item for deletion, $k_i$ is defined as $v_{Ref_{j + n - 1}}$,
+\item for insertion, $k_i$, ..., $k_{i + n - 1}$ are defined as with no short variant optimization and $k_{i + n}$ is set to $V_{Ref_{j}}$,
+\item for SNP, $k_i$ is left as such and $k_{i+1}$ is defined as $V_{Ref_{j+1}}$
+\end{itemize}
+\end{itemize}
+
+\subsection{Assigning Sets of Vertices to K-mers}
+\label{subsec:assign-sets}
 
