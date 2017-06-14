@@ -40,7 +40,7 @@
 #define PROGRAM_OPTION_PLOT_START						"plot-start"
 #define PROGRAM_OPTION_PLOT_END							"plot-end"
 #define PROGRAM_OPTION_PLOT_STEP						"plot-step"
-#define PROGRAM_OPTION_PLOT_FLAGS						"PLOT-FLAGS"
+#define PROGRAM_OPTION_PLOT_FLAGS						"plot-flags"
 
 
 /************************************************************************/

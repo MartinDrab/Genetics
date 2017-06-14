@@ -1,0 +1,49 @@
+534324	G	T
+ * neni v gatk, je ve fermi
+ * detekovano
+
+534729	C	T
+ * pritomno v gatk
+ * vyfiltrovano pro maly pocet readu (5)
+
+535328	T	TTGTG
+ * ve fermi i gatk
+ * nedetekovano
+ * na dane pozici reference obsahuje TTGTG
+ * tento retezec je ale v okoli jedinceny, takze se nejedna o normalizaci
+
+535348	A	G
+535352	C	A
+535356	G	C
+535359	A	T
+535359	A	AGT
+535361	T	TGA
+ * nevyskytuji se ani v gatk, ani ve fermi
+ * male pokryti mene kvalitnich readu
+ * ale male pokryti natava i u TP (priklad)
+ * vyskytuji se pro K=21,31,41 a ve dvou regionech
+
+535808	A	G
+ * pritomen ve fermi i gatk (Q=16)
+ * 
+
+537444	G	A
+537447	A	G
+ * ve fermi i gatk
+ * detekovano, vylouceno pro maly pocet readu (5)
+
+537536	C	G
+537537	A	G
+ * detekovano fermi i gatk
+ * detekovano, vylouceno pro maly pocet readu (4-5)
+
+542699
+ * detekovano fermi i gatk
+ * nedetekovano pro maly pocet readu (4)
+   + 23,23,23,23
+ * reference nema repetice
+
+543507	T	C
+ * fermi i gatk
+ * opet malo readu (4)
+   + 23,23,23,23

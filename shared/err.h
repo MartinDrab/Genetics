@@ -71,6 +71,8 @@ typedef int ERR_VALUE;
 #define ERR_FASTQ_LEN_MISMATCH					61
 
 #define ERR_REF_REPEATS							62
+#define ERR_PLOT_FINISHED						63
+
 
 
 #endif 

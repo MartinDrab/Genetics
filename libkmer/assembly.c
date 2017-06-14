@@ -443,7 +443,7 @@ static ERR_VALUE _create_long_edge(PKMER_GRAPH Graph, PKMER_VERTEX U, PKMER_VERT
 	}
 
 	if (ret == ERR_SUCCESS) {
-		ret = kmer_edge_add_read(e, ReadIndex, Read->Offset + StartIndex, 0);
+		ret = kmer_edge_add_read(e, ReadIndex, Read->Offset + StartIndex, Read->Quality[StartIndex]);
 		*NewEdge = e;
 	}
 
@@ -947,9 +947,6 @@ ERR_VALUE assembly_parse_reads(PASSEMBLY_STATE State)
 		++currentRead;
 	}
 
-	if (ret != ERR_SUCCESS)
-		fprintf(stderr, __FUNCTION__ "%u\n", ret);
-
 	return ret;
 }
 
@@ -974,9 +971,6 @@ ERR_VALUE assembly_add_helper_vertices(PASSEMBLY_STATE State)
 			++currentRead;
 		}
 	}
-
-	if (ret != ERR_SUCCESS)
-		fprintf(stderr, __FUNCTION__ "%u\n", ret);
 
 	return ret;
 }
@@ -1013,9 +1007,6 @@ ERR_VALUE assembly_create_long_edges(PASSEMBLY_STATE State, PGEN_ARRAY_KMER_EDGE
 		}
 	}
 
-	if (ret != ERR_SUCCESS)
-		fprintf(stderr, __FUNCTION__ "%u\n", ret);
-
 	return ret;
 }
 
@@ -1046,9 +1037,6 @@ ERR_VALUE assembly_variants_to_edges(PASSEMBLY_STATE State, const GEN_ARRAY_VARI
 
 		e = _get_refseq_or_variant_edge(e->Dest);
 	}
-
-	if (ret != ERR_SUCCESS)
-		fprintf(stderr, __FUNCTION__ "%u\n", ret);
 
 	return ret;
 }

@@ -777,6 +777,41 @@ static boolean _paths_equal_by_seq(const KMER_EDGE **Path1, const size_t Path1Le
 }
 
 
+void kmer_graph_range(PKMER_GRAPH Graph, uint64_t Start, uint64_t End)
+{
+	PKMER_EDGE e = NULL;
+
+	e = _get_refseq_or_variant_edge(Graph->StartingVertex);
+	while (e->Dest != Graph->EndingVertex) {
+		PKMER_VERTEX v = e->Source;
+
+		e = _get_refseq_or_variant_edge(e->Dest);
+		if (v->Type == kmvtRefSeqMiddle &&
+			(v->AbsPos + 1 < Start || v->AbsPos + 1 > End)) {
+			while (pointer_array_size(&v->Successors) > 0)
+				kmer_graph_delete_edge(Graph, v->Successors.Data[0]);
+
+			while (pointer_array_size(&v->Predecessors) > 0)
+				kmer_graph_delete_edge(Graph, v->Predecessors.Data[0]);
+
+			kmer_graph_delete_vertex(Graph, v);
+		} else if (v->AbsPos == Start) {
+			v->Type = kmvtRefSeqStart;
+			Graph->StartingVertex = v;
+		} else if (v->AbsPos == End) {
+			v->Type = kmvtRefSeqEnd;
+			Graph->EndingVertex = v;
+		}
+	}
+
+//	size_t dummy = 0;
+
+//	kmer_graph_delete_trailing_things(Graph, &dummy);
+
+	return;
+}
+
+
 void kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph)
 {
 	void *iter = NULL;
@@ -872,7 +907,8 @@ void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings)
 		while (kmer_vertex_in_degree(v) > 0) {
 			e = kmer_vertex_get_pred_edge(v, 0);
 			if (kmer_vertex_out_degree(e->Source) == 1 &&
-				kmer_vertex_in_degree(e->Source) > 0)
+				kmer_vertex_in_degree(e->Source) > 0 &&
+				(e->Source->Type == kmvtRefSeqMiddle || e->Source->Type == kmvtRead))
 				ret = pointer_array_push_back_KMER_VERTEX(&stack, e->Source);
 
 			kmer_graph_delete_edge(Graph, e);
@@ -881,7 +917,8 @@ void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings)
 		while (kmer_vertex_out_degree(v) > 0) {
 			e = kmer_vertex_get_succ_edge(v, 0);
 			if (kmer_vertex_in_degree(e->Dest) == 1 &&
-				kmer_vertex_out_degree(e->Dest) > 0)
+				kmer_vertex_out_degree(e->Dest) > 0 &&
+				(e->Dest->Type == kmvtRefSeqMiddle || e->Dest->Type == kmvtRead))
 				ret = pointer_array_push_back_KMER_VERTEX(&stack, e->Dest);
 
 			kmer_graph_delete_edge(Graph, e);
@@ -1569,8 +1606,6 @@ ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Thre
 	pointer_array_finit_EDGE_REMOVE_CONTEXT(&removeContexts);
 
 	kmer_graph_delete_trailing_things(Graph, &dummy);
-	if (ret != ERR_SUCCESS)
-		fprintf(stderr, __FUNCTION__ "%u\n", ret);
 
 	return ret;
 }
@@ -1969,8 +2004,6 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT
 
 	kmer_graph_delete_trailing_things(Graph, &dummy);
 //	kmer_graph_delete_1to1_vertices(Graph);
-	if (ret != ERR_SUCCESS)
-		fprintf(stderr, __FUNCTION__ "%u\n", ret);
 
 	return ret;
 }

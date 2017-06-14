@@ -5,7 +5,11 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <math.h>
+#ifdef _WIN32
 #include <direct.h>
+#else
+#include <sys/stat.h>
+#endif
 #include "tinydir.h"
 #include "err.h"
 #include "utils.h"
@@ -70,7 +74,7 @@ static ERR_VALUE _init_default_values()
 	program_option_init(PROGRAM_OPTION_READFILE, PROGRAM_OPTION_READFILE_DESC, String, "\0");
 	program_option_init(PROGRAM_OPTION_PLOT_START, PROGRAM_OPTION_PLOT_START, UInt64, (uint64_t)-1);
 	program_option_init(PROGRAM_OPTION_PLOT_END, PROGRAM_OPTION_PLOT_END, UInt64, (uint64_t)-1);
-	program_option_init(PROGRAM_OPTION_PLOT_STEP, PROGRAM_OPTION_PLOT_STEP, UInt32, 0);
+	program_option_init(PROGRAM_OPTION_PLOT_STEP, PROGRAM_OPTION_PLOT_STEP, UInt16, (uint16_t)-1);
 	program_option_init(PROGRAM_OPTION_VCFFILE, PROGRAM_OPTION_VCFFILE_DESC, String, "result.vcf");
 	program_option_init(PROGRAM_OPTION_OMP_THREADS, PROGRAM_OPTION_OMP_THREADS, Int32, omp_get_num_procs());
 	program_option_init(PROGRAM_OPTION_PLOT_FLAGS, PROGRAM_OPTION_PLOT_FLAGS, UInt16, GRAPH_PRINT_ALL);
@@ -134,7 +138,7 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 		ret = option_get_UInt64(PROGRAM_OPTION_PLOT_END, &Options->ParseOptions.PlotOptions.PlotRefEnd);
 	
 	if (ret == ERR_SUCCESS)
-		ret = option_get_UInt32(PROGRAM_OPTION_PLOT_STEP, &Options->ParseOptions.PlotOptions.PlotStep);
+		ret = option_get_UInt16(PROGRAM_OPTION_PLOT_STEP, &Options->ParseOptions.PlotOptions.PlotStep);
 
 	if (ret == ERR_SUCCESS)
 		ret = option_get_UInt16(PROGRAM_OPTION_PLOT_FLAGS, &Options->ParseOptions.PlotOptions.PlotFlags);
@@ -224,7 +228,7 @@ typedef enum _EExperimentResult {
 } EExperimentResult, *PEExperimentResult;
 
 
-static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *Task, uint16_t Flag)
+static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *Task, uint16_t Flag, boolean Always)
 {
 	FILE *f = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -232,7 +236,7 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 	char graphName[261];
 
 	ret = ERR_SUCCESS;
-	if ((Options->ParseOptions.PlotOptions.PlotFlags & Flag)) {
+	if (Always || (Options->ParseOptions.PlotOptions.PlotFlags & Flag)) {
 		const char *flagNames[] = {
 			"ref", "reads", "helper", "long", "th1",
 			"conn", "th2", "shrink", "vars", "res"
@@ -245,7 +249,11 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 		memset(directory, 0, sizeof(directory));
 #pragma warning (disable : 4996)											
 		snprintf(directory, sizeof(directory), "%s" PATH_SEPARATOR "succ" PATH_SEPARATOR "%s", Options->OutputDirectoryBase, Task->Name);
+#ifdef _WIN32
 		int err = mkdir(directory);
+#else
+		int err = mkdir(directory, 0x777);
+#endif
 
 		if (err == 0 || errno == EEXIST) {
 			if (Graph->TypedEdgeCount[kmetRead] + Graph->TypedEdgeCount[kmetVariant] > 0)
@@ -258,13 +266,8 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 				if (ret == ERR_SUCCESS) {
 					kmer_graph_print(f, Graph);
 					utils_fclose(f);
-				} else {
-					fprintf(stderr, __FUNCTION__ ": %u\n", ret);
 				}
 			}
-		}
-		else {
-			fprintf(stderr, __FUNCTION__ ": %i:%u (%s)\n", errno, GetLastError(), directory);
 		}
 	}
 
@@ -317,22 +320,40 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 			dym_array_init_size_t(&readIndices, 140);
 
 			ret = assembly_parse_reference(&state);
-			_print_graph(g, Options, Task, GRAPH_PRINT_REFERENCE);
+			_print_graph(g, Options, Task, GRAPH_PRINT_REFERENCE, FALSE);
 			if (ret == ERR_REF_REPEATS)
 				ret = ERR_SUCCESS;
 			
 			if (ret == ERR_SUCCESS)
 				ret = assembly_parse_reads(&state);
 
-			_print_graph(g, Options, Task, GRAPH_PRINT_RAW_READS);
+			_print_graph(g, Options, Task, GRAPH_PRINT_RAW_READS, FALSE);
+			if (ParseOptions->PlotOptions.PlotStep == 1) {
+				kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
+				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
+				ret = ERR_PLOT_FINISHED;
+			}
+
 			if (ret == ERR_SUCCESS)
 				ret = assembly_add_helper_vertices(&state);
 				
-			_print_graph(g, Options, Task, GRAPH_PRINT_HELPER);
+			_print_graph(g, Options, Task, GRAPH_PRINT_HELPER, FALSE);
+			if (ParseOptions->PlotOptions.PlotStep == 2) {
+				kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
+				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
+				ret = ERR_PLOT_FINISHED;
+			}
+
 			if (ret == ERR_SUCCESS)
 				ret = assembly_create_long_edges(&state, &ep);
 
-			_print_graph(g, Options, Task, GRAPH_PRINT_LONG_EDGES);
+			_print_graph(g, Options, Task, GRAPH_PRINT_LONG_EDGES, FALSE);
+			if (ParseOptions->PlotOptions.PlotStep == 3) {
+				kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
+				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
+				ret = ERR_PLOT_FINISHED;
+			}
+
 			if (ret == ERR_SUCCESS) {
 				g->DeleteEdgeCallback = _on_delete_edge;
 				g->DeleteEdgeCallbackContext = &ep;
@@ -341,23 +362,47 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 				g->DeleteEdgeCallback = NULL;
 			}
 
-			_print_graph(g, Options, Task, GRAPH_PRINT_THRESHOLD_1);
+			_print_graph(g, Options, Task, GRAPH_PRINT_THRESHOLD_1, FALSE);
+			if (ParseOptions->PlotOptions.PlotStep == 4) {
+				kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
+				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
+				ret = ERR_PLOT_FINISHED;
+			}
+
 			if (ret == ERR_SUCCESS && g->TypedEdgeCount[kmetRead] > 0) {
 				size_t changeCount = 0;
 
 				ret = kmer_graph_connect_reads_by_pairs(g, ParseOptions->ReadThreshold, &ep, &changeCount);
-				_print_graph(g, Options, Task, GRAPH_PRINT_CONNECT);
+				_print_graph(g, Options, Task, GRAPH_PRINT_CONNECT, FALSE);
+				if (ParseOptions->PlotOptions.PlotStep == 5) {
+					kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
+					_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
+					ret = ERR_PLOT_FINISHED;
+				}
+
 				if (ret == ERR_SUCCESS) {
 					kmer_graph_compute_weights(g);
 					kmer_graph_delete_edges_under_threshold(g, ParseOptions->ReadThreshold);
 					kmer_graph_delete_trailing_things(g, &deletedThings);
 				}
 				
-				_print_graph(g, Options, Task, GRAPH_PRINT_THRESHOLD_2);
+				_print_graph(g, Options, Task, GRAPH_PRINT_THRESHOLD_2, FALSE);
+				if (ParseOptions->PlotOptions.PlotStep == 6) {
+					kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
+					_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
+					ret = ERR_PLOT_FINISHED;
+				}
+
 				if (ret == ERR_SUCCESS && ParseOptions->LinearShrink)
 					kmer_graph_delete_1to1_vertices(g);
 
-				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK);
+				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, FALSE);
+				if (ParseOptions->PlotOptions.PlotStep == 7) {
+					kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
+					_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
+					ret = ERR_PLOT_FINISHED;
+				}
+
 				if (ret == ERR_SUCCESS) {
 					boolean changed = FALSE;
 
@@ -372,7 +417,13 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 				if (ret == ERR_SUCCESS)
 					ret = assembly_variants_to_edges(&state, VCArray);
 
-				_print_graph(g, Options, Task, GRAPH_PRINT_VARIANTS);
+				_print_graph(g, Options, Task, GRAPH_PRINT_VARIANTS, FALSE);
+				if (ParseOptions->PlotOptions.PlotStep == 8) {
+					kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
+					_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
+					ret = ERR_PLOT_FINISHED;
+				}
+
 				if (g->TypedEdgeCount[kmetRead] > 0)
 					ret = ERR_TOO_COMPLEX;
 			}
@@ -614,6 +665,10 @@ static omp_lock_t _readCoverageLock;
 ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PROGRAM_OPTIONS *Options, const uint64_t RegionStart, const char *RefSeq, PGEN_ARRAY_ONE_READ FilteredReads, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	if (Options->RegionStart != (uint64_t)-1 &&
+		!in_range(RegionStart, Options->RegionLength, Options->RegionStart))
+		return ERR_SUCCESS;
 
 	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, FilteredReads);
 	if (ret == ERR_SUCCESS) {
@@ -971,7 +1026,7 @@ int main(int argc, char *argv[])
 											utils_free(_edgeLAs);
 											utils_free(_vertexLAs);
 
-											if (po.VCFFileHandle != NULL) {
+											if (po.VCFFileHandle != NULL && gen_array_size(&po.VCArray) > 0) {
 												if (ret == ERR_SUCCESS) {
 													VARIANT_GRAPH vg;
 
