@@ -107,7 +107,7 @@ static ERR_VALUE _init_default_values()
 		ret = option_add_UInt32(PROGRAM_OPTION_MISSING_EDGE_PENALTY, 3);
 
 	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY, 2);
+		ret = option_add_UInt32(PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY, 8);
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_UInt32(PROGRAM_OPTION_READ_STRIP, 5);
