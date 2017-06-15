@@ -70,12 +70,14 @@ ERR_VALUE sam_index_from_sam(const char *SAMFile, PGEN_ARRAY_SAM_INDEX_ENTRY Ind
 	char *data = NULL;
 	ONE_READ r;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	FUTILS_MAPPED_FILE mappedFile;
 
-	ret = utils_file_read(SAMFile, &data, &len);
+	ret = utils_file_map(SAMFile, &mappedFile);
 	if (ret == ERR_SUCCESS) {
 		sam_index_init(Index);
-		line = data;
-		while (ret == ERR_SUCCESS) {
+		line = (char *)mappedFile.Address;
+		len = mappedFile.Size;
+		while (ret == ERR_SUCCESS && (line - (char *)mappedFile.Address < len) && *line != '\0') {
 			ret = read_create_from_sam_line(line, &r);
 			if (ret == ERR_SUCCESS) {
 				SAM_INDEX_ENTRY e;
@@ -86,9 +88,17 @@ ERR_VALUE sam_index_from_sam(const char *SAMFile, PGEN_ARRAY_SAM_INDEX_ENTRY Ind
 				ret = sam_index_insert(Index, &e);
 				_read_destroy_structure(&r);
 			}
+
+			while ((line - (char *)mappedFile.Address < len) && *line != '\0' && *line != '\r' && *line != '\n')
+				++line;
+
+			if ((line - (char *)mappedFile.Address < len) && *line != '\0') {
+				while (*line == '\r' && *line == '\n')
+					++line;
+			}
 		}
 
-		utils_free(data);
+		utils_file_unmap(&mappedFile);
 	}
 
 	if (ret == ERR_SUCCESS)
