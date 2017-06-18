@@ -1662,6 +1662,32 @@ static ERR_VALUE _follow_line(PKMER_EDGE Start, char **Seq, size_t *SeqLen, PKME
 }
 
 
+static uint32_t _binomic_probability(const size_t RefReads, const size_t AltReads)
+{
+	uint32_t ret = 0;
+	double res = 1.0;
+	size_t n = RefReads + AltReads;
+	double kn = (double)AltReads / n;
+
+	if (AltReads > 0 && RefReads > 0) {
+		for (size_t i = 0; i < AltReads; ++i) {
+			res *= (n - i);
+			res /= (i + 1);
+			res *= kn;
+		}
+
+		for (size_t i = 0; i < n - AltReads; ++i)
+			res *= (1 - kn);
+	} else if (RefReads == 0)
+		res = 1.0;
+	else res = 0;
+
+	ret = (uint32_t)round(res * 100);
+
+	return ret;
+}
+
+
 static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, uint64_t Pos, const char *Ref, size_t RefLen, const char *Alt, size_t AltLen, const GEN_ARRAY_size_t *RSWeights, const GEN_ARRAY_size_t *ReadWeights, const POINTER_ARRAY_READ_INFO *RefReads, const POINTER_ARRAY_READ_INFO *AltReads, void *Context, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	VARIANT_CALL vc;
@@ -1738,6 +1764,9 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 							vc.AltWeight = 0;
 							for (int i = rewStartIndex; i < rewEndIndex + 1; ++i)
 								total += ReadWeights->Data[i];
+
+							vc.ProbByCounts = _binomic_probability(gen_array_size(&vc.RefReads), gen_array_size(&vc.AltReads));
+							vc.ProbByWeights = vc.ProbByCounts;
 
 							vc.AltWeight = (total / (rewEndIndex + 1 - rewStartIndex));
 							ret = vc_array_add(VCArray, &vc, NULL);
