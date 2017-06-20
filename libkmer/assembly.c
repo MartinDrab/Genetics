@@ -310,7 +310,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 			while (i < (int)NumberOfSets) {
 				ret = _assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
 				if (ret == ERR_SUCCESS && Options->OptimizeShortVariants && 
-					NumberOfSets - i > 12 && optimizationIndex < i - 1) {
+					NumberOfSets - i > 16 && optimizationIndex < i - 1) {
 					PPOINTER_ARRAY_KMER_VERTEX currVertices = Vertices[i];
 					PPOINTER_ARRAY_KMER_VERTEX prevVertices = Vertices[i - 1];
 
@@ -326,17 +326,21 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 						const char *ref = Options->Reference + rsv->RefSeqPosition + 1;
 						const char *alt = Read->ReadSequence + KMerSize + i - 1;
 
-						ret = ssw_clever(ref, 10, alt, 10, 2, -1, -1, &opString, &opStringSize);
+						ret = ssw_clever(ref, 12, alt, 12, 2, -1, -1, &opString, &opStringSize);
 						if (ret == ERR_SUCCESS) {
 							boolean oneType = TRUE;
 							char typeChar = opString[0];
 							size_t matchIndex = 0;
+							size_t MCount = 0;
 
 							while (matchIndex < opStringSize && opString[matchIndex] != 'M' && opString[matchIndex] == typeChar)
 								++matchIndex;
 
 							oneType = (matchIndex < opStringSize && opString[matchIndex] == 'M');
-							if (oneType && matchIndex < 4 && opString[matchIndex] == opString[matchIndex + 1]) {
+							while (opString[matchIndex + MCount] == 'M')
+								++MCount;
+
+							if (oneType && matchIndex < 6 && MCount >= 5) {
 								switch (typeChar) {
 									case 'I': {
 										for (size_t j = 0; j < matchIndex - 1; ++j) {
@@ -871,11 +875,10 @@ ERR_VALUE assembly_parse_reference(PASSEMBLY_STATE State)
 					ret = kmer_graph_add_vertex_ex(Graph, destKMer, kmvtRefSeqMiddle, &destVertex);
 					if (ret == ERR_ALREADY_EXISTS) {
 						do {
+							destVertex->Unique = FALSE;
 							refRepeats = TRUE;
 							kmer_set_number(destKMer, kmer_get_number(destKMer) + 1);
 							ret = kmer_graph_add_vertex_ex(Graph, destKMer, kmvtRefSeqMiddle, &destVertex);
-							if (ret == ERR_ALREADY_EXISTS)
-								destVertex->Unique = FALSE;
 						} while (ret == ERR_ALREADY_EXISTS);
 					}
 

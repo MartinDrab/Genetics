@@ -1666,17 +1666,18 @@ static uint32_t _binomic_probability(const size_t RefReads, const size_t AltRead
 {
 	uint32_t ret = 0;
 	double res = 1.0;
-	size_t n = RefReads + AltReads;
-	double kn = (double)AltReads / n;
+	const size_t n = (RefReads + AltReads) / 100;
+	const double kn = (double)AltReads / (n*100);
+	const size_t k = AltReads / 100;
 
 	if (AltReads > 0 && RefReads > 0) {
-		for (size_t i = 0; i < AltReads; ++i) {
+		for (size_t i = 0; i < k; ++i) {
 			res *= (n - i);
 			res /= (i + 1);
 			res *= kn;
 		}
 
-		for (size_t i = 0; i < n - AltReads; ++i)
+		for (size_t i = 0; i < n - k; ++i)
 			res *= (1 - kn);
 	} else if (RefReads == 0)
 		res = 1.0;
@@ -1688,7 +1689,7 @@ static uint32_t _binomic_probability(const size_t RefReads, const size_t AltRead
 }
 
 
-static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, uint64_t Pos, const char *Ref, size_t RefLen, const char *Alt, size_t AltLen, const GEN_ARRAY_size_t *RSWeights, const GEN_ARRAY_size_t *ReadWeights, const POINTER_ARRAY_READ_INFO *RefReads, const POINTER_ARRAY_READ_INFO *AltReads, void *Context, PGEN_ARRAY_VARIANT_CALL VCArray)
+static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, uint64_t Pos, const char *Ref, size_t RefLen, const char *Alt, size_t AltLen, const GEN_ARRAY_size_t *RSWeights, const GEN_ARRAY_size_t *ReadWeights, const POINTER_ARRAY_READ_INFO *RefReads, const POINTER_ARRAY_READ_INFO *AltReads, void *Context, const PARSE_OPTIONS *Options, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	VARIANT_CALL vc;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -1765,10 +1766,15 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 							for (int i = rewStartIndex; i < rewEndIndex + 1; ++i)
 								total += ReadWeights->Data[i];
 
-							vc.ProbByCounts = _binomic_probability(gen_array_size(&vc.RefReads), gen_array_size(&vc.AltReads));
-							vc.ProbByWeights = vc.ProbByCounts;
-
 							vc.AltWeight = (total / (rewEndIndex + 1 - rewStartIndex));
+							vc.ProbByCounts = _binomic_probability(100*gen_array_size(&vc.RefReads), 100*gen_array_size(&vc.AltReads));
+							vc.ProbByWeights = _binomic_probability(vc.RefWeight, vc.AltWeight);
+							
+							if (Options->ReadCoverage > 0) {
+								vc.AltWeight /= Options->ReadCoverage;
+								vc.RefWeight /= Options->ReadCoverage;
+							}
+
 							ret = vc_array_add(VCArray, &vc, NULL);
 							if (ret != ERR_SUCCESS) {
 								variant_call_finit(&vc);
@@ -1830,7 +1836,7 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 }
 
 
-ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT_CALL VCArray, const char *CHrom, boolean *Changed)
+ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT_CALL VCArray, const char *CHrom, const PARSE_OPTIONS *Options, boolean *Changed)
 {
 	boolean edgeCreated = FALSE;
 	REFSEQ_STORAGE s1;
@@ -1979,7 +1985,7 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT
 							for (size_t i = 0; i < pointer_array_size(&es1); ++i)
 								pointer_array_clear_READ_INFO(&(es1.Data[i]->ReadIndices));
 							
-							_create_variants(kmer_graph_get_kmer_size(Graph), CHrom, v->AbsPos, s1.Sequence, s1.ValidLength, s2.Sequence, s2.ValidLength, &w1, &w2, &rp1, &rp2, NULL, VCArray);
+							_create_variants(kmer_graph_get_kmer_size(Graph), CHrom, v->AbsPos, s1.Sequence, s1.ValidLength, s2.Sequence, s2.ValidLength, &w1, &w2, &rp1, &rp2, NULL, Options, VCArray);
 							kmer_graph_delete_edge(Graph, path1Start);
 							kmer_graph_delete_edge(Graph, path2Start);
 							ret = kmer_graph_add_edge_ex(Graph, v, path1Vertex, kmetVariant, &e);

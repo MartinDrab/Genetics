@@ -409,7 +409,7 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 					do {
 						changed = FALSE;
 						kmer_graph_check_weights(g);
-						ret = kmer_graph_detect_uncertainities(g, VCArray, Options->RefSeq.Name, &changed);
+						ret = kmer_graph_detect_uncertainities(g, VCArray, Options->RefSeq.Name, ParseOptions, &changed);
 						kmer_graph_check_weights(g);
 					} while (ret == ERR_SUCCESS && changed);
 				}
@@ -676,16 +676,22 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 			char taskName[128];
 			ASSEMBLY_TASK task;
 			
-			size_t coverage = 0;
+			PARSE_OPTIONS po = Options->ParseOptions;
+			uint32_t coverage = 0;
+
+			memset(po.ReadQualityDistribution, 0, sizeof(po.ReadQualityDistribution));
 			{
 				const ONE_READ *fr = FilteredReads->Data;
-				size_t baseCount = 0;
+				uint32_t baseCount = 0;
 
 				omp_set_lock(&_readCoverageLock);
 				_totalRegionLength += Options->RegionLength;
 				for (size_t i = 0; i < gen_array_size(FilteredReads); ++i) {
 					_readBaseCount += fr->ReadSequenceLen;
 					baseCount += fr->ReadSequenceLen;
+					for (size_t j = 0; j < fr->ReadSequenceLen; ++j)
+						++po.ReadQualityDistribution[fr->Quality[j]];
+
 					++fr;
 				}
 
@@ -698,7 +704,7 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 			assembly_task_set_name(&task, taskName);
 			task.RegionStart = RegionStart;
 
-			PARSE_OPTIONS po = Options->ParseOptions;
+			po.ReadCoverage = coverage;
 			po.ReadThreshold = Options->Threshold;
 			po.RegionStart = RegionStart;
 			po.RegionLength = Options->RegionLength;

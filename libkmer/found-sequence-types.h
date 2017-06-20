@@ -27,6 +27,7 @@ typedef struct _VARIANT_CALL {
 	uint32_t KMerSize;
 	uint32_t ProbByCounts;
 	uint32_t ProbByWeights;
+	uint32_t ReadCoverage;
 	uint64_t Pos;
 	char *ID;
 	char *Ref;

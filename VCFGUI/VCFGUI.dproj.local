@@ -3,13 +3,13 @@
 	<Transactions>
     <Transaction>2016/07/13 16:05:43.000.258,=C:\Users\Martin\Documents\RAD Studio\Projects\Unit1.pas</Transaction>
     <Transaction>2017/05/03 16:42:49.000.701,=C:\Users\Martin\Documents\RAD Studio\Projects\Unit2.pas</Transaction>
-    <Transaction>2017/05/03 16:43:18.000.257,C:\Users\Martin\Documents\RAD Studio\Projects\Unit2.pas=D:\MFF\Diplomka\Genetics\VCFGUI\MainForm.pas</Transaction>
-    <Transaction>2017/05/03 16:43:18.000.257,C:\Users\Martin\Documents\RAD Studio\Projects\Unit2.dfm=D:\MFF\Diplomka\Genetics\VCFGUI\MainForm.dfm</Transaction>
-    <Transaction>2017/05/03 16:43:29.000.879,C:\Users\Martin\Documents\RAD Studio\Projects\Project1.dproj=D:\MFF\Diplomka\Genetics\VCFGUI\VCFGUI.dproj</Transaction>
+    <Transaction>2017/05/03 16:43:18.000.257,D:\MFF\Diplomka\Genetics\VCFGUI\MainForm.pas=C:\Users\Martin\Documents\RAD Studio\Projects\Unit2.pas</Transaction>
+    <Transaction>2017/05/03 16:43:18.000.257,D:\MFF\Diplomka\Genetics\VCFGUI\MainForm.dfm=C:\Users\Martin\Documents\RAD Studio\Projects\Unit2.dfm</Transaction>
+    <Transaction>2017/05/03 16:43:29.000.879,D:\MFF\Diplomka\Genetics\VCFGUI\VCFGUI.dproj=C:\Users\Martin\Documents\RAD Studio\Projects\Project1.dproj</Transaction>
     <Transaction>2017/05/08 23:40:58.000.847,=D:\MFF\Diplomka\Genetics\VCFGUI\Unit1.pas</Transaction>
-    <Transaction>2017/05/08 23:41:09.000.422,D:\MFF\Diplomka\Genetics\VCFGUI\VCFRecord.pas=D:\MFF\Diplomka\Genetics\VCFGUI\Unit1.pas</Transaction>
-    <Transaction>2017/06/01 19:42:45.367,=D:\MFF\Diplomka\Genetics\VCFGUI\Unit1.pas</Transaction>
-    <Transaction>2017/06/01 19:43:02.969,D:\MFF\Diplomka\Genetics\VCFGUI\StatisticsFrm.pas=D:\MFF\Diplomka\Genetics\VCFGUI\Unit1.pas</Transaction>
-    <Transaction>2017/06/01 19:43:02.969,D:\MFF\Diplomka\Genetics\VCFGUI\StatisticsFrm.dfm=D:\MFF\Diplomka\Genetics\VCFGUI\Unit1.dfm</Transaction>
+    <Transaction>2017/05/08 23:41:09.000.422,D:\MFF\Diplomka\Genetics\VCFGUI\Unit1.pas=D:\MFF\Diplomka\Genetics\VCFGUI\VCFRecord.pas</Transaction>
+    <Transaction>2017/06/01 19:42:45.000.367,=D:\MFF\Diplomka\Genetics\VCFGUI\Unit1.pas</Transaction>
+    <Transaction>2017/06/01 19:43:02.000.969,D:\MFF\Diplomka\Genetics\VCFGUI\Unit1.dfm=D:\MFF\Diplomka\Genetics\VCFGUI\StatisticsFrm.dfm</Transaction>
+    <Transaction>2017/06/01 19:43:02.000.969,D:\MFF\Diplomka\Genetics\VCFGUI\Unit1.pas=D:\MFF\Diplomka\Genetics\VCFGUI\StatisticsFrm.pas</Transaction>
   </Transactions>
 </BorlandProject>

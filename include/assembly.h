@@ -15,6 +15,8 @@ typedef struct _PLOT_OPTIONS {
 } PLOT_OPTIONS, *PPLOT_OPTIONS;
 
 typedef struct _PARSE_OPTIONS {
+	uint32_t ReadCoverage;
+	uint32_t ReadQualityDistribution[256];
 	boolean OptimizeShortVariants;
 	boolean ConnectRefSeq;
 	boolean ConnectReads;

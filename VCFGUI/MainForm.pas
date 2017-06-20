@@ -162,6 +162,9 @@ Var
   r1, r2 : TVCFRecord;
   index1, index2 : Integer;
   newList : TList<TVCFIncident>;
+
+  csvTP : TStringList;
+  csvFP : TStringList;
 begin
 I := 0;
 WHile (I < FFilteredTest.Count) Do
@@ -236,6 +239,20 @@ ResultListView.Items.Count := FIncidents.Count;
 TPsLabel.Caption := Format('TPs: %u', [FTPsCount]);
 FNsLabel.Caption := Format('FNs: %u', [FFNsCount]);
 FPsLabel.Caption := Format('FPs: %u', [FFPsCount]);
+csvTP := TStringList.Create;
+csvFP := TStringList.Create;
+For incident In FIncidents Do
+  begin
+  Case incident.IncidentType Of
+    vcfitTruePositive : csvTP.Add(Format('%u.%u, %u.%u', [incident.VCFRecord.RW Div 100, incident.VCFRecord.RW Mod 100, incident.VCFRecord.AW Div 100, incident.VCFRecord.AW Mod 100]));
+    vcfitFalsePositive : csvFP.Add(Format('%u.%u, %u.%u', [incident.VCFRecord.RW Div 100, incident.VCFRecord.RW Mod 100, incident.VCFRecord.AW Div 100, incident.VCFRecord.AW Mod 100]));
+    end;
+  end;
+
+csvTP.SaveToFile('tp.csv');
+csvTP.Free;
+csvFP.SaveToFile('fp.csv');
+csvFP.Free;
 end;
 
 Procedure TMainFrm.ResultListViewAdvancedCustomDrawItem(Sender: TCustomListView;
