@@ -1,6 +1,7 @@
 
 #include <malloc.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include "khash.h"
 #include "err.h"
 #include "utils.h"
@@ -340,9 +341,13 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 							while (opString[matchIndex + MCount] == 'M')
 								++MCount;
 
-							if (oneType && matchIndex < 6 && MCount >= 5) {
+							if (oneType && matchIndex <= 4 && MCount >= 5) {
 								switch (typeChar) {
 									case 'I': {
+										for (size_t j = 0; j < matchIndex; ++j)
+											kmer->Bases[j] = 'R';
+
+										_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
 										for (size_t j = 0; j < matchIndex - 1; ++j) {
 											kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
 											++i;
@@ -363,6 +368,10 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 									} break;
 									case 'X': {
 										if (rsv->RefSeqPosition + matchIndex < Options->RegionLength) {
+											for (size_t j = 0; j < matchIndex; ++j)
+												kmer->Bases[j] = 'R';
+
+											_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
 											for (size_t j = 0; j < matchIndex - 1; ++j) {
 												kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
 												++i;
