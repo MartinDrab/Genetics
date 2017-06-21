@@ -144,3 +144,33 @@ Such conditions are met when the read differs from the reference at base $r_{i+k
 \subsection{Assigning Sets of Vertices to K-mers}
 \label{subsec:assign-sets}
 
+The process of assigning vertex sets to individual k-mers derived from the read in the previous step is quite straightforward – a set assigned to certain k-mer contains exactly the vertices representing k-mers with sequence equal to the k-mer. The k-mer context number is not taken into account. If a k-mer is not represented by any vertex of the current graph (thus, the k-mer would receive an empty set), a new vertex is created to represent it.
+
+Previous steps of the algorithm, described above, impose the following conditions on the assigned vertex sets:
+\begin{itemize}
+\item each set contains either read, or reference vertices, not both,
+\item if a set contains read vertices, its size is always one,
+\item sets containing reference vertices do not have such restriction.
+\end{itemize}
+The second and third condition holds because k-mer context numbers are used to differentiate reference k-mers but not the read ones. 
+
+In formal terms, a set $M_i$ is assigned to a k-mer $k_i$ where
+$$
+M_i = {v_{i_j} | v_{i_j} \in V(G), kmer(v_{i_j}) equals to k_i by sequence}
+$$ 
+When a set is assigned to each k-mer, it is time to integrate the read into the graph in form of a path, starting on a vertex representing $k_0$ and ending in one covering $k_{n-k}$. SInce $M_i$ sets may contain more than one vertex, it is required to select vertices to form a path best fitting to the read. To derive a good path, we decided to the following observations about reads:
+\begin{itemize}
+\item they should follow the reference sequence in a forward direction,
+\item probability of making big leaps in that direction is low,
+\item multiple reads cover one place, thus sharing appropriate parts of their paths.
+\end{itemize}
+
+These observations cannot be enforced too strictly because De Bruin graphs are not very suitable for coping with repeats of length $k$ or more, and similar phenomenoms. The case of a read containing a copy of reference at leat $k$ baes in length might be enough to break the first observation. The second observation permits exceptions by definition. The third one, forms a base for most of the genome assembly algorithms.
+
+To solve the problem of selection of the right vertices from the $M_i$ sets, we decided to reduce it to a shortest-path problem on a helper graph the structure of which is defined by the sets and their contents.
+
+\subsection{The Helper Graph}
+\label{subsec:helper-graph}
+
+
+
