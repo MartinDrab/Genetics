@@ -49,6 +49,7 @@ typedef struct _KMER_VERTEX {
 	boolean LongEdgeAllowed;
 	boolean ReadStartAllowed;
 	boolean Unique;
+	boolean ShortVariant;
 	EKMerVertexType Type;
 	POINTER_ARRAY_KMER_EDGE Successors;
 	POINTER_ARRAY_KMER_EDGE Predecessors;

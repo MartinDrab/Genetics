@@ -318,7 +318,16 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 					const KMER_VERTEX *rsv = prevVertices->Data[0];
 					PKMER_VERTEX rev = currVertices->Data[0];
 
-					if (pointer_array_size(Vertices[i - 1]) == 1 &&
+					boolean isOk = TRUE;
+					if (pointer_array_size(currVertices) > 0) {
+						for (size_t i = 0; i < pointer_array_size(currVertices); ++i) {
+							isOk = (currVertices->Data[i]->RefSeqPosition - 1 != rsv->RefSeqPosition);
+							if (!isOk)
+								break;
+						}
+					}
+
+					if (isOk && pointer_array_size(prevVertices) == 1 &&
 						rsv->Type == kmvtRefSeqMiddle &&
 						rsv->RefSeqPosition < Options->RegionLength - 1 &&
 						rev->RefSeqPosition - 1 != rsv->RefSeqPosition) {
@@ -344,8 +353,8 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 							if (oneType && matchIndex <= 4 && MCount >= 5) {
 								switch (typeChar) {
 									case 'I': {
-										for (size_t j = 0; j < matchIndex; ++j)
-											kmer->Bases[j] = 'R';
+										for (size_t k = 0; k < matchIndex; ++k)
+											kmer->Bases[k] = 'R';
 
 										_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
 										for (size_t j = 0; j < matchIndex - 1; ++j) {
@@ -368,10 +377,11 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 									} break;
 									case 'X': {
 										if (rsv->RefSeqPosition + matchIndex < Options->RegionLength) {
-											for (size_t j = 0; j < matchIndex; ++j)
-												kmer->Bases[j] = 'R';
+											for (size_t k = 0; k < matchIndex; ++k)
+												kmer->Bases[k] = 'R';
 
 											_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
+
 											for (size_t j = 0; j < matchIndex - 1; ++j) {
 												kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
 												++i;
