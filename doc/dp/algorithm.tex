@@ -211,3 +211,23 @@ As Figure \ref{fig:helper-graph} indicates, both graphs look a little bit differ
 	\caption{Helper graph creation without short variant optimization}
 	\label{fig:helper-graph}
 \end{figure}
+
+\section{Graph Structure Optimization}
+\label{sec:graph-structure-optimization}
+
+When all reads are integrated into the De Bruin graph, it is time to optimize its structure in order to get rid of unpopulated paths, usually created by read errors, and resolve some other issues caused mostly by repetitive regions inside either the reference or the reads.
+
+\subsection{Connecting Bubbles}
+\label{subsec:connecting-bubbles}
+
+Figure \ref{fig:bubble-connection} demonstrates one class of the structural problems. A subset of reference sequence was transformed into vertices 1, 2, 3, 4, 5 and 6. A set of reads is represented by a "path" 2, 3, 4, 5, R1, R2, 1, 2, 3, R3, 6.  The left part of the figure shows how such a graph woud look like without any optimizations. It is clear that recovering the correct sequence would not be trivial. 
+
+Howerver, since we know that the path leads from R2 to R3 (through 1, 2, 3), we can theoretically replace edges (R2, 1) and (3, R3) by a special edge (R2, R3), as the right part of the figure suggests. An information about the sequence covered by vertices 1 and 2 needs to be recored within the new edge. Recovering the correct sequence from the right part of the figure does not impose a problem since it is just a simple bubble. 
+
+\begin{figure}
+	\centering
+	\includegraphics{img/bubble-connection.pdf}
+	\caption{Benefits of connecting bubbles}
+	\label{fig:bubble-connection}
+\end{figure}
+
