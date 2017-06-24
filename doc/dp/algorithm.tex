@@ -182,3 +182,32 @@ V_h = \cup_i M_i \\
 E_h = \{(u, v) | u \in M_i, v \in M_{i + 1}\}
 \end{gather}
 
+By finding the shortest path leading from a vertex in the first layer to one in the last layer, we perfrom the process of selection of vertices to represent the read in the main graph. The shortest path depends on weights of edges connecting the adjacent layers of the helper graph. In general, the weighting funcgion follows these rules:
+\begin{itemize}
+\item the weight is increased by a \textit{missing edge penalty} if there is a missing edge on the path from $u$ to $v$ in the main graph,
+\item the weight is increased by a \textit{reference backward penalty} if reference position of $u$ is greater or equal to the reference position of $v$,
+\item the weight is increased by a \textit{reference forward penalty} if reference psotiion of $u$ is far less than reference position of $v$.
+\end{itemize}
+The rules actually indicate why $M_i$ sets covering read vertices are not parts of the helper graph – since their vertices maintain no reference position, only the missing edge penalties applies and that can be included within missing edge penalties of the reference vertices only.
+
+For an example of a helper graph, let's have a reference sequence \texttt{ACTATACTA} and a read \texttt{ACTAGACTA}. The left part of Figure \ref{fig:heper-graph-short} shows the main graph just after adding vertices for the reference and the read k-mers with short variant optimization applied. The resulting helper graph is shown on the right part of the figure.
+
+Six k-mers are derived from the read which means that vertex sets $M_0$, ..., $M_5$ are assigned to them. Since the second k-mer is represented by a read vertex, the $M_1$ set is not included as a layer of the helper graph. Other sets contains reference vertices, so they form individual layers. Adjacent layers are then connected. Edges with applied penalties (only the reference backward penalty in this case) are depicted red. The black edges show the shortest path.
+
+The shortest path select the first vertex from $M_0$ and the second one from $M_5$ to represent the read within the main graph (since other sets contain only one vertex, the selection process is trivial there). The resulting path in the graph can be used to correctly recover the sequence covered by the read.
+
+\begin{figure}
+	\centering
+	\includegraphics{img/helper-graph-short.pdf}
+	\caption{Helper graph creation with short variant optimization}
+	\label{fig:helper-graph-short}
+\end{figure}
+
+As Figure \ref{fig:helper-graph} indicates, both graphs look a little bit differently when the short variant optimization is not applied. The main graph contains more read vertices which reduces the number of layers in the helper graph. Although the graphs are different, the sequence covered by the rad is the same and can be correctly recovered again.
+
+\begin{figure}
+	\centering
+	\includegraphics{img/helper-graph.pdf}
+	\caption{Helper graph creation without short variant optimization}
+	\label{fig:helper-graph}
+\end{figure}
