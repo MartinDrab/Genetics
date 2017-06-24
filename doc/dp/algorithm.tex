@@ -150,7 +150,8 @@ Previous steps of the algorithm, described above, impose the following condition
 \begin{itemize}
 \item each set contains either read, or reference vertices, not both,
 \item if a set contains read vertices, its size is always one,
-\item sets containing reference vertices do not have such restriction.
+\item sets containing reference vertices do not have such restriction,
+\item each two sets are either distinct (their intersection is an empty set) or equal.
 \end{itemize}
 The second and third condition holds because k-mer context numbers are used to differentiate reference k-mers but not the read ones. 
 
@@ -172,5 +173,12 @@ To solve the problem of selection of the right vertices from the $M_i$ sets, we 
 \subsection{The Helper Graph}
 \label{subsec:helper-graph}
 
+The helper graph is an oriented layered one. Each layer consists ofall vertices  vertices contained in one reference $M_i$ sets. The order of the layers respect the order of $M_i$ sets. Sets consisting of read vertices are not part of the helper graph. Ony adjacent layers are connected by edges, their orientation reflects the order of the sets. Each subgraph consisting of two adjacent layers is a full bipartite graph. The structure of the helper graph does not take equality of $M_i$ into account. In other words, when $M_i = M_j$ for $i \ne j$, both sets are represented within the heper graph as individual layers, even if they refer to the same vertices of the (main, non-helper) graph.
 
+Formaly speaking, let $M_i = \{v_{i}^{1}, ..., v_{i}^{n_i}\}$ and let $i$ serves as an index to reference sets only. Then the heper graph $G_h$ can be defined as follows:
+\begin{gather}
+G_h = (V_h, E_h) \\
+V_h = \cup_i M_i \\
+E_h = \{(u, v) | u \in M_i, v \in M_{i + 1}\}
+\end{gather}
 
