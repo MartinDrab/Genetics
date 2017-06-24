@@ -231,11 +231,27 @@ Howerver, since we know that the path leads from R2 to R3 (through 1, 2, 3), we 
 	\label{fig:bubble-connection}
 \end{figure}
 
+A more general, and very typical, sutiation is shown on Figure \ref{fig:connection-general}. The subgraph contains a subset of the reference (vertices $1$, $...$, $n+1$) and two bubbles; one ending by $R1$ and connected to $2$, another starting at $R2$ and leading from $n$. If edges $I_1$ (the input edge) and $O_1$ (the output edge) share reasonable amount of reads ($|reads(I_1) \cap reads(O_1)| > thershold$), the subgraph may also be interpreted as that the reads contain a sequence of length $n-1$ that is also present in the reference. In that case, it is wise to connect the vertices $R1$ and $R2$ directly the same way as on Figure \ref{bubble-connection}, bypassing the reference part. The edge maintaining the direct link is marked as $C_1$ (the connecting edge). Reads shared by the input and the output edges are moved to the connecting one.
 
+If $C_1$ is created, the read set intersection is also used to decide whether the edges $I_1$ and $O_1$ should be removed. The input edge is deleted if does not share enough reads with the next reference edge (meaning there are no valid sequences leading through both these edges). Similarly, the output edge is deleted in case it does not share enough reads with the last reference edge (no valid paths goes through the edges).
 
 \begin{figure}
 	\centering
 	\includegraphics{img/connection-general.pdf}
 	\caption{A subgraph required for connection}
 	\label{fig:connection-general}
+\end{figure}
+
+Figure \ref{fig:connection-abstract} depicts the probably most general case; multiple reads covering different parts of the active region (including the differences from the references) share the same sequence of $n$ bases. There is $k$ input and $l$ output edges. To determine the association between individual input and output edges, the intersection of covering reads is used again and connecting edges are created if necessary. More precisely, the following rules apply:
+\begin{itemize}
+\item If $i^{th}$ input and $j^{th}$ output edges share reasonable amount of reads ($|reads(I_i) \cap reads(O_j)| > threhsold$), a connecting edge $C_{i,j}$ is created and the shared reads are moved to it. The new edge starts in $source(I_i)$ and ends in $dest(O_j)$.
+\item $I_i$ is removed if
+\item $O_i$ is removed in case 
+\end{itemize}
+
+\begin{figure}
+	\centering
+	\includegraphics{img/connection-abstract.pdf}
+	\caption{A general form of the subgraph}
+	\label{fig:connection-abstract}
 \end{figure}
