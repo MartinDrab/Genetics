@@ -277,23 +277,29 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 
 static void _on_delete_edge(const KMER_GRAPH *Graph, const KMER_EDGE *Edge, void *Context)
 {
-	size_t i = 0;
 	PGEN_ARRAY_KMER_EDGE_PAIR pairs = (PGEN_ARRAY_KMER_EDGE_PAIR)Context;
 	PKMER_EDGE_PAIR p = pairs->Data;
 
-	while (i < gen_array_size(pairs)) {
-		if (p->U == Edge || p->V == Edge) {
-			if (p->Edges != NULL) {
-				utils_free(p->Edges);
-				p->Edges = NULL;
-			}
+	for (size_t i = 0; i < gen_array_size(pairs); ++i) {
+		boolean remove = FALSE;
 
-			dym_array_remove_fastKMER_EDGE_PAIR(pairs, i);
-			continue;
+		remove = (p->U == Edge || p->V == Edge || p->ConnectingEdge == Edge);
+		if (!remove) {
+			for (size_t j = 0; j < p->EdgeCount; ++j) {
+				remove = (p->Edges[j] == Edge);
+				if (remove)
+					break;
+			}
+		}
+		
+		if (remove) {
+			if (p->Edges != NULL)
+				utils_free(p->Edges);
+
+			memset(p, 0, sizeof(KMER_EDGE_PAIR));
 		}
 
 		++p;
-		++i;
 	}
 
 	return;
@@ -357,7 +363,7 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 			if (ret == ERR_SUCCESS) {
 				g->DeleteEdgeCallback = _on_delete_edge;
 				g->DeleteEdgeCallbackContext = &ep;
-				kmer_graph_delete_edges_under_threshold(g, 0);
+				kmer_graph_delete_edges_under_threshold(g, ParseOptions->ReadThreshold);
 				kmer_graph_delete_trailing_things(g, &deletedThings);
 				g->DeleteEdgeCallback = NULL;
 			}

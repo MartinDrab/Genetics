@@ -1510,6 +1510,9 @@ ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Thre
 				if (eIn == eOut)
 					continue;
 
+				if (pair.U == NULL || pair.V == NULL || pair.ConnectingEdge == NULL)
+					continue;
+
 				if (eIn->Dest->Type == kmvtRefSeqMiddle && !eIn->Source->LongEdgeAllowed)
 					allowed = FALSE;
 
