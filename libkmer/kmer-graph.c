@@ -1697,10 +1697,10 @@ static ERR_VALUE _capture_alternate_edges(const KMER_EDGE *Start, const KMER_VER
 		} else if (ret == ERR_ALREADY_EXISTS || destVertex->Type == kmvtRefSeqMiddle) {
 			size_t index = 0;
 			
-			while (pointer_array_size(Edges) > 1) {
+			while (pointer_array_size(&indices) > 0) {
 				khiter_t it;
 
-				index = dym_array_pop_back_size_t(&indices);
+				index = *dym_array_pop_back_size_t(&indices);
 				e = *pointer_array_pop_back_KMER_EDGE(Edges);
 				it = kh_get(es, table, e->Order);
 				kh_del(es, table, it);
@@ -1711,23 +1711,39 @@ static ERR_VALUE _capture_alternate_edges(const KMER_EDGE *Start, const KMER_VER
 				}
 
 				if (kmer_vertex_out_degree(e->Source) > index + 1) {
-					e = kmer_vertex_get_succ_edge(e->Source, index + 1);
-					pointer_array_push_back_KMER_EDGE(Edges, e);
-					dym_array_push_back_size_t(&indices, index + 1);
-					destVertex = e->Dest;
-					kh_put(es, table, e->Order, &r);
+					++index;
+					e = kmer_vertex_get_succ_edge(e->Source, index);
+					while (kh_get(es, table, e->Order) != kh_end(table) &&
+						kmer_vertex_out_degree(e->Source) > index + 1) {
+						++index;
+						e = kmer_vertex_get_succ_edge(e->Source, index);
+					}
+
+					if (kh_get(es, table, e->Order) == kh_end(table) &&
+						kmer_vertex_out_degree(e->Source) > index) {
+						pointer_array_push_back_KMER_EDGE(Edges, e);
+						dym_array_push_back_size_t(&indices, index);
+						destVertex = e->Dest;
+						kh_put(es, table, e->Order, &r);
+						break;
+					}
 				}
 			}
 
-			if (pointer_array_size(Edges) == 1) {
+			if (pointer_array_size(&indices) == 0) {
 				ret = ERR_TOO_COMPLEX;
 				break;
 			}
 		} else {
-			e = kmer_vertex_get_succ_edge(e->Source, 0);
+			e = kmer_vertex_get_succ_edge(destVertex, 0);
 			pointer_array_push_back_KMER_EDGE(Edges, e);
 			dym_array_push_back_size_t(&indices, 0);
 			destVertex = e->Dest;
+			if (kh_get(es, table, e->Order) != kh_end(table)) {
+				ret = ERR_ALREADY_EXISTS;
+				break;
+			}
+
 			kh_put(es, table, e->Order, &r);
 		}
 	} while (TRUE);
@@ -1741,31 +1757,21 @@ static ERR_VALUE _capture_alternate_edges(const KMER_EDGE *Start, const KMER_VER
 }
 
 
-static ERR_VALUE _capture_alt_data(const POINTER_ARRAY_KMER_EDGE *Edges, char **Seq, size_t *SeqLen, PKMER_EDGE *LastEdge, PGEN_ARRAY_size_t Weights, PPOINTER_ARRAY_READ_INFO ReadPath)
+static ERR_VALUE _capture_alt_data(const POINTER_ARRAY_KMER_EDGE *Edges, PREFSEQ_STORAGE Seq, PGEN_ARRAY_size_t Weights, PPOINTER_ARRAY_READ_INFO ReadPath)
 {
-	REFSEQ_STORAGE rs;
 	const KMER_EDGE *e = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	ret = ERR_SUCCESS;
-	rs_storage_init(&rs);
 	for (size_t i = 0; i < pointer_array_size(Edges); ++i) {
 		e = Edges->Data[i];
-		ret = rs_storage_add_edge(&rs, e);
+		ret = rs_storage_add_edge(Seq, e);
 		if (ret == ERR_SUCCESS)
 			ret = dym_array_push_back_array_size_t(Weights, &e->Weights);
 
 		if (ret == ERR_SUCCESS)
 			ret = pointer_array_push_back_array_READ_INFO(ReadPath, &e->ReadIndices);
 	}
-
-	if (ret == ERR_SUCCESS) {
-		ret = rs_storage_create_string(&rs, Seq);
-		if (ret == ERR_SUCCESS)
-			*SeqLen = strlen(*Seq);
-	}
-
-	rs_storage_finit(&rs);
 
 	return ret;
 }
@@ -1809,6 +1815,7 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 	char *opString = NULL;
 	size_t opStringLen = 0;
 
+	assert(AltLen > 0);
 	++Alt;
 	++Ref;
 	--AltLen;
@@ -2020,6 +2027,7 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT
 					dym_array_clear_size_t(&w2);
 					rs_storage_reset(&s2);
 					rs_storage_add_vertex(&s2, path2Start->Source);
+					/*
 					rs_storage_add_edge(&s2, path2Start);
 					dym_array_push_back_array_size_t(&w2, &path2Start->Weights);
 					pointer_array_push_back_array_READ_INFO(&rp2, &path2Start->ReadIndices);
@@ -2079,14 +2087,51 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT
 						pointer_array_finit_READ_INFO(&tmpRP);
 						pointer_array_finit_KMER_EDGE(&tmpE);
 					}
-					
-					if (path2Vertex->Type == kmvtRefSeqMiddle && !path2Vertex->Helper)
+					*/
+					ret = _capture_alternate_edges(path2Start, path1Vertex, &es2);
+					if (ret == ERR_SUCCESS) {
+						size_t narrowCount = 0;
+						size_t disperseCount = 0;
+						size_t narrowIndex = 0;
+						size_t disperseIndex = 0;
+
+						path2Vertex = path1Vertex;
+						for (size_t l = 0; l < pointer_array_size(&es2) - 1; ++l) {
+							const KMER_EDGE *e = es2.Data[l];
+
+							if (kmer_vertex_out_degree(e->Dest) > 1) {
+								disperseCount++;
+								disperseIndex = l;
+							}
+
+							if (kmer_vertex_in_degree(e->Dest) > 1) {
+								narrowCount++;
+								narrowIndex = l;
+							}
+						}
+						
+						if (narrowCount == 0)
+							path2Start = es2.Data[pointer_array_size(&es2) - 1];
+						else if (disperseCount == 0)
+							path2Start = es2.Data[0];
+						else if (disperseCount == 1 && narrowCount == 1) {
+							if (disperseIndex < narrowIndex)
+								path2Start = es2.Data[disperseIndex + 1];
+							else path2Vertex = NULL;
+						} else path2Vertex = NULL;
+
+						if (path2Vertex != NULL)
+							ret = _capture_alt_data(&es2, &s2, &w2, &rp2);
+					}
+
+					ret = ERR_SUCCESS;
+					if (path2Vertex != NULL && path2Vertex->Type == kmvtRefSeqMiddle && !path2Vertex->Helper)
 						rs_storage_remove(&s2, 1);
 
 					kh_destroy(es, table);
 				}
 
-				if (path2Vertex->Type == kmvtRefSeqMiddle) {
+				if (path2Vertex != NULL && path2Vertex->Type == kmvtRefSeqMiddle) {
 					if (ret == ERR_SUCCESS && path1Vertex == path2Vertex) {
 						PKMER_EDGE e = kmer_graph_get_edge(Graph, &v->KMer, &path1Vertex->KMer);
 

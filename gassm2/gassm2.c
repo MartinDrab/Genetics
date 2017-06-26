@@ -363,7 +363,7 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 			if (ret == ERR_SUCCESS) {
 				g->DeleteEdgeCallback = _on_delete_edge;
 				g->DeleteEdgeCallbackContext = &ep;
-				kmer_graph_delete_edges_under_threshold(g, ParseOptions->ReadThreshold);
+				kmer_graph_delete_edges_under_threshold(g, 0);
 				kmer_graph_delete_trailing_things(g, &deletedThings);
 				g->DeleteEdgeCallback = NULL;
 			}
