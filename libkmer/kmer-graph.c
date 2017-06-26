@@ -1666,6 +1666,111 @@ static ERR_VALUE _follow_line(PKMER_EDGE Start, char **Seq, size_t *SeqLen, PKME
 }
 
 
+static ERR_VALUE _capture_alternate_edges(const KMER_EDGE *Start, const KMER_VERTEX *RefDest, PPOINTER_ARRAY_KMER_EDGE Edges)
+{
+	int r;
+	PKMER_EDGE e = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	khash_t(es)	*table = kh_init(es);
+	const KMER_VERTEX *destVertex = Start->Dest;
+	GEN_ARRAY_size_t indices;
+
+	dym_array_init_size_t(&indices, 140);
+	pointer_array_push_back_KMER_EDGE(Edges, Start);
+	do {
+		ret = ERR_SUCCESS;
+		while (kmer_vertex_out_degree(destVertex) == 1 && destVertex->Type == kmvtRead) {
+			e = kmer_vertex_get_succ_edge(destVertex, 0);
+			if (kh_get(es, table, e->Order) != kh_end(table)) {
+				ret = ERR_ALREADY_EXISTS;
+				break;
+			}
+
+			destVertex = e->Dest;
+			pointer_array_push_back_KMER_EDGE(Edges, e);
+			kh_put(es, table, e->Order, &r);
+		}
+
+		if (destVertex == RefDest) {
+			ret = ERR_SUCCESS;
+			break;
+		} else if (ret == ERR_ALREADY_EXISTS || destVertex->Type == kmvtRefSeqMiddle) {
+			size_t index = 0;
+			
+			while (pointer_array_size(Edges) > 1) {
+				khiter_t it;
+
+				index = dym_array_pop_back_size_t(&indices);
+				e = *pointer_array_pop_back_KMER_EDGE(Edges);
+				it = kh_get(es, table, e->Order);
+				kh_del(es, table, it);
+				while (pointer_array_size(Edges) > 1 && kmer_vertex_out_degree(e->Source) == 1) {					
+					e = *pointer_array_pop_back_KMER_EDGE(Edges);
+					it = kh_get(es, table, e->Order);
+					kh_del(es, table, it);
+				}
+
+				if (kmer_vertex_out_degree(e->Source) > index + 1) {
+					e = kmer_vertex_get_succ_edge(e->Source, index + 1);
+					pointer_array_push_back_KMER_EDGE(Edges, e);
+					dym_array_push_back_size_t(&indices, index + 1);
+					destVertex = e->Dest;
+					kh_put(es, table, e->Order, &r);
+				}
+			}
+
+			if (pointer_array_size(Edges) == 1) {
+				ret = ERR_TOO_COMPLEX;
+				break;
+			}
+		} else {
+			e = kmer_vertex_get_succ_edge(e->Source, 0);
+			pointer_array_push_back_KMER_EDGE(Edges, e);
+			dym_array_push_back_size_t(&indices, 0);
+			destVertex = e->Dest;
+			kh_put(es, table, e->Order, &r);
+		}
+	} while (TRUE);
+
+	dym_array_finit_size_t(&indices);
+	kh_destroy(es, table);
+	if (ret != ERR_SUCCESS)
+		pointer_array_clear_KMER_EDGE(Edges);
+
+	return ret;
+}
+
+
+static ERR_VALUE _capture_alt_data(const POINTER_ARRAY_KMER_EDGE *Edges, char **Seq, size_t *SeqLen, PKMER_EDGE *LastEdge, PGEN_ARRAY_size_t Weights, PPOINTER_ARRAY_READ_INFO ReadPath)
+{
+	REFSEQ_STORAGE rs;
+	const KMER_EDGE *e = NULL;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	ret = ERR_SUCCESS;
+	rs_storage_init(&rs);
+	for (size_t i = 0; i < pointer_array_size(Edges); ++i) {
+		e = Edges->Data[i];
+		ret = rs_storage_add_edge(&rs, e);
+		if (ret == ERR_SUCCESS)
+			ret = dym_array_push_back_array_size_t(Weights, &e->Weights);
+
+		if (ret == ERR_SUCCESS)
+			ret = pointer_array_push_back_array_READ_INFO(ReadPath, &e->ReadIndices);
+	}
+
+	if (ret == ERR_SUCCESS) {
+		ret = rs_storage_create_string(&rs, Seq);
+		if (ret == ERR_SUCCESS)
+			*SeqLen = strlen(*Seq);
+	}
+
+	rs_storage_finit(&rs);
+
+	return ret;
+}
+
+
 static uint32_t _binomic_probability(const size_t RefReads, const size_t AltReads)
 {
 	uint32_t ret = 0;
