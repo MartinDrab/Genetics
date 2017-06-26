@@ -245,8 +245,7 @@ If $C_1$ is created, the read set intersection is also used to decide whether th
 Figure \ref{fig:connection-abstract} depicts the probably most general case; multiple reads covering different parts of the active region (including the differences from the references) share the same sequence of $n$ bases. There is $k$ input and $l$ output edges. To determine the association between individual input and output edges, the intersection of covering reads is used again and connecting edges are created if necessary. More precisely, the following rules apply:
 \begin{itemize}
 \item If $i^{th}$ input and $j^{th}$ output edges share reasonable amount of reads ($|reads(I_i) \cap reads(O_j)| > threhsold$), a connecting edge $C_{i,j}$ is created and the shared reads are moved to it. The new edge starts in $source(I_i)$ and ends in $dest(O_j)$.
-\item $I_i$ is removed if
-\item $O_i$ is removed in case 
+\item $I_i$ and $O_i$ are removed in case their read coverage drops below threshold as a result of moving it to the newly created $C_i$ edges. 
 \end{itemize}
 
 \begin{figure}
@@ -254,4 +253,26 @@ Figure \ref{fig:connection-abstract} depicts the probably most general case; mul
 	\includegraphics{img/connection-abstract.pdf}
 	\caption{A general form of the subgraph}
 	\label{fig:connection-abstract}
+\end{figure}
+
+\subsection{Helper Vertices}
+\label{subsec:helper-vertices}
+
+The bubble connection optimization works well when the bubbles being connected contain at least one read vertex. If this is not the case, howerver, the effect of replacing input and output edges with connection ones leads to a destruction of the sequences recorded within the graph.
+
+As an example, consider a case ilustrated by the left part of Figure \ref{fig:helper-vertices}. The relevant part of the reference runs from vertex $1$ to $7$ and the read coverage supports a path of $3 \to 4 \to 5 \to 6 \to 1 \to 2 \to 4 \to 5 \to 7$. Applying steps described in this section leads into creating connection edges $6 \to 4$ and $2 \to 7$ and removing edges $6 \to 1$, $2 \to 4$ and $5 \to 7$. Such a graph cannot be used to recover the alternate sequence.
+
+Since this problem appears only in case the bubbles are represented only by edges connecting reference vertices, the countermeasure is quite straightforward; it lies in insertion of special vertices that presents themself as read ones but carry no information about the sequence on which path they exist. We use a conservative approach for their insertion which means they divide the following sorts of edges:
+\begin{itemize}
+\item output degree of their source vertex is greater than one,
+\item input degree of their destination is greater than one.
+\end{itemize}
+
+The right part of Figure \ref{fig:helper-vertices} indicates where the helper vertices would be inserted. They divide edges $6 \to 1$, $2 \to 4$ and $5 \to 7$. If the bubble connection is applied now, it leads to creation of edges $H1 \to H2$ and $H2 \to H3$ and deletion of $H1 \to 2$, $3 \to H2$, $H2 \to 4$ and $5 \to H3$. The optimization caused the alternate sequence being recoverable ($3 \to 4 \to 5 \to 6 \to H1 \to H2 \to H3 \to 7$).
+
+\begin{figure}
+	\centering
+	\includegraphics{img/helper-vertices.pdf}
+	\caption{Use case for helper vertices}
+	\label{fig:helper-vertices}
 \end{figure}
