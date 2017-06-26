@@ -346,7 +346,7 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 			if (e->LongData.LongEdge || e->SeqLen == 0) {
 				fprintf(Stream, "\\n(");
 				for (size_t i = 0; i < read_info_get_count(&e->ReadInfo); ++i)
-					fprintf(Stream, "%zu:%u ", e->ReadInfo.Array.Data[i].ReadIndex, e->ReadInfo.Array.Data[i].Quality);
+					fprintf(Stream, "%zu:%zu:%u ", e->ReadInfo.Array.Data[i].ReadIndex, e->ReadInfo.Array.Data[i].ReadPosition, e->ReadInfo.Array.Data[i].Quality);
 			
 				fprintf(Stream, ")");;
 			}
@@ -365,7 +365,7 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 			if (e->LongData.LongEdge || e->SeqLen == 0) {
 				fprintf(Stream, "\\n(");
 				for (size_t i = 0; i < read_info_get_count(&e->ReadInfo); ++i)
-					fprintf(Stream, "%zu:%u ", e->ReadInfo.Array.Data[i].ReadIndex, e->ReadInfo.Array.Data[i].Quality);
+					fprintf(Stream, "%zu:%zu:%u ", e->ReadInfo.Array.Data[i].ReadIndex, e->ReadInfo.Array.Data[i].ReadPosition, e->ReadInfo.Array.Data[i].Quality);
 
 				fprintf(Stream, ")");;
 			}
