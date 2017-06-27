@@ -270,9 +270,49 @@ Since this problem appears only in case the bubbles are represented only by edge
 
 The right part of Figure \ref{fig:helper-vertices} indicates where the helper vertices would be inserted. They divide edges $6 \to 1$, $2 \to 4$ and $5 \to 7$. If the bubble connection is applied now, it leads to creation of edges $H1 \to H2$ and $H2 \to H3$ and deletion of $H1 \to 2$, $3 \to H2$, $H2 \to 4$ and $5 \to H3$. The optimization caused the alternate sequence being recoverable ($3 \to 4 \to 5 \to 6 \to H1 \to H2 \to H3 \to 7$).
 
-\begin{figure}
+\begin{figure}[h]
 	\centering
 	\includegraphics{img/helper-vertices.pdf}
 	\caption{Use case for helper vertices}
 	\label{fig:helper-vertices}
 \end{figure}
+
+\section{Variant Detection}
+\label{sec:variant-detection}
+
+The graph structure optimization phase ends by removing areas not covered enough by the input read set. Then, alternate sequences covered by the reads are recovered from the graph. Since the sequences share most of their parts with the reference, they are extracted in form of variants. Each variant describe one place of the reference where the alternate sequence differ which roughly corresponds to one line of a VCF file.
+
+Variants are extracted by detecting certain subgraphs with preprogrammed interpretation. When such a subgraph is detected, a variant is deduced from it and integrated back into the graph by replacing its reference edges by one \textit{variant edge}. Read edges unique to the variant are also removed from the subgraph which simplifies its structure. The process of variant detection stops when no suitable subgraphs are found.
+
+Figure \ref{fig:variant-detection} shows for types of subgraphs used for variant extraction and how the extraction changes them. Requirements on the reference part are always the same; it must consist of a path starting in vertex \texttt{1}, ending in \texttt{n} and with all inner vertices having only one input and one output edge. Only edges of reference or variant type may be present in the reference part. In all cases, this path is replaced with a variant edge, shown as blue, connecting directly \texttt{1} and \texttt{n}. All edges that are removed as a result of the extraction are plotted as discontinuous lines.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics{img/variant-detection.pdf}
+	\caption{Variant detection cases}
+	\label{fig:variant-detection}
+\end{figure}
+
+\subsection{Simple Bubble}
+\label{subsec:simple-bubble}
+
+Read edges and vertices form a linear path leading from \texttt{1} to \texttt{n}. Since the edges are not part of any other variant, they all are removed and the whole subgraph degenerates only to two reference vertices connected by a variant edge. Figure \ref{variant-detection} shows this case under the \textbf{c)} sign.
+
+\subsection{Bubble with Inputs}
+\label{subsec:bubble-with-inputs}
+
+Displayed under the \textbf{a)} sign, this sort of subgraphs differ from the simplest one only by allowing inut degree of the read vertices to reach above one. However, the restriction on the output degree is still in effect. Only the string of read edges leading from the \texttt{1} vertex to the first vertex with more inputs than one are removed. Other read edges may take part also in other variants.
+
+\subsection{Bubble with Outputs}
+\label{subsec:bubble-with-outputs}
+
+This subgraph may be viewed as an opposite to the bubble with inputs one. All read vertices in the subgraph are allowed to have more outputs than one, but only one input. Only the last string of edges, starting in the last read vertex with output greater than one and ending in the \texttt{n} vertex is removed, since it may participate only in one variant. The case is depicted under the \textbf{b)} sign of Figure \ref{fig:variant-detection}.
+
+\subsection{Diamond}
+\label{subsec:diamond}
+
+The most complicated cae is shown under the \textbf{d)} letter and presents sort of a combination of a the \textbf{a)} and \textbf{b)} cases. The sequence of read vertices may contain one with output degree greater than one followed (not necessarily directly) by one with unresticted input degree. Only the edges covering one part of the supposed diamond are present in one variant only and hence are removed. 
+
+\section{Varinat Graph and Variant Filtering}
+\label{sec:variant-graph-and-variant-filtering}
+
