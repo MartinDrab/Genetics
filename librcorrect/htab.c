@@ -94,6 +94,17 @@ int bfc_ch_get(const bfc_ch_t *ch, const uint64_t x[2])
 	return itr == kh_end(h)? -1 : kh_key(h, itr) & 0x3fff;
 }
 
+
+/** @brief
+ *  Computes k-mer occurrence in a given k-mer table.
+ *
+ *  @param ch The table
+ *  @param z The k-mer.
+ *
+ *  @return
+ *   * lower 8 bits, number of solid (low quality) occurrences.
+ *   * 8-13, number of high quality occurrences.
+ */
 int bfc_ch_kmer_occ(const bfc_ch_t *ch, const bfc_kmer_t *z)
 {
 	uint64_t x[2];
@@ -101,6 +112,15 @@ int bfc_ch_kmer_occ(const bfc_ch_t *ch, const bfc_kmer_t *z)
 	return bfc_ch_get(ch, x);
 }
 
+
+/** @brief
+ *  Counts number of k-mers in a given table.
+ *
+ *  @param ch The k-mer table.
+ *
+ *  @return
+ *  Returns the number of k-mers in the table.
+ */
 uint64_t bfc_ch_count(const bfc_ch_t *ch)
 {
 	int i;
@@ -110,6 +130,17 @@ uint64_t bfc_ch_count(const bfc_ch_t *ch)
 	return cnt;
 }
 
+
+/** @brief
+ *  Computes distribution of k-mer occurrences.
+ *
+ *  @param ch The k-mer table.
+ *  @param cnt Distribution of solid k-mers (low quality).
+ *  @param high Distribution of high quality k-mers.
+ *
+ *  @return
+ * Returns index of the most used k-mer count (low quality).
+ */
 int bfc_ch_hist(const bfc_ch_t *ch, uint64_t cnt[256], uint64_t high[64])
 {
 	int i, max_i = -1;

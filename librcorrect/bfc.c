@@ -101,6 +101,14 @@ static int bfc_kmer_bufclear(cnt_step_t *cs, int forced, int tid)
 	return k;
 }
 
+
+/** @brief
+ *  Inserts a k-mer into a k-mer table.
+ *
+ *  @param x The k-mer to insert.
+ *  @param is_high Indicates whether the k-mer is of high quality (all its bases
+ *  passed the quality threshold test).
+ */
 static void bfc_kmer_insert(cnt_step_t *cs, const bfc_kmer_t *x, int is_high, int tid)
 {
 	int k = cs->k;
@@ -115,6 +123,10 @@ static void bfc_kmer_insert(cnt_step_t *cs, const bfc_kmer_t *x, int is_high, in
 	}
 }
 
+
+/** @brief
+ *  Goes throguth a given read and inserts all its k-mers into the k-mer table.
+ */
 static void worker_count(void *_data, long k, int tid)
 {
 	cnt_step_t *cs = (cnt_step_t*)_data;
@@ -132,6 +144,17 @@ static void worker_count(void *_data, long k, int tid)
 	}
 }
 
+
+/** @brief
+ *  Inserts all given reads into the k-mer table.
+ *
+ *  @param n Number of reads.
+ *  @param seq The reads.
+ *  @param k The k-mer size.
+ *  @param q Quality threshold.
+ *  @param l_pre Number of subtables within the k-mer table.
+ *  @param n_threads Number of threads to use.
+ */
 struct bfc_ch_s *fml_count(int n, const bseq1_t *seq, int k, int q, int l_pre, int n_threads)
 {
 	int i;
@@ -176,6 +199,18 @@ typedef struct { // NOTE: unaligned memory
 
 typedef kvec_t(ecbase_t) ecseq_t;
 
+
+/** @brief
+ *  Converts a given sequence and its quality to the ecseq_t format.
+ *
+ *  @param s The nucleotide sequence.
+ *  @param q Th sequence quality.
+ *  @param qthres Quality threshold.
+ *  @param seq Receives the sequence in ecseq_t format.
+ *
+ *  @return
+ *  Returns length of the sequence.
+ */
 static int bfc_seq_conv(const char *s, const char *q, int qthres, ecseq_t *seq)
 {
 	int i, l;
@@ -235,6 +270,20 @@ int bfc_ec_greedy_k(int k, int mode, const bfc_kmer_t *x, const bfc_ch_t *ch)
 	return (max&0xff) * 3 > mode && (max2&0xff) < 3? max_ec : -1;
 }
 
+
+/** @brief
+ *
+ *  Retrieves first k-mer from a given sequence, starting at a given position.
+ *
+ *  @param k The k-mer size.
+ *  @param s The read sequence.
+ *  @param start Starting position (zero-based).
+ *  @param x The resulting k-mer.
+ *
+ *  @return
+ *  Returns index of the last base in the k-mer, or length of the sequence,
+ *  if no k-mer was found. Invalid bases reset k-mer creation.
+ */
 int bfc_ec_first_kmer(int k, const ecseq_t *s, int start, bfc_kmer_t *x)
 {
 	int i, l;
@@ -249,6 +298,22 @@ int bfc_ec_first_kmer(int k, const ecseq_t *s, int start, bfc_kmer_t *x)
 	return i;
 }
 
+
+/** @brief
+ *  Computes k-mer coverage statistics for a given read sequence.
+ *
+ *  @param k k-mer size.
+ *  @param min_occ Minimal k-mer occurrence to take it seriously.
+ *  @param s The read sequence.
+ *  @param ch The k-mer occurrence table.
+ *
+ *  @remark
+ *  The routine computes the following statistics for each base:
+ *    * lcov = number of seriously-taken k-mers covering the base
+ *    * hcov = number of high-quality k-mers covering the base.
+ *    * high_end = a high-quality k-mer ends here
+ *    * slid_end = a seriously taken k-mer ends here (enough occurrence)
+ */
 void bfc_ec_kcov(int k, int min_occ, ecseq_t *s, const bfc_ch_t *ch)
 {
 	int i, l, r, j;
@@ -272,6 +337,18 @@ void bfc_ec_kcov(int k, int min_occ, ecseq_t *s, const bfc_ch_t *ch)
 	}
 }
 
+
+/** @brief
+ *  Given a read sequence, retrieves the longest interval supported by solid k-mer endigns.
+ *
+ *  @param k The k-mer size.
+ *  @param s The read sequence.
+ *
+ *  @return
+ *  Zero if no such interval exists, otherwise:
+ *    * low 32 bits = the last base of the interval
+ *    * high 32 bits = Start of the interval, in k-mer position. (0 = (k - 1)th base)
+ */
 uint64_t bfc_ec_best_island(int k, const ecseq_t *s)
 { // IMPORTANT: call bfc_ec_kcov() before calling this function!
 	int i, l, max, max_i;
