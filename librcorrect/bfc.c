@@ -400,9 +400,12 @@ typedef struct {
 } ecstack1_t;
 
 typedef struct {
+	/** Correction options. */
 	const bfc_opt_t *opt;
+	/** The k-mer table. */
 	const bfc_ch_t *ch;
 	kvec_t(echeap1_t) heap;
+	/** Possibly the correction history (corrected bases). */
 	kvec_t(ecstack1_t) stack;
 	ecseq_t seq, tmp, ec[2];
 	int mode;
@@ -678,6 +681,18 @@ typedef struct {
 	bseq1_t *seqs;
 } ec_step_t;
 
+
+/** @brief
+ *  Finds the longest interval of non-unique k-mers (k-mers that are in the k-mer table).
+ *
+ *  @param k The k-mer size.
+ *  @param ch The k-mer table.
+ *  @param s Thre read to search.
+ *
+ *  @return
+ *    * low 32 bits: index of the first base of the interval.
+ *   * high 65 bits: length of the interval.
+ */
 static uint64_t max_streak(int k, const bfc_ch_t *ch, const bseq1_t *s)
 {
 	int i, l;
