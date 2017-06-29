@@ -251,6 +251,21 @@ static void bfc_seq_revcomp(ecseq_t *seq)
  * Independent ec routines *
  ***************************/
 
+
+/** @brief
+ *  Given a k-mer, finds a single base correction that transforms it into the most
+ *  frequent one.
+ *
+ *  @param k The k-mer size.
+ *  @param mode Most frequent count of k-mers.
+ *  @param x The k-mer.
+ *  @param ch The k-mer table.
+ *
+ *  @return
+ *  Returns -1 on failure and the following on success:
+ *  * lower 2 bits, the new value of the corrected base.
+ *  * higher bits, the position of the correctedbase within the k-mer.
+ */
 int bfc_ec_greedy_k(int k, int mode, const bfc_kmer_t *x, const bfc_ch_t *ch)
 {
 	int i, j, max = 0, max_ec = -1, max2 = 0;
@@ -431,11 +446,20 @@ static void ec1buf_destroy(bfc_ec1buf_t *e)
 
 #define weighted_penalty(o, p) ((o)->w_ec * (p).ec + (o)->w_ec_high * (p).ec_high + (o)->w_absent * (p).absent + (o)->w_absent_high * (p).absent_high)
 
+
+/** @brief
+ *  
+ *
+ *  @param e The computation state.
+ *  @param prev Finished k-mer vertex.
+ *  @param pen edge penalty (including the base).
+ *  @param occurrence for k-mer introduced by following the edge.
+ */
 static void buf_update(bfc_ec1buf_t *e, const echeap1_t *prev, bfc_penalty_t pen, int cnt)
 {
 	ecstack1_t *q;
 	echeap1_t *r;
-	const bfc_opt_t *o = e->opt;
+	const bfc_opt_t *options = e->opt;
 	int b = pen.b;
 	// update stack
 	kv_pushp(ecstack1_t, e->stack, &q);
@@ -444,7 +468,7 @@ static void buf_update(bfc_ec1buf_t *e, const echeap1_t *prev, bfc_penalty_t pen
 	q->b = b;
 	q->pen = pen;
 	q->cnt = cnt > 0? cnt&0xff : 0;
-	q->tot_pen = prev->tot_pen + weighted_penalty(o, pen);
+	q->tot_pen = prev->tot_pen + weighted_penalty(options, pen);
 	// update heap
 	kv_pushp(echeap1_t, e->heap, &r);
 	r->i = prev->i + 1;
@@ -463,6 +487,17 @@ static void buf_update(bfc_ec1buf_t *e, const echeap1_t *prev, bfc_penalty_t pen
 	ks_heapup_ec(e->heap.n, e->heap.a);
 }
 
+
+/** @brief
+ *  Writes the shortest path represented as a stack into a sequence (performs actually the correction).
+ *
+ *  @param s The shortest path as a stack.
+ *  @param end Position of the last vertex on the stack.
+ *  @param seq The read sequence to correct.
+ *  @param path The corrected sequence.
+ *
+ *  @return
+ */
 static int buf_backtrack(ecstack1_t *s, int end, const ecseq_t *seq, ecseq_t *path)
 {
 	int i, n_absent = 0;
@@ -479,6 +514,7 @@ static int buf_backtrack(ecstack1_t *s, int end, const ecseq_t *seq, ecseq_t *pa
 	}
 	return n_absent;
 }
+
 
 static int bfc_ec1dir(bfc_ec1buf_t *e, const ecseq_t *seq, ecseq_t *ec, int start, int end, int *max_heap)
 {
