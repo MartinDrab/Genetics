@@ -45,7 +45,7 @@ void fasta_free(PFASTA_FILE FastaRecord);
 ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ *Reads, size_t *ReadCount);
 ERR_VALUE input_filter_reads(const uint32_t KMerSize, const ONE_READ *Source, const size_t SourceCount, const uint64_t RegionStart, const size_t RegionLength, PGEN_ARRAY_ONE_READ NewReads);
 void input_free_filtered_reads(PONE_READ Reads, size_t Count);
-void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQuality, const size_t ReadStrip);
+void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQuality, boolean UseCIGAR);
 void input_sort_reads(PONE_READ Reads, const size_t Count);
 void input_free_reads(PONE_READ Reads, const size_t Count);
 ERR_VALUE input_refseq_to_regions(const char *RefSeq, const size_t RefSeqLen, PACTIVE_REGION *Regions, size_t *Count);

@@ -402,7 +402,7 @@ static int _read_comparator(const void *A, const void *B)
 }
 
 
-void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQuality, const size_t ReadStrip)
+void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQuality, boolean UseCIGAR)
 {
 	ONE_READ *r = NULL;
 	size_t readSetSize = *Count;
@@ -433,7 +433,9 @@ void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQua
 	for (i = 0; i < (int)readSetSize; ++i) {
 		PONE_READ r = Reads + i;
 
-		read_split(r);
+		if (UseCIGAR)
+			read_split(r);
+		
 		for (size_t j = 0; j < r->ReadSequenceLen; ++j)
 			r->Quality[j] = min(r->Quality[j], r->PosQuality);
 	}

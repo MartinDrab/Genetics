@@ -932,7 +932,7 @@ int main(int argc, char *argv[])
 						fprintf(stderr, "Read threshold:             %u\n", po.ParseOptions.ReadThreshold);
 
 						fprintf(stderr, "Filtering out reads with MAPQ less than %u and stripping %u bases from read ends...\n", po.ReadPosQuality, po.ReadStrip);
-						input_filter_bad_reads(po.Reads, &po.ReadCount, po.ReadPosQuality, po.ReadStrip);
+						input_filter_bad_reads(po.Reads, &po.ReadCount, po.ReadPosQuality, TRUE);
 						input_sort_reads(po.Reads, po.ReadCount);
 						ret = paired_reads_init();
 						if (ret == ERR_SUCCESS) {

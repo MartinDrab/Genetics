@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 	ret = input_get_reads(argv[1], "sam", &reads, &readCount);
 	if (ret == ERR_SUCCESS) {
 		fprintf(stderr, "Filtering and adjusting reads...\n");
-		input_filter_bad_reads(reads, &readCount, 0, 0);
+		input_filter_bad_reads(reads, &readCount, 0, FALSE);
 		fprintf(stderr, "Converting to fermi-lite format...\n");
 		ret = convert_to_fermilite(reads, readCount, &seqs);
 		if (ret == ERR_SUCCESS) {
