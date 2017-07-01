@@ -53,11 +53,43 @@ We have successfully extracted the error correction algorithm from the project. 
 \item \textbf{Unique k-mer filtering}. Unique k-mers introduced during the error correction phase are removed from the read sequences.
 \end{itemize}
  
-\subsection{Preprocessing and the k-mer Table}
-\subsection{subsec:preprocessing}
+\subsection{Data Preprocessing}
+\label{subsec:fermi-data-preprocessing}
+
+The main goal of the preprocessing phase is to compute frequencies for all k-mers found in the input read set. The frequencies are computed by inserting the k-mers into a k-mer table. During this phase, several terms realted to k-mers and their occurrences are introduced:
+\begin{itemize}
+\item A k-mer occurrence is defined as \textit{high quality} one if quality of all bases covered by the k-mer is greater than certain threshold. If not all bases satisfy this condition, the occurrence is considered \textit{low quality}.
+\item A k-mer is considered \textit{solid} if its frequency is greater than certain threshold.
+\item A k-mer is considered \textit{unique} if it its frequency is zero.
+\end{itemize}
+K-mers are implemented as two 64-bit integers, each base is represented by 2 bits. That gives limitation to the maximum k-mer size to 64. The k-mer table is actually a set of $2^p$ khash tables. When a k-mer is being inserted or looked up, $p$ bits of its data are used to select the table and the rest serves as an input to the hash function. $p = 20$ by default. This representation of the k-mer table increases overall memory consumption, but has great impact on its performance in parallel environemnt. 
+
+The table uses 14 bits to track occurrences of each k-mer. Lower 8 bits count low quality occurrences, higher 6 bits are used by high quality ones. The counting stops on values of 255 and 63, no integer overflow happens.
+
+After the insertion stage, a k-mer frequency distribution is computed individually for low quality and high quality occurrences. The most common frequency is named \textit{mode} and is used during the second and third pahse of the algorithm.
 
 \subsection{Error Correction}
-\label{subsec:error-correction}
+\label{subsec:fermi-error-correction}
+
+The error correction is performed separately for each read sequence. The correction problem is transformed into a shortest-path search in a layered oriented graph. Vertices represent individual k-mers, edges connect adjacent ones and their weights reflect the cost of transforming one k-mer to another. The weight function is defined by formula
+\begin{gather}
+	w(k1, k2) = w_h*nhq(k2) + w_l*nlq(k2) + w_ec*ec + w_{ech}*bq \\
+	nhq(k) = 0, k is a high-quality k-mer, 1, otherwise \\
+	nlq(k) = 0, k is a low-quality k-mer, 0 otherwise \\
+	ec(k) = 0 if k introduces no error correction, 1 otherwise \\
+	ech(k) = 0
+\end{gather}
+
+The search algorithm used is a Dijksra one and its main loop can be decomposed into the following steps:
+\begin{itemize}
+\item Retrieve the vertex with lowest price, and its k-mer from the heap.
+\item by separately appending A, C, G, T to the k-mer, touch the adjacent vertices on the next layer and compute the cost of their connections.
+\item Insert the newly into the heap.
+\end{itemize}
+
+Each path from the starting vertex to a vertex in the last layer represents one possible corrected part of the read sequence. Four such paths are computed
 
 \subsection{Unique k-mer Filtering}
-\label{subsec:unique-kmer-filtering}
+\label{subsec:fermi-unique-kmer-filtering}
+
+.
