@@ -28,9 +28,36 @@ If the bubble was supported by reasonable amount of reads, it would be trated as
 \section{K-mer Frequency Distribution}
 \label{sec:ec-kmer-frequency-distribution}
 
+The method is based on an assumption that k-mer frequency distribution of an error-free read set has certain properties. Especially, frequency of most of the k-mers is from 20 to 40, k-mers with other frequencies are very rare. Figure \ref{fig:kmer-frequency-distribution} shows the frequency distribution for an error-free read set and for a read set with error rate 1 %. 
+
+As can be deduced from the figure, errornous read sets have less k-mers with frequency between 20 and 40 and contain large amounts of unique or low-frequency k-mers. The ide behind the correction algorithms based on this method is to transform the low-frequency k-mers in order to move them into the desired interval. Especially k-mers covering bases with low qualities are subject to changes.
+
+This approach is also used by the \texttt{fermi-lite} software and is covered in the next section.
+
 \begin{figure}[h]
 	\centering
 	\includegraphics{img/kmer-frequency-distribution.pdf}
 	\caption{K-mer frequency distribution for errornous and error-free read sets}
 	\label{fig:kmer-frequency-distribution}
 \end{figure}
+
+\section{The Fermi-lite Approach}
+\label{sec:fermi-lite}
+
+Fermi-lite is a standalone C library as well as a command-line tool for assembling Illumina short reads in regions from 100bp to 10 million bp in size. It is largely a light-weight in-memory version of fermikit without generating any intermediate files [from its GitHub]. Results of the assembly are not produced in the VCF format, but rather as a graph. Read error corrections are not the main goal of the project, although this step is definitely required for a successful assembly.
+
+We have successfully extracted the error correction algorithm from the project. The implementation should work well on multiprocessor systems and trades performance over memory consumptuion. The algorithm proceeds in the following steps:
+\begin{itemize}
+\item \textbf{Preprocessing}. The input read sequences are divided into k-mers, k-mer frequencies are calculated.
+\item \textbf{Error correction}. The problem is reduced into a shortest path graph problem and is solved by Dijkstra algorithm.
+\item \textbf{Unique k-mer filtering}. Unique k-mers introduced during the error correction phase are removed from the read sequences.
+\end{itemize}
+ 
+\subsection{Preprocessing and the k-mer Table}
+\subsection{subsec:preprocessing}
+
+\subsection{Error Correction}
+\label{subsec:error-correction}
+
+\subsection{Unique k-mer Filtering}
+\label{subsec:unique-kmer-filtering}
