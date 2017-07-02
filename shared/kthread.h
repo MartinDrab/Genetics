@@ -1,9 +1,12 @@
+
 #ifndef KTHREAD_H
 #define KTHREAD_H
 
 #ifndef _MSC_VER
 #include <pthread.h>
 #endif
+#include "utils.h"
+
 
 #ifdef __cplusplus
 extern "C" {

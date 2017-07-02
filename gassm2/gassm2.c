@@ -22,6 +22,7 @@
 #include "reads.h"
 #include "pointer_array.h"
 #include "ksw.h"
+#include "librcorrect.h"
 #include "gassm2.h"
 
 
@@ -907,11 +908,19 @@ int main(int argc, char *argv[])
 					const char *cmd = argv[1];
 					if (strncmp(cmd, "help", sizeof("help")) == 0) {
 						options_print_help();
-					} else if (strncmp(cmd, "rfreq", sizeof("rfreq")) == 0) {
+					} else if (strncmp(cmd, "correct", sizeof("correct") - 1) == 0) {
+						ret = libcorrect_correct(po.Reads, po.ReadCount);
+						if (ret == ERR_SUCCESS) {
+							for (size_t i = 0; i < po.ReadCount; ++i) {
+								if (po.Reads[i].ReadSequenceLen > 0)
+									read_write_sam(stdout, po.Reads + i);
+							}
+						}
+					} else if (strncmp(cmd, "rfreq", sizeof("rfreq") - 1) == 0) {
 						kmer_freq_distribution(&po, po.KMerSize, po.Reads, po.ReadCount);
 					} else if (strncmp(cmd, "paired", sizeof("paired")) == 0) {
 						paired_reads_print(stdout);
-					} else if (strncmp(cmd, "call", sizeof("call")) == 0) {
+					} else if (strncmp(cmd, "call", sizeof("call") - 1) == 0) {
 						fprintf(stderr, "K-mer size:                 %u\n", po.KMerSize);
 						fprintf(stderr, "Active region length:       %u\n", po.RegionLength);
 						fprintf(stderr, "Reference:                  %s\n", po.RefSeqFile);

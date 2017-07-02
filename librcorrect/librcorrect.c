@@ -23,7 +23,7 @@ static char *_copy_string(const char *str, const size_t len)
 }
 
 
-ERR_VALUE convert_to_fermilite(PONE_READ Reads, size_t Count, bseq1_t **Result)
+static ERR_VALUE convert_to_fermilite(PONE_READ Reads, size_t Count, bseq1_t **Result)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	bseq1_t *tmpResult = NULL;
@@ -59,7 +59,7 @@ ERR_VALUE convert_to_fermilite(PONE_READ Reads, size_t Count, bseq1_t **Result)
 }
 
 
-ERR_VALUE convert_to_gassm2(bseq1_t *Seqs, size_t Count, PONE_READ Reads)
+static ERR_VALUE convert_to_gassm2(bseq1_t *Seqs, size_t Count, PONE_READ Reads)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	int i = 0;

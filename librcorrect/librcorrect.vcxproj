@@ -19,6 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\shared\drand48.c" />
+    <ClCompile Include="..\shared\kthread.c" />
+    <ClCompile Include="..\shared\utils.c" />
     <ClCompile Include="bfc.c" />
     <ClCompile Include="bseq.c" />
     <ClCompile Include="htab.c" />
@@ -26,6 +29,9 @@
     <ClCompile Include="librcorrect.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\include\librcorrect.h" />
+    <ClInclude Include="..\shared\kthread.h" />
+    <ClInclude Include="..\shared\utils.h" />
     <ClInclude Include="fermi-kmer.h" />
     <ClInclude Include="fml.h" />
     <ClInclude Include="htab.h" />
@@ -89,7 +95,18 @@
     <Import Project="..\General.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>

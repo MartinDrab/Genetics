@@ -4,21 +4,6 @@
 #include "internal.h"
 
 
-
-
-void kt_for(int n_threads, void(*func)(void*, long, int), void *data, long n)
-{
-	int i = 0;
-
-	omp_set_num_threads(n_threads);
-#pragma omp parallel for shared(data,  func, n)
-	for (i = 0; i < n; ++i)
-		func(data, i, omp_get_thread_num());
-
-	return;
-}
-
-
 void fml_opt_init(fml_opt_t *opt)
 {
 	opt->n_threads = 1;

@@ -95,7 +95,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libkmer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>librcorrect.lib;libkmer.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
@@ -112,7 +112,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>libkmer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>librcorrect.lib;libkmer.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
@@ -133,7 +133,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>libkmer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>librcorrect.lib;libkmer.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
@@ -154,7 +154,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>libkmer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>librcorrect.lib;libkmer.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
@@ -170,6 +170,7 @@
   <ItemGroup>
     <ClInclude Include="..\include\gen_dym_array.h" />
     <ClInclude Include="..\include\libkmer.h" />
+    <ClInclude Include="..\include\librcorrect.h" />
     <ClInclude Include="..\include\pointer_array.h" />
     <ClInclude Include="..\shared\err.h" />
     <ClInclude Include="..\shared\input-file.h" />
