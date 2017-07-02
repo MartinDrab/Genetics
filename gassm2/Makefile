@@ -8,7 +8,7 @@ TMPDIR=../tmp
 OBJDIR=$(TMPDIR)/$(TARGET)
 SHAREDOBJDIR=$(TMPDIR)/shared
 LIBKMEROBJDIR=$(TMPDIR)/libkmer
-LIBS= -lm -fopenmp
+LIBS= -lm -fopenmp -l:../lib/librcorrect
 
 OBJ=\
 	$(SHAREDOBJDIR)/utils.o \
