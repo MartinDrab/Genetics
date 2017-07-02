@@ -32,7 +32,7 @@ static ERR_VALUE convert_to_fermilite(PONE_READ Reads, size_t Count, bseq1_t **R
 	if (ret == ERR_SUCCESS) {
 		int i = 0;
 
-#pragma omp parallel for shared(Reads, tmpResult)
+#pragma omp parallel for shared(Reads, tmpResult, tmpSeqLengths)
 		for (i = 0; i < (int)Count; ++i) {
 			memset(tmpResult + i, 0, sizeof(tmpResult[i]));
 			tmpResult[i].l_seq = Reads[i].ReadSequenceLen;
@@ -50,7 +50,7 @@ static ERR_VALUE convert_to_fermilite(PONE_READ Reads, size_t Count, bseq1_t **R
 
 		if (ret == ERR_SUCCESS)
 			*Result = tmpResult;
-	
+		
 		if (ret != ERR_SUCCESS)
 			utils_free(tmpResult);
 	}
@@ -59,21 +59,24 @@ static ERR_VALUE convert_to_fermilite(PONE_READ Reads, size_t Count, bseq1_t **R
 }
 
 
-static ERR_VALUE convert_to_gassm2(bseq1_t *Seqs, size_t Count, PONE_READ Reads)
+static ERR_VALUE convert_to_gassm2(const bseq1_t *Seqs, size_t Count, PONE_READ Reads)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	int i = 0;
 
 #pragma omp parallel for shared(Reads, Seqs)
 	for (i = 0; i < (int)Count; ++i) {
-		char cigar[20];
+		if (Seqs[i].l_seq != Reads[i].ReadSequenceLen) {
+			char cigar[20];
 
-		memset(cigar, 0, sizeof(cigar));
-		if (Reads[i].Pos > 0)
-			snprintf(cigar, sizeof(cigar), "%iM", Seqs[i].l_seq);
-		else cigar[0] = '*';
+			memset(cigar, 0, sizeof(cigar));
+			if (Reads[i].Pos > 0)
+				snprintf(cigar, sizeof(cigar), "%iM", Seqs[i].l_seq);
+			else cigar[0] = '*';
 
-		utils_copy_string(cigar, &Reads[i].Extension->CIGAR);
+			utils_copy_string(cigar, &Reads[i].Extension->CIGAR);
+		}
+
 		Reads[i].ReadSequenceLen = Seqs[i].l_seq;
 		ret = utils_copy_string(Seqs[i].seq, &Reads[i].ReadSequence);
 		if (ret == ERR_SUCCESS)
