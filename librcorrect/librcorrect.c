@@ -32,7 +32,7 @@ static ERR_VALUE convert_to_fermilite(PONE_READ Reads, size_t Count, bseq1_t **R
 	if (ret == ERR_SUCCESS) {
 		int i = 0;
 
-#pragma omp parallel for shared(Reads, tmpResult, tmpSeqLengths)
+#pragma omp parallel for shared(Reads, tmpResult)
 		for (i = 0; i < (int)Count; ++i) {
 			memset(tmpResult + i, 0, sizeof(tmpResult[i]));
 			tmpResult[i].l_seq = Reads[i].ReadSequenceLen;
