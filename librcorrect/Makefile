@@ -1,5 +1,5 @@
 TARGET=librcorrect.a
-BINDIR=../bin
+BINDIR=../lib
 CC=gcc
 CFLAGS= -O3 -Wall --std=gnu99 -D_FILE_OFFSET_BITS=64 -m64 -fopenmp -DNDEBUG -Wno-unused-function -g
 SHAREDDIR=../shared
@@ -11,6 +11,8 @@ LIBS= -lm -fopenmp
 OBJ=\
 	$(SHAREDOBJDIR)/utils.o \
 	$(SHAREDOBJDIR)/reads.o \
+	$(SHAREDOBJDIR)/drand48.o \
+	$(SHAREDOBJDIR)/kthread.o \
 	$(OBJDIR)/bfc.o \
 	$(OBJDIR)/bseq.o \
 	$(OBJDIR)/htab.o \
