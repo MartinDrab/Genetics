@@ -316,3 +316,22 @@ The most complicated cae is shown under the \textbf{d)} letter and presents sort
 \section{Varinat Graph and Variant Filtering}
 \label{sec:variant-graph-and-variant-filtering}
 
+When variants are extracted from the De Bruin graph, they need to be filtered and their genotype and phasing computed. The DB graph is not use to help with these tasks. The problem of genotype and phasing is transformed into a sort of graph colouring problem. A so-called variant graph is built for this purpose.
+
+The variant graph represent each variant by two vertices; one for its reference and one for its alternate sequence. The final task is to colour each vertex by one of the following color:
+\begin{itemize}
+\item Blue. The variant part is used by the first sequence.
+\item Red. The variant part is used by the second sequence.
+\item Purple. Both sequences go through the variant part.
+\end{itemize}
+
+If a vetex is coloured purple, the vertex representing the other part of the variant is not required (no sequence goes through it) and is removed from the graph. The deletion may happen only to the vertices representing the reference pats, since removing a vertex of the alternate path means that the variant was filtered out.
+
+Before colouring, graph vertices are connected by several types bidirectional edges that place vairous conditions on the colour of their sources and destinations.
+\begin{itemize}
+\item \textbf{Variant edges} connect vertices representing parts of one variant. Their source and destination must be coloured differently.
+\item \textbf{Read edges} connect variant parts covered by the same subset of reads, such vertices need to be coloured by the same colour, with exception of purpole. If one of the vertices is purple, the other may get arbitrary color.
+\item \textbf{Pair edge} put together variant parts that are covered by paired reads. They place the same conditions as read edges.
+\end{itemize}
+
+When the graph is coloured, the genotype and phasing information are known. The variants are written to the resulting VCF file.
