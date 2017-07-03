@@ -87,9 +87,15 @@ The search algorithm used is a Dijksra one and its main loop can be decomposed i
 \item Insert the newly into the heap.
 \end{itemize}
 
-Each path from the starting vertex to a vertex in the last layer represents one possible corrected part of the read sequence. Four such paths are computed
+Each path from the starting vertex to a vertex in the last layer represents one possible corrected part of the read sequence. Four such paths are computed.
 
 \subsection{Unique k-mer Filtering}
 \label{subsec:fermi-unique-kmer-filtering}
 
-.
+The error correction phase may produce unique k-mers which, as Figure \ref{fig:kmer-frequency-distribution} indicates, are not desirable. The \texttt{fermi-lite} library attempts to get rid of such k-mers. Each corrected read sequence is processed separately (and in parallel with others). 
+
+At first, the longest k-mer sequence covered by non-unique k-mers is found. Denote its length, in k-mers, as $n$ and the read sequence length as $l$. Then, the read sequence between the read start and the first base covered by the found k-mer sequence is removed from the read. If the read is covered only by non-unique k-mers, nothing is removed, since the k-mer sequence covers the whole read. Howerver, if the following is true:
+$$
+\frac{n + k - 1}{l} < min\_trim\_fraction
+$$
+the read is removed from the read set. This case includes also zero-length k-mer sequences that appear when the read contains unique k-mers only. The $min\_trim\_fraction$ value is a parameter of the algorithm with default value of.
