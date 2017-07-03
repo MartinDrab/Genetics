@@ -726,7 +726,7 @@ typedef struct {
  *  @param s Thre read to search.
  *
  *  @return
- *    * low 32 bits: index of the first base of the interval.
+ *    * low 32 bits: index of the last base of the firt k-mer in the interval.
  *   * high 65 bits: length of the interval.
  */
 static uint64_t max_streak(int k, const bfc_ch_t *ch, const bseq1_t *s)
