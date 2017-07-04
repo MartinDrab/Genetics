@@ -29,6 +29,7 @@ ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Seq
 	return ret;
 }
 
+
 void kmer_init(PKMER KMer, const char *Sequence)
 {
 	if (Sequence != NULL)
@@ -36,6 +37,14 @@ void kmer_init(PKMER KMer, const char *Sequence)
 
 	return;
 }
+
+
+void kmer_init_by_base(PKMER KMer, char Base)
+{
+	for (size_t i = 0; i < KMer->Size; ++i)
+		kmer_set_base(KMer, i, Base);
+}
+
 
 void kmer_init_from_kmer(PKMER Dest, const KMER *Source)
 {

@@ -38,6 +38,7 @@ ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Seq
 			memcpy(aVariable->Bases, aSequence, aSize*sizeof(char));		\
 	}														\
 
+void kmer_init_by_base(PKMER KMer, char Base);
 void kmer_init(PKMER KMer, const char *Sequence);
 void kmer_init_from_kmer(PKMER Dest, const KMER *Source);
 void kmer_free(PKMER KMer);

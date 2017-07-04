@@ -298,7 +298,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 
 			count--;
 			KMER_STACK_ALLOC(dummyKMer, 0, KMerSize, NULL);
-			memset(dummyKMer->Bases, 'H', kmer_get_size(dummyKMer));
+			kmer_init_by_base(dummyKMer, 'H');
 			ret = _assign_vertice_set_to_kmer(Graph, dummyKMer, Vertices, 0, Options, &count);
 		}
 	}
@@ -354,7 +354,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 								switch (typeChar) {
 									case 'I': {
 										for (size_t k = 0; k < matchIndex; ++k)
-											kmer->Bases[k] = 'R';
+											kmer_set_base(kmer, k, 'R');
 
 										_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
 										for (size_t j = 0; j < matchIndex - 1; ++j) {
@@ -378,10 +378,9 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 									case 'X': {
 										if (rsv->RefSeqPosition + matchIndex < Options->RegionLength) {
 											for (size_t k = 0; k < matchIndex; ++k)
-												kmer->Bases[k] = 'R';
+												kmer_set_base(kmer, k, 'R');
 
 											_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
-
 											for (size_t j = 0; j < matchIndex - 1; ++j) {
 												kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
 												++i;
