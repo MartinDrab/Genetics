@@ -68,6 +68,40 @@ The table uses 14 bits to track occurrences of each k-mer. Lower 8 bits count lo
 
 After the insertion stage, a k-mer frequency distribution is computed individually for low quality and high quality occurrences. The most common frequency is named \textit{mode} and is used during the second and third pahse of the algorithm.
 
+All phases of the algorithm are partialy driven by its parameters. Table \ref{tab:fermi-parameters} provides a short description of them.
+
+\begin{table}[h]
+\caption{Parameters of the \texttt{fermi-lite} algorithm}
+\label{tab:fermi-parameters}
+\begin{tabular}{| r | r | l |}
+\hline
+Parameter & Default value & Description \\
+\hline
+k & 0 & K-mer size \\
+\hline
+q & 20 & Base quality threshold used to recongize high quality content from low quality one. $P(error) = 10^{\frac{q}{10}}$ \\
+\hline
+min\_cov & 4 & Mimimum frequency for solid k-mers. \\
+\hline
+win\_multi\_ec & 10 &  \\
+\hline
+l\_pre & 20 & Number of khash tables in the k-mer table, defined as $2^{l\_pre}$ \\
+\hline
+min\_trim\_frac & 0.8 &  Defines how long the sequence of solid k-mers must be in order not to remove the read during unique k-mer filtering. \\
+\hline
+w\_ec & 1 &  \\
+\hline
+w\_ec\_high & 7 &  \\
+\hline
+w\_absent & 3 &  \\
+\hline
+w\_absent\_high & 1 &  \\ 
+\hline
+max\_path\_diff & 15 &  \\ 
+\hline
+\end{tabular}
+\end{table}
+
 \subsection{Error Correction}
 \label{subsec:fermi-error-correction}
 
