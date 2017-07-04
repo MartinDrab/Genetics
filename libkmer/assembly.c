@@ -819,39 +819,6 @@ static ERR_VALUE _kmer_graph_parse_read_v2(const PARSE_OPTIONS *Options, PKMER_G
 }
 
 
-static int _read_comparator(const ONE_READ *R1, const ONE_READ *R2)
-{
-	return (int)R1->UnknownKMers - (int)R2->UnknownKMers;
-}
-
-static void _sort_reads(const KMER_GRAPH *Graph, PONE_READ Reads, size_t Count)
-{
-	PONE_READ r = Reads;
-	const uint32_t kmerSize = kmer_graph_get_kmer_size(Graph);
-	PKMER kmer = NULL;
-
-	KMER_STACK_ALLOC(kmer, 0, kmerSize, NULL);
-	for (size_t i = 0; i < Count; ++i) {
-		r->UnknownKMers = 0;
-		if (r->ReadSequenceLen > kmerSize) {
-			kmer_init(kmer, r->ReadSequence);
-			for (size_t j = 0; j < r->ReadSequenceLen - kmerSize; ++j) {
-				if (kmer_graph_get_vertex(Graph, kmer) == NULL)
-					++r->UnknownKMers;
-
-				kmer_advance(kmer, r->ReadSequence[j + kmerSize]);
-			}
-		}
-
-		++r;
-	}
-
-	qsort(Reads, Count, sizeof(ONE_READ), _read_comparator);
-
-	return;
-}
-
-
 /************************************************************************/
 /*                      PUBLIC FUNCTIONS                                */
 /************************************************************************/
