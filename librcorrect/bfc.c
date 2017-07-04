@@ -497,6 +497,7 @@ static void buf_update(bfc_ec1buf_t *e, const echeap1_t *prev, bfc_penalty_t pen
  *  @param path The corrected sequence.
  *
  *  @return
+ * Number of k-mers that are not solid and were not fixed.
  */
 static int buf_backtrack(ecstack1_t *s, int end, const ecseq_t *seq, ecseq_t *path)
 {
