@@ -20,6 +20,8 @@ typedef struct _KMER {
 	char Bases[1];
 } KMER, *PKMER;
 
+#define KMER_BYTES(aKMerSize)					(sizeof(KMER)+aKMerSize*sizeof(char))
+
 
 #define kmer_get_size(aKMer)					((aKMer)->Size)
 #define kmer_get_base(aKMer, aIndex)			((aKMer)->Bases[(aIndex)])
@@ -31,11 +33,10 @@ typedef struct _KMER {
 ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Sequence, PKMER *KMer);
 #define KMER_STACK_ALLOC(aVariable, aNumber, aSize, aSequence)				\
 	{																		\
-		aVariable = (PKMER)alloca(sizeof(KMER) + aSize*sizeof(char));		\
-		aVariable->Size = aSize;											\
-		aVariable->Number = aNumber;										\
-		if (aSequence != NULL)												\
-			memcpy(aVariable->Bases, aSequence, aSize*sizeof(char));		\
+		aVariable = (PKMER)alloca(KMER_BYTES(aSize));		\
+		aVariable->Size = (aSize);											\
+		aVariable->Number = (aNumber);										\
+		kmer_init(aVariable, aSequence);		\
 	}														\
 
 void kmer_init_by_base(PKMER KMer, char Base);
