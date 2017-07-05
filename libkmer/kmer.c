@@ -18,11 +18,11 @@ ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Seq
 	PKMER tmpKMer = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_malloc(sizeof(KMER) + Size*sizeof(char), &tmpKMer);
+	ret = utils_malloc(KMER_BYTES(Size), &tmpKMer);
 	if (ret == ERR_SUCCESS) {
 		kmer_set_number(tmpKMer, Number);
 		tmpKMer->Size = Size;
-		kmer_init(tmpKMer, Sequence);
+		kmer_init_by_sequence(tmpKMer, Sequence);
 		*KMer = tmpKMer;
 	}
 
@@ -30,7 +30,7 @@ ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Seq
 }
 
 
-void kmer_init(PKMER KMer, const char *Sequence)
+void kmer_init_by_sequence(PKMER KMer, const char *Sequence)
 {
 	if (Sequence != NULL)
 		memcpy(KMer->Bases, Sequence, KMer->Size*sizeof(char));

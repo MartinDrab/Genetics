@@ -36,11 +36,11 @@ ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Seq
 		aVariable = (PKMER)alloca(KMER_BYTES(aSize));		\
 		aVariable->Size = (aSize);											\
 		aVariable->Number = (aNumber);										\
-		kmer_init(aVariable, aSequence);		\
+		kmer_init_by_sequence(aVariable, aSequence);		\
 	}														\
 
 void kmer_init_by_base(PKMER KMer, char Base);
-void kmer_init(PKMER KMer, const char *Sequence);
+void kmer_init_by_sequence(PKMER KMer, const char *Sequence);
 void kmer_init_from_kmer(PKMER Dest, const KMER *Source);
 void kmer_free(PKMER KMer);
 ERR_VALUE kmer_copy(PKMER *Dest, const KMER *KMer);
@@ -49,6 +49,20 @@ void kmer_back(PKMER KMer, const char Base);
 boolean kmer_equal(const KMER *K1, const KMER *K2);
 boolean kmer_seq_equal(const KMER *K1, const KMER *K2);
 void kmer_print(FILE *Stream, const KMER *KMer);
+
+
+INLINE_FUNCTION size_t kmer_hash(const struct _KMER *KMer)
+{
+	size_t hash = 0;
+	const size_t kmerSize = kmer_get_size(KMer);
+
+	for (size_t i = 0 + 1; i < kmerSize; ++i)
+		hash = (hash << 5) - hash + kmer_get_base(KMer, i);
+
+	return hash;
+}
+
+
 
 
 #endif 

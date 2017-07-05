@@ -21,19 +21,7 @@
 UTILS_TYPED_MALLOC_FUNCTION(KMER_TABLE)
 
 
-INLINE_FUNCTION size_t _kmer_hash(const struct _KMER *KMer)
-{
-	size_t hash = 0;
-	const size_t kmerSize = kmer_get_size(KMer);
-
-	for (size_t i = 0 + 1; i < kmerSize; ++i)
-		hash = (hash << 5) - hash + kmer_get_base(KMer, i);
-
-	return hash;
-}
-
-
-__KHASH_IMPL(vertexTable, INLINE_FUNCTION, const KMER *, void *, TRUE, _kmer_hash, kmer_equal)
+__KHASH_IMPL(vertexTable, INLINE_FUNCTION, const KMER *, void *, TRUE, kmer_hash, kmer_equal)
 
 
 static void _on_insert_dummy_callback(struct _KMER_TABLE *Table, void *ItemData, const uint32_t Order)

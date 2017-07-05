@@ -36,12 +36,9 @@ INLINE_FUNCTION size_t _kmer_edge_key_hash(const KMER_EDGE_TABLE_KEY Key)
 {
 	size_t hash1 = Key.Source->Number;
 	size_t hash2 = Key.Dest->Number;
-	const size_t kmerSize = Key.Source->Size;
 
-	for (size_t i = 0 + 1; i < kmerSize; ++i) {
-		hash1 = (hash1 << 5) - hash1 + kmer_get_base(Key.Source, i);
-		hash2 = (hash2 << 5) - hash2 + kmer_get_base(Key.Dest, i);
-	}
+	hash1 = kmer_hash(Key.Source);
+	hash2 = kmer_hash(Key.Dest);
 
 	return (((Key.Source->Number + 1)*hash1 << 1) + (Key.Dest->Number + 1)*hash2);
 }
