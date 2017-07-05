@@ -62,7 +62,18 @@ The main goal of the preprocessing phase is to compute frequencies for all k-mer
 \item A k-mer is considered \textit{solid} if its frequency is greater than certain threshold.
 \item A k-mer is considered \textit{unique} if it its frequency is zero.
 \end{itemize}
-K-mers are implemented as two 64-bit integers, each base is represented by 2 bits. That gives limitation to the maximum k-mer size to 64. The k-mer table is actually a set of $2^p$ khash tables. When a k-mer is being inserted or looked up, $p$ bits of its data are used to select the table and the rest serves as an input to the hash function. $p = 20$ by default. This representation of the k-mer table increases overall memory consumption, but has great impact on its performance in parallel environemnt. 
+K-mers are implemented as four 64-bit integers,, shown in Figure \ref{fig:fermi-kmer-structure}. Each base is represented by two bits. That gives limitation for maximum k-mer size to 64. The first 64-bit integer stores least signifficant bits of the k-mer bases, the second contains the most signifficant bits of the k-mer. The bases are stored in an opposite order --- the first base resides in bits k-1, the second to k-2 and so on. The second two integers store the same content, but with different order --- the first base is stored in bit 0, the second in bit 1 etc. This k-mer form is redundant, since only two 64-bit integers are required to hold all the necessary information. The error correction algorithm actually uses the two-integer representation quite often.
+
+Such a represetantion allows quick appends or individual base changes. To append a base into the first two integers, they just need to be shifted by one to the left, ORed with the new base, and ANDed with $2^k-1$ to set the unused bits to zero.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics{img/fermi-kmer-structure.pdf}
+	\caption{K-mer representation used by the \texttt{fermi-lite} project}
+	\label{fig:fermi-kmer-structure}
+\end{figure}
+
+The k-mer table is actually a set of $2^p$ khash tables. When a k-mer is being inserted or looked up, $p$ bits of its data are used to select the table and the rest serves as an input to the hash function. $p = 20$ by default. This representation of the k-mer table increases overall memory consumption, but has great impact on its performance in parallel environemnt. 
 
 The table uses 14 bits to track occurrences of each k-mer. Lower 8 bits count low quality occurrences, higher 6 bits are used by high quality ones. The counting stops on values of 255 and 63, no integer overflow happens.
 
