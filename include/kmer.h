@@ -13,6 +13,7 @@
 #include "err.h"
 #include "utils.h"
 #include "kmer-debug.h"
+#include "kmer-short.h"
 #include "kmer-base.h"
 
 

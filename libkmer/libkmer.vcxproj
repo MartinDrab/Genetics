@@ -43,6 +43,7 @@
     <ClInclude Include="..\include\kmer-edge.h" />
     <ClInclude Include="..\include\kmer-graph-types.h" />
     <ClInclude Include="..\include\kmer-graph.h" />
+    <ClInclude Include="..\include\kmer-short.h" />
     <ClInclude Include="..\include\kmer-table.h" />
     <ClInclude Include="..\include\kmer-debug.h" />
     <ClInclude Include="..\include\kmer.h" />
