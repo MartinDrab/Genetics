@@ -50,7 +50,7 @@ void kmer_init_from_kmer(PKMER Dest, const KMER *Source)
 {
 	Dest->Size = Source->Size;
 	Dest->Number = Source->Number;
-	memcpy(Dest->Bases, Source->Bases, Dest->Size * sizeof(char));
+	kmer_init_by_sequence(Dest, Source->Bases);
 
 	return;
 }
