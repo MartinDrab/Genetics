@@ -974,7 +974,8 @@ ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EK
 				PKMER_LIST list;
 				PKMER lk = NULL;
 
-				KMER_STACK_ALLOC(lk, 0, kmer_graph_get_kmer_size(Graph), KMer->Bases);
+				KMER_STACK_ALLOC_FROM_KMER(lk, kmer_graph_get_kmer_size(Graph), KMer);
+				kmer_set_number(lk, 0);
 				list = (PKMER_LIST)kmer_table_get(Graph->KmerListTable, lk);
 				if (list == NULL) {
 					ret = utils_malloc(sizeof(KMER_LIST) + kmer_graph_get_kmer_size(Graph)*sizeof(char), &list);
@@ -1106,7 +1107,8 @@ ERR_VALUE kmer_graph_get_vertices(const KMER_GRAPH *Graph, const KMER *KMer, PPO
 	const KMER_LIST *l = NULL;
 
 	ret = ERR_NOT_FOUND;
-	KMER_STACK_ALLOC(lk, 0, kmer_graph_get_kmer_size(Graph), KMer->Bases);
+	KMER_STACK_ALLOC_FROM_KMER(lk, kmer_graph_get_kmer_size(Graph), KMer);
+	kmer_set_number(lk, 0);
 	l = (PKMER_LIST)kmer_table_get(Graph->KmerListTable, lk);
 	if (l != NULL) {
 		for (size_t i = 0; i < pointer_array_size(&l->Vertices); ++i) {
@@ -1158,7 +1160,8 @@ ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex)
 				PKMER_LIST list = NULL;
 				PKMER lk = NULL;
 				
-				KMER_STACK_ALLOC(lk, 0, kmer_graph_get_kmer_size(Graph), Vertex->KMer.Bases);
+				KMER_STACK_ALLOC_FROM_KMER(lk, kmer_graph_get_kmer_size(Graph), &Vertex->KMer);
+				kmer_set_number(lk, 0);
 				list = (PKMER_LIST)kmer_table_get(Graph->KmerListTable, lk);
 				pointer_array_remove_KMER_VERTEX(&list->Vertices, Vertex);
 				ret = kmer_table_delete(Graph->VertexTable, &Vertex->KMer);

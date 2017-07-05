@@ -34,13 +34,13 @@ INLINE_FUNCTION boolean _kmer_edge_key_equal(const KMER_EDGE_TABLE_KEY Key1, con
 
 INLINE_FUNCTION size_t _kmer_edge_key_hash(const KMER_EDGE_TABLE_KEY Key)
 {
-	size_t hash1 = Key.Source->Number;
-	size_t hash2 = Key.Dest->Number;
+	size_t hash1 = kmer_get_number(Key.Source);
+	size_t hash2 = kmer_get_number(Key.Dest);
 
 	hash1 = kmer_hash(Key.Source);
 	hash2 = kmer_hash(Key.Dest);
 
-	return (((Key.Source->Number + 1)*hash1 << 1) + (Key.Dest->Number + 1)*hash2);
+	return (((kmer_get_number(Key.Source) + 1)*hash1 << 1) + (kmer_get_number(Key.Dest) + 1)*hash2);
 }
 
 

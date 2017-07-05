@@ -40,6 +40,13 @@ ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size, const char *Seq
 		kmer_init_by_sequence(aVariable, aSequence);		\
 	}														\
 
+#define KMER_STACK_ALLOC_FROM_KMER(aVariable, aSize, aKMer)				\
+	{																	\
+		aVariable = (PKMER)alloca(KMER_BYTES(aSize));					\
+		aVariable->Size = (aSize);										\
+		kmer_init_from_kmer(aVariable, aKMer);							\
+	}																	\
+
 void kmer_init_by_base(PKMER KMer, char Base);
 void kmer_init_by_sequence(PKMER KMer, const char *Sequence);
 void kmer_init_from_kmer(PKMER Dest, const KMER *Source);
