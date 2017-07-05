@@ -533,7 +533,6 @@ static ERR_VALUE _capture_edge_sequence(const KMER_GRAPH *Graph, const KMER_EDGE
 {
 	REFSEQ_STORAGE rsStorage;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	const size_t kmerSize = kmer_get_size(&Start->Dest->KMer);
 	const KMER_VERTEX *lastVertex = NULL;
 
 	ret = ERR_SUCCESS;
