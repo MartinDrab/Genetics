@@ -14,6 +14,16 @@ typedef struct _KMER_SHORT {
 } KMER_SHORT, *PKMER_SHORT;
 
 
+#define KMER_SHORT_BYTES(aKMerSize)					(sizeof(KMER_SHORT))
+#define KMER_SHORT_BYTES_EXTRA(aKMerSize, aExtra)		(KMER_BYTES(aKMerSize) + aExtra)
+
+
+#define kmer_short_get_size(aKMer)						(0)
+#define kmer_sort_set_size(aKMer, aSize)				(0)
+#define kmer_short_get_number(aKMer)					((aKMer)->Number)
+#define kmer_short_set_number(aKMer, aNumber)			((aKMer)->Number = (aNumber))
+
+
 static unsigned char BaseToShortBaseTable[256] = {
 	5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
 	5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
