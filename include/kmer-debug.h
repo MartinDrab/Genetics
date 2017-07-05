@@ -25,7 +25,7 @@ typedef struct _KMER {
 void kmer_advance(const uint32_t KMerSize, PKMER KMer, const char Base);
 void kmer_init_by_sequence(PKMER KMer, const uint32_t KMerSize, const char *Sequence);
 void kmer_back(const uint32_t KMerSize, PKMER KMer, const char Base);
-boolean kmer_seq_equal(const KMER *K1, const KMER *K2);
+boolean kmer_seq_equal(const uint32_t KMerSize, const KMER *K1, const KMER *K2);
 void kmer_print(FILE *Stream, const uint32_t KMerSize, const KMER *KMer);
 
 

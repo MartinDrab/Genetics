@@ -23,11 +23,13 @@ UTILS_TYPED_MALLOC_FUNCTION(KMER_EDGE_TABLE)
 
 INLINE_FUNCTION boolean _kmer_edge_key_equal(void *Context, const KMER_EDGE_TABLE_KEY Key1, const KMER_EDGE_TABLE_KEY Key2)
 {
+	const uint32_t kmerSize = (uint32_t)Context;
+
 	return (
 		kmer_get_number(Key1.Source) == kmer_get_number(Key2.Source) &&
 		kmer_get_number(Key1.Dest) == kmer_get_number(Key2.Dest) &&
-		kmer_seq_equal(Key1.Source, Key2.Source) &&
-		kmer_seq_equal(Key1.Dest, Key2.Dest)
+		kmer_seq_equal(kmerSize, Key1.Source, Key2.Source) &&
+		kmer_seq_equal(kmerSize, Key1.Dest, Key2.Dest)
 		);
 }
 

@@ -477,7 +477,7 @@ static void kmer_graph_check(const KMER_GRAPH *Graph)
 	if (kmer_table_first(Graph->KmerListTable, &it, &l) == ERR_SUCCESS) {
 		do {
 			for (size_t i = 0; i < pointer_array_size(&l->Vertices); ++i) {
-				assert(kmer_seq_equal(&l->Kmer, &(l->Vertices.Data[0]->KMer)));
+				assert(kmer_seq_equal(kmer_graph_get_kmer_size(Graph), &l->Kmer, &(l->Vertices.Data[0]->KMer)));
 			}
 
 		} while (kmer_table_next(Graph->KmerListTable, it, &it, &l) == ERR_SUCCESS);
@@ -991,7 +991,7 @@ ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EK
 				if (ret == ERR_SUCCESS)
 					ret = pointer_array_push_back_KMER_VERTEX(&list->Vertices, v);
 				
-				assert(kmer_seq_equal(&list->Kmer, &v->KMer));
+				assert(kmer_seq_equal(kmer_graph_get_kmer_size(Graph), &list->Kmer, &v->KMer));
 				if (ret == ERR_SUCCESS) {
 					Graph->NumberOfVertices++;
 					v->Lists.Graph = Graph;
@@ -1112,8 +1112,8 @@ ERR_VALUE kmer_graph_get_vertices(const KMER_GRAPH *Graph, const KMER *KMer, PPO
 	l = (PKMER_LIST)kmer_table_get(Graph->KmerListTable, lk);
 	if (l != NULL) {
 		for (size_t i = 0; i < pointer_array_size(&l->Vertices); ++i) {
-			assert(kmer_seq_equal(KMer, &l->Vertices.Data[i]->KMer));
-			assert(kmer_seq_equal(&l->Kmer, &l->Vertices.Data[i]->KMer));
+			assert(kmer_seq_equal(kmer_graph_get_kmer_size(Graph), KMer, &l->Vertices.Data[i]->KMer));
+			assert(kmer_seq_equal(kmer_graph_get_kmer_size(Graph), &l->Kmer, &l->Vertices.Data[i]->KMer));
 		}
 
 		*VertexArray = &l->Vertices;

@@ -67,7 +67,7 @@ INLINE_FUNCTION boolean kmer_equal(void *Context, const KMER *K1, const KMER *K2
 
 	assert(K1->Size == K2->Size);
 	assert(KMerSize == K1->Size);
-	return (kmer_get_number(K1) == kmer_get_number(K2) && kmer_seq_equal(K1, K2));
+	return (kmer_get_number(K1) == kmer_get_number(K2) && kmer_seq_equal(KMerSize, K1, K2));
 }
 
 

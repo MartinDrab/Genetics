@@ -43,11 +43,12 @@ void kmer_back(const uint32_t KMerSize, PKMER KMer, const char Base)
 	return;
 }
 
-boolean kmer_seq_equal(const KMER *K1, const KMER *K2)
+boolean kmer_seq_equal(const uint32_t KMerSize, const KMER *K1, const KMER *K2)
 {
 	assert(K1->Size == K2->Size);
+	assert(KMerSize == K1->Size);
 
-	return (memcmp(K1->Bases, K2->Bases, K1->Size*sizeof(char)) == 0);
+	return (memcmp(K1->Bases, K2->Bases, KMerSize*sizeof(char)) == 0);
 }
 
 
