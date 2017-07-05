@@ -14,7 +14,7 @@ INLINE_FUNCTION ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size,
 	PKMER tmpKMer = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_malloc(KMER_BYTES(Size), &tmpKMer);
+	ret = utils_malloc(KMER_BYTES(Size), (void **)&tmpKMer);
 	if (ret == ERR_SUCCESS) {
 		kmer_set_number(tmpKMer, Number);
 		kmer_set_size(tmpKMer, Size);
@@ -40,6 +40,7 @@ INLINE_FUNCTION void kmer_init_from_kmer(PKMER Dest, const uint32_t KMerSize,  c
 	assert(KMerSize == Source->Size);
 	kmer_set_size(Dest, kmer_get_size(Source));
 	kmer_set_number(Dest, kmer_get_number(Source));
+	// TOTO: Use a different routine for initializing from k-mer data
 	kmer_init_by_sequence(Dest, KMerSize, Source->Bases);
 
 	return;
