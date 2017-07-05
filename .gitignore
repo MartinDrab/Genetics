@@ -16,7 +16,6 @@ Genetics.opensdf
 *.gz
 VCFGUI/__history
 VCFGUI/Win32
-/doc/dp/thesis.pdf
 /bcftools.tar
 /.vs/Genetics/v14/.suo
 /Genetics.VC.db
