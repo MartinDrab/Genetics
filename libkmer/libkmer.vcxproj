@@ -28,7 +28,7 @@
     <ClCompile Include="kmer-edge.c" />
     <ClCompile Include="kmer-graph.c" />
     <ClCompile Include="kmer-table.c" />
-    <ClCompile Include="kmer.c" />
+    <ClCompile Include="kmer-debug.c" />
     <ClCompile Include="paired-reads.c" />
     <ClCompile Include="read-info.c" />
     <ClCompile Include="ssw.c" />
@@ -39,10 +39,12 @@
     <ClInclude Include="..\include\found-sequence.h" />
     <ClInclude Include="..\include\gen_dym_array.h" />
     <ClInclude Include="..\include\khash.h" />
+    <ClInclude Include="..\include\kmer-base.h" />
     <ClInclude Include="..\include\kmer-edge.h" />
     <ClInclude Include="..\include\kmer-graph-types.h" />
     <ClInclude Include="..\include\kmer-graph.h" />
     <ClInclude Include="..\include\kmer-table.h" />
+    <ClInclude Include="..\include\kmer-debug.h" />
     <ClInclude Include="..\include\kmer.h" />
     <ClInclude Include="..\include\libkmer.h" />
     <ClInclude Include="..\include\paired-reads.h" />

@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="kmer.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="kmer-edge.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -57,11 +54,11 @@
     <ClCompile Include="..\shared\ksw.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="kmer-debug.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\kmer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\kmer-edge.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -129,6 +126,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\shared\ksw.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kmer-base.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kmer-debug.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kmer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

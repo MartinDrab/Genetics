@@ -4,7 +4,7 @@
 #include <assert.h>
 #include "err.h"
 #include "utils.h"
-#include "kmer.h"
+#include "kmer-debug.h"
 
 
 
