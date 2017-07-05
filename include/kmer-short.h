@@ -125,4 +125,12 @@ INLINE_FUNCTION void kmer_short_print(FILE *Stream, const uint32_t KMerSize, con
 	return;
 }
 
+
+INLINE_FUNCTION boolean kme_short_seq_equal(const uint32_t KMerSize, const KMER_SHORT *K1, const KMER_SHORT *K2)
+{
+	return (memcmp(K1->B, K2->B, sizeof(K1->B)));
+}
+
+
+
 #endif
