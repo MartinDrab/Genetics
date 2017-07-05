@@ -3,11 +3,12 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "utils.h"
+#include <khash.h>
 #include "htab.h"
 #include "khash.h"
 
-#define _cnt_eq(a, b) ((a)>>14 == (b)>>14)
-#define _cnt_hash(a) ((a)>>14)
+#define _cnt_eq(aContext, a, b) ((a)>>14 == (b)>>14)
+#define _cnt_hash(aContext, a) ((a)>>14)
 KHASH_INIT(cnt, uint64_t, char, 0, _cnt_hash, _cnt_eq)
 typedef khash_t(cnt) cnthash_t;
 

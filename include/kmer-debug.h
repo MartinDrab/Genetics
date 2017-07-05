@@ -22,19 +22,19 @@ typedef struct _KMER {
 #define kmer_get_number(aKMer)					((aKMer)->Number)
 #define kmer_set_number(aKMer, aNumber)			((aKMer)->Number = (aNumber))
 
-
-void kmer_init_by_sequence(PKMER KMer, const char *Sequence);
-void kmer_advance(PKMER KMer, const char Base);
-void kmer_back(PKMER KMer, const char Base);
+void kmer_advance(const uint32_t KMerSize, PKMER KMer, const char Base);
+void kmer_init_by_sequence(PKMER KMer, const uint32_t KMerSize, const char *Sequence);
+void kmer_back(const uint32_t KMerSize, PKMER KMer, const char Base);
 boolean kmer_seq_equal(const KMER *K1, const KMER *K2);
-void kmer_print(FILE *Stream, const KMER *KMer);
+void kmer_print(FILE *Stream, const uint32_t KMerSize, const KMER *KMer);
 
 
-INLINE_FUNCTION size_t kmer_hash(const struct _KMER *KMer)
+INLINE_FUNCTION size_t kmer_hash(void *Context, const struct _KMER *KMer)
 {
 	size_t hash = 0;
-	const size_t kmerSize = kmer_get_size(KMer);
+	const uint32_t kmerSize = (uint32_t)Context;
 
+	assert(kmerSize == kmer_get_size(KMer));
 	for (size_t i = 0 + 1; i < kmerSize; ++i)
 		hash = (hash << 5) - hash + kmer_get_base(KMer, i);
 

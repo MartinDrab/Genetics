@@ -298,7 +298,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 
 			count--;
 			KMER_STACK_ALLOC(dummyKMer, 0, KMerSize, NULL);
-			kmer_init_by_base(dummyKMer, 'H');
+			kmer_init_by_base(dummyKMer, KMerSize, 'H');
 			ret = _assign_vertice_set_to_kmer(Graph, dummyKMer, Vertices, 0, Options, &count);
 		}
 	}
@@ -307,7 +307,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 			int i = 1;
 			int optimizationIndex = -1;
 
-			kmer_advance(kmer, Read->ReadSequence[KMerSize]);
+			kmer_advance(KMerSize, kmer, Read->ReadSequence[KMerSize]);
 			while (i < (int)NumberOfSets) {
 				ret = _assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
 				if (ret == ERR_SUCCESS && Options->OptimizeShortVariants && 
@@ -358,18 +358,18 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 
 										_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
 										for (size_t j = 0; j < matchIndex - 1; ++j) {
-											kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
+											kmer_advance(KMerSize, kmer, Read->ReadSequence[i + KMerSize]);
 											++i;
 											_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
 										}
 
-										kmer_init_from_kmer(kmer, &rsv->KMer);
+										kmer_init_from_kmer(kmer, KMerSize, &rsv->KMer);
 										rev->ReadStartAllowed = FALSE;
 										optimizationIndex = i;
 									} break;
 									case 'D': {
 										if (rsv->RefSeqPosition + matchIndex + 1 < Options->RegionLength) {
-											kmer_init_from_kmer(kmer, &Graph->RefVertices.Data[rsv->RefSeqPosition + matchIndex + 1]->KMer);
+											kmer_init_from_kmer(kmer, KMerSize, &Graph->RefVertices.Data[rsv->RefSeqPosition + matchIndex + 1]->KMer);
 											--count;
 											_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
 											optimizationIndex = i;
@@ -382,12 +382,12 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 
 											_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
 											for (size_t j = 0; j < matchIndex - 1; ++j) {
-												kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
+												kmer_advance(KMerSize, kmer, Read->ReadSequence[i + KMerSize]);
 												++i;
 												_assign_vertice_set_to_kmer(Graph, kmer, Vertices, i, Options, &count);
 											}
 
-											kmer_init_from_kmer(kmer, &Graph->RefVertices.Data[rsv->RefSeqPosition + matchIndex]->KMer);
+											kmer_init_from_kmer(kmer, KMerSize, &Graph->RefVertices.Data[rsv->RefSeqPosition + matchIndex]->KMer);
 											rev->ReadStartAllowed = FALSE;
 											optimizationIndex = i;
 										}
@@ -405,7 +405,7 @@ static ERR_VALUE _assign_vertice_sets_to_kmers(PKMER_GRAPH Graph, const ONE_READ
 				if (ret != ERR_SUCCESS)
 					break;
 
-				kmer_advance(kmer, Read->ReadSequence[i + KMerSize]);
+				kmer_advance(KMerSize, kmer, Read->ReadSequence[i + KMerSize]);
 				++i;
 			}
 		}
@@ -847,15 +847,15 @@ ERR_VALUE assembly_parse_reference(PASSEMBLY_STATE State)
 	}
 
 	if (ret == ERR_SUCCESS) {
-		kmer_back(sourceKMer, 'B');
+		kmer_back(kmerSize, sourceKMer, 'B');
 		ret = kmer_graph_add_vertex_ex(Graph, sourceKMer, kmvtRefSeqStart, &sourceVertex);
 		if (ret == ERR_SUCCESS) {
 			kmer_graph_set_starting_vertex(Graph, sourceKMer);
 			ret = kmer_alloc(0, kmerSize, RefSeq, &destKMer);
 			if (ret == ERR_SUCCESS) {
-				kmer_back(destKMer, 'B');
+				kmer_back(kmerSize, destKMer, 'B');
 				for (uint32_t i = kmerSize - 1; i < RefSeqLen; ++i) {
-					kmer_advance(destKMer, RefSeq[i]);
+					kmer_advance(kmerSize, destKMer, RefSeq[i]);
 					kmer_set_number(destKMer, 0);
 					ret = kmer_graph_add_vertex_ex(Graph, destKMer, kmvtRefSeqMiddle, &destVertex);
 					if (ret == ERR_ALREADY_EXISTS) {
@@ -874,7 +874,7 @@ ERR_VALUE assembly_parse_reference(PASSEMBLY_STATE State)
 						Graph->RefVertices.Data[i] = destVertex;
 						destVertex->AbsPos = ParseOptions->RegionStart + destVertex->RefSeqPosition;
 						ret = kmer_graph_add_edge_ex(Graph, sourceVertex, destVertex, kmetReference, &edge);
-						kmer_advance(sourceKMer, RefSeq[i]);
+						kmer_advance(kmerSize, sourceKMer, RefSeq[i]);
 						kmer_set_number(sourceKMer, kmer_get_number(destKMer));
 						sourceVertex = destVertex;
 					}
@@ -884,7 +884,7 @@ ERR_VALUE assembly_parse_reference(PASSEMBLY_STATE State)
 				}
 
 				if (ret == ERR_SUCCESS) {
-					kmer_advance(destKMer, 'E');
+					kmer_advance(kmerSize, destKMer, 'E');
 					kmer_set_number(destKMer, 0);
 					ret = kmer_graph_add_vertex_ex(Graph, destKMer, kmvtRefSeqEnd, &destVertex);
 					if (ret == ERR_SUCCESS) {

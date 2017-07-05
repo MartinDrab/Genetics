@@ -195,6 +195,7 @@ static const double __ac_HASH_UPPER = 0.77;
 	typedef struct kh_##name##_s { \
 		khint_t n_buckets, size, n_occupied, upper_bound; \
 		volatile int lock; \
+		void *Context;	\
 		khint32_t *flags; \
 		khkey_t *keys; \
 		khval_t *vals; \
@@ -233,9 +234,9 @@ static const double __ac_HASH_UPPER = 0.77;
 		if (h->n_buckets) {												\
 			khint_t k, i, last, mask, step = 0; \
 			mask = h->n_buckets - 1;									\
-			k = __hash_func(key); i = k & mask;							\
+			k = __hash_func(h->Context, key); i = k & mask;							\
 			last = i; \
-						while (!__ac_isempty(h->flags, i) && (__ac_isdel(h->flags, i) || !__hash_equal(h->keys[i], key))) { \
+						while (!__ac_isempty(h->flags, i) && (__ac_isdel(h->flags, i) || !__hash_equal(h->Context, h->keys[i], key))) { \
 				i = (i + (++step)) & mask; \
 				if (i == last) return h->n_buckets;						\
 									}															\
@@ -277,7 +278,7 @@ static const double __ac_HASH_UPPER = 0.77;
 					__ac_set_isdel_true(h->flags, j);					\
 										while (1) { /* kick-out process; sort of like in Cuckoo hashing */ \
 						khint_t k, i, step = 0; \
-						k = __hash_func(key);							\
+						k = __hash_func(h->Context, key);							\
 						i = k & new_mask;								\
 												while (!__ac_isempty(new_flags, i)) i = (i + (++step)) & new_mask; \
 						__ac_set_isempty_false(new_flags, i);			\
@@ -319,11 +320,11 @@ static const double __ac_HASH_UPPER = 0.77;
 				} /* TODO: to implement automatically shrinking; resize() already support shrinking */ \
 				{																\
 			khint_t k, i, site, last, mask = h->n_buckets - 1, step = 0; \
-			x = site = h->n_buckets; k = __hash_func(key); i = k & mask; \
+			x = site = h->n_buckets; k = __hash_func(h->Context, key); i = k & mask; \
 			if (__ac_isempty(h->flags, i)) x = i; /* for speed up */	\
 						else {														\
 				last = i; \
-								while (!__ac_isempty(h->flags, i) && (__ac_isdel(h->flags, i) || !__hash_equal(h->keys[i], key))) { \
+								while (!__ac_isempty(h->flags, i) && (__ac_isdel(h->flags, i) || !__hash_equal(h->Context, h->keys[i], key))) { \
 					if (__ac_isdel(h->flags, i)) site = i;				\
 					i = (i + (++step)) & mask; \
 					if (i == last) { x = site; break; }					\
@@ -373,21 +374,21 @@ static const double __ac_HASH_UPPER = 0.77;
 @param  key   The integer [khint32_t]
 @return       The hash value [khint_t]
 */
-#define kh_int_hash_func(key) (khint32_t)(key)
+#define kh_int_hash_func(aContext, key) (khint32_t)(key)
 /*! @function
 @abstract     Integer comparison function
 */
-#define kh_int_hash_equal(a, b) ((a) == (b))
+#define kh_int_hash_equal(aContext, a, b) ((a) == (b))
 /*! @function
 @abstract     64-bit integer hash function
 @param  key   The integer [khint64_t]
 @return       The hash value [khint_t]
 */
-#define kh_int64_hash_func(key) (khint32_t)((key)>>33^(key)^(key)<<11)
+#define kh_int64_hash_func(aContext, key) (khint32_t)((key)>>33^(key)^(key)<<11)
 /*! @function
 @abstract     64-bit integer comparison function
 */
-#define kh_int64_hash_equal(a, b) ((a) == (b))
+#define kh_int64_hash_equal(aContext, a, b) ((a) == (b))
 /*! @function
 @abstract     const char* hash function
 @param  s     Pointer to a null terminated string
@@ -404,13 +405,13 @@ static kh_inline khint_t __ac_X31_hash_string(const char *s)
 @param  key   Pointer to a null terminated string [const char*]
 @return       The hash value [khint_t]
 */
-#define kh_str_hash_func(key) __ac_X31_hash_string(key)
+#define kh_str_hash_func(aContext, key) __ac_X31_hash_string(key)
 /*! @function
 @abstract     Const char* comparison function
 */
-#define kh_str_hash_equal(a, b) (strcmp(a, b) == 0)
+#define kh_str_hash_equal(aContext, a, b) (strcmp(a, b) == 0)
 
-static kh_inline khint_t __ac_Wang_hash(khint_t key)
+static kh_inline khint_t __ac_Wang_hash(void *Context, khint_t key)
 {
 	key += ~(key << 15);
 	key ^= (key >> 10);

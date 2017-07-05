@@ -17,8 +17,8 @@ INLINE_FUNCTION ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size,
 	ret = utils_malloc(KMER_BYTES(Size), &tmpKMer);
 	if (ret == ERR_SUCCESS) {
 		kmer_set_number(tmpKMer, Number);
-		tmpKMer->Size = Size;
-		kmer_init_by_sequence(tmpKMer, Sequence);
+		kmer_set_size(tmpKMer, Size);
+		kmer_init_by_sequence(tmpKMer, Size, Sequence);
 		*KMer = tmpKMer;
 	}
 
@@ -26,18 +26,21 @@ INLINE_FUNCTION ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size,
 }
 
 
-INLINE_FUNCTION void kmer_init_by_base(PKMER KMer, char Base)
+INLINE_FUNCTION void kmer_init_by_base(PKMER KMer, const uint32_t KMerSize, char Base)
 {
-	for (size_t i = 0; i < KMer->Size; ++i)
+	for (size_t i = 0; i < KMerSize; ++i)
 		kmer_set_base(KMer, i, Base);
+
+	return;
 }
 
 
-INLINE_FUNCTION void kmer_init_from_kmer(PKMER Dest, const KMER *Source)
+INLINE_FUNCTION void kmer_init_from_kmer(PKMER Dest, const uint32_t KMerSize,  const KMER *Source)
 {
-	Dest->Size = Source->Size;
-	Dest->Number = Source->Number;
-	kmer_init_by_sequence(Dest, Source->Bases);
+	assert(KMerSize == Source->Size);
+	kmer_set_size(Dest, kmer_get_size(Source));
+	kmer_set_number(Dest, kmer_get_number(Source));
+	kmer_init_by_sequence(Dest, KMerSize, Source->Bases);
 
 	return;
 }
@@ -51,16 +54,19 @@ INLINE_FUNCTION void kmer_free(PKMER KMer)
 }
 
 
-INLINE_FUNCTION ERR_VALUE kmer_copy(PKMER *Dest, const KMER *KMer)
+INLINE_FUNCTION ERR_VALUE kmer_copy(PKMER *Dest, const uint32_t KMerSize, const KMER *KMer)
 {
-	return kmer_alloc(KMer->Number, KMer->Size, KMer->Bases, Dest);
+	return kmer_alloc(KMer->Number, KMerSize, KMer->Bases, Dest);
 }
 
 
-INLINE_FUNCTION boolean kmer_equal(const KMER *K1, const KMER *K2)
+INLINE_FUNCTION boolean kmer_equal(void *Context, const KMER *K1, const KMER *K2)
 {
-	assert(K1->Size == K2->Size);
+#pragma warning(disable : 4311)
+	const uint32_t KMerSize = (uint32_t)Context;
 
+	assert(K1->Size == K2->Size);
+	assert(KMerSize == K1->Size);
 	return (kmer_get_number(K1) == kmer_get_number(K2) && kmer_seq_equal(K1, K2));
 }
 
@@ -70,14 +76,14 @@ INLINE_FUNCTION boolean kmer_equal(const KMER *K1, const KMER *K2)
 		aVariable = (PKMER)alloca(KMER_BYTES(aSize));		\
 		kmer_set_size(aVariable, (aSize));										\
 		kmer_set_number(aVariable, (aNumber));											\
-		kmer_init_by_sequence(aVariable, aSequence);		\
+		kmer_init_by_sequence(aVariable, aSize, aSequence);		\
 	}														\
 
 #define KMER_STACK_ALLOC_FROM_KMER(aVariable, aSize, aKMer)				\
 	{																	\
 		aVariable = (PKMER)alloca(KMER_BYTES(aSize));					\
 		kmer_set_size(aVariable, (aSize));										\
-		kmer_init_from_kmer(aVariable, aKMer);							\
+		kmer_init_from_kmer(aVariable, aSize, aKMer);							\
 	}																	\
 
 

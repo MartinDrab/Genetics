@@ -77,7 +77,7 @@ static ERR_VALUE _vertex_create(PKMER_GRAPH Graph, const KMER *KMer, const EKMer
 	tmp = Graph->Allocator.VertexAllocator(Graph, Graph->Allocator.VertexAllocatorContext);
 	if (tmp != NULL) {
 		tmp->Unique = TRUE;
-		kmer_init_from_kmer(&tmp->KMer, KMer);;
+		kmer_init_from_kmer(&tmp->KMer, kmer_graph_get_kmer_size(Graph), KMer);;
 		tmp->Type = Type;
 		tmp->LongEdgeAllowed = FALSE;
 		tmp->ReadStartAllowed = TRUE;
@@ -237,10 +237,10 @@ static void _vertex_table_on_print(struct _KMER_TABLE *Table, void *ItemData, FI
 	PKMER_VERTEX v = (PKMER_VERTEX)ItemData;
 
 	fprintf(Stream, "\t");
-	kmer_print(Stream, &v->KMer);
+	kmer_print(Stream, Table->KMerSize, &v->KMer);
 	fprintf(Stream, "[label=\"");
 	if (!v->Helper)
-		kmer_print(Stream, &v->KMer);
+		kmer_print(Stream, Table->KMerSize, &v->KMer);
 	else fprintf(Stream, "Helper#%u", kmer_get_number(&v->KMer));
 	
 	if (v->Type == kmvtRefSeqMiddle || v->Type == kmvtRefSeqStart ||
@@ -335,9 +335,9 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 //	fprintf(Stream, "\t)**/\n");
 	
 	fprintf(Stream, "\t");
-	kmer_print(Stream, &e->Source->KMer);
+	kmer_print(Stream, Table->KMerSize, &e->Source->KMer);
 	fprintf(Stream, " -> ");
-	kmer_print(Stream, &e->Dest->KMer);
+	kmer_print(Stream, Table->KMerSize, &e->Dest->KMer);
 	fprintf(Stream, " [color=");
 	switch (e->Type) {
 		case kmetReference:
@@ -981,7 +981,7 @@ ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EK
 					ret = utils_malloc(sizeof(KMER_LIST) + kmer_graph_get_kmer_size(Graph)*sizeof(char), &list);
 					if (ret == ERR_SUCCESS) {
 						pointer_array_init_KMER_VERTEX(&list->Vertices, 140);
-						kmer_init_from_kmer(&list->Kmer, lk);
+						kmer_init_from_kmer(&list->Kmer, kmer_graph_get_kmer_size(Graph), lk);
 						ret = kmer_table_insert(Graph->KmerListTable, &list->Kmer, list);
 						if (ret != ERR_SUCCESS)
 							utils_free(list);
@@ -1528,7 +1528,7 @@ ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Thre
 
 					ret = read_info_intersection(&eIn->ReadInfo, &eOut->ReadInfo, &intersection, eIn->SeqLen + (!eIn->Dest->Helper ? 1 : 0) + pair.ReadDistance);
 					if (ret == ERR_SUCCESS && gen_array_size(&intersection) > Threshold && allowed) {
-						if (kmer_equal(&eIn->Source->KMer, &eOut->Dest->KMer))
+						if (kmer_equal((void *)kmer_graph_get_kmer_size(Graph), &eIn->Source->KMer, &eOut->Dest->KMer))
 							ret = ERR_ALREADY_EXISTS;
 
 						if (ret == ERR_SUCCESS) {
