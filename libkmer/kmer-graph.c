@@ -529,7 +529,7 @@ PKMER_EDGE _get_refseq_or_variant_edge(const KMER_VERTEX *Vertex)
 }
 
 
-static ERR_VALUE _capture_edge_sequence(const KMER_EDGE *Start, const POINTER_ARRAY_KMER_EDGE *RSEdges, const KMER_EDGE *End, char **Seq, size_t *SeqLen)
+static ERR_VALUE _capture_edge_sequence(const KMER_GRAPH *Graph, const KMER_EDGE *Start, const POINTER_ARRAY_KMER_EDGE *RSEdges, const KMER_EDGE *End, char **Seq, size_t *SeqLen)
 {
 	REFSEQ_STORAGE rsStorage;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -1215,7 +1215,7 @@ ERR_VALUE kmer_graph_merge_edges(PKMER_GRAPH Graph, PKMER_EDGE Source, PKMER_EDG
 				char *newSeq = NULL;
 
 				newEdge->MarkedForDelete = mfd;
-				ret = _capture_edge_sequence(Source, NULL, Dest, &newSeq, &newEdge->SeqLen);
+				ret = _capture_edge_sequence(Graph, Source, NULL, Dest, &newSeq, &newEdge->SeqLen);
 				if (ret == ERR_SUCCESS) {
 					newEdge->Seq = newSeq;
 					ret = dym_array_reserve_size_t(&newEdge->Weights, newEdge->SeqLen + 1);
@@ -2193,28 +2193,6 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT
 
 	kmer_graph_delete_trailing_things(Graph, &dummy);
 //	kmer_graph_delete_1to1_vertices(Graph);
-
-	return ret;
-}
-
-
-PKMER_EDGE kmer_vertex_get_edge_by_base(PKMER_VERTEX Vertex, const char Base)
-{
-	boolean found = FALSE;
-	PKMER_EDGE ret = NULL;
-
-	for (size_t i = 0; i < gen_array_size(&Vertex->Successors); ++i) {
-		const KMER *kmer = NULL;
-		
-		ret = Vertex->Successors.Data[i];
-		kmer = &ret->Dest->KMer;
-		found = (kmer_get_base(kmer, kmer_get_size(kmer) - 1) == Base);
-		if (found)
-			break;
-	}
-
-	if (!found)
-		ret = NULL;
 
 	return ret;
 }

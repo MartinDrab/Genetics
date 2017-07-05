@@ -71,8 +71,6 @@ PKMER_EDGE _get_refseq_or_variant_edge(const KMER_VERTEX *Vertex);
 ERR_VALUE kmer_graph_compute_weights(PKMER_GRAPH Graph);
 void kmer_graph_check_weights(PKMER_GRAPH Graph);
 
-void kmer_graph_pair_variants(PKMER_GRAPH Graph);
-
 ERR_VALUE kmer_edge_add_read(PKMER_EDGE Edge, size_t ReadIndex, size_t ReadPosition, uint8_t Quality);
 
 
