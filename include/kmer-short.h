@@ -54,7 +54,7 @@ INLINE_FUNCTION void kmer_short_back(const uint32_t KMerSize, PKMER_SHORT KMer, 
 {
 	int c = 0;
 	uint64_t *x = KMer->B;
-	uint64_t mask = (1ULL << KMerSize) - 1;
+	const uint64_t mask = (1ULL << KMerSize) - 1;
 
 	c = BaseToShortBaseTable[Base];
 	assert(c < 8);
@@ -69,13 +69,14 @@ INLINE_FUNCTION void kmer_short_back(const uint32_t KMerSize, PKMER_SHORT KMer, 
 INLINE_FUNCTION void kmer_short_set_base(const uint32_t KMerSize, PKMER_SHORT KMer, const uint32_t Pos, const char Base)
 // d-bp from the 3'-end of k-mer; 0<=d<k
 { // IMPORTANT: 0 <= c < 4
-	uint64_t t = ~(1ULL<<Pos);
 	int c = 0;
+	const uint64_t t = ~(1ULL<<Pos);
 	uint64_t *x = KMer->B;
 
-	// TODO: Translate the Base into c
+	c = BaseToShortBaseTable[Base];
+	assert(c < 8);
 	x[0] = (uint64_t) (c&1)<<Pos | (x[0]&t);
-	x[1] = (uint64_t)((c>>1))<<Pos | (x[1]&t);
+	x[1] = (uint64_t)(((c>>1)&1))<<Pos | (x[1]&t);
 	x[2] = (uint64_t)(c >> 2) << Pos | (x[2] & t);
 
 	return;
