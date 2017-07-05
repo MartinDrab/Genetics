@@ -21,6 +21,7 @@ typedef struct _KMER {
 } KMER, *PKMER;
 
 #define KMER_BYTES(aKMerSize)					(sizeof(KMER)+aKMerSize*sizeof(char))
+#define KMER_BYTES_EXTRA(aKMerSize, aExtra)		(KMER_BYTES(aKMerSize) + aExtra)
 
 
 #define kmer_get_size(aKMer)					((aKMer)->Size)

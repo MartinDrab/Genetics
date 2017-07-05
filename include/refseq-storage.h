@@ -108,7 +108,7 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_edge(PREFSEQ_STORAGE Storage, const KME
 	if (ret == ERR_SUCCESS && !Edge->Dest->Helper &&
 		Edge->Dest->Type != kmvtRefSeqEnd) {
 		const KMER *destKMer = &Edge->Dest->KMer;
-		ret = rs_storage_add(Storage, kmer_get_base(destKMer, kmer_get_size(destKMer) - 1));
+		ret = rs_storage_add(Storage, kmer_get_last_base(destKMer));
 	}
 
 	return ret;
@@ -121,7 +121,7 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_vertex(PREFSEQ_STORAGE Storage, const K
 
 	ret = ERR_SUCCESS;
 	if (!Vertex->Helper && Vertex->Type != kmvtRefSeqEnd)
-		ret = rs_storage_add(Storage, kmer_get_base(&Vertex->KMer, Vertex->KMer.Size - 1));
+		ret = rs_storage_add(Storage, kmer_get_last_base(&Vertex->KMer));
 	
 	return ret;
 }
