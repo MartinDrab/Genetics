@@ -29,7 +29,7 @@ void kmer_short_advance(const uint32_t KMerSize, PKMER_SHORT KMer, const char Ba
 void kmer_short_back(const uint32_t KMerSize, PKMER_SHORT KMer, const char Base);
 void kmer_short_set_base(const uint32_t KMerSize, PKMER_SHORT KMer, const uint32_t Pos, const char Base);
 char kmer_short_get_base(const uint32_t KMerSize, const KMER_SHORT *KMer, const uint32_t Pos);
-uint64_t kmer_short_hash(const uint32_t KMerSize, const KMER_SHORT *KMer);
+size_t kmer_short_hash(const uint32_t KMerSize, const KMER_SHORT *KMer);
 void kmer_short_print(FILE *Stream, const uint32_t KMerSize, const KMER_SHORT *KMer);
 boolean kme_short_seq_equal(const uint32_t KMerSize, const KMER_SHORT *K1, const KMER_SHORT *K2);
 
