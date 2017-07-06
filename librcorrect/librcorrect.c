@@ -87,7 +87,7 @@ static ERR_VALUE convert_to_gassm2(const bseq1_t *Seqs, size_t Count, PONE_READ 
 			free(Seqs[i].qual);
 		}
 
-		for (size_t j = 0; j < Reads[i].ReadSequenceLen; ++j)
+		for (uint32_t j = 0; j < Reads[i].ReadSequenceLen; ++j)
 			Reads[i].ReadSequence[j] = toupper(Reads[i].ReadSequence[j]);
 	}
 
@@ -129,11 +129,11 @@ ERR_VALUE libcorrect_correct(PONE_READ Reads, size_t Count, PLIBRCORRECT_STATIST
 					if (s->l_seq != Reads[i].ReadSequenceLen)
 						++Stats->ReadsShortened;
 
-					for (size_t j = 0; j < s->l_seq; ++j) {
+					for (int32_t j = 0; j < s->l_seq; ++j) {
 						if (s->seq[j] == 'a' || s->seq[j] == 'c' ||
 							s->seq[j] == 'g' || s->seq[j] == 't') {
 							++repairCount;
-							++Stats->RepairBasePositionDistribution[s->l_seq - j];
+							++Stats->RepairBasePositionDistribution[s->l_seq - j - 1];
 						}
 					}
 
