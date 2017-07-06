@@ -27,6 +27,7 @@
     <ClCompile Include="found-sequence.c" />
     <ClCompile Include="kmer-edge.c" />
     <ClCompile Include="kmer-graph.c" />
+    <ClCompile Include="kmer-short.c" />
     <ClCompile Include="kmer-table.c" />
     <ClCompile Include="kmer-debug.c" />
     <ClCompile Include="paired-reads.c" />

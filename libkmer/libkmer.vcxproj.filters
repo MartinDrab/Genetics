@@ -57,6 +57,9 @@
     <ClCompile Include="kmer-debug.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="kmer-short.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\kmer-edge.h">
