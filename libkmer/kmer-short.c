@@ -1,4 +1,10 @@
 
+#include <stdint.h>
+#include <malloc.h>
+#include <stdio.h>
+#ifndef _MSC_VER
+#include <alloca.h>
+#endif
 #include "err.h"
 #include "utils.h"
 #include "kmer-short.h"
@@ -67,13 +73,13 @@ void kmer_short_back(const uint32_t KMerSize, PKMER_SHORT KMer, const char Base)
 {
 	int c = 0;
 	uint64_t *x = KMer->B;
-	const uint64_t mask = (1ULL << KMerSize) - 1;
+	const uint32_t shift = KMerSize - 1;
 
 	c = _baseToShortBaseTable[Base];
 	assert(c < 8);
-	x[0] = (x[0] >> 1 | (c & 1) << (KMerSize - 1))  & mask;
-	x[1] = (x[1] >> 1 | ((c >> 1) & 1) << (KMerSize - 1)) & mask;
-	x[2] = (x[2] >> 1 | (c >> 2) << (KMerSize - 1)) & mask;
+	x[0] = (x[0] >> 1 | (c & 1) << shift);
+	x[1] = (x[1] >> 1 | ((c >> 1) & 1) << shift);
+	x[2] = (x[2] >> 1 | (c >> 2) << shift);
 
 	return;
 }
@@ -84,29 +90,48 @@ char kmer_short_get_base(const uint32_t KMerSize, const KMER_SHORT *KMer, const 
 	char b = 0;
 	int c = 0;
 	const uint64_t *data = &KMer->B;
-	const uint64_t bit = (1 << Pos);
+	const uint32_t d = KMerSize - Pos - 1;
+	const uint64_t bit = (1 << d);
 
-	c = ((data[0] & bit) >> Pos) |
-		((data[0] & bit) >> (Pos - 1)) |
-		((data[0] & bit) >> (Pos - 2) );
+	c = ((data[0] & bit) >> d) |
+		((data[1] & bit) >> (d - 1)) |
+		((data[2] & bit) >> (d - 2) );
 
 	assert(c < 8);
 
 	return _shortBaseToBaseTable[c];
 }
 
+
+char kmer_short_get_last_base(const uint32_t KMerSize, const KMER_SHORT *KMer)
+{
+	char b = 0;
+	int c = 0;
+	const uint64_t *data = &KMer->B;
+
+	c = (data[0] & 1) |
+		((data[1] & 1) << 1) |
+		((data[2] & 1) << 2);
+
+	assert(c < 8);
+
+	return _shortBaseToBaseTable[c];
+}
+
+
 void kmer_short_set_base(const uint32_t KMerSize, PKMER_SHORT KMer, const uint32_t Pos, const char Base)
 // d-bp from the 3'-end of k-mer; 0<=d<k
 { // IMPORTANT: 0 <= c < 4
 	int c = 0;
-	const uint64_t t = ~(1ULL << Pos);
+	const uint32_t d = KMerSize - Pos - 1;
+	const uint64_t t = ~(1ULL << d);
 	uint64_t *x = KMer->B;
 
 	c = _baseToShortBaseTable[Base];
 	assert(c < 8);
-	x[0] = (uint64_t)(c & 1) << Pos | (x[0] & t);
-	x[1] = (uint64_t)(((c >> 1) & 1)) << Pos | (x[1] & t);
-	x[2] = (uint64_t)(c >> 2) << Pos | (x[2] & t);
+	x[0] = (uint64_t)(c & 1) << d | (x[0] & t);
+	x[1] = (uint64_t)(((c >> 1) & 1)) << d | (x[1] & t);
+	x[2] = (uint64_t)(c >> 2) << d | (x[2] & t);
 
 	return;
 }

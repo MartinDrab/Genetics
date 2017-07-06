@@ -14,7 +14,7 @@
 /************************************************************************/
 
 
-void kmer_init_by_sequence(PKMER KMer, const uint32_t KMerSize, const char *Sequence)
+void kmer_debug_seq_init_by_sequence(PKMER KMer, const uint32_t KMerSize, const char *Sequence)
 {
 	if (Sequence != NULL)
 		memcpy(KMer->Bases, Sequence, KMerSize*sizeof(char));
@@ -23,7 +23,7 @@ void kmer_init_by_sequence(PKMER KMer, const uint32_t KMerSize, const char *Sequ
 }
 
 
-void kmer_advance(const uint32_t KMerSize, PKMER KMer, const char Base)
+void kmer_debug_advance(const uint32_t KMerSize, PKMER KMer, const char Base)
 {
 	assert(KMer->Size == KMerSize);
 
@@ -33,7 +33,7 @@ void kmer_advance(const uint32_t KMerSize, PKMER KMer, const char Base)
 	return;
 }
 
-void kmer_back(const uint32_t KMerSize, PKMER KMer, const char Base)
+void kmer_debug_back(const uint32_t KMerSize, PKMER KMer, const char Base)
 {
 	assert(KMerSize == KMer->Size);
 
@@ -43,7 +43,7 @@ void kmer_back(const uint32_t KMerSize, PKMER KMer, const char Base)
 	return;
 }
 
-boolean kmer_seq_equal(const uint32_t KMerSize, const KMER *K1, const KMER *K2)
+boolean kmer_debug_seq_equal(const uint32_t KMerSize, const KMER *K1, const KMER *K2)
 {
 	assert(K1->Size == K2->Size);
 	assert(KMerSize == K1->Size);
@@ -52,10 +52,10 @@ boolean kmer_seq_equal(const uint32_t KMerSize, const KMER *K1, const KMER *K2)
 }
 
 
-void kmer_print(FILE *Stream, const uint32_t KMerSize, const KMER *KMer)
+void kmer_debug_print(FILE *Stream, const uint32_t KMerSize, const KMER *KMer)
 {
 	for (size_t i = 0; i < KMerSize; ++i)
-		fputc(kmer_get_base(KMer, i), Stream);
+		fputc(kmer_debug_get_base(KMer, i), Stream);
 
 	fprintf(Stream, "_%u", KMer->Number);
 
@@ -63,14 +63,14 @@ void kmer_print(FILE *Stream, const uint32_t KMerSize, const KMER *KMer)
 }
 
 
-size_t kmer_hash(const uint32_t Context, const KMER *KMer)
+size_t kmer_debug_hash(const uint32_t Context, const KMER *KMer)
 {
 	size_t hash = 0;
 	const uint32_t kmerSize = (uint32_t)Context;
 
-	assert(kmerSize == kmer_get_size(KMer));
+	assert(kmerSize == kmer_debug_get_size(KMer));
 	for (size_t i = 0 + 1; i < kmerSize; ++i)
-		hash = (hash << 5) - hash + kmer_get_base(KMer, i);
+		hash = (hash << 5) - hash + kmer_debug_get_base(KMer, i);
 
 	return hash;
 }

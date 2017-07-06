@@ -18,7 +18,7 @@ INLINE_FUNCTION ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size,
 	if (ret == ERR_SUCCESS) {
 		kmer_set_number(tmpKMer, Number);
 		kmer_set_size(tmpKMer, Size);
-		kmer_init_by_sequence(tmpKMer, Size, Sequence);
+		kmer_seq_init_by_sequence(tmpKMer, Size, Sequence);
 		*KMer = tmpKMer;
 	}
 
@@ -40,8 +40,7 @@ INLINE_FUNCTION void kmer_init_from_kmer(PKMER Dest, const uint32_t KMerSize,  c
 	assert(KMerSize == Source->Size);
 	kmer_set_size(Dest, kmer_get_size(Source));
 	kmer_set_number(Dest, kmer_get_number(Source));
-	// TOTO: Use a different routine for initializing from k-mer data
-	kmer_init_by_sequence(Dest, KMerSize, Source->Bases);
+	kmer_seq_init_raw(Dest, KMerSize, Source->Bases);
 
 	return;
 }
@@ -61,11 +60,8 @@ INLINE_FUNCTION ERR_VALUE kmer_copy(PKMER *Dest, const uint32_t KMerSize, const 
 }
 
 
-INLINE_FUNCTION boolean kmer_equal(void *Context, const KMER *K1, const KMER *K2)
+INLINE_FUNCTION boolean kmer_equal(uint32_t KMerSize, const KMER *K1, const KMER *K2)
 {
-#pragma warning(disable : 4311)
-	const uint32_t KMerSize = (uint32_t)Context;
-
 	assert(K1->Size == K2->Size);
 	assert(KMerSize == K1->Size);
 	return (kmer_get_number(K1) == kmer_get_number(K2) && kmer_seq_equal(KMerSize, K1, K2));
@@ -77,7 +73,7 @@ INLINE_FUNCTION boolean kmer_equal(void *Context, const KMER *K1, const KMER *K2
 		aVariable = (PKMER)alloca(KMER_BYTES(aSize));		\
 		kmer_set_size(aVariable, (aSize));										\
 		kmer_set_number(aVariable, (aNumber));											\
-		kmer_init_by_sequence(aVariable, aSize, aSequence);		\
+		kmer_seq_init_by_sequence(aVariable, aSize, aSequence);		\
 	}														\
 
 #define KMER_STACK_ALLOC_FROM_KMER(aVariable, aSize, aKMer)				\
