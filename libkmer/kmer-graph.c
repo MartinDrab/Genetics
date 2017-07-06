@@ -536,7 +536,7 @@ static ERR_VALUE _capture_edge_sequence(const KMER_GRAPH *Graph, const KMER_EDGE
 	const KMER_VERTEX *lastVertex = NULL;
 
 	ret = ERR_SUCCESS;
-	rs_storage_init(&rsStorage);
+	rs_storage_init(&rsStorage, kmer_graph_get_kmer_size(Graph));
 	if (Start != NULL) {
 		ret = rs_storage_add_edge(&rsStorage, Start);
 		lastVertex = Start->Dest;
@@ -703,12 +703,14 @@ typedef struct _PATH_COMPARE_CONTEXT {
 	const KMER_EDGE *CurrentEdge;
 	const char *Seq;
 	size_t SeqLen;
+	uint32_t KMerSize;
 	boolean End;
 } PATH_COMPARE_CONTEXT, *PPATH_COMPARE_CONTEXT;
 
 
-static void _path_context_init(PPATH_COMPARE_CONTEXT Context, const KMER_EDGE **Path, const size_t PathLength)
+static void _path_context_init(PPATH_COMPARE_CONTEXT Context, const uint32_t KMerSize, const KMER_EDGE **Path, const size_t PathLength)
 {
+	Context->KMerSize = KMerSize;
 	Context->Path = Path;
 	Context->PathLength = PathLength;
 	Context->CurrentIndex = 0;
@@ -724,10 +726,10 @@ static void _path_context_init(PPATH_COMPARE_CONTEXT Context, const KMER_EDGE **
 static char _path_context_produce_base(PPATH_COMPARE_CONTEXT Context)
 {
 	char ret = '\0';
-
+	
 	if (Context->SeqLen == 0) {
 		if (!Context->CurrentEdge->Dest->Helper && Context->CurrentIndex < Context->PathLength - 1)
-			ret = kmer_get_last_base(&Context->CurrentEdge->Dest->KMer);
+			ret = kmer_get_last_base(Context->KMerSize, &Context->CurrentEdge->Dest->KMer);
 
 		++Context->CurrentIndex;
 		Context->End = (Context->CurrentIndex == Context->PathLength);
@@ -747,14 +749,14 @@ static char _path_context_produce_base(PPATH_COMPARE_CONTEXT Context)
 
 
 
-static boolean _paths_equal_by_seq(const KMER_EDGE **Path1, const size_t Path1Length, const KMER_EDGE **Path2, const size_t Path2Length)
+static boolean _paths_equal_by_seq(const uint32_t KMerSize, const KMER_EDGE **Path1, const size_t Path1Length, const KMER_EDGE **Path2, const size_t Path2Length)
 {
 	boolean ret = TRUE;
 	PATH_COMPARE_CONTEXT ctx1;
 	PATH_COMPARE_CONTEXT ctx2;
 
-	_path_context_init(&ctx1, Path1, Path1Length);
-	_path_context_init(&ctx2, Path2, Path2Length);
+	_path_context_init(&ctx1, KMerSize, Path1, Path1Length);
+	_path_context_init(&ctx2, KMerSize, Path2, Path2Length);
 	while (ret && !ctx1.End && !ctx2.End) {
 		char b1 = '\0';
 		while (!ctx1.End && b1 == '\0')
@@ -1528,7 +1530,7 @@ ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Thre
 
 					ret = read_info_intersection(&eIn->ReadInfo, &eOut->ReadInfo, &intersection, eIn->SeqLen + (!eIn->Dest->Helper ? 1 : 0) + pair.ReadDistance);
 					if (ret == ERR_SUCCESS && gen_array_size(&intersection) > Threshold && allowed) {
-						if (kmer_equal((void *)kmer_graph_get_kmer_size(Graph), &eIn->Source->KMer, &eOut->Dest->KMer))
+						if (kmer_equal(kmer_graph_get_kmer_size(Graph), &eIn->Source->KMer, &eOut->Dest->KMer))
 							ret = ERR_ALREADY_EXISTS;
 
 						if (ret == ERR_SUCCESS) {
@@ -1618,54 +1620,6 @@ ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Thre
 
 
 KHASH_SET_INIT_INT(es);
-
-
-static ERR_VALUE _follow_line(PKMER_EDGE Start, char **Seq, size_t *SeqLen, PKMER_EDGE *LastEdge, PGEN_ARRAY_size_t Weights, PPOINTER_ARRAY_READ_INFO ReadPath, PPOINTER_ARRAY_KMER_EDGE Edges)
-{
-	REFSEQ_STORAGE rs;
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = ERR_SUCCESS;
-	rs_storage_init(&rs);
-	while (ret == ERR_SUCCESS && kmer_vertex_in_degree(Start->Dest) == 1 &&
-		kmer_vertex_out_degree(Start->Dest) == 1) {
-		ret = rs_storage_add_edge(&rs, Start);
-		if (ret == ERR_SUCCESS)
-			ret = dym_array_push_back_array_size_t(Weights, &Start->Weights);
-
-		if (ret == ERR_SUCCESS)
-			ret = pointer_array_push_back_array_READ_INFO(ReadPath, &Start->ReadIndices);
-
-		if (ret == ERR_SUCCESS)
-			ret = pointer_array_push_back_KMER_EDGE(Edges, Start);
-
-		Start = kmer_vertex_get_succ_edge(Start->Dest, 0);
-	}
-
-	if (ret == ERR_SUCCESS) {
-		ret = rs_storage_add_edge(&rs, Start);
-		if (ret == ERR_SUCCESS)
-			ret = dym_array_push_back_array_size_t(Weights, &Start->Weights);
-
-		if (ret == ERR_SUCCESS)
-			ret = pointer_array_push_back_array_READ_INFO(ReadPath, &Start->ReadIndices);
-
-		if (ret == ERR_SUCCESS)
-			ret = pointer_array_push_back_KMER_EDGE(Edges, Start);
-
-		if (ret == ERR_SUCCESS)
-			ret = rs_storage_create_string(&rs, Seq);
-	
-		if (ret == ERR_SUCCESS) {
-			*SeqLen = strlen(*Seq);
-			*LastEdge = Start;
-		}
-	}
-
-	rs_storage_finit(&rs);
-
-	return ret;
-}
 
 
 static ERR_VALUE _capture_alternate_edges(const KMER_EDGE *Start, const KMER_VERTEX *RefDest, PPOINTER_ARRAY_KMER_EDGE Edges)
@@ -1972,8 +1926,8 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT
 	ret = ERR_SUCCESS;
 	pointer_array_init_KMER_EDGE(&es1, 140);
 	pointer_array_init_KMER_EDGE(&es2, 140);
-	rs_storage_init(&s1);
-	rs_storage_init(&s2);
+	rs_storage_init(&s1, kmer_graph_get_kmer_size(Graph));
+	rs_storage_init(&s2, kmer_graph_get_kmer_size(Graph));
 	dym_array_init_size_t(&w1, 140);
 	dym_array_init_size_t(&w2, 140);
 	pointer_array_init_READ_INFO(&rp1, 140);

@@ -10,6 +10,7 @@
 
 
 typedef struct _REFSEQ_STORAGE {
+	uint32_t KMerSize;
 	size_t ValidLength;
 	size_t AllocatedLength;
 	char *Sequence;
@@ -17,8 +18,9 @@ typedef struct _REFSEQ_STORAGE {
 } REFSEQ_STORAGE, *PREFSEQ_STORAGE;
 
 
-INLINE_FUNCTION void rs_storage_init(PREFSEQ_STORAGE Storage)
+INLINE_FUNCTION void rs_storage_init(PREFSEQ_STORAGE Storage, const uint32_t KMerSize)
 {
+	Storage->KMerSize = KMerSize;
 	Storage->ValidLength = 0;
 	Storage->AllocatedLength = sizeof(Storage->Storage) / sizeof(Storage->Storage[0]);
 	Storage->Sequence = Storage->Storage;
@@ -108,7 +110,7 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_edge(PREFSEQ_STORAGE Storage, const KME
 	if (ret == ERR_SUCCESS && !Edge->Dest->Helper &&
 		Edge->Dest->Type != kmvtRefSeqEnd) {
 		const KMER *destKMer = &Edge->Dest->KMer;
-		ret = rs_storage_add(Storage, kmer_get_last_base(destKMer));
+		ret = rs_storage_add(Storage, kmer_get_last_base(Storage->KMerSize, destKMer));
 	}
 
 	return ret;
@@ -121,7 +123,7 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_vertex(PREFSEQ_STORAGE Storage, const K
 
 	ret = ERR_SUCCESS;
 	if (!Vertex->Helper && Vertex->Type != kmvtRefSeqEnd)
-		ret = rs_storage_add(Storage, kmer_get_last_base(&Vertex->KMer));
+		ret = rs_storage_add(Storage, kmer_get_last_base(Storage->KMerSize, &Vertex->KMer));
 	
 	return ret;
 }

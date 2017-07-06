@@ -55,7 +55,7 @@ boolean kmer_debug_seq_equal(const uint32_t KMerSize, const KMER *K1, const KMER
 void kmer_debug_print(FILE *Stream, const uint32_t KMerSize, const KMER *KMer)
 {
 	for (size_t i = 0; i < KMerSize; ++i)
-		fputc(kmer_debug_get_base(KMer, i), Stream);
+		fputc(kmer_debug_get_base(KMerSize, KMer, i), Stream);
 
 	fprintf(Stream, "_%u", KMer->Number);
 
@@ -70,7 +70,7 @@ size_t kmer_debug_hash(const uint32_t Context, const KMER *KMer)
 
 	assert(kmerSize == kmer_debug_get_size(KMer));
 	for (size_t i = 0 + 1; i < kmerSize; ++i)
-		hash = (hash << 5) - hash + kmer_debug_get_base(KMer, i);
+		hash = (hash << 5) - hash + kmer_debug_get_base(Context, KMer, i);
 
 	return hash;
 }
