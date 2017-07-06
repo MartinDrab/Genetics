@@ -27,19 +27,9 @@ void kmer_init_by_sequence(PKMER KMer, const uint32_t KMerSize, const char *Sequ
 void kmer_back(const uint32_t KMerSize, PKMER KMer, const char Base);
 boolean kmer_seq_equal(const uint32_t KMerSize, const KMER *K1, const KMER *K2);
 void kmer_print(FILE *Stream, const uint32_t KMerSize, const KMER *KMer);
+size_t kmer_hash(const uint32_t Context, const KMER *KMer);
 
 
-INLINE_FUNCTION size_t kmer_hash(void *Context, const struct _KMER *KMer)
-{
-	size_t hash = 0;
-	const uint32_t kmerSize = (uint32_t)Context;
-
-	assert(kmerSize == kmer_get_size(KMer));
-	for (size_t i = 0 + 1; i < kmerSize; ++i)
-		hash = (hash << 5) - hash + kmer_get_base(KMer, i);
-
-	return hash;
-}
 
 
 

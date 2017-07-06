@@ -21,26 +21,24 @@
 UTILS_TYPED_MALLOC_FUNCTION(KMER_EDGE_TABLE)
 
 
-INLINE_FUNCTION boolean _kmer_edge_key_equal(void *Context, const KMER_EDGE_TABLE_KEY Key1, const KMER_EDGE_TABLE_KEY Key2)
+INLINE_FUNCTION boolean _kmer_edge_key_equal(const uint32_t KMerSize, const KMER_EDGE_TABLE_KEY Key1, const KMER_EDGE_TABLE_KEY Key2)
 {
-	const uint32_t kmerSize = (uint32_t)Context;
-
 	return (
 		kmer_get_number(Key1.Source) == kmer_get_number(Key2.Source) &&
 		kmer_get_number(Key1.Dest) == kmer_get_number(Key2.Dest) &&
-		kmer_seq_equal(kmerSize, Key1.Source, Key2.Source) &&
-		kmer_seq_equal(kmerSize, Key1.Dest, Key2.Dest)
+		kmer_seq_equal(KMerSize, Key1.Source, Key2.Source) &&
+		kmer_seq_equal(KMerSize, Key1.Dest, Key2.Dest)
 		);
 }
 
 
-INLINE_FUNCTION size_t _kmer_edge_key_hash(void *Context, const KMER_EDGE_TABLE_KEY Key)
+INLINE_FUNCTION size_t _kmer_edge_key_hash(const uint32_t KMerSize, const KMER_EDGE_TABLE_KEY Key)
 {
 	size_t hash1 = kmer_get_number(Key.Source);
 	size_t hash2 = kmer_get_number(Key.Dest);
 
-	hash1 = kmer_hash(Context, Key.Source);
-	hash2 = kmer_hash(Context, Key.Dest);
+	hash1 = kmer_hash(KMerSize, Key.Source);
+	hash2 = kmer_hash(KMerSize, Key.Dest);
 
 	return (((kmer_get_number(Key.Source) + 1)*hash1 << 1) + (kmer_get_number(Key.Dest) + 1)*hash2);
 }
@@ -89,7 +87,7 @@ ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t Size, const
 	if (ret == ERR_SUCCESS) {
 		tmpTable->KHashTable = kh_init(edgeTable);
 		tmpTable->KMerSize = KMerSize;
-		tmpTable->KHashTable->Context = (void *)KMerSize;
+		tmpTable->KHashTable->Context = KMerSize;
 		if (Callbacks == NULL) {
 			tmpTable->Callbacks.Context = NULL;
 			tmpTable->Callbacks.OnInsert = _on_insert_dummy_callback;

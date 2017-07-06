@@ -61,3 +61,16 @@ void kmer_print(FILE *Stream, const uint32_t KMerSize, const KMER *KMer)
 
 	return;
 }
+
+
+size_t kmer_hash(const uint32_t Context, const KMER *KMer)
+{
+	size_t hash = 0;
+	const uint32_t kmerSize = (uint32_t)Context;
+
+	assert(kmerSize == kmer_get_size(KMer));
+	for (size_t i = 0 + 1; i < kmerSize; ++i)
+		hash = (hash << 5) - hash + kmer_get_base(KMer, i);
+
+	return hash;
+}
