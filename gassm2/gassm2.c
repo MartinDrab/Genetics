@@ -932,8 +932,11 @@ int main(int argc, char *argv[])
 							}
 
 							for (size_t i = 0; i < po.ReadCount; ++i) {
-								if (po.Reads[i].ReadSequenceLen > 0)
+								if (po.Reads[i].ReadSequenceLen > 0) {
+									read_quality_encode(po.Reads + i);
 									read_write_sam(stdout, po.Reads + i);
+									read_quality_decode(po.Reads + i);
+								}
 							}
 
 							utils_free(stats.RepairCountDistribution);
