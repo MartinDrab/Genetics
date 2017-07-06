@@ -54,7 +54,7 @@ static void _on_print_dummy_callback(struct _KMER_TABLE *Table, void *ItemData, 
 /*                  PUBLIC FUNCTIONS                                    */
 /************************************************************************/
 
-ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t Size, const KMER_TABLE_CALLBACKS *Callbacks, PKMER_TABLE *Table)
+ERR_VALUE kmer_table_create(const uint32_t KMerSize, const size_t Size, const KMER_TABLE_CALLBACKS *Callbacks, PKMER_TABLE *Table)
 {
 	PKMER_TABLE tmpTable = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;

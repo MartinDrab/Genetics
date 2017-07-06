@@ -78,7 +78,7 @@ static void _on_print_dummy_callback(struct _KMER_EDGE_TABLE *Table, void *ItemD
 /*                        PUBLIC FUNCTIONS                              */
 /************************************************************************/
 
-ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t Size, const PKMER_EDGE_TABLE_CALLBACKS Callbacks, PKMER_EDGE_TABLE *Table)
+ERR_VALUE kmer_edge_table_create(const uint32_t KMerSize, const size_t Size, const PKMER_EDGE_TABLE_CALLBACKS Callbacks, PKMER_EDGE_TABLE *Table)
 {
 	PKMER_EDGE_TABLE tmpTable = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;

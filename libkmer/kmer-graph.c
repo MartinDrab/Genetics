@@ -695,7 +695,7 @@ void kmer_graph_print(FILE *Stream, const KMER_GRAPH *Graph)
 	return;
 }
 
-
+/*
 typedef struct _PATH_COMPARE_CONTEXT {
 	const KMER_EDGE **Path;
 	size_t PathLength;
@@ -706,77 +706,7 @@ typedef struct _PATH_COMPARE_CONTEXT {
 	uint32_t KMerSize;
 	boolean End;
 } PATH_COMPARE_CONTEXT, *PPATH_COMPARE_CONTEXT;
-
-
-static void _path_context_init(PPATH_COMPARE_CONTEXT Context, const uint32_t KMerSize, const KMER_EDGE **Path, const size_t PathLength)
-{
-	Context->KMerSize = KMerSize;
-	Context->Path = Path;
-	Context->PathLength = PathLength;
-	Context->CurrentIndex = 0;
-	Context->CurrentEdge = Context->Path[Context->CurrentIndex];
-	Context->Seq = Context->CurrentEdge->Seq;
-	Context->SeqLen = Context->CurrentEdge->SeqLen;
-	Context->End = FALSE;
-
-	return;
-}
-
-
-static char _path_context_produce_base(PPATH_COMPARE_CONTEXT Context)
-{
-	char ret = '\0';
-	
-	if (Context->SeqLen == 0) {
-		if (!Context->CurrentEdge->Dest->Helper && Context->CurrentIndex < Context->PathLength - 1)
-			ret = kmer_get_last_base(Context->KMerSize, &Context->CurrentEdge->Dest->KMer);
-
-		++Context->CurrentIndex;
-		Context->End = (Context->CurrentIndex == Context->PathLength);
-		if (!Context->End) {
-			Context->CurrentEdge = Context->Path[Context->CurrentIndex];
-			Context->Seq = Context->CurrentEdge->Seq;
-			Context->SeqLen = Context->CurrentEdge->SeqLen;
-		}
-	} else {
-		ret = *Context->Seq;
-		++Context->Seq;
-		--Context->SeqLen;
-	}
-
-	return ret;
-}
-
-
-
-static boolean _paths_equal_by_seq(const uint32_t KMerSize, const KMER_EDGE **Path1, const size_t Path1Length, const KMER_EDGE **Path2, const size_t Path2Length)
-{
-	boolean ret = TRUE;
-	PATH_COMPARE_CONTEXT ctx1;
-	PATH_COMPARE_CONTEXT ctx2;
-
-	_path_context_init(&ctx1, KMerSize, Path1, Path1Length);
-	_path_context_init(&ctx2, KMerSize, Path2, Path2Length);
-	while (ret && !ctx1.End && !ctx2.End) {
-		char b1 = '\0';
-		while (!ctx1.End && b1 == '\0')
-			b1 = _path_context_produce_base(&ctx1);
-
-		char b2 = '\0';
-		while (!ctx2.End && b2 == '\0')
-			b2 = _path_context_produce_base(&ctx2);
-	
-		ret = (b1 == b2);
-	}
-
-	if (ret && !ctx1.End)
-		ret = (_path_context_produce_base(&ctx1) == '\0');
-
-	if (ret && !ctx2.End)
-		ret = (_path_context_produce_base(&ctx2) == '\0');
-
-	return ret;
-}
+*/
 
 
 void kmer_graph_range(PKMER_GRAPH Graph, uint64_t Start, uint64_t End)

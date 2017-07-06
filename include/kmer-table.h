@@ -27,14 +27,14 @@ typedef struct _KMER_TABLE_CALLBACKS {
 
 
 typedef struct _KMER_TABLE {
-	size_t KMerSize;
+	uint32_t KMerSize;
 	uint32_t LastOrder;
 	KMER_TABLE_CALLBACKS Callbacks;
 	khash_t(vertexTable) *KHashTable;
 } KMER_TABLE, *PKMER_TABLE;
 
 
-ERR_VALUE kmer_table_create(const size_t KMerSize, const size_t Size, const KMER_TABLE_CALLBACKS *Callbacks, PKMER_TABLE *Table);
+ERR_VALUE kmer_table_create(const uint32_t KMerSize, const size_t Size, const KMER_TABLE_CALLBACKS *Callbacks, PKMER_TABLE *Table);
 void kmer_table_destroy(PKMER_TABLE Table);
 void kmer_table_print(FILE *Stream, const PKMER_TABLE Table);
 

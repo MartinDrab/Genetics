@@ -35,7 +35,7 @@ __KHASH_TYPE(edgeTable, KMER_EDGE_TABLE_KEY, void *)
 
 
 typedef struct _KMER_EDGE_TABLE {
-	size_t KMerSize;
+	uint32_t KMerSize;
 	unsigned int LastOrder;
 	khash_t(edgeTable) *KHashTable;
 	KMER_EDGE_TABLE_CALLBACKS Callbacks;
@@ -44,7 +44,7 @@ typedef struct _KMER_EDGE_TABLE {
 
 
 
-ERR_VALUE kmer_edge_table_create(const size_t KMerSize, const size_t Size, const PKMER_EDGE_TABLE_CALLBACKS Callbacks, PKMER_EDGE_TABLE *Table);
+ERR_VALUE kmer_edge_table_create(const uint32_t KMerSize, const size_t Size, const PKMER_EDGE_TABLE_CALLBACKS Callbacks, PKMER_EDGE_TABLE *Table);
 void kmer_edge_table_destroy(PKMER_EDGE_TABLE Table);
 
 ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const KMER *Source, const KMER *Dest, void *Data);
