@@ -909,12 +909,28 @@ int main(int argc, char *argv[])
 					if (strncmp(cmd, "help", sizeof("help")) == 0) {
 						options_print_help();
 					} else if (strncmp(cmd, "correct", sizeof("correct") - 1) == 0) {
-//						ret = libcorrect_correct(po.Reads, po.ReadCount);
+						LIBRCORRECT_STATISTICS stats;
+						
+						ret = libcorrect_correct(po.Reads, po.ReadCount, &stats);
 						if (ret == ERR_SUCCESS) {
+							fprintf(stderr, "K:                  %u\n", stats.K);
+							fprintf(stderr, "Total reads:        %" PRIu64 "\n", stats.TotalReads);
+							fprintf(stderr, "Removed reads:      %" PRIu64 "\n", stats.ReadsRemoved);
+							fprintf(stderr, "Shortened reads:    %" PRIu64 "\n", stats.ReadsShortened);
+							fprintf(stderr, "Total bases:        %" PRIu64 "\n", stats.TotalBases);
+							fprintf(stderr, "Total repairs:      %" PRIu64 "\n", stats.TotalRepairs);
+							fputs("Repair count distribution:\n", stderr);
+							for (uint32_t i = 0; i < stats.RepairCountDistributionCount; ++i) {
+								if (stats.RepairCountDistribution[i] > 0)
+									fprintf(stderr, "%u,\t%" PRIu64 "\t%" PRIu64 " %%\n", i, stats.RepairCountDistribution[i], stats.RepairCountDistribution[i]*100/stats.TotalRepairs);
+							}
+
 							for (size_t i = 0; i < po.ReadCount; ++i) {
 								if (po.Reads[i].ReadSequenceLen > 0)
 									read_write_sam(stdout, po.Reads + i);
 							}
+
+							utils_free(stats.RepairCountDistribution);
 						}
 					} else if (strncmp(cmd, "rfreq", sizeof("rfreq") - 1) == 0) {
 						kmer_freq_distribution(&po, po.KMerSize, po.Reads, po.ReadCount);

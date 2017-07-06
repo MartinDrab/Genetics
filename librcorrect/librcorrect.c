@@ -6,7 +6,7 @@
 #include "utils.h"
 #include "reads.h"
 #include "fml.h"
-
+#include "librcorrect.h"
 
 
 static char *_copy_string(const char *str, const size_t len)
@@ -95,26 +95,61 @@ static ERR_VALUE convert_to_gassm2(const bseq1_t *Seqs, size_t Count, PONE_READ 
 }
 
 
-ERR_VALUE libcorrect_correct(PONE_READ Reads, size_t Count)
+ERR_VALUE libcorrect_correct(PONE_READ Reads, size_t Count, PLIBRCORRECT_STATISTICS Stats)
 {
 	fml_opt_t options;
 	bseq1_t *seqs = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
+	memset(Stats, 0, sizeof(LIBRCORRECT_STATISTICS));
 	fml_opt_init(&options);
-	options.n_threads = omp_get_num_procs();
-	ret = convert_to_fermilite(Reads, Count, &seqs);
+	Stats->TotalReads = Count;
+	for (size_t i = 0; i < Count; ++i) {
+		Stats->TotalBases += Reads[i].ReadSequenceLen;
+		if (Stats->RepairCountDistributionCount < Reads[i].ReadSequenceLen)
+			Stats->RepairCountDistributionCount = Reads[i].ReadSequenceLen;
+	}
+
+	ret = utils_calloc(Stats->RepairCountDistributionCount, sizeof(uint64_t), &Stats->RepairCountDistribution);
 	if (ret == ERR_SUCCESS) {
-		fml_opt_adjust(&options, Count, seqs);
-		fml_correct(&options, Count, seqs);
-		fml_fltuniq(&options, Count, seqs);
-		ret = convert_to_gassm2(seqs, Count, Reads);
+		options.n_threads = omp_get_num_procs();
+		ret = convert_to_fermilite(Reads, Count, &seqs);
 		if (ret == ERR_SUCCESS) {
-			for (size_t i = 0; i < Count; ++i)
-				read_quality_decode(Reads + i);
+			fml_opt_adjust(&options, Count, seqs);
+			Stats->K = options.ec_k;
+			fml_correct(&options, Count, seqs);
+			fml_fltuniq(&options, Count, seqs);
+			for (size_t i = 0; i < Count; ++i) {
+				const bseq1_t *s = seqs + i;
+			
+				if (s->l_seq > 0) {
+					uint32_t repairCount = 0;
+
+					if (s->l_seq != Reads[i].ReadSequenceLen)
+						++Stats->ReadsShortened;
+
+					for (size_t j = 0; j < s->l_seq; ++j) {
+						if (s->seq[j] == 'a' || s->seq[j] == 'c' ||
+							s->seq[j] == 'g' || s->seq[j] == 't')
+							++repairCount;
+					}
+
+					Stats->TotalRepairs += repairCount;
+					++Stats->RepairCountDistribution[repairCount];
+				} else ++Stats->ReadsRemoved;
+			}
+			
+			ret = convert_to_gassm2(seqs, Count, Reads);
+			if (ret == ERR_SUCCESS) {
+				for (size_t i = 0; i < Count; ++i)
+					read_quality_decode(Reads + i);
+			}
+
+			utils_free(seqs);
 		}
 
-		utils_free(seqs);
+		if (ret != ERR_SUCCESS)
+			utils_free(Stats->RepairCountDistribution);
 	}
 
 	return ret;
