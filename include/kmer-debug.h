@@ -18,7 +18,7 @@ typedef struct _KMER {
 #define kmer_debug_set_size(aKMer, aSize)				((aKMer)->Size = (aSize))
 #define kmer_debug_get_base(aKMer, aIndex)			((aKMer)->Bases[(aIndex)])
 #define kmer_debug_get_last_base(aKMer)				kmer_debug_get_base(aKMer, kmer_debug_get_size(aKMer) - 1)
-#define kmer_debug_set_base(aKMer, aIndex, aBase)		((aKMer)->Bases[(aIndex)] = (aBase))
+#define kmer_debug_set_base(aSize, aKMer, aIndex, aBase)		((aKMer)->Bases[(aIndex)] = (aBase))
 #define kmer_debug_get_number(aKMer)					((aKMer)->Number)
 #define kmer_debug_set_number(aKMer, aNumber)			((aKMer)->Number = (aNumber))
 #define kmer_debug_seq_init_raw	kmer_debug_seq_init_by_sequence

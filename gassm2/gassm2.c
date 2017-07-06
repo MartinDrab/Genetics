@@ -909,7 +909,7 @@ int main(int argc, char *argv[])
 					if (strncmp(cmd, "help", sizeof("help")) == 0) {
 						options_print_help();
 					} else if (strncmp(cmd, "correct", sizeof("correct") - 1) == 0) {
-						ret = libcorrect_correct(po.Reads, po.ReadCount);
+//						ret = libcorrect_correct(po.Reads, po.ReadCount);
 						if (ret == ERR_SUCCESS) {
 							for (size_t i = 0; i < po.ReadCount; ++i) {
 								if (po.Reads[i].ReadSequenceLen > 0)

@@ -29,7 +29,7 @@ INLINE_FUNCTION ERR_VALUE kmer_alloc(const uint32_t Number, const uint32_t Size,
 INLINE_FUNCTION void kmer_init_by_base(PKMER KMer, const uint32_t KMerSize, char Base)
 {
 	for (size_t i = 0; i < KMerSize; ++i)
-		kmer_set_base(KMer, i, Base);
+		kmer_set_base(KMerSize, KMer, i, Base);
 
 	return;
 }

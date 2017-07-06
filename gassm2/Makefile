@@ -8,7 +8,7 @@ TMPDIR=../tmp
 OBJDIR=$(TMPDIR)/$(TARGET)
 SHAREDOBJDIR=$(TMPDIR)/shared
 LIBKMEROBJDIR=$(TMPDIR)/libkmer
-LIBS= -lm -fopenmp -l:../lib/librcorrect
+LIBS= -lm -fopenmp -L./../lib -lrcorrect
 
 OBJ=\
 	$(SHAREDOBJDIR)/utils.o \
@@ -28,7 +28,8 @@ OBJ=\
 	$(LIBKMEROBJDIR)/kmer-edge.o \
 	$(LIBKMEROBJDIR)/kmer-graph.o \
 	$(LIBKMEROBJDIR)/kmer-table.o \
-	$(LIBKMEROBJDIR)/kmer.o \
+	$(LIBKMEROBJDIR)/kmer-debug.o \
+	$(LIBKMEROBJDIR)/kmer-short.o \
 	$(LIBKMEROBJDIR)/variant-graph.o \
 
 
@@ -58,7 +59,7 @@ $(LIBKMEROBJDIR)/%.o : $(LIBKMERDIR)/%.c
 $(TARGET): $(OBJ)
 	@mkdir -p $(BINDIR)
 	@echo "Linking $@"
-	@$(CC) $(OBJ) $(LIBS) -o $(BINDIR)/$@
+	@$(CC) $(LIBS) $(OBJ) -o $(BINDIR)/$@
 
 all: $(TARGET)
 
