@@ -911,6 +911,7 @@ int main(int argc, char *argv[])
 					} else if (strncmp(cmd, "correct", sizeof("correct") - 1) == 0) {
 						LIBRCORRECT_STATISTICS stats;
 						
+						fprintf(stderr, "Correcting reads...\n");
 						ret = libcorrect_correct(po.Reads, po.ReadCount, &stats);
 						if (ret == ERR_SUCCESS) {
 							fprintf(stderr, "K:                  %u\n", stats.K);
