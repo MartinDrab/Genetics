@@ -922,7 +922,13 @@ int main(int argc, char *argv[])
 							fputs("Repair count distribution:\n", stderr);
 							for (uint32_t i = 0; i < stats.RepairCountDistributionCount; ++i) {
 								if (stats.RepairCountDistribution[i] > 0)
-									fprintf(stderr, "%u,\t%" PRIu64 "\t%" PRIu64 " %%\n", i, stats.RepairCountDistribution[i], stats.RepairCountDistribution[i]*100/stats.TotalRepairs);
+									fprintf(stderr, "%u,\t%" PRIu64 "\t%" PRIu64 " %%\n", i, stats.RepairCountDistribution[i], stats.RepairCountDistribution[i]*100/stats.TotalReads);
+							}
+
+							fputs("Repair base position distribution:\n", stderr);
+							for (uint32_t i = 0; i < stats.RepairCountDistributionCount; ++i) {
+								if (stats.RepairBasePositionDistribution[i] > 0)
+									fprintf(stderr, "%u,\t%" PRIu64 "\t%" PRIu64 " %%\n", i, stats.RepairBasePositionDistribution[i], stats.RepairBasePositionDistribution[i] * 100 / stats.TotalRepairs);
 							}
 
 							for (size_t i = 0; i < po.ReadCount; ++i) {

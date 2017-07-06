@@ -110,8 +110,9 @@ ERR_VALUE libcorrect_correct(PONE_READ Reads, size_t Count, PLIBRCORRECT_STATIST
 			Stats->RepairCountDistributionCount = Reads[i].ReadSequenceLen;
 	}
 
-	ret = utils_calloc(Stats->RepairCountDistributionCount, sizeof(uint64_t), &Stats->RepairCountDistribution);
+	ret = utils_calloc(2*Stats->RepairCountDistributionCount, sizeof(uint64_t), &Stats->RepairCountDistribution);
 	if (ret == ERR_SUCCESS) {
+		Stats->RepairBasePositionDistribution = Stats->RepairCountDistribution + Stats->RepairCountDistributionCount;
 		options.n_threads = omp_get_num_procs();
 		ret = convert_to_fermilite(Reads, Count, &seqs);
 		if (ret == ERR_SUCCESS) {
@@ -130,8 +131,10 @@ ERR_VALUE libcorrect_correct(PONE_READ Reads, size_t Count, PLIBRCORRECT_STATIST
 
 					for (size_t j = 0; j < s->l_seq; ++j) {
 						if (s->seq[j] == 'a' || s->seq[j] == 'c' ||
-							s->seq[j] == 'g' || s->seq[j] == 't')
+							s->seq[j] == 'g' || s->seq[j] == 't') {
 							++repairCount;
+							++Stats->RepairBasePositionDistribution[s->l_seq - j];
+						}
 					}
 
 					Stats->TotalRepairs += repairCount;

@@ -14,6 +14,7 @@ typedef struct _LIBRCORRECT_STATISTICS {
 	uint64_t ReadsRemoved;
 	uint64_t ReadsShortened;
 	uint64_t *RepairCountDistribution;
+	uint64_t *RepairBasePositionDistribution;
 	uint32_t RepairCountDistributionCount;
 	int K;
 } LIBRCORRECT_STATISTICS, *PLIBRCORRECT_STATISTICS;
