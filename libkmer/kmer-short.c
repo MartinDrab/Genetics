@@ -30,10 +30,18 @@ static char _shortBaseToBaseTable[8] = {
 
 
 
-void kmer_short_init_by_sequence(PKMER_SHORT KMer, const uint32_t KMerSize, const char *Sequence)
+void kmer_short_seq_init_by_sequence(PKMER_SHORT KMer, const uint32_t KMerSize, const char *Sequence)
 {
 	for (uint32_t i = 0; i < KMerSize; ++i)
 		kmer_short_set_base(KMerSize, KMer, i, Sequence[i]);
+
+	return;
+}
+
+
+void kmer_short_seq_init_raw(PKMER_SHORT KMer, const uint32_t KMerSize, const uint64_t *Data)
+{
+	memcpy(&KMer->B, Data, sizeof(KMer->B));
 
 	return;
 }

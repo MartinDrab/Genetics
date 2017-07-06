@@ -23,8 +23,8 @@ typedef struct _KMER_SHORT {
 #define kmer_short_get_number(aKMer)					((aKMer)->Number)
 #define kmer_short_set_number(aKMer, aNumber)			((aKMer)->Number = (aNumber))
 
-
-void kmer_short_init_by_sequence(PKMER_SHORT KMer, const uint32_t KMerSize, const char *Sequence);;
+void kmer_short_seq_init_raw(PKMER_SHORT KMer, const uint32_t KMerSize, const uint64_t *Data);
+void kmer_short_seq_init_by_sequence(PKMER_SHORT KMer, const uint32_t KMerSize, const char *Sequence);;
 void kmer_short_advance(const uint32_t KMerSize, PKMER_SHORT KMer, const char Base);
 void kmer_short_back(const uint32_t KMerSize, PKMER_SHORT KMer, const char Base);
 void kmer_short_set_base(const uint32_t KMerSize, PKMER_SHORT KMer, const uint32_t Pos, const char Base);
