@@ -15,10 +15,10 @@ typedef struct _READ_PART {
 	/** The read part sequence (it is not null-terminated). */
 	char *ReadSequence;
 	/** Length of the part sequence, in bases. */
-	size_t ReadSequenceLength;
+	uint32_t ReadSequenceLength;
 	uint8_t *Quality;
 	/** Position of the part relative to the start of the read. */
-	size_t Offset;
+	uint32_t Offset;
 } READ_PART, *PREAD_PART;
 
 GEN_ARRAY_TYPEDEF(READ_PART);

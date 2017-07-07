@@ -37,7 +37,7 @@ static PKMER_VERTEX _default_vertex_allocator(struct _KMER_GRAPH *Graph, void *C
 {
 	PKMER_VERTEX ret = NULL;
 
-	utils_malloc(sizeof(KMER_VERTEX) + kmer_graph_get_kmer_size(Graph)*sizeof(char), &ret);
+	utils_malloc(KMER_BYTES_EXTRA(kmer_graph_get_kmer_size(Graph), sizeof(KMER_VERTEX)), &ret);
 
 	return ret;
 }

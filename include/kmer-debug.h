@@ -10,8 +10,8 @@ typedef struct _KMER {
 	char Bases[1];
 } KMER, *PKMER;
 
-#define KMER_BYTES(aKMerSize)					(sizeof(KMER)+aKMerSize*sizeof(char))
-#define KMER_BYTES_EXTRA(aKMerSize, aExtra)		(KMER_BYTES(aKMerSize) + aExtra)
+#define KMER_DEBUG_BYTES(aKMerSize)					(sizeof(KMER)+aKMerSize*sizeof(char))
+#define KMER_DEBUG_BYTES_EXTRA(aKMerSize, aExtra)		(KMER_BYTES(aKMerSize) + aExtra)
 
 
 #define kmer_debug_get_size(aKMer)					((aKMer)->Size)
