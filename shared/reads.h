@@ -104,6 +104,9 @@ typedef struct _BAD_READS_STATISTICS {
 	size_t BadSupplementary;
 	size_t BadDuplicate;
 	size_t BadSecondaryAlignment;
+	size_t SoftClippedGood;
+	size_t HardClippedGood;
+	size_t BothClippedGood;
 } BAD_READS_STATISTICS, *PBAD_READS_STATISTICS;
 
 
@@ -117,14 +120,15 @@ ERR_VALUE read_create_from_fastq(const char *Block, const char **NewBlock, PONE_
 
 void read_destroy(PONE_READ Read);
 void _read_destroy_structure(PONE_READ Read);
-ERR_VALUE read_concat(PONE_READ Target, const ONE_READ *Source);
 
 void read_set_stats(const ONE_READ *Reads, const size_t Count, const uint8_t MinPosQuality, PBAD_READS_STATISTICS Stats);
+void read_set_stats_print(FILE *Stream, const BAD_READS_STATISTICS *Stats);
+
 void read_set_destroy(PONE_READ ReadSet, const size_t Count);
 ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ONE_READ *Source, const size_t SourceCount);
 void read_split(PONE_READ Read);
 void read_adjust(PONE_READ Read, const uint64_t RegionStart, const size_t RegionLength);
-void read_shorten(PONE_READ Read, const size_t Count);
+void read_shorten(PONE_READ Read, const uint32_t Count);
 ERR_VALUE read_append(PONE_READ Read, const char *Seq, const uint8_t *Quality, size_t Length);
 
 void assembly_task_init(PASSEMBLY_TASK Task, const char *RefSeq, const size_t RefSeqLen, const char *Alternate1, const size_t Alternate1Length, const char *Alternate2, const size_t Alternate2Length, const ONE_READ *ReadSet, const size_t ReadCount);

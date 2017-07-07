@@ -940,17 +940,10 @@ int main(int argc, char *argv[])
 						fprintf(stderr, "Filtering out reads with MAPQ less than %u and stripping %u bases from read ends...\n", po.ReadPosQuality, po.ReadStrip);
 						BAD_READS_STATISTICS badStats;
 						read_set_stats(po.Reads, po.ReadCount, po.ReadPosQuality, &badStats);
+						read_set_stats_print(stderr, &badStats);
 						input_filter_bad_reads(po.Reads, &po.ReadCount, po.ReadPosQuality, TRUE);
 						input_sort_reads(po.Reads, po.ReadCount);
-						fprintf(stderr, "Total reads:         %zu\n", badStats.Total);
-						fprintf(stderr, "Bad reads:           %zu (%.2lf %%)\n", badStats.BadTotal, (double)badStats.BadTotal*100 / badStats.Total);
-						fprintf(stderr, "Zero POS:            %zu (%.2lf %%)\n", badStats.BadPosZero, (double)badStats.BadPosZero*100 / badStats.BadTotal);
-						fprintf(stderr, "Bad MAPQ:            %zu (%.2lf %%)\n", badStats.BadPosQuality, (double)badStats.BadPosQuality * 100 / badStats.BadTotal);
-						fprintf(stderr, "Unmapped:            %zu (%.2lf %%)\n", badStats.BadUnmapped, (double)badStats.BadUnmapped * 100 / badStats.BadTotal);
-						fprintf(stderr, "Supplementary:       %zu (%.2lf %%)\n", badStats.BadSupplementary, (double)badStats.BadSupplementary * 100 / badStats.BadTotal);
-						fprintf(stderr, "Secondary:           %zu (%.2lf %%)\n", badStats.BadSecondaryAlignment, (double)badStats.BadSecondaryAlignment * 100 / badStats.BadTotal);
-						fprintf(stderr, "Duplicate:           %zu (%.2lf %%)\n", badStats.BadDuplicate, (double)badStats.BadDuplicate * 100 / badStats.BadTotal);
-						
+
 						ret = paired_reads_init();
 						if (ret == ERR_SUCCESS) {
 							ret = paired_reads_insert_array(po.Reads, po.ReadCount);

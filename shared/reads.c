@@ -427,11 +427,52 @@ void read_set_stats(const ONE_READ *Reads, const size_t Count, const uint8_t Min
 
 			if (Reads->Extension->Flags.Bits.Unmapped)
 				++Stats->BadUnmapped;
+		} else {
+			boolean softClipped = FALSE;
+			boolean hardClipped = FALSE;
+			const char *cigar = Reads->Extension->CIGAR;
+			const size_t cigarLen = strlen(cigar);
+			
+			for (size_t j = 0; j < cigarLen; ++j) {
+				switch (cigar[j]) {
+					case 'H':
+						hardClipped = TRUE;
+						break;
+					case 'S':
+						softClipped = TRUE;
+						break;
+				}
+			}
+
+			if (hardClipped && softClipped)
+				++Stats->BothClippedGood;
+			else if (hardClipped)
+				++Stats->HardClippedGood;
+			else if (softClipped)
+				++Stats->SoftClippedGood;
 		}
 
 		++Reads;
 	}
 
+
+	return;
+}
+
+
+void read_set_stats_print(FILE *Stream, const BAD_READS_STATISTICS *Stats)
+{
+	fprintf(Stream, "Total reads:         %zu\n", Stats->Total);
+	fprintf(Stream, "Bad reads:           %zu (%.2lf %%)\n", Stats->BadTotal, (double)Stats->BadTotal * 100 / Stats->Total);
+	fprintf(Stream, "Zero POS:            %zu (%.2lf %%)\n", Stats->BadPosZero, (double)Stats->BadPosZero * 100 / Stats->BadTotal);
+	fprintf(Stream, "Bad MAPQ:            %zu (%.2lf %%)\n", Stats->BadPosQuality, (double)Stats->BadPosQuality * 100 / Stats->BadTotal);
+	fprintf(Stream, "Unmapped:            %zu (%.2lf %%)\n", Stats->BadUnmapped, (double)Stats->BadUnmapped * 100 / Stats->BadTotal);
+	fprintf(Stream, "Supplementary:       %zu (%.2lf %%)\n", Stats->BadSupplementary, (double)Stats->BadSupplementary * 100 / Stats->BadTotal);
+	fprintf(Stream, "Secondary:           %zu (%.2lf %%)\n", Stats->BadSecondaryAlignment, (double)Stats->BadSecondaryAlignment * 100 / Stats->BadTotal);
+	fprintf(Stream, "Duplicate:           %zu (%.2lf %%)\n", Stats->BadDuplicate, (double)Stats->BadDuplicate * 100 / Stats->BadTotal);
+	fprintf(Stream, "Soft clipped:        %zu (%.2lf %%)\n", Stats->SoftClippedGood, (double)Stats->SoftClippedGood * 100 / (Stats->Total - Stats->BadTotal));
+	fprintf(Stream, "Hard clipped:        %zu (%.2lf %%)\n", Stats->HardClippedGood, (double)Stats->HardClippedGood * 100 / (Stats->Total - Stats->BadTotal));
+	fprintf(Stream, "Both clipped:        %zu (%.2lf %%)\n", Stats->BothClippedGood, (double)Stats->BothClippedGood * 100 / (Stats->Total - Stats->BadTotal));
 
 	return;
 }
@@ -580,7 +621,7 @@ void read_split(PONE_READ Read)
 }
 
 
-void read_shorten(PONE_READ Read, const size_t Count)
+void read_shorten(PONE_READ Read, const uint32_t Count)
 {
 	if (Read->ReadSequenceLen > 2 * Count) {
 		if (!Read->NoEndStrip)
