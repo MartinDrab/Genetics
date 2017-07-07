@@ -95,6 +95,17 @@ POINTER_ARRAY_TYPEDEF(ONE_READ);
 POINTER_ARRAY_IMPLEMENTATION(ONE_READ)
 
 
+typedef struct _BAD_READS_STATISTICS {
+	size_t Total;
+	size_t BadTotal;
+	size_t BadPosZero;
+	size_t BadUnmapped;
+	size_t BadPosQuality;
+	size_t BadSupplementary;
+	size_t BadDuplicate;
+	size_t BadSecondaryAlignment;
+} BAD_READS_STATISTICS, *PBAD_READS_STATISTICS;
+
 
 void read_quality_decode(PONE_READ Read);
 void read_quality_encode(PONE_READ Read);
@@ -108,6 +119,7 @@ void read_destroy(PONE_READ Read);
 void _read_destroy_structure(PONE_READ Read);
 ERR_VALUE read_concat(PONE_READ Target, const ONE_READ *Source);
 
+void read_set_stats(const ONE_READ *Reads, const size_t Count, const uint8_t MinPosQuality, PBAD_READS_STATISTICS Stats);
 void read_set_destroy(PONE_READ ReadSet, const size_t Count);
 ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ONE_READ *Source, const size_t SourceCount);
 void read_split(PONE_READ Read);

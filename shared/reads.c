@@ -398,6 +398,45 @@ void read_destroy(PONE_READ Read)
 }
 
 
+void read_set_stats(const ONE_READ *Reads, const size_t Count, const uint8_t MinPosQuality, PBAD_READS_STATISTICS Stats)
+{
+	memset(Stats, 0, sizeof(BAD_READS_STATISTICS));
+	Stats->Total = Count;
+	for (size_t i = 0; i < Count; ++i) {
+		if (Reads->Pos == (uint64_t)-1LL ||
+			Reads->PosQuality < MinPosQuality ||
+			Reads->Extension->Flags.Bits.Unmapped ||
+			Reads->Extension->Flags.Bits.Supplementary ||
+			Reads->Extension->Flags.Bits.SecondaryAlignment ||
+			Reads->Extension->Flags.Bits.Duplicate) {
+			++Stats->BadTotal;
+			if (Reads->Pos == (uint64_t)-1LL)
+				++Stats->BadPosZero;
+
+			if (Reads->PosQuality < MinPosQuality)
+				++Stats->BadPosQuality;
+
+			if (Reads->Extension->Flags.Bits.Duplicate)
+				++Stats->BadDuplicate;
+
+			if (Reads->Extension->Flags.Bits.Supplementary)
+				++Stats->BadSupplementary;
+
+			if (Reads->Extension->Flags.Bits.SecondaryAlignment)
+				++Stats->BadSecondaryAlignment;
+
+			if (Reads->Extension->Flags.Bits.Unmapped)
+				++Stats->BadUnmapped;
+		}
+
+		++Reads;
+	}
+
+
+	return;
+}
+
+
 void read_set_destroy(PONE_READ ReadSet, const size_t Count)
 {
 	PONE_READ tmp = ReadSet;

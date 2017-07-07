@@ -1,24 +1,24 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>correct -F bigger.sam</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>call -k 21 -w 3 -v result.vcf -f input.fa -F fixed.sam --pos-quality 10</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\x64\Release</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(TargetPath)</LocalDebuggerCommand>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LocalDebuggerCommandArguments>correct -F bigger.sam</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>call -k 21 -w 3 -v result.vcf -f input.fa -F fixed.sam --pos-quality 10</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\x64\Release</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>correct -F bigger.sam</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>call -k 21 -w 3 -v result.vcf -f input.fa -F fixed.sam --pos-quality 10</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\x64\Release</LocalDebuggerWorkingDirectory>
     <LocalDebuggerCommand>$(TargetPath)</LocalDebuggerCommand>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>correct -F bigger.sam</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>call -k 21 -w 3 -v result.vcf -f input.fa -F fixed.sam --pos-quality 10</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)..\bin\x64\Release</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
