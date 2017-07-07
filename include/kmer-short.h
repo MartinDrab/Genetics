@@ -14,6 +14,7 @@ typedef struct _KMER_SHORT {
 } KMER_SHORT, *PKMER_SHORT;
 
 
+#define KMER_SHORT_MAXIMUM_SIZE							63
 #define KMER_SHORT_BYTES(aKMerSize)						(sizeof(KMER_SHORT))
 #define KMER_SHORT_BYTES_EXTRA(aKMerSize, aExtra)		(KMER_BYTES(aKMerSize) + aExtra)
 

@@ -466,6 +466,9 @@ static ERR_VALUE _compute_graphs(const KMER_GRAPH_ALLOCATOR *Allocator, const PR
 	dym_array_init_VARIANT_CALL(&lowerArray, 140);
 	dym_array_init_VARIANT_CALL(&higherArray, 140);
 	for (uint32_t i = 0; i < 8; ++i) {
+		if (kmerSize > KMER_MAXIMUM_SIZE)
+			break;
+		
 		ret = _compute_graph(kmerSize, Allocator, Options, ParseOptions, Task, &lowerArray);
 		if (ret == ERR_SUCCESS) {
 //			for (uint32_t j = i + 1; j < 8; ++j) {
