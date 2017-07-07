@@ -874,6 +874,8 @@ ERR_VALUE assembly_parse_reference(PASSEMBLY_STATE State)
 						Graph->RefVertices.Data[i] = destVertex;
 						destVertex->AbsPos = ParseOptions->RegionStart + destVertex->RefSeqPosition;
 						ret = kmer_graph_add_edge_ex(Graph, sourceVertex, destVertex, kmetReference, &edge);
+						sourceVertex->RefEdge = edge;
+						sourceVertex->RefVarEdge = edge;
 						kmer_advance(kmerSize, sourceKMer, RefSeq[i]);
 						kmer_set_number(sourceKMer, kmer_get_number(destKMer));
 						sourceVertex = destVertex;
@@ -892,6 +894,8 @@ ERR_VALUE assembly_parse_reference(PASSEMBLY_STATE State)
 
 						destVertex->RefSeqPosition = (uint32_t)RefSeqLen;
 						ret = kmer_graph_add_edge_ex(Graph, sourceVertex, destVertex, kmetReference, &edge);
+						sourceVertex->RefEdge = edge;
+						sourceVertex->RefVarEdge = edge;
 						if (ret == ERR_SUCCESS)
 							kmer_graph_set_ending_vertex(Graph, destKMer);
 					}

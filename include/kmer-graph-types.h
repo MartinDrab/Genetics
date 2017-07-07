@@ -51,6 +51,8 @@ typedef struct _KMER_VERTEX {
 	boolean Unique;
 	boolean ShortVariant;
 	EKMerVertexType Type;
+	PKMER_EDGE RefEdge;
+	PKMER_EDGE RefVarEdge;
 	POINTER_ARRAY_KMER_EDGE Successors;
 	POINTER_ARRAY_KMER_EDGE Predecessors;
 	uint32_t RefSeqPosition;

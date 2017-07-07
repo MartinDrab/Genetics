@@ -76,6 +76,8 @@ static ERR_VALUE _vertex_create(PKMER_GRAPH Graph, const KMER *KMer, const EKMer
 
 	tmp = Graph->Allocator.VertexAllocator(Graph, Graph->Allocator.VertexAllocatorContext);
 	if (tmp != NULL) {
+		tmp->RefEdge = NULL;
+		tmp->RefVarEdge = NULL;
 		tmp->Unique = TRUE;
 		kmer_init_from_kmer(&tmp->KMer, kmer_graph_get_kmer_size(Graph), KMer);;
 		tmp->Type = Type;
@@ -513,7 +515,8 @@ PKMER_EDGE _get_typed_edge(const KMER_VERTEX *Vertex, EKMerEdgeType Type)
 
 PKMER_EDGE _get_refseq_edge(const KMER_VERTEX *Vertex)
 {
-	return _get_typed_edge(Vertex, kmetReference);
+	return Vertex->RefEdge;
+//	return _get_typed_edge(Vertex, kmetReference);
 }
 
 
@@ -521,10 +524,12 @@ PKMER_EDGE _get_refseq_or_variant_edge(const KMER_VERTEX *Vertex)
 {
 	PKMER_EDGE ret = NULL;
 
+	ret = Vertex->RefVarEdge;
+	/*
 	ret = _get_typed_edge(Vertex, kmetReference);
 	if (ret == NULL)
 		ret = _get_typed_edge(Vertex, kmetVariant);
-
+	*/
 	return ret;
 }
 
@@ -1118,6 +1123,12 @@ void kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge)
 
 	err = kmer_edge_table_delete(Graph->EdgeTable, &source->KMer, &dest->KMer);
 	if (err == ERR_SUCCESS) {
+		if (source->RefEdge == Edge)
+			source->RefEdge = NULL;
+
+		if (source->RefVarEdge == Edge)
+			source->RefVarEdge = NULL;
+
 		pointer_array_remove_by_item_fast_KMER_EDGE(&source->Successors, Edge);
 		pointer_array_remove_by_item_fast_KMER_EDGE(&dest->Predecessors, Edge);
 		--Graph->TypedEdgeCount[edgeType];
@@ -1170,6 +1181,14 @@ ERR_VALUE kmer_graph_merge_edges(PKMER_GRAPH Graph, PKMER_EDGE Source, PKMER_EDG
 							ret = read_info_merge(&newEdge->ReadInfo, &Source->ReadInfo, &Dest->ReadInfo);
 						
 						if (ret == ERR_SUCCESS) {
+							if (newEdge->Type == kmetReference) {
+								newEdge->Source->RefEdge = newEdge;
+								newEdge->Source->RefVarEdge = newEdge;
+							}
+
+							if (newEdge->Type == kmetVariant)
+								newEdge->Source->RefVarEdge = newEdge;
+
 							kmer_graph_delete_edge(Graph, Source);
 							kmer_graph_delete_edge(Graph, Dest);
 						}
@@ -2032,6 +2051,8 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT
 							if (ret == ERR_SUCCESS) {
 								char *tmpSeq = NULL;
 
+								v->RefEdge = e;
+								v->RefVarEdge = e;
 								v = _get_refseq_or_variant_edge(path1Vertex)->Dest;
 								edgeCreated = TRUE;
 								ret = rs_storage_create_string_with_offset(&s1, 1, &tmpSeq);
