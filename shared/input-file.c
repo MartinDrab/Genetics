@@ -402,11 +402,13 @@ static int _read_comparator(const void *A, const void *B)
 }
 
 
-void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQuality, boolean UseCIGAR)
+void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQuality, boolean UseCIGAR, PBAD_READS_STATISTICS Stats)
 {
 	ONE_READ *r = NULL;
 	size_t readSetSize = *Count;
 
+	memset(Stats, 0, sizeof(BAD_READS_STATISTICS));
+	Stats->Total = *Count;
 	{
 		size_t i = 0;
 
@@ -417,6 +419,24 @@ void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQua
 				r->Extension->Flags.Bits.Supplementary ||
 				r->Extension->Flags.Bits.Duplicate ||
 				r->Extension->Flags.Bits.SecondaryAlignment) {
+				if (r->Pos == (uint64_t)-1)
+					++Stats->BadPosZero;
+
+				if (r->PosQuality < MinQuality)
+					++Stats->BadPosQuality;
+				
+				if (r->Extension->Flags.Bits.Duplicate)
+					++Stats->BadDuplicate;
+
+				if (r->Extension->Flags.Bits.Supplementary)
+					++Stats->BadSupplementary;
+
+				if (r->Extension->Flags.Bits.SecondaryAlignment)
+					++Stats->BadSecondaryAlignment;
+
+				if (r->Extension->Flags.Bits.Unmapped)
+					++Stats->BadUnmapped;
+
 				_read_destroy_structure(r);
 				*r = Reads[readSetSize - 1];
 				--readSetSize;
@@ -441,6 +461,7 @@ void input_filter_bad_reads(PONE_READ Reads, size_t *Count, const uint8_t MinQua
 	}
 
 	*Count = readSetSize;
+	Stats->BadTotal = Stats->Total - readSetSize;
 
 	return;
 }
