@@ -350,6 +350,8 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 									if (!p->Uncolorable)
 										pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, p);
 									break;
+								default:
+									break;
 							}
 						}
 					}
@@ -372,6 +374,8 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 										if (!tmp->Uncolorable)
 											pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, tmp);
 										break;
+									default:
+										break;
 								}
 							}
 						}
@@ -388,6 +392,8 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 									case vgvcNone:
 										if (!tmp->Uncolorable)
 											pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, tmp);
+										break;
+									default:
 										break;
 								}
 							}
@@ -413,6 +419,8 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 										if (!tmp->Uncolorable)
 											pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, tmp);
 										break;
+									default:
+										break;
 								}
 							}
 						}
@@ -429,6 +437,8 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 									case vgvcNone:
 										if (!tmp->Uncolorable)
 											pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, tmp);
+										break;
+									default:
 										break;
 								}
 							}
@@ -447,6 +457,8 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 							case vgvcNone:
 								if (!var->Uncolorable)
 									pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, var);
+								break;
+							default:
 								break;
 						}
 					}
@@ -518,6 +530,8 @@ static void _delete_vertex(PVARIANT_GRAPH Graph, PVARIANT_GRAPH_VERTEX Vertex)
 				Graph->ReadEdges.ByTypes.AltToAlt[index] = 0;
 				Graph->ReadEdges.ByTypes.AltToRef[index + 1] = 0;
 				Graph->ReadEdges.ByTypes.AltToAlt[index + 1] = 0;
+				break;
+			default:
 				break;
 		}
 	}
@@ -754,13 +768,13 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 	}
 
 	fprintf(Stream, "digraph G {\n");
-	fprintf(Stream, "\t/* Total number of vertices: %Iu */\n", totalVertexCount);
-	fprintf(Stream, "\t/* Number of reference vertices: %Iu */\n", typeCounts[vgvtReference]);
-	fprintf(Stream, "\t/* Number of alternate vertices: %Iu */\n", typeCounts[vgvtAlternative]);
-	fprintf(Stream, "\t/* Number of non-colored vertices: %Iu */\n", vertexCounts[vgvcNone]);
-	fprintf(Stream, "\t/* Number of seq1-colored vertices: %Iu */\n", vertexCounts[vgvcSequence1]);
-	fprintf(Stream, "\t/* Number of seq2-colored vertices: %Iu */\n", vertexCounts[vgvcSequence2]);
-	fprintf(Stream, "\t/* Number of both-colored vertices: %Iu */\n", vertexCounts[vgvcBoth]);
+	fprintf(Stream, "\t/* Total number of vertices: %zu */\n", totalVertexCount);
+	fprintf(Stream, "\t/* Number of reference vertices: %zu */\n", typeCounts[vgvtReference]);
+	fprintf(Stream, "\t/* Number of alternate vertices: %zu */\n", typeCounts[vgvtAlternative]);
+	fprintf(Stream, "\t/* Number of non-colored vertices: %zu */\n", vertexCounts[vgvcNone]);
+	fprintf(Stream, "\t/* Number of seq1-colored vertices: %zu */\n", vertexCounts[vgvcSequence1]);
+	fprintf(Stream, "\t/* Number of seq2-colored vertices: %zu */\n", vertexCounts[vgvcSequence2]);
+	fprintf(Stream, "\t/* Number of both-colored vertices: %zu */\n", vertexCounts[vgvcBoth]);
 	for (size_t i = 0; i < Graph->VerticesArraySize; ++i) {
 		const VARIANT_GRAPH_VERTEX *v;
 			
@@ -775,22 +789,22 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 
 		if (_vg_vertex_exists(Graph, Graph->Vertices.ByType.Reference + i) && 
 			_vg_vertex_exists(Graph, Graph->Vertices.ByType.Alternative + i))
-			fprintf(Stream, "\tV%Iu_1 -> V%Iu_2 [arrowhead=none,color=blue];\n", i, i);
+			fprintf(Stream, "\tV%zu_1 -> V%zu_2 [arrowhead=none,color=blue];\n", i, i);
 	}
 
 	if (Graph->VerticesArraySize > 0) {
 		for (size_t i = 0; i < Graph->VerticesArraySize - 1; ++i) {
 			if (_vg_read_edge_exists(Graph, vgvtReference, vgvtReference, i))
-				fprintf(Stream, "\tV%Iu_1 -> V%Iu_1[label=\"%Iu\",color=green];\n", i, i + 1, Graph->ReadEdges.ByTypes.RefToRef[i]);
+				fprintf(Stream, "\tV%zu_1 -> V%zu_1[label=\"%zu\",color=green];\n", i, i + 1, Graph->ReadEdges.ByTypes.RefToRef[i]);
 
 			if (_vg_read_edge_exists(Graph, vgvtReference, vgvtAlternative, i))
-				fprintf(Stream, "\tV%Iu_1 -> V%Iu_2[label=\"%Iu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.RefToAlt[i]);
+				fprintf(Stream, "\tV%zu_1 -> V%zu_2[label=\"%zu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.RefToAlt[i]);
 
 			if (_vg_read_edge_exists(Graph, vgvtAlternative, vgvtReference, i))
-				fprintf(Stream, "\tV%Iu_2 -> V%Iu_1[label=\"%Iu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.AltToRef[i]);
+				fprintf(Stream, "\tV%zu_2 -> V%zu_1[label=\"%zu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.AltToRef[i]);
 
 			if (_vg_read_edge_exists(Graph, vgvtAlternative, vgvtAlternative, i))
-				fprintf(Stream, "\tV%Iu_2 -> V%Iu_2[label=\"%Iu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.AltToAlt[i]);
+				fprintf(Stream, "\tV%zu_2 -> V%zu_2[label=\"%zu\",color=red];\n", i, i + 1, Graph->ReadEdges.ByTypes.AltToAlt[i]);
 		}
 	}
 
@@ -808,11 +822,11 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 				switch (p->Type) {
 					case vgvtReference:
 				 		if (pindex > i || (pindex == i && p->Type != v->Type))
-							fprintf(Stream, "\tV%Iu_1 -> V%Iu_1[arrowhead=none,color=yellow,label=\"%Iu\"];\n", i, pindex, c);
+							fprintf(Stream, "\tV%zu_1 -> V%zu_1[arrowhead=none,color=yellow,label=\"%Iu\"];\n", i, pindex, c);
 						break;
 					case vgvtAlternative:
 						if (pindex > i || (pindex == i && p->Type != v->Type))
-							fprintf(Stream, "\tV%Iu_1 -> V%Iu_2[arrowhead=none,color=yellow,label=\"%Iu\"];\n", i, pindex, c);
+							fprintf(Stream, "\tV%zu_1 -> V%zu_2[arrowhead=none,color=yellow,label=\"%Iu\"];\n", i, pindex, c);
 						break;
 				}
 			}
@@ -827,11 +841,11 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 				switch (p->Type) {
 				case vgvtReference:
 					if (pindex > i)
-						fprintf(Stream, "\tV%Iu_2 -> V%Iu_1[arrowhead=none,color=yellow,label=\"%Iu\"];\n", i, pindex, c);
+						fprintf(Stream, "\tV%zu_2 -> V%zu_1[arrowhead=none,color=yellow,label=\"%Iu\"];\n", i, pindex, c);
 					break;
 				case vgvtAlternative:
 					if (pindex > i)
-						fprintf(Stream, "\tV%Iu_2 -> V%Iu_2[arrowhead=none,color=yellow,label=\"%Iu\"];\n", i, pindex, c);
+						fprintf(Stream, "\tV%zu_2 -> V%zu_2[arrowhead=none,color=yellow,label=\"%Iu\"];\n", i, pindex, c);
 					break;
 				}
 			}
@@ -839,10 +853,7 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 	}
 
 	fprintf(Stream, "}\n");
-//	for (size_t i = 0; i < gen_array_size(&Graph->Components); ++i)
-//		fprintf(Stream, "%Iu ", Graph->Components.Data[i]);
 
-//	fprintf(Stream, "\n");
 	return;
 }
 
