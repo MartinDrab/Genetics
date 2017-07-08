@@ -540,7 +540,7 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 	khash_t(kc) *table = kh_init(kc);
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_calloc(KMerSize + 1, sizeof(char), &kmerString);
+	ret = utils_calloc_char(KMerSize + 1, &kmerString);
 	if (ret == ERR_SUCCESS) {
 		PONE_READ r = Reads;
 		
@@ -591,7 +591,7 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 			size_t *freqArray = NULL;
 
 			++maxValue;
-			ret = utils_calloc(maxValue, sizeof(size_t), &freqArray);
+			ret = utils_calloc_size_t(maxValue, &freqArray);
 			if (ret == ERR_SUCCESS) {
 				memset(freqArray, 0, maxValue*sizeof(size_t));
 				for (it = kh_begin(table); it != kh_end(table); ++it) {

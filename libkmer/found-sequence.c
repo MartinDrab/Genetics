@@ -32,12 +32,12 @@ ERR_VALUE variant_call_init(const char *Chrom, uint64_t Pos, const char *ID, con
 		ret = utils_copy_string(ID, &tmp);
 		if (ret == ERR_SUCCESS) {
 			VC->ID = tmp;
-			ret = utils_calloc(RefLen + 1, sizeof(char), &tmp);
+			ret = utils_calloc_char(RefLen + 1, &tmp);
 			if (ret == ERR_SUCCESS) {
 				memcpy(tmp, Ref, RefLen*sizeof(char));
 				tmp[RefLen] = '\0';
 				VC->Ref = tmp;
-				ret = utils_calloc(AltLen + 1, sizeof(char), &tmp);
+				ret = utils_calloc_char(AltLen + 1, &tmp);
 				if (ret == ERR_SUCCESS) {
 					memcpy(tmp, Alt, AltLen*sizeof(char));
 					tmp[AltLen] = '\0';
@@ -295,10 +295,10 @@ ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL S
 
 	ret = ERR_SUCCESS;
 	if (remainingCount > 0) {
-		ret = utils_calloc(SourceCount, sizeof(size_t), &indices);
+		ret = utils_calloc_size_t(SourceCount, &indices);
 		if (ret == ERR_SUCCESS) {
 			memset(indices, 0, SourceCount*sizeof(size_t));
-			ret = utils_calloc(SourceCount, sizeof(size_t), &counts);
+			ret = utils_calloc_size_t(SourceCount, &counts);
 			if (ret == ERR_SUCCESS) {
 				for (size_t i = 0; i < SourceCount; ++i)
 					counts[i] = gen_array_size(Sources + i);

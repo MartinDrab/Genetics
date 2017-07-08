@@ -15,6 +15,9 @@
 /*                        HELPER FUNCTIONS                              */
 /************************************************************************/
 
+UTILS_TYPED_CALLOC_FUNCTION(ONE_READ)
+UTILS_TYPED_CALLOC_FUNCTION(ACTIVE_REGION)
+
 
 static const char *_read_line(const char *LineStart)
 {
@@ -289,7 +292,7 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 			PONE_READ tmpReads = NULL;
 			const size_t tmpReadCount = gen_array_size(&readArray);
 
-			ret = utils_calloc(tmpReadCount, sizeof(ONE_READ), &tmpReads);
+			ret = utils_calloc_ONE_READ(tmpReadCount, &tmpReads);
 			if (ret == ERR_SUCCESS) {
 				memcpy(tmpReads, readArray.Data, gen_array_size(&readArray)*sizeof(ONE_READ));
 				*Reads = tmpReads;
@@ -484,7 +487,7 @@ ERR_VALUE input_refseq_to_regions(const char *RefSeq, const size_t RefSeqLen, PA
 				if (numberOfNBases > 0) {
 					PACTIVE_REGION old = tmpArray;
 
-					ret = utils_calloc(tmpArrayLen + 1, sizeof(ACTIVE_REGION), &tmpArray);
+					ret = utils_calloc_ACTIVE_REGION(tmpArrayLen + 1, &tmpArray);
 					if (ret == ERR_SUCCESS) {
 						PACTIVE_REGION newReg = tmpArray + tmpArrayLen;
 
@@ -518,7 +521,7 @@ ERR_VALUE input_refseq_to_regions(const char *RefSeq, const size_t RefSeqLen, PA
 				if (numberOfNBases == 0 && regEnd != regStart) {
 					PACTIVE_REGION old = tmpArray;
 
-					ret = utils_calloc(tmpArrayLen + 1, sizeof(ACTIVE_REGION), &tmpArray);
+					ret = utils_calloc_ACTIVE_REGION(tmpArrayLen + 1, &tmpArray);
 					if (ret == ERR_SUCCESS) {
 						PACTIVE_REGION newReg = tmpArray + tmpArrayLen;
 
@@ -556,7 +559,7 @@ ERR_VALUE input_refseq_to_regions(const char *RefSeq, const size_t RefSeqLen, PA
 		if (regEnd != regStart) {
 			PACTIVE_REGION old = tmpArray;
 
-			ret = utils_calloc(tmpArrayLen + 1, sizeof(ACTIVE_REGION), &tmpArray);
+			ret = utils_calloc_ACTIVE_REGION(tmpArrayLen + 1, &tmpArray);
 			if (ret == ERR_SUCCESS) {
 				PACTIVE_REGION newReg = tmpArray + tmpArrayLen;
 				

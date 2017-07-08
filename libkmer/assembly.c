@@ -1047,7 +1047,7 @@ ERR_VALUE assembly_state_init(PKMER_GRAPH Graph, const PARSE_OPTIONS *ParseOptio
 	State->ParseOptions = *ParseOptions;
 	ret = utils_calloc_PPKMER_VERTEX(ReadCount, &State->Paths);
 	if (ret == ERR_SUCCESS) {
-		ret = utils_calloc(ReadCount, sizeof(size_t), &State->PathLengths);
+		ret = utils_calloc_size_t(ReadCount, &State->PathLengths);
 		if (ret == ERR_SUCCESS) {
 			ret = utils_calloc_PPKMER_EDGE(ReadCount, &State->EdgePaths);
 			if (ret == ERR_SUCCESS) {

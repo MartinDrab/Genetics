@@ -13,6 +13,9 @@
 /*                          HELPER FUNCTIONS                            */
 /************************************************************************/
 
+UTILS_TYPED_CALLOC_FUNCTION(ONE_READ)
+
+
 static const char *_sam_read_field(const char *Start)
 {
 	while (*Start != '\0' && *Start != '\r' && *Start != '\n' && *Start != '\t' && *Start != 26)
@@ -197,7 +200,7 @@ ERR_VALUE read_create_from_fastq(const char *Block, const char **NewBlock, PONE_
 
 			_advance_to_line_end(&lineEnd);
 			templateSize = lineEnd - Block - 1;
-			ret = utils_calloc(templateSize + 1, sizeof(char), &Read->Extension->TemplateName);
+			ret = utils_calloc_char(templateSize + 1, &Read->Extension->TemplateName);
 			if (ret == ERR_SUCCESS) {
 				memcpy(Read->Extension->TemplateName, Block + 1, templateSize * sizeof(char));
 				Read->Extension->TemplateName[templateSize] = '\0';
@@ -207,7 +210,7 @@ ERR_VALUE read_create_from_fastq(const char *Block, const char **NewBlock, PONE_
 					Block = lineEnd;
 					_advance_to_line_end(&lineEnd);
 					seqLen = lineEnd - Block;
-					ret = utils_calloc(seqLen + 1, sizeof(char), &Read->ReadSequence);
+					ret = utils_calloc_char(seqLen + 1, &Read->ReadSequence);
 					if (ret == ERR_SUCCESS) {
 						memcpy(Read->ReadSequence, Block, seqLen * sizeof(char));
 						Read->ReadSequence[seqLen] = '\0';
@@ -222,7 +225,7 @@ ERR_VALUE read_create_from_fastq(const char *Block, const char **NewBlock, PONE_
 								_advance_to_line_end(&lineEnd);
 								qLen = lineEnd - Block;
 								if (qLen == Read->ReadSequenceLen) {
-									ret = utils_calloc(Read->ReadSequenceLen + 1, sizeof(char), &Read->Quality);
+									ret = utils_calloc_char(Read->ReadSequenceLen + 1, &Read->Quality);
 									if (ret == ERR_SUCCESS) {
 										memcpy(Read->Quality, Block, Read->ReadSequenceLen * sizeof(char));
 										Read->Quality[Read->ReadSequenceLen] = '\0';
@@ -498,7 +501,7 @@ ERR_VALUE read_set_merge(PONE_READ *Target, const size_t TargetCount, struct _ON
 	PONE_READ tmp = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_calloc(TargetCount + SourceCount, sizeof(ONE_READ), &tmp);
+	ret = utils_calloc_ONE_READ(TargetCount + SourceCount, &tmp);
 	if (ret == ERR_SUCCESS) {
 		memcpy(tmp, *Target, TargetCount*sizeof(ONE_READ));
 		memcpy(tmp + TargetCount, Source, SourceCount*sizeof(ONE_READ));		
@@ -642,9 +645,9 @@ ERR_VALUE read_append(PONE_READ Read, const char *Seq, const uint8_t *Quality, s
 	const size_t totaLLength = Read->ReadSequenceLen + Length;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_calloc(totaLLength + 1, sizeof(char), &tmpSeq);
+	ret = utils_calloc_char(totaLLength + 1, &tmpSeq);
 	if (ret == ERR_SUCCESS) {
-		ret = utils_calloc(totaLLength + 1, sizeof(uint8_t), &tmpQ);
+		ret = utils_calloc_uint8_t(totaLLength + 1, &tmpQ);
 		if (ret == ERR_SUCCESS) {
 			memcpy(tmpSeq, Read->ReadSequence, Read->ReadSequenceLen * sizeof(char));
 			memcpy(tmpSeq + Read->ReadSequenceLen, Seq, Length * sizeof(char));

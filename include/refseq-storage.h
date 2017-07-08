@@ -49,7 +49,7 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add(PREFSEQ_STORAGE Storage, char Base)
 	} else {
 		char *tmp = NULL;
 
-		ret = utils_calloc(Storage->AllocatedLength * 2, sizeof(char), (void **)&tmp);
+		ret = utils_calloc_char(Storage->AllocatedLength * 2, &tmp);
 		if (ret == ERR_SUCCESS) {
 			memcpy(tmp, Storage->Sequence, Storage->ValidLength*sizeof(char));
 			tmp[Storage->ValidLength] = Base;
@@ -79,7 +79,7 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_seq(PREFSEQ_STORAGE Storage, const char
 		char *tmp = NULL;
 		size_t newAllocLength = max(Storage->AllocatedLength * 2, Storage->ValidLength + Length + 100);
 
-		ret = utils_calloc(newAllocLength, sizeof(char), (void **)&tmp);
+		ret = utils_calloc_char(newAllocLength, &tmp);
 		if (ret == ERR_SUCCESS) {
 			memcpy(tmp, Storage->Sequence, Storage->ValidLength*sizeof(char));
 			memcpy(tmp + Storage->ValidLength, Bases, Length*sizeof(char));
@@ -104,6 +104,9 @@ INLINE_FUNCTION ERR_VALUE rs_storage_add_edge(PREFSEQ_STORAGE Storage, const KME
 		case kmetRead:
 		case kmetVariant:
 			ret = rs_storage_add_seq(Storage, Edge->Seq, Edge->SeqLen);
+			break;
+		default:
+			assert(FALSE);
 			break;
 	}
 
@@ -163,7 +166,7 @@ INLINE_FUNCTION ERR_VALUE rs_storage_create_string(const REFSEQ_STORAGE *Storage
 	char *tmpString = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_calloc(Storage->ValidLength + 1, sizeof(char), (void **)&tmpString);
+	ret = utils_calloc_char(Storage->ValidLength + 1, &tmpString);
 	if (ret == ERR_SUCCESS) {
 		memcpy(tmpString, Storage->Sequence, Storage->ValidLength*sizeof(char));
 		tmpString[Storage->ValidLength] = '\0';
@@ -179,7 +182,7 @@ INLINE_FUNCTION ERR_VALUE rs_storage_create_string_with_offset(const REFSEQ_STOR
 	char *tmpString = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_calloc(Storage->ValidLength + 1 - Offset, sizeof(char), (void **)&tmpString);
+	ret = utils_calloc_char(Storage->ValidLength + 1 - Offset, &tmpString);
 	if (ret == ERR_SUCCESS) {
 		memcpy(tmpString, Storage->Sequence + Offset, (Storage->ValidLength - Offset) * sizeof(char));
 		tmpString[Storage->ValidLength - Offset] = '\0';

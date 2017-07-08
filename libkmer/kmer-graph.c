@@ -1252,7 +1252,7 @@ ERR_VALUE kmer_graph_split_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge, PKMER_EDGE *
 				size_t seqLen = Edge->SeqLen;
 
 				if (seqLen > 0) {
-					ret = utils_calloc(seqLen + 1, sizeof(char), &seq);
+					ret = utils_calloc_char(seqLen + 1, &seq);
 					if (ret == ERR_SUCCESS) {
 						memcpy(seq, Edge->Seq, seqLen*sizeof(char));
 						seq[seqLen] = '\0';

@@ -22,6 +22,9 @@ typedef enum _EMatrixStep {
 /*                             HELPER FUNCTIONS                         */
 /************************************************************************/
 
+UTILS_TYPED_CALLOC_FUNCTION(EMatrixStep)
+
+
 #define item_2d(aMatrix, aRowSize, aI, aJ)			(*((aMatrix) + (aRowSize)*(aI) + (aJ)))
 
 
@@ -65,7 +68,7 @@ static ERR_VALUE _op_string_from_step_matrix(const EMatrixStep *StepMatrix, cons
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	size_t opStringMax = MaxValueCol + MaxValueRow;
 
-	ret = utils_calloc(opStringMax + 1, sizeof(char), &opString);
+	ret = utils_calloc_char(opStringMax + 1, &opString);
 	if (ret == ERR_SUCCESS) {
 		size_t opStringIndex = opStringMax;
 
@@ -172,9 +175,9 @@ ERR_VALUE ssw_simple(const char *A, const size_t ALen, const char *B, const size
 	size_t maxValueRow = 0;
 	size_t maxValueCol = 0;
 
-	ret = utils_calloc(rows*cols, sizeof(int32_t), (void **)&matrix);
+	ret = utils_calloc_int32_t(rows*cols, &matrix);
 	if (ret == ERR_SUCCESS) {
-		ret = utils_calloc(rows*cols, sizeof(EMatrixStep), (void **)&steps);
+		ret = utils_calloc_EMatrixStep(rows*cols, &steps);
 		if (ret == ERR_SUCCESS) {
 			for (size_t j = 0; j < cols; ++j) {
 				item_2d(matrix, cols, 0, j) = 0;
@@ -252,7 +255,7 @@ ERR_VALUE ssw_clever(const char *A, const size_t ALen, const char *B, const size
 		char *tmpOpString = NULL;
 		size_t tmpOpStringLen = max(ALen, BLen);
 
-		ret = utils_calloc(tmpOpStringLen + 1, sizeof(char), &tmpOpString);
+		ret = utils_calloc_char(tmpOpStringLen + 1, &tmpOpString);
 		if (ret == ERR_SUCCESS) {
 			char zn = (ALen == 0) ? 'I' : 'D';
 			
@@ -267,11 +270,11 @@ ERR_VALUE ssw_clever(const char *A, const size_t ALen, const char *B, const size
 		return ret;
 	}
 
-	ret = utils_calloc(rows*cols, sizeof(int32_t), (void **)&matrix);
+	ret = utils_calloc_int32_t(rows*cols, &matrix);
 	if (ret == ERR_SUCCESS) {
-		ret = utils_calloc(rows*cols, sizeof(EMatrixStep), (void **)&steps);
+		ret = utils_calloc_EMatrixStep(rows*cols, &steps);
 		if (ret == ERR_SUCCESS) {
-			ret = utils_calloc(cols + rows, sizeof(int32_t), &rowMaxes);
+			ret = utils_calloc_int32_t(cols + rows, &rowMaxes);
 			if (ret == ERR_SUCCESS) {
 				colMaxes = rowMaxes + rows;
 				memset(rowMaxes, 0, (cols + rows)*sizeof(int32_t));
