@@ -82,6 +82,7 @@ INLINE_FUNCTION boolean kmer_equal(uint32_t KMerSize, const KMER *K1, const KMER
 #define KMER_STACK_ALLOC(aVariable, aNumber, aSize, aSequence)				\
 	{																		\
 		aVariable = (PKMER)alloca(KMER_BYTES(aSize));		\
+		memset(aVariable, 0, KMER_BYTES(aSize));	\
 		kmer_set_size(aVariable, (aSize));										\
 		kmer_set_number(aVariable, (aNumber));	\
 		if ((aSequence)!= NULL)	\
@@ -91,6 +92,7 @@ INLINE_FUNCTION boolean kmer_equal(uint32_t KMerSize, const KMER *K1, const KMER
 #define KMER_STACK_ALLOC_FROM_KMER(aVariable, aSize, aKMer)				\
 	{																	\
 		aVariable = (PKMER)alloca(KMER_BYTES(aSize));					\
+		memset(aVariable, 0, KMER_BYTES(aSize));	\
 		kmer_set_size(aVariable, (aSize));										\
 		kmer_init_from_kmer(aVariable, aSize, aKMer);							\
 	}																	\

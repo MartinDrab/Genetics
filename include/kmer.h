@@ -16,7 +16,7 @@
 #include "kmer-short.h"
 
 
-#if 1
+#if 0
 
 #define KMER_MAXIMUM_SIZE						KMER_DEBUG_MAXIMUM_SIZE
 #define KMER_BYTES(aKMerSize)					KMER_DEBUG_BYTES(aKMerSize)
