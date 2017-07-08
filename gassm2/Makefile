@@ -59,7 +59,7 @@ $(LIBKMEROBJDIR)/%.o : $(LIBKMERDIR)/%.c
 $(TARGET): $(OBJ)
 	@mkdir -p $(BINDIR)
 	@echo "Linking $@"
-	@$(CC) $(LIBS) $(OBJ) -o $(BINDIR)/$@
+	@$(CC) $(LIBS) $^ -o $(BINDIR)/$@
 
 all: $(TARGET)
 

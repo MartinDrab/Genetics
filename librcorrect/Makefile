@@ -39,7 +39,7 @@ $(SHAREDOBJDIR)/%.o : $(SHAREDDIR)/%.c
 $(TARGET): $(OBJ)
 	@mkdir -p $(BINDIR)
 	@echo "Linking $@"
-	@ar rcs $(BINDIR)/$@ $<
+	@ar rcs $(BINDIR)/$@ $^
 
 all: $(TARGET)
 
