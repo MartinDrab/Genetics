@@ -26,9 +26,6 @@
 #include "gassm2.h"
 
 
-
-
-
 UTILS_TYPED_CALLOC_FUNCTION(GEN_ARRAY_ONE_READ)
 UTILS_TYPED_CALLOC_FUNCTION(GEN_ARRAY_VARIANT_CALL)
 
@@ -549,7 +546,6 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 		
 		kmerString[KMerSize] = '\0';
 		for (size_t i = 0; i < ReadCount; ++i) {			
-				read_split(r);
 				if (r->ReadSequenceLen >= KMerSize) {
 					for (size_t j = 0; j < r->ReadSequenceLen - KMerSize + 1; ++j) {
 						char *s = NULL;
@@ -605,7 +601,7 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 
 				for (size_t i = 0; i < maxValue; ++i) {
 					if (freqArray[i] > 0)
-						fprintf(stdout, "%Iu, %Iu, %lf\n", i, freqArray[i], (double)freqArray[i]*100/ (double)kmerCount);
+						fprintf(stdout, "%zu, %zu (%.2lf %%)\n", i, freqArray[i], (double)freqArray[i]*100/ kmerCount);
 				}
 
 				utils_free(freqArray);
@@ -901,7 +897,7 @@ int main(int argc, char *argv[])
 									read_quality_decode(po.Reads + i);
 								}
 							}
-
+							
 							utils_free(stats.RepairCountDistribution);
 						}
 					} else if (strncmp(cmd, "rfreq", sizeof("rfreq") - 1) == 0) {

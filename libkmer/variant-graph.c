@@ -20,7 +20,8 @@
 
 
 UTILS_TYPED_CALLOC_FUNCTION(PPOINTER_ARRAY_VARIANT_GRAPH_VERTEX)
-
+UTILS_TYPED_CALLOC_FUNCTION(VARIANT_GRAPH_VERTEX)
+UTILS_TYPED_CALLOC_FUNCTION(VARIANT_GRAPH_PAIRED_EDGE)
 
 #define _vg_vertex_exists(aGraph, aVertex)	\
 	((aVertex)->ReadCount > ((aGraph)->Thresholds.Read))
@@ -656,10 +657,10 @@ ERR_VALUE vg_graph_init(PVARIANT_CALL Variants, const size_t VariantCount, size_
 	Graph->ReadMap = kh_init(ReadToVertex);
 	if (Graph->ReadMap != NULL) {
 		Graph->VerticesArraySize = VariantCount;
-		ret = utils_calloc(2 * VariantCount, sizeof(VARIANT_GRAPH_VERTEX), &Graph->Vertices.ByType.Reference);
+		ret = utils_calloc_VARIANT_GRAPH_VERTEX(2 * VariantCount, &Graph->Vertices.ByType.Reference);
 		if (ret == ERR_SUCCESS) {
 			Graph->Vertices.ByType.Alternative = Graph->Vertices.ByType.Reference + VariantCount;
-			ret = utils_calloc(4 * VariantCount, sizeof(size_t), &Graph->ReadEdges.ByTypes.RefToRef);
+			ret = utils_calloc_size_t(4 * VariantCount, &Graph->ReadEdges.ByTypes.RefToRef);
 			if (ret == ERR_SUCCESS) {
 				memset(Graph->ReadEdges.ByTypes.RefToRef, 0, 4 * sizeof(size_t));
 				Graph->ReadEdges.ByTypes.RefToAlt = Graph->ReadEdges.ByTypes.RefToRef + VariantCount;
@@ -930,7 +931,7 @@ ERR_VALUE vg_graph_add_paired(PVARIANT_GRAPH Graph)
 							}
 
 							if (!exists) {
-								ret = utils_calloc(u->PairedCount + 1, sizeof(VARIANT_GRAPH_PAIRED_EDGE), &tmp);
+								ret = utils_calloc_VARIANT_GRAPH_PAIRED_EDGE(u->PairedCount + 1, &tmp);
 								if (ret == ERR_SUCCESS) {
 									memcpy(tmp, u->Paired, u->PairedCount*sizeof(VARIANT_GRAPH_PAIRED_EDGE));
 									tmp[u->PairedCount].Target = v;

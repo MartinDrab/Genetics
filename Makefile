@@ -1,4 +1,4 @@
-all: 1 2 3 4
+all: 1 2
 
 1:
 	@echo "Building LIBRCORRECT"
@@ -19,6 +19,6 @@ all: 1 2 3 4
 
 clean:
 	cd gassm2; make clean; cd ..
-	cd rcorrect; make clean; cd ..
+	cd librcorrect; make clean; cd ..
 	cd vcffix; make clean; cd ..
 	cd vcfcmp; make clean; cd ..
