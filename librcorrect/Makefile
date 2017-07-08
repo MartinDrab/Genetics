@@ -1,7 +1,7 @@
 TARGET=librcorrect.a
 BINDIR=../lib
 CC=gcc
-CFLAGS= -c -O3 -Wall --std=gnu99 -D_FILE_OFFSET_BITS=64 -m64 -fopenmp -DNDEBUG -Wno-unused-function -g
+CFLAGS= -c -fpic -O3 -Wall --std=gnu99 -D_FILE_OFFSET_BITS=64 -m64 -fopenmp -DNDEBUG -Wno-unused-function -g
 SHAREDDIR=../shared
 TMPDIR=../tmp
 OBJDIR=$(TMPDIR)/$(TARGET)
