@@ -886,7 +886,7 @@ ERR_VALUE assembly_parse_reference(PASSEMBLY_STATE State)
 				}
 
 				if (ret == ERR_SUCCESS) {
-					kmer_advance(kmerSize, destKMer, 'E');
+					kmer_advance(kmerSize, destKMer, 'B');
 					kmer_set_number(destKMer, 0);
 					ret = kmer_graph_add_vertex_ex(Graph, destKMer, kmvtRefSeqEnd, &destVertex);
 					if (ret == ERR_SUCCESS) {
