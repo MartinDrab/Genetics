@@ -10,7 +10,7 @@
 
 typedef struct _KMER_SHORT {
 	uint32_t Number;
-	uint64_t B[3];
+	uint64_t Bases[3];
 } KMER_SHORT, *PKMER_SHORT;
 
 
@@ -33,7 +33,7 @@ char kmer_short_get_base(const uint32_t KMerSize, const KMER_SHORT *KMer, const 
 char kmer_short_get_last_base(const uint32_t KMerSize, const KMER_SHORT *KMer);
 size_t kmer_short_hash(const uint32_t KMerSize, const KMER_SHORT *KMer);
 void kmer_short_print(FILE *Stream, const uint32_t KMerSize, const KMER_SHORT *KMer);
-boolean kme_short_seq_equal(const uint32_t KMerSize, const KMER_SHORT *K1, const KMER_SHORT *K2);
+boolean kmer_short_seq_equal(const uint32_t KMerSize, const KMER_SHORT *K1, const KMER_SHORT *K2);
 
 
 

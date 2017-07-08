@@ -26,6 +26,7 @@ void kmer_debug_seq_init_by_sequence(PKMER_DEBUG KMer, const uint32_t KMerSize, 
 void kmer_debug_advance(const uint32_t KMerSize, PKMER_DEBUG KMer, const char Base)
 {
 	assert(KMer->Size == KMerSize);
+	assert(Base != '\0');
 
 	memmove(KMer->Bases, KMer->Bases + 1, (KMerSize - 1)*sizeof(char));
 	KMer->Bases[KMer->Size - 1] = Base;
