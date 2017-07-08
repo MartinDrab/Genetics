@@ -470,17 +470,8 @@ static ERR_VALUE _compute_graphs(const KMER_GRAPH_ALLOCATOR *Allocator, const PR
 			break;
 		
 		ret = _compute_graph(kmerSize, Allocator, Options, ParseOptions, Task, &lowerArray);
-		if (ret == ERR_SUCCESS) {
-//			for (uint32_t j = i + 1; j < 8; ++j) {
-//				ret = _compute_graph(kmerSize + (j - i)*step, Allocator, Options, ParseOptions, Task, &higherArray);
-//				if (ret != ERR_REF_REPEATS && ret != ERR_TOO_COMPLEX)
-//					break;
-//
-//				vc_array_clear(&higherArray);
-//			}
-		}
-
-		if (ret == ERR_SUCCESS) {
+		if (ret == ERR_SUCCESS ||
+			(ret == ERR_TOO_COMPLEX && kmerSize + step > KMER_MAXIMUM_SIZE)) {
 			vc_array_intersection(&lowerArray, &lowerArray, VCArray);
 			break;
 		}
