@@ -14,7 +14,7 @@
 /************************************************************************/
 
 
-void kmer_debug_seq_init_by_sequence(PKMER KMer, const uint32_t KMerSize, const char *Sequence)
+void kmer_debug_seq_init_by_sequence(PKMER_DEBUG KMer, const uint32_t KMerSize, const char *Sequence)
 {
 	if (Sequence != NULL)
 		memcpy(KMer->Bases, Sequence, KMerSize*sizeof(char));
@@ -23,7 +23,7 @@ void kmer_debug_seq_init_by_sequence(PKMER KMer, const uint32_t KMerSize, const 
 }
 
 
-void kmer_debug_advance(const uint32_t KMerSize, PKMER KMer, const char Base)
+void kmer_debug_advance(const uint32_t KMerSize, PKMER_DEBUG KMer, const char Base)
 {
 	assert(KMer->Size == KMerSize);
 
@@ -33,7 +33,7 @@ void kmer_debug_advance(const uint32_t KMerSize, PKMER KMer, const char Base)
 	return;
 }
 
-void kmer_debug_back(const uint32_t KMerSize, PKMER KMer, const char Base)
+void kmer_debug_back(const uint32_t KMerSize, PKMER_DEBUG KMer, const char Base)
 {
 	assert(KMerSize == KMer->Size);
 
@@ -43,7 +43,7 @@ void kmer_debug_back(const uint32_t KMerSize, PKMER KMer, const char Base)
 	return;
 }
 
-boolean kmer_debug_seq_equal(const uint32_t KMerSize, const KMER *K1, const KMER *K2)
+boolean kmer_debug_seq_equal(const uint32_t KMerSize, const KMER_DEBUG *K1, const KMER_DEBUG *K2)
 {
 	assert(K1->Size == K2->Size);
 	assert(KMerSize == K1->Size);
@@ -52,7 +52,7 @@ boolean kmer_debug_seq_equal(const uint32_t KMerSize, const KMER *K1, const KMER
 }
 
 
-void kmer_debug_print(FILE *Stream, const uint32_t KMerSize, const KMER *KMer)
+void kmer_debug_print(FILE *Stream, const uint32_t KMerSize, const KMER_DEBUG *KMer)
 {
 	for (size_t i = 0; i < KMerSize; ++i)
 		fputc(kmer_debug_get_base(KMerSize, KMer, i), Stream);
@@ -63,7 +63,7 @@ void kmer_debug_print(FILE *Stream, const uint32_t KMerSize, const KMER *KMer)
 }
 
 
-size_t kmer_debug_hash(const uint32_t Context, const KMER *KMer)
+size_t kmer_debug_hash(const uint32_t Context, const KMER_DEBUG *KMer)
 {
 	size_t hash = 0;
 	const uint32_t kmerSize = (uint32_t)Context;

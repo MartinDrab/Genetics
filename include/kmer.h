@@ -22,6 +22,9 @@
 #define KMER_BYTES(aKMerSize)					KMER_DEBUG_BYTES(aKMerSize)
 #define KMER_BYTES_EXTRA(aKMerSize, aExtra)		KMER_DEBUG_BYTES_EXTRA(aKMerSize, aExtra)
 
+#define _KMER			_KMER_DEBUG
+#define KMER			KMER_DEBUG
+#define PKMER			PKMER_DEBUG
 
 #define kmer_get_size				kmer_debug_get_size
 #define kmer_set_size				kmer_debug_set_size
@@ -44,6 +47,10 @@
 #define KMER_MAXIMUM_SIZE						KMER_SHORT_MAXIMUM_SIZE
 #define KMER_BYTES(aKMerSize)					KMER_SHORT_BYTES(aKMerSize)
 #define KMER_BYTES_EXTRA(aKMerSize, aExtra)		KMER_SHORT_BYTES_EXTRA(aKMerSize, aExtra)
+
+#define _KMER			_KMER_SHORT
+#define KMER			KMER_SHORT
+#define PKMER			PKMER_SHORT
 
 #define kmer_get_size				kmer_short_get_size
 #define kmer_set_size				kmer_short_set_size

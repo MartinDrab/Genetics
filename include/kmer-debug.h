@@ -4,11 +4,11 @@
 
 
 
-typedef struct _KMER {
+typedef struct _KMER_DEBUG {
 	uint32_t Number;
 	uint32_t Size;
 	char Bases[1];
-} KMER, *PKMER;
+} KMER_DEBUG, *PKMER_DEBUG;
 
 
 #define KMER_DEBUG_MAXIMUM_SIZE							101
@@ -25,12 +25,12 @@ typedef struct _KMER {
 #define kmer_debug_set_number(aKMer, aNumber)			((aKMer)->Number = (aNumber))
 #define kmer_debug_seq_init_raw	kmer_debug_seq_init_by_sequence
 
-void kmer_debug_seq_init_by_sequence(PKMER KMer, const uint32_t KMerSize, const char *Sequence);
-void kmer_debug_advance(const uint32_t KMerSize, PKMER KMer, const char Base);
-void kmer_debug_back(const uint32_t KMerSize, PKMER KMer, const char Base);
-boolean kmer_debug_seq_equal(const uint32_t KMerSize, const KMER *K1, const KMER *K2);
-void kmer_debug_print(FILE *Stream, const uint32_t KMerSize, const KMER *KMer);
-size_t kmer_debug_hash(const uint32_t Context, const KMER *KMer);
+void kmer_debug_seq_init_by_sequence(PKMER_DEBUG KMer, const uint32_t KMerSize, const char *Sequence);
+void kmer_debug_advance(const uint32_t KMerSize, PKMER_DEBUG KMer, const char Base);
+void kmer_debug_back(const uint32_t KMerSize, PKMER_DEBUG KMer, const char Base);
+boolean kmer_debug_seq_equal(const uint32_t KMerSize, const KMER_DEBUG *K1, const KMER_DEBUG *K2);
+void kmer_debug_print(FILE *Stream, const uint32_t KMerSize, const KMER_DEBUG *KMer);
+size_t kmer_debug_hash(const uint32_t Context, const KMER_DEBUG *KMer);
 
 
 

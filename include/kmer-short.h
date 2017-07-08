@@ -20,7 +20,7 @@ typedef struct _KMER_SHORT {
 
 
 #define kmer_short_get_size(aKMer)						(0)
-#define kmer_sort_set_size(aKMer, aSize)				(0)
+#define kmer_short_set_size(aKMer, aSize)				(0)
 #define kmer_short_get_number(aKMer)					((aKMer)->Number)
 #define kmer_short_set_number(aKMer, aNumber)			((aKMer)->Number = (aNumber))
 
