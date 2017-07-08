@@ -822,11 +822,13 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 				switch (p->Type) {
 					case vgvtReference:
 				 		if (pindex > i || (pindex == i && p->Type != v->Type))
-							fprintf(Stream, "\tV%zu_1 -> V%zu_1[arrowhead=none,color=yellow,label=\"%Iu\"];\n", i, pindex, c);
+							fprintf(Stream, "\tV%zu_1 -> V%zu_1[arrowhead=none,color=yellow,label=\"%zu\"];\n", i, pindex, c);
 						break;
 					case vgvtAlternative:
 						if (pindex > i || (pindex == i && p->Type != v->Type))
-							fprintf(Stream, "\tV%zu_1 -> V%zu_2[arrowhead=none,color=yellow,label=\"%Iu\"];\n", i, pindex, c);
+							fprintf(Stream, "\tV%zu_1 -> V%zu_2[arrowhead=none,color=yellow,label=\"%zu\"];\n", i, pindex, c);
+						break;
+					default:
 						break;
 				}
 			}
@@ -841,11 +843,13 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 				switch (p->Type) {
 				case vgvtReference:
 					if (pindex > i)
-						fprintf(Stream, "\tV%zu_2 -> V%zu_1[arrowhead=none,color=yellow,label=\"%Iu\"];\n", i, pindex, c);
+						fprintf(Stream, "\tV%zu_2 -> V%zu_1[arrowhead=none,color=yellow,label=\"%zu\"];\n", i, pindex, c);
 					break;
 				case vgvtAlternative:
 					if (pindex > i)
-						fprintf(Stream, "\tV%zu_2 -> V%zu_2[arrowhead=none,color=yellow,label=\"%Iu\"];\n", i, pindex, c);
+						fprintf(Stream, "\tV%zu_2 -> V%zu_2[arrowhead=none,color=yellow,label=\"%zu\"];\n", i, pindex, c);
+					break;
+				default:
 					break;
 				}
 			}
@@ -953,19 +957,6 @@ ERR_VALUE vg_graph_add_paired(PVARIANT_GRAPH Graph)
 
 									u->Paired = tmp;
 								}
-								/*
-								ret = utils_calloc(v->PairedCount + 1, sizeof(VARIANT_GRAPH_PAIRED_EDGE), &tmp);
-								if (ret == ERR_SUCCESS) {
-									memcpy(tmp, v->Paired, v->PairedCount*sizeof(VARIANT_GRAPH_PAIRED_EDGE));
-									tmp[v->PairedCount].Target = u;
-									tmp[v->PairedCount].Count = 1;
-									++v->PairedCount;
-									if (v->Paired != NULL)
-										utils_free(v->Paired);
-
-									v->Paired = tmp;
-								}
-								*/
 							}
 
 							if (ret != ERR_SUCCESS)

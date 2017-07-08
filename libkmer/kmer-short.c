@@ -35,6 +35,7 @@ static char _shortBaseToBaseTable[8] = {
 };
 
 
+#ifdef KMER_SHORT_CHECKS
 static void _kmer_short_test(const uint32_t KMerSize, const KMER_SHORT *KMer)
 {
 	const uint64_t *x = KMer->Bases;
@@ -46,12 +47,10 @@ static void _kmer_short_test(const uint32_t KMerSize, const KMER_SHORT *KMer)
 
 	return;
 }
-
+#endif
 
 static void _kmer_short_to_buffer(const uint32_t KMerSize, const KMER_SHORT *KMer, char *Buffer)
 {
-	const uint64_t *b = KMer->Bases;
-
 #ifdef KMER_SHORT_CHECKS
 	_kmer_short_test(KMerSize, KMer);
 #endif

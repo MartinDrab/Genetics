@@ -59,7 +59,7 @@ INLINE_FUNCTION ERR_VALUE kmer_copy(PKMER *Dest, const uint32_t KMerSize, const 
 	PKMER tmpKmer = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	ret = utils_malloc(KMER_BYTES(KMerSize), &tmpKmer);
+	ret = utils_malloc(KMER_BYTES(KMerSize), (void **)&tmpKmer);
 	if (ret == ERR_SUCCESS) {
 		kmer_set_size(tmpKmer, kmer_get_size(KMer));
 		kmer_set_number(tmpKmer, kmer_get_number(KMer));
