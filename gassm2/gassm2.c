@@ -872,6 +872,9 @@ int main(int argc, char *argv[])
 						fprintf(stderr, "Correcting reads...\n");
 						ret = libcorrect_correct(po.Reads, po.ReadCount, &stats);
 						if (ret == ERR_SUCCESS) {
+							BAD_READS_STATISTICS badStats;
+							read_set_stats(po.Reads, po.ReadCount, po.ReadPosQuality, &badStats);
+							read_set_stats_print(stderr, &badStats);
 							fprintf(stderr, "K:                  %u\n", stats.K);
 							fprintf(stderr, "Total reads:        %" PRIu64 "\n", stats.TotalReads);
 							fprintf(stderr, "Removed reads:      %" PRIu64 "\n", stats.ReadsRemoved);
@@ -890,6 +893,8 @@ int main(int argc, char *argv[])
 									fprintf(stderr, "%u,\t%" PRIu64 "\t%" PRIu64 " %%\n", i, stats.RepairBasePositionDistribution[i], stats.RepairBasePositionDistribution[i] * 100 / stats.TotalRepairs);
 							}
 
+							read_set_stats(po.Reads, po.ReadCount, po.ReadPosQuality, &badStats);
+							read_set_stats_print(stderr, &badStats);
 							for (size_t i = 0; i < po.ReadCount; ++i) {
 								if (po.Reads[i].ReadSequenceLen > 0) {
 									read_quality_encode(po.Reads + i);

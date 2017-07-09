@@ -20,7 +20,7 @@ OBJ=\
 	$(OBJDIR)/kmer-debug.o \
 	$(OBJDIR)/kmer-edge.o \
 	$(OBJDIR)/kmer-table.o \
-	$(OBJDIR)/kmer-short.o \
+	$(OBJDIR)/kmer-graph.o \
 	$(OBJDIR)/read-info.o \
 	$(OBJDIR)/paired-reads.o \
 	$(OBJDIR)/ssw.o \
