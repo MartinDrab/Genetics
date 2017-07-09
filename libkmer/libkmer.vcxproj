@@ -55,6 +55,7 @@
     <ClInclude Include="..\include\pointer_array.h" />
     <ClInclude Include="..\include\read-info.h" />
     <ClInclude Include="..\include\refseq-storage.h" />
+    <ClInclude Include="..\include\ssw.h" />
     <ClInclude Include="..\include\variant-graph.h" />
     <ClInclude Include="..\shared\err.h" />
     <ClInclude Include="..\shared\file-utils.h" />
@@ -62,7 +63,6 @@
     <ClInclude Include="..\shared\utils-lookaside.h" />
     <ClInclude Include="..\shared\utils.h" />
     <ClInclude Include="graph-reads.h" />
-    <ClInclude Include="ssw.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{59E18B69-DF81-46F7-B0E8-EF6301CB5A5C}</ProjectGuid>

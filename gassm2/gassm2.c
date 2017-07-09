@@ -63,12 +63,12 @@ static ERR_VALUE _init_default_values()
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	ret = ERR_SUCCESS;
-	 program_option_init(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC, UInt32, 31);
+	 program_option_init(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC, UInt32, 21);
 	program_option_init(PROGRAM_OPTION_SEQFILE, PROGRAM_OPTION_SEQFILE_DESC, String, "\0");
 	program_option_init(PROGRAM_OPTION_SEQSTART, PROGRAM_OPTION_SEQSTART_DESC, UInt64, (uint64_t)-1);
 	program_option_init(PROGRAM_OPTION_SEQLEN, PROGRAM_OPTION_SEQLEN_DESC, UInt32, 2000);
 	program_option_init(PROGRAM_OPTION_TEST_STEP, PROGRAM_OPTION_TEST_STEP_DESC, UInt32, 1500);
-	program_option_init(PROGRAM_OPTION_THRESHOLD, PROGRAM_OPTION_THRESHOLD_DESC, UInt32, 2);
+	program_option_init(PROGRAM_OPTION_THRESHOLD, PROGRAM_OPTION_THRESHOLD_DESC, UInt32, 4);
 	program_option_init(PROGRAM_OPTION_READFILE, PROGRAM_OPTION_READFILE_DESC, String, "\0");
 	program_option_init(PROGRAM_OPTION_PLOT_START, PROGRAM_OPTION_PLOT_START, UInt64, (uint64_t)-1);
 	program_option_init(PROGRAM_OPTION_PLOT_END, PROGRAM_OPTION_PLOT_END, UInt64, (uint64_t)-1);
@@ -600,7 +600,7 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 				}
 
 				for (size_t i = 0; i < maxValue; ++i) {
-					if (freqArray[i] > 0)
+					if (freqArray[i] > Options->Threshold)
 						fprintf(stdout, "%zu, %zu (%.2lf %%)\n", i, freqArray[i], (double)freqArray[i]*100/ kmerCount);
 				}
 

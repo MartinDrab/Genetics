@@ -110,9 +110,6 @@
     <ClInclude Include="..\include\paired-reads.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ssw.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\shared\file-utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -141,6 +138,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\kmer-graph-base-types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\ssw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
