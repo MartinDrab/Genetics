@@ -1,7 +1,7 @@
 TARGET=libkmer.a
 BINDIR=../lib
 CC=gcc
-CFLAGS= -c -fpic -O3 -Wall --std=gnu99 -D_FILE_OFFSET_BITS=64 -m64 -fopenmp -DNDEBUG -Wno-unused-function -g
+CFLAGS= -fpic -O3 -Wall --std=gnu99 -D_FILE_OFFSET_BITS=64 -m64 -fopenmp -DNDEBUG -Wno-unused-function -g
 SHAREDDIR=../shared
 TMPDIR=../tmp
 OBJDIR=$(TMPDIR)/$(TARGET)
@@ -15,7 +15,7 @@ OBJ=\
 	$(SHAREDOBJDIR)/drand48.o \
 	$(SHAREDOBJDIR)/kthread.o \
 	$(OBJDIR)/assembly.o \
-	$(OBJDIR)/found_sequence.o \
+	$(OBJDIR)/found-sequence.o \
 	$(OBJDIR)/kmer-short.o \
 	$(OBJDIR)/kmer-debug.o \
 	$(OBJDIR)/kmer-edge.o \
