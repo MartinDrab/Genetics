@@ -9,16 +9,16 @@ all: 1 2 3
 	cd libkmer; make; cd ..
 
 
-3:
+3: 1 2
 	echo "Building GASSMv2"
 	cd gassm2; make; cd ..
 
 
-3:
+4:
 	@echo "Building VCFFIX"
 	cd vcffix; make; cd ..
 
-4:
+5:
 	@echo "Building VCFCMP"
 	cd vcfcmp; make; cd ..
 
