@@ -361,7 +361,7 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 			if (ret == ERR_SUCCESS) {
 				g->DeleteEdgeCallback = _on_delete_edge;
 				g->DeleteEdgeCallbackContext = &ep;
-				kmer_graph_delete_edges_under_threshold(g, 0);
+				kmer_graph_delete_edges_under_threshold(g, Options->Threshold);
 				kmer_graph_delete_trailing_things(g, &deletedThings);
 				g->DeleteEdgeCallback = NULL;
 			}
@@ -869,10 +869,12 @@ int main(int argc, char *argv[])
 					} else if (strncmp(cmd, "correct", sizeof("correct") - 1) == 0) {
 						LIBRCORRECT_STATISTICS stats;
 						
+						BAD_READS_STATISTICS badStats;
+						read_set_stats(po.Reads, po.ReadCount, po.ReadPosQuality, &badStats);
+						read_set_stats_print(stderr, &badStats);
 						fprintf(stderr, "Correcting reads...\n");
 						ret = libcorrect_correct(po.Reads, po.ReadCount, &stats);
 						if (ret == ERR_SUCCESS) {
-							BAD_READS_STATISTICS badStats;
 							read_set_stats(po.Reads, po.ReadCount, po.ReadPosQuality, &badStats);
 							read_set_stats_print(stderr, &badStats);
 							fprintf(stderr, "K:                  %u\n", stats.K);
@@ -884,17 +886,15 @@ int main(int argc, char *argv[])
 							fputs("Repair count distribution:\n", stderr);
 							for (uint32_t i = 0; i < stats.RepairCountDistributionCount; ++i) {
 								if (stats.RepairCountDistribution[i] > 0)
-									fprintf(stderr, "%u,\t%" PRIu64 "\t%" PRIu64 " %%\n", i, stats.RepairCountDistribution[i], stats.RepairCountDistribution[i]*100/stats.TotalReads);
+									fprintf(stderr, "%u,\t%" PRIu64 "\t%.2lf %%\n", i, stats.RepairCountDistribution[i], (double)stats.RepairCountDistribution[i]*100/stats.TotalReads);
 							}
 
 							fputs("Repair base position distribution:\n", stderr);
 							for (uint32_t i = 0; i < stats.RepairCountDistributionCount; ++i) {
 								if (stats.RepairBasePositionDistribution[i] > 0)
-									fprintf(stderr, "%u,\t%" PRIu64 "\t%" PRIu64 " %%\n", i, stats.RepairBasePositionDistribution[i], stats.RepairBasePositionDistribution[i] * 100 / stats.TotalRepairs);
+									fprintf(stderr, "%u,\t%" PRIu64 "\t%.2lf %%\n", i, stats.RepairBasePositionDistribution[i], (double)stats.RepairBasePositionDistribution[i] * 100 / stats.TotalRepairs);
 							}
 
-							read_set_stats(po.Reads, po.ReadCount, po.ReadPosQuality, &badStats);
-							read_set_stats_print(stderr, &badStats);
 							for (size_t i = 0; i < po.ReadCount; ++i) {
 								if (po.Reads[i].ReadSequenceLen > 0) {
 									read_quality_encode(po.Reads + i);

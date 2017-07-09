@@ -43,7 +43,7 @@ static ERR_VALUE convert_to_fermilite(PONE_READ Reads, size_t Count, bseq1_t **R
 			read_quality_encode(Reads + i);
 			tmpResult[i].seq = _copy_string(Reads[i].ReadSequence, Reads[i].ReadSequenceLen);
 			if (Reads[i].Quality != NULL)
-				tmpResult[i].qual = _copy_string(Reads[i].Quality, Reads[i].ReadSequenceLen);
+				tmpResult[i].qual = _copy_string((char *)Reads[i].Quality, Reads[i].ReadSequenceLen);
 
 			read_quality_decode(Reads + i);
 			if (Reads[i].ReadSequenceLen > 0) {
@@ -84,7 +84,7 @@ static ERR_VALUE convert_to_gassm2(const bseq1_t *Seqs, size_t Count, PONE_READ 
 		Reads[i].ReadSequenceLen = Seqs[i].l_seq;
 		ret = utils_copy_string(Seqs[i].seq, &Reads[i].ReadSequence);
 		if (ret == ERR_SUCCESS)
-			ret = utils_copy_string(Seqs[i].qual, &Reads[i].Quality);
+			ret = utils_copy_string(Seqs[i].qual, (uint8_t **)&Reads[i].Quality);
 
 		if (Seqs[i].l_seq > 0) {
 			free(Seqs[i].seq);

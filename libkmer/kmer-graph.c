@@ -788,8 +788,29 @@ void kmer_graph_delete_edges_under_threshold(PKMER_GRAPH Graph, const size_t Thr
 
 	err = kmer_edge_table_first(Graph->EdgeTable, &iter, (void **)&e);
 	while (err == ERR_SUCCESS) {
-		if (e->Type == kmetRead && read_info_get_count(&e->ReadInfo) <= Threshold)
-			kmer_graph_delete_edge(Graph, e);
+		if (e->Type == kmetRead) {
+			if (read_info_get_count(&e->ReadInfo) <= Threshold)
+				kmer_graph_delete_edge(Graph, e);
+			else if (e->Source->Type == kmvtRefSeqMiddle) {
+				boolean readStartsOnly = TRUE;
+				const READ_INFO_ENTRY *entry = e->ReadInfo.Array.Data;
+				const size_t kmerSize = kmer_graph_get_kmer_size(Graph);
+
+				if (kmerSize <= 21 && read_info_get_count(&e->ReadInfo) > 3) {
+					for (size_t i = 0; i < read_info_get_count(&e->ReadInfo); ++i) {
+						readStartsOnly = (entry->ReadPosition < 2 * kmerSize);
+						if (!readStartsOnly)
+							break;
+
+						++entry;
+					}
+
+					if (readStartsOnly) {
+						kmer_graph_delete_edge(Graph, e);
+					}
+				}
+			}
+		}
 
 		err = kmer_edge_table_next(Graph->EdgeTable, iter, &iter, (void **)&e);
 	}
