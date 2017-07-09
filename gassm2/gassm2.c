@@ -901,6 +901,7 @@ int main(int argc, char *argv[])
 							utils_free(stats.RepairCountDistribution);
 						}
 					} else if (strncmp(cmd, "rfreq", sizeof("rfreq") - 1) == 0) {
+						fprintf(stderr, "Computing k-mer frequency distribution (K=%u, threshold=%u)...\n", po.KMerSize, po.Threshold);
 						kmer_freq_distribution(&po, po.KMerSize, po.Reads, po.ReadCount);
 					} else if (strncmp(cmd, "paired", sizeof("paired")) == 0) {
 						paired_reads_print(stdout);
