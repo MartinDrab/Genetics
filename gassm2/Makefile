@@ -3,12 +3,11 @@ BINDIR=../bin
 CC=gcc
 CFLAGS= -O3 -Wall --std=gnu99 -D_FILE_OFFSET_BITS=64 -m64 -fopenmp -DNDEBUG -Wno-unused-function -g
 SHAREDDIR=../shared
-LIBKMERDIR=../libkmer
 TMPDIR=../tmp
 OBJDIR=$(TMPDIR)/$(TARGET)
 SHAREDOBJDIR=$(TMPDIR)/shared
 LIBKMEROBJDIR=$(TMPDIR)/libkmer
-LIBS= -lm -fopenmp -L./../lib -l:librcorrect.a
+LIBS= -lm -fopenmp -L./../lib -l:librcorrect.a -l:libkmer.a
 
 OBJ=\
 	$(SHAREDOBJDIR)/utils.o \
@@ -20,21 +19,9 @@ OBJ=\
 	$(SHAREDOBJDIR)/kthread.o \
 	$(SHAREDOBJDIR)/ksw.o \
 	$(OBJDIR)/gassm2.o \
-	$(LIBKMEROBJDIR)/ssw.o \
-	$(LIBKMEROBJDIR)/paired-reads.o \
-	$(LIBKMEROBJDIR)/assembly.o \
-	$(LIBKMEROBJDIR)/found-sequence.o \
-	$(LIBKMEROBJDIR)/read-info.o \
-	$(LIBKMEROBJDIR)/kmer-edge.o \
-	$(LIBKMEROBJDIR)/kmer-graph.o \
-	$(LIBKMEROBJDIR)/kmer-table.o \
-	$(LIBKMEROBJDIR)/kmer-debug.o \
-	$(LIBKMEROBJDIR)/kmer-short.o \
-	$(LIBKMEROBJDIR)/variant-graph.o \
 
 
-
-INCLUDE= -I./ -I./../include -I./$(SHAREDDIR) -I../libkmer -I-
+INCLUDE= -I./ -I./../include -I./$(SHAREDDIR) -I-
 
 SHAREDINCLUDE= -I./../icnlude -I./$(SHAREDDIR) -I-
 
@@ -49,12 +36,6 @@ $(SHAREDOBJDIR)/%.o : $(SHAREDDIR)/%.c
 	@mkdir -p $(SHAREDOBJDIR)
 	@echo "Compiling $<"
 	@$(CC) $(INCLUDE) $(CFLAGS) -c $< -o $@
-
-$(LIBKMEROBJDIR)/%.o : $(LIBKMERDIR)/%.c
-	@mkdir -p $(TMPDIR)
-	@mkdir -p $(LIBKMEROBJDIR)
-	@echo "Compiling $<"
-	@$(CC) $(CFLAGS) $(INCLUDE) -c $< -o $@
 
 $(TARGET): $(OBJ)
 	@mkdir -p $(BINDIR)
