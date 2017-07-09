@@ -8,7 +8,7 @@ TMPDIR=../tmp
 OBJDIR=$(TMPDIR)/$(TARGET)
 SHAREDOBJDIR=$(TMPDIR)/shared
 LIBKMEROBJDIR=$(TMPDIR)/libkmer
-LIBS= -lm -fopenmp -L./../lib -lrcorrect
+LIBS= -lm -fopenmp -L./../lib -l:librcorrect.a
 
 OBJ=\
 	$(SHAREDOBJDIR)/utils.o \
@@ -59,7 +59,7 @@ $(LIBKMEROBJDIR)/%.o : $(LIBKMERDIR)/%.c
 $(TARGET): $(OBJ)
 	@mkdir -p $(BINDIR)
 	@echo "Linking $@"
-	@$(CC) $(LIBS) $^ -o $(BINDIR)/$@
+	@$(CC) $^ $(LIBS) -o $(BINDIR)/$@
 
 all: $(TARGET)
 
