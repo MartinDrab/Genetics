@@ -113,19 +113,10 @@
     <ClInclude Include="ssw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="kmer-graph-base-types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="found-sequence-types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\shared\file-utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\shared\utils-lookaside.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="variant-graph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\shared\ksw.h">
@@ -141,6 +132,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\kmer-short.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\variant-graph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\found-sequence-types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\kmer-graph-base-types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
