@@ -539,6 +539,8 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 	char *kmerString = NULL;
 	khash_t(kc) *table = kh_init(kc);
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	double baseQSum = 0.0;
+	uint64_t baseCount = 0;
 
 	ret = utils_calloc_char(KMerSize + 1, &kmerString);
 	if (ret == ERR_SUCCESS) {
@@ -547,6 +549,10 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 		kmerString[KMerSize] = '\0';
 		for (size_t i = 0; i < ReadCount; ++i) {			
 				if (r->ReadSequenceLen >= KMerSize) {
+					baseCount += r->ReadSequenceLen;
+					for (uint32_t j = 0; j < r->ReadSequenceLen; ++j)
+						baseQSum += exp((double)-r->Quality[j]/10*log(10.0));
+
 					for (size_t j = 0; j < r->ReadSequenceLen - KMerSize + 1; ++j) {
 						char *s = NULL;
 
@@ -599,6 +605,7 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 						++freqArray[kh_value(table, it)];
 				}
 
+				fprintf(stderr, "Average error rate: %.2lf\n", baseQSum*100 / baseCount);
 				for (size_t i = 0; i < maxValue; ++i) {
 					if (freqArray[i] > Options->Threshold)
 						fprintf(stdout, "%zu, %zu (%.2lf %%)\n", i, freqArray[i], (double)freqArray[i]*100/ kmerCount);
