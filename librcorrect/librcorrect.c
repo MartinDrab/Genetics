@@ -99,7 +99,7 @@ static ERR_VALUE convert_to_gassm2(const bseq1_t *Seqs, size_t Count, PONE_READ 
 }
 
 
-ERR_VALUE libcorrect_correct(PONE_READ Reads, size_t Count, PLIBRCORRECT_STATISTICS Stats)
+ERR_VALUE libcorrect_correct(PONE_READ Reads, size_t Count, const uint32_t Iterations, PLIBRCORRECT_STATISTICS Stats)
 {
 	fml_opt_t options;
 	bseq1_t *seqs = NULL;
@@ -122,8 +122,13 @@ ERR_VALUE libcorrect_correct(PONE_READ Reads, size_t Count, PLIBRCORRECT_STATIST
 		if (ret == ERR_SUCCESS) {
 			fml_opt_adjust(&options, Count, seqs);
 			Stats->K = options.ec_k;
-			fml_correct(&options, Count, seqs);
-			fml_fltuniq(&options, Count, seqs);
+			for (uint32_t i = 0; i < Iterations; ++i) {
+				fprintf(stderr, "Iteration #%u: error corrections...\n", i);
+				fml_correct(&options, Count, seqs);
+				fprintf(stderr, "Iteration #%u: Unique k-mer filtering...\n", i);
+				fml_fltuniq(&options, Count, seqs);
+			}
+			
 			for (size_t i = 0; i < Count; ++i) {
 				const bseq1_t *s = seqs + i;
 			

@@ -879,8 +879,8 @@ int main(int argc, char *argv[])
 						BAD_READS_STATISTICS badStats;
 						read_set_stats(po.Reads, po.ReadCount, po.ReadPosQuality, &badStats);
 						read_set_stats_print(stderr, &badStats);
-						fprintf(stderr, "Correcting reads...\n");
-						ret = libcorrect_correct(po.Reads, po.ReadCount, &stats);
+						fprintf(stderr, "Correcting reads (%u iterations)...\n", po.Threshold);
+						ret = libcorrect_correct(po.Reads, po.ReadCount, po.Threshold, &stats);
 						if (ret == ERR_SUCCESS) {
 							read_set_stats(po.Reads, po.ReadCount, po.ReadPosQuality, &badStats);
 							read_set_stats_print(stderr, &badStats);

@@ -753,25 +753,31 @@ static void worker_ec(void *_data, long k, int tid)
 {
 	ec_step_t *es = (ec_step_t*)_data;
 	bseq1_t *s = &es->seqs[k];
-	if (es->flt_uniq) {
-		uint64_t max;
-		max = max_streak(es->opt->k, es->ch, s);
-		if (max>>32 && (double)((max>>32) + es->opt->k - 1) / s->l_seq > es->opt->min_trim_frac) {
-			int start = (uint32_t)max, end = start + (max>>32);
-			start -= es->opt->k - 1;
-			assert(start >= 0 && end <= s->l_seq);
-			memmove(s->seq, s->seq + start, end - start);
-			s->l_seq = end - start;
-			s->seq[s->l_seq] = 0;
-			if (s->qual) {
-				memmove(s->qual, s->qual + start, s->l_seq);
-				s->qual[s->l_seq] = 0;
+	
+	if (s->l_seq >= es->opt->k) {
+		if (es->flt_uniq) {
+			uint64_t max;
+			max = max_streak(es->opt->k, es->ch, s);
+			if (max >> 32 && (double)((max >> 32) + es->opt->k - 1) / s->l_seq > es->opt->min_trim_frac) {
+				int start = (uint32_t)max, end = start + (max >> 32);
+				start -= es->opt->k - 1;
+				assert(start >= 0 && end <= s->l_seq);
+				memmove(s->seq, s->seq + start, end - start);
+				s->l_seq = end - start;
+				s->seq[s->l_seq] = 0;
+				if (s->qual) {
+					memmove(s->qual, s->qual + start, s->l_seq);
+					s->qual[s->l_seq] = 0;
+				}
 			}
-		} else {
-			free(s->seq); free(s->qual);
-			s->l_seq = 0, s->seq = s->qual = 0;
-		}
-	} else bfc_ec1(es->e[tid], s->seq, s->qual);
+			else {
+				free(s->seq); free(s->qual);
+				s->l_seq = 0, s->seq = s->qual = 0;
+			}
+		} else bfc_ec1(es->e[tid], s->seq, s->qual);
+	}
+
+	return;
 }
 
 float fml_correct_core(const fml_opt_t *opt, int flt_uniq, int n, bseq1_t *seq)

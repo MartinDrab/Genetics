@@ -20,7 +20,7 @@ typedef struct _LIBRCORRECT_STATISTICS {
 } LIBRCORRECT_STATISTICS, *PLIBRCORRECT_STATISTICS;
 
 
-ERR_VALUE libcorrect_correct(PONE_READ Reads, size_t Count, PLIBRCORRECT_STATISTICS Stats);
+ERR_VALUE libcorrect_correct(PONE_READ Reads, size_t Count, const uint32_t Iterations, PLIBRCORRECT_STATISTICS Stats);
 
 
 
