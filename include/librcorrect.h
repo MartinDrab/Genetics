@@ -23,14 +23,18 @@ typedef struct _LIBCORRECT_STATE {
 	PONE_READ Reads;
 	size_t Count;
 	void *ConvertedReads;
+	void *Options;
 	int K;
 } LIBCORRECT_STATE, *PLIBCORRECT_STATE;
 
 
-ERR_VALUE libcorrect_state_init(PLIBCORRECT_STATE State, const uint32_t NumberOfIterations, PONE_READ Reads, const size_t Count);
-ERR_VALUE libcorrect_correct(PLIBCORRECT_STATE State);
+ERR_VALUE libcorrect_state_init(PLIBCORRECT_STATE State, PONE_READ Reads, const size_t Count);
+void libcorrect_correct(PLIBCORRECT_STATE State);
+ERR_VALUE librcorrect_state_finit(PLIBCORRECT_STATE State);
+
 ERR_VALUE libcorrect_correct_stats(const LIBCORRECT_STATE *State, PLIBRCORRECT_STATISTICS Stats);
-void librcorrect_state_finit(PLIBCORRECT_STATE State);
+void librcorrect_stats_free(PLIBRCORRECT_STATISTICS Stats);
+void libcorrect_stats_print(FILE *Stream, const LIBRCORRECT_STATISTICS *Stats);
 
 
 

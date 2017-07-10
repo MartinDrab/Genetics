@@ -874,43 +874,32 @@ int main(int argc, char *argv[])
 					if (strncmp(cmd, "help", sizeof("help")) == 0) {
 						options_print_help();
 					} else if (strncmp(cmd, "correct", sizeof("correct") - 1) == 0) {
-						LIBRCORRECT_STATISTICS stats;
-						
-						BAD_READS_STATISTICS badStats;
-						read_set_stats(po.Reads, po.ReadCount, po.ReadPosQuality, &badStats);
-						read_set_stats_print(stderr, &badStats);
+						LIBRCORRECT_STATISTICS correctStats;
+						LIBCORRECT_STATE correctState;
+
 						fprintf(stderr, "Correcting reads (%u iterations)...\n", po.Threshold);
-						ret = libcorrect_correct(po.Reads, po.ReadCount, po.Threshold, &stats);
+						ret = libcorrect_state_init(&correctState, po.Reads, po.ReadCount);
 						if (ret == ERR_SUCCESS) {
-							read_set_stats(po.Reads, po.ReadCount, po.ReadPosQuality, &badStats);
-							read_set_stats_print(stderr, &badStats);
-							fprintf(stderr, "K:                  %u\n", stats.K);
-							fprintf(stderr, "Total reads:        %" PRIu64 "\n", stats.TotalReads);
-							fprintf(stderr, "Removed reads:      %" PRIu64 "\n", stats.ReadsRemoved);
-							fprintf(stderr, "Shortened reads:    %" PRIu64 "\n", stats.ReadsShortened);
-							fprintf(stderr, "Total bases:        %" PRIu64 "\n", stats.TotalBases);
-							fprintf(stderr, "Total repairs:      %" PRIu64 "\n", stats.TotalRepairs);
-							fputs("Repair count distribution:\n", stderr);
-							for (uint32_t i = 0; i < stats.RepairCountDistributionCount; ++i) {
-								if (stats.RepairCountDistribution[i] > 0)
-									fprintf(stderr, "%u,\t%" PRIu64 "\t%.2lf %%\n", i, stats.RepairCountDistribution[i], (double)stats.RepairCountDistribution[i]*100/stats.TotalReads);
-							}
-
-							fputs("Repair base position distribution:\n", stderr);
-							for (uint32_t i = 0; i < stats.RepairCountDistributionCount; ++i) {
-								if (stats.RepairBasePositionDistribution[i] > 0)
-									fprintf(stderr, "%u,\t%" PRIu64 "\t%.2lf %%\n", i, stats.RepairBasePositionDistribution[i], (double)stats.RepairBasePositionDistribution[i] * 100 / stats.TotalRepairs);
-							}
-
-							for (size_t i = 0; i < po.ReadCount; ++i) {
-								if (po.Reads[i].ReadSequenceLen > 0) {
-									read_quality_encode(po.Reads + i);
-									read_write_sam(stdout, po.Reads + i);
-									read_quality_decode(po.Reads + i);
+							for (uint32_t i = 0; i < po.Threshold; ++i) {
+								fprintf(stderr, "Correcting iteration #%u\n", i);
+								libcorrect_correct(&correctState);
+								ret = libcorrect_correct_stats(&correctState, &correctStats);
+								if (ret == ERR_SUCCESS) {
+									libcorrect_stats_print(stderr, &correctStats);
+									librcorrect_stats_free(&correctStats);
 								}
 							}
-							
-							utils_free(stats.RepairCountDistribution);
+
+							ret = librcorrect_state_finit(&correctState);
+							if (ret == ERR_SUCCESS) {
+								for (size_t i = 0; i < po.ReadCount; ++i) {
+									if (po.Reads[i].ReadSequenceLen > 0) {
+										read_quality_encode(po.Reads + i);
+										read_write_sam(stdout, po.Reads + i);
+										read_quality_decode(po.Reads + i);
+									}
+								}
+							}
 						}
 					} else if (strncmp(cmd, "rfreq", sizeof("rfreq") - 1) == 0) {
 						fprintf(stderr, "Computing k-mer frequency distribution (K=%u, threshold=%u)...\n", po.KMerSize, po.Threshold);

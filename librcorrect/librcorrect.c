@@ -1,4 +1,5 @@
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <omp.h>
@@ -99,70 +100,135 @@ static ERR_VALUE convert_to_gassm2(const bseq1_t *Seqs, size_t Count, PONE_READ 
 }
 
 
-ERR_VALUE libcorrect_correct(PONE_READ Reads, size_t Count, const uint32_t Iterations, PLIBRCORRECT_STATISTICS Stats)
+ERR_VALUE libcorrect_state_init(PLIBCORRECT_STATE State, PONE_READ Reads, const size_t Count)
 {
-	fml_opt_t options;
-	bseq1_t *seqs = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	memset(Stats, 0, sizeof(LIBRCORRECT_STATISTICS));
-	fml_opt_init(&options);
-	Stats->TotalReads = Count;
-	for (size_t i = 0; i < Count; ++i) {
-		Stats->TotalBases += Reads[i].ReadSequenceLen;
-		if (Stats->RepairCountDistributionCount < Reads[i].ReadSequenceLen)
-			Stats->RepairCountDistributionCount = Reads[i].ReadSequenceLen;
-	}
-
-	ret = utils_calloc_uint64_t(2*Stats->RepairCountDistributionCount, &Stats->RepairCountDistribution);
+	ret = utils_malloc(sizeof(fml_opt_t), &State->Options);
 	if (ret == ERR_SUCCESS) {
-		Stats->RepairBasePositionDistribution = Stats->RepairCountDistribution + Stats->RepairCountDistributionCount;
-		options.n_threads = omp_get_num_procs();
+		bseq1_t *seqs = NULL;
+		fml_opt_t *options = (fml_opt_t *)State->Options;
+
+		State->Count = Count;
+		State->Reads = Reads;
+		fml_opt_init(options);
+		options->n_threads = omp_get_num_procs();
 		ret = convert_to_fermilite(Reads, Count, &seqs);
 		if (ret == ERR_SUCCESS) {
-			fml_opt_adjust(&options, Count, seqs);
-			Stats->K = options.ec_k;
-			for (uint32_t i = 0; i < Iterations; ++i) {
-				fprintf(stderr, "Iteration #%u: error corrections...\n", i);
-				fml_correct(&options, Count, seqs);
-				fprintf(stderr, "Iteration #%u: Unique k-mer filtering...\n", i);
-				fml_fltuniq(&options, Count, seqs);
-			}
-			
-			for (size_t i = 0; i < Count; ++i) {
-				const bseq1_t *s = seqs + i;
-			
-				if (s->l_seq > 0) {
-					uint32_t repairCount = 0;
-
-					if (s->l_seq != Reads[i].ReadSequenceLen)
-						++Stats->ReadsShortened;
-
-					for (int32_t j = 0; j < s->l_seq; ++j) {
-						if (s->seq[j] == 'a' || s->seq[j] == 'c' ||
-							s->seq[j] == 'g' || s->seq[j] == 't') {
-							++repairCount;
-							++Stats->RepairBasePositionDistribution[s->l_seq - j - 1];
-						}
-					}
-
-					Stats->TotalRepairs += repairCount;
-					++Stats->RepairCountDistribution[repairCount];
-				} else ++Stats->ReadsRemoved;
-			}
-			
-			ret = convert_to_gassm2(seqs, Count, Reads);
-			if (ret == ERR_SUCCESS) {
-				for (size_t i = 0; i < Count; ++i)
-					read_quality_decode(Reads + i);
-			}
-
-			utils_free(seqs);
+			State->ConvertedReads = seqs;
+			fml_opt_adjust(options, Count, seqs);
 		}
-
+			
 		if (ret != ERR_SUCCESS)
-			utils_free(Stats->RepairCountDistribution);
+			utils_free(State->Options);
 	}
 
 	return ret;
+}
+
+
+void libcorrect_correct(PLIBCORRECT_STATE State)
+{
+	bseq1_t *seqs = (bseq1_t *)State->ConvertedReads;
+	const fml_opt_t *options = (fml_opt_t *)State->Options;
+
+	fml_correct(options, State->Count, seqs);
+	fml_fltuniq(options, State->Count, seqs);
+
+	return;
+}
+
+
+ERR_VALUE libcorrect_correct_stats(const LIBCORRECT_STATE *State, PLIBRCORRECT_STATISTICS Stats)
+{
+	bseq1_t *seqs = (bseq1_t *)State->ConvertedReads;
+	const fml_opt_t *options = (fml_opt_t *)State->Options;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	memset(Stats, 0, sizeof(LIBRCORRECT_STATISTICS));
+	Stats->K = options->ec_k;
+	Stats->TotalReads = State->Count;
+	for (size_t i = 0; i < State->Count; ++i) {
+		Stats->TotalBases += State->Reads[i].ReadSequenceLen;
+		if (Stats->RepairCountDistributionCount < State->Reads[i].ReadSequenceLen)
+			Stats->RepairCountDistributionCount = State->Reads[i].ReadSequenceLen;
+	}
+
+	ret = utils_calloc_uint64_t(2 * Stats->RepairCountDistributionCount, &Stats->RepairCountDistribution);
+	if (ret == ERR_SUCCESS) {
+		Stats->RepairBasePositionDistribution = Stats->RepairCountDistribution + Stats->RepairCountDistributionCount;
+		for (size_t i = 0; i < State->Count; ++i) {
+			const bseq1_t *s = seqs + i;
+
+			if (s->l_seq > 0) {
+				uint32_t repairCount = 0;
+
+				if (s->l_seq != State->Reads[i].ReadSequenceLen)
+					++Stats->ReadsShortened;
+
+				for (int32_t j = 0; j < s->l_seq; ++j) {
+					if (s->seq[j] == 'a' || s->seq[j] == 'c' ||
+						s->seq[j] == 'g' || s->seq[j] == 't') {
+						++repairCount;
+						++Stats->RepairBasePositionDistribution[s->l_seq - j - 1];
+					}
+				}
+
+				Stats->TotalRepairs += repairCount;
+				++Stats->RepairCountDistribution[repairCount];
+			} else ++Stats->ReadsRemoved;
+		}
+	}
+
+	return ret;
+}
+
+
+void librcorrect_stats_free(PLIBRCORRECT_STATISTICS Stats)
+{
+	utils_free(Stats->RepairCountDistribution);
+	memset(Stats, 0, sizeof(LIBRCORRECT_STATISTICS));
+
+	return;
+}
+
+
+ERR_VALUE librcorrect_state_finit(PLIBCORRECT_STATE State)
+{
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+	bseq1_t *seqs = (bseq1_t *)State->ConvertedReads;
+
+	ret = convert_to_gassm2(seqs, State->Count, State->Reads);
+	if (ret == ERR_SUCCESS) {
+		for (size_t i = 0; i < State->Count; ++i)
+			read_quality_decode(State->Reads + i);
+	}
+
+	utils_free(seqs);
+
+	return ret;
+}
+
+
+void libcorrect_stats_print(FILE *Stream, const LIBRCORRECT_STATISTICS *Stats)
+{
+	fprintf(Stream, "K:                  %u\n", Stats->K);
+	fprintf(Stream, "Total reads:        %" PRIu64 "\n", Stats->TotalReads);
+	fprintf(Stream, "Removed reads:      %" PRIu64 "\n", Stats->ReadsRemoved);
+	fprintf(Stream, "Shortened reads:    %" PRIu64 "\n", Stats->ReadsShortened);
+	fprintf(Stream, "Total bases:        %" PRIu64 "\n", Stats->TotalBases);
+	fprintf(Stream, "Total repairs:      %" PRIu64 "\n", Stats->TotalRepairs);
+	fputs("Repair count distribution:\n", stderr);
+	for (uint32_t i = 0; i < Stats->RepairCountDistributionCount; ++i) {
+		if (Stats->RepairCountDistribution[i] > 0)
+			fprintf(Stream, "%u,\t%" PRIu64 "\t%.2lf %%\n", i, Stats->RepairCountDistribution[i], (double)Stats->RepairCountDistribution[i] * 100 / Stats->TotalReads);
+	}
+
+	fputs("Repair base position distribution:\n", Stream);
+	for (uint32_t i = 0; i < Stats->RepairCountDistributionCount; ++i) {
+		if (Stats->RepairBasePositionDistribution[i] > 0)
+			fprintf(Stream, "%u,\t%" PRIu64 "\t%.2lf %%\n", i, Stats->RepairBasePositionDistribution[i], (double)Stats->RepairBasePositionDistribution[i] * 100 / Stats->TotalRepairs);
+	}
+
+	return;
 }
