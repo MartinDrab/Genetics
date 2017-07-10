@@ -221,13 +221,13 @@ void libcorrect_stats_print(FILE *Stream, const LIBRCORRECT_STATISTICS *Stats)
 	fputs("Repair count distribution:\n", stderr);
 	for (uint32_t i = 0; i < Stats->RepairCountDistributionCount; ++i) {
 		if (Stats->RepairCountDistribution[i] > 0)
-			fprintf(Stream, "%u,\t%" PRIu64 "\t%.2lf %%\n", i, Stats->RepairCountDistribution[i], (double)Stats->RepairCountDistribution[i] * 100 / Stats->TotalReads);
+			fprintf(Stream, "%u,\t%" PRIu64 "\t%.3lf %%\n", i, Stats->RepairCountDistribution[i], (double)Stats->RepairCountDistribution[i] * 100 / Stats->TotalReads);
 	}
 
 	fputs("Repair base position distribution:\n", Stream);
 	for (uint32_t i = 0; i < Stats->RepairCountDistributionCount; ++i) {
 		if (Stats->RepairBasePositionDistribution[i] > 0)
-			fprintf(Stream, "%u,\t%" PRIu64 "\t%.2lf %%\n", i, Stats->RepairBasePositionDistribution[i], (double)Stats->RepairBasePositionDistribution[i] * 100 / Stats->TotalRepairs);
+			fprintf(Stream, "%u,\t%" PRIu64 "\t%.3lf %%\n", i, Stats->RepairBasePositionDistribution[i], (double)Stats->RepairBasePositionDistribution[i] * 100 / Stats->TotalRepairs);
 	}
 
 	return;
