@@ -6,7 +6,7 @@ When an algorithm is being designed, its evaluation against existing solutions b
 \section{Test Data Set}
 \label{sec:test-data-set}
 
-The algorithm was tested on the first 40 megabases of chromosome 1 of the human genome. The test set is a high-coverage one and was obtained from the 1000 Genome Project. Except the input reads, variants called by fermi.kit and GATK are also available in form of VCF files. The VCF files were used as a measure of algorithm quality. Since our algorithm also requires a reference sequence to work, we took the GRCh37 version.
+The algorithm was tested on the first 40 megabases of chromosome 1 of the human genome. The test set is a high-coverage one and was obtained from the 1000 Genome Project. Except the input reads \cite{testreads}, variants called by fermi.kit and GATK are also available in form of VCF files \cite{testvcf}. The VCF files were used as a measure of algorithm quality. Since our algorithm also requires a reference sequence to work, we took the GRCh37 version \cite{testref}.
 
 The input read set consists of 12475011 reads with lengh of 151 bases. Figure \ref{fig:test-kmer-frequency-distribution} shows k-mer frequency distribution of the set with k-mer size of 21 bases. The shape of the graph, when compared to Figure \ref{fig:kmer-frequency-distribution} suggests that the set contains read errors. Hence, an error correction step was applied.
 
@@ -22,13 +22,3 @@ As described in Section \ref{sec:data-preprocessing}, not all input reads, even 
 \item Show the position-based and genotype results of rtgeval.
 \item describe interesting variants (variants that are not found by other software, explain some false negatives, demonstrate that graph optimizations actually revealed some variants...).
 \end{itemize}
-
-BAM:
-ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/pilot2_high_cov_GRCh
-37_bams/data/NA12878/alignment/
-
-VCF:
-ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/
-
-Reference:
-http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/human_g1k_v37.fasta.gz
