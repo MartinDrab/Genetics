@@ -541,7 +541,9 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	double baseQSum = 0.0;
 	uint64_t baseCount = 0;
+	uint64_t baseQualityDistribution[255];
 
+	memset(baseQualityDistribution, 0, sizeof(baseQualityDistribution));
 	ret = utils_calloc_char(KMerSize + 1, &kmerString);
 	if (ret == ERR_SUCCESS) {
 		PONE_READ r = Reads;
@@ -550,8 +552,10 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 		for (size_t i = 0; i < ReadCount; ++i) {			
 				if (r->ReadSequenceLen >= KMerSize) {
 					baseCount += r->ReadSequenceLen;
-					for (uint32_t j = 0; j < r->ReadSequenceLen; ++j)
-						baseQSum += exp((double)-r->Quality[j]/10*log(10.0));
+					for (uint32_t j = 0; j < r->ReadSequenceLen; ++j) {
+						baseQSum += exp((double)-r->Quality[j] / 10 * log(10.0));
+						++baseQualityDistribution[r->Quality[j]];
+					}
 
 					for (size_t j = 0; j < r->ReadSequenceLen - KMerSize + 1; ++j) {
 						char *s = NULL;
@@ -610,6 +614,10 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 					if (freqArray[i] > Options->Threshold)
 						fprintf(stdout, "%zu, %zu (%.2lf %%)\n", i, freqArray[i], (double)freqArray[i]*100/ kmerCount);
 				}
+
+				fprintf(stdout, "\nBase quality distribution:\n");
+				for (uint32_t i = 0; i <= 255; ++i)
+					fprintf(stdout, "%u, %" PRIu64 ", %.3lf %%\n", i, baseQualityDistribution[i], (double)baseQualityDistribution[i]*100 / baseCount);
 
 				utils_free(freqArray);
 			}
