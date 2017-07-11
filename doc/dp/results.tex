@@ -24,7 +24,19 @@ As Table \ref{tab:test-correction} indicates, the error correction process remov
 \begin{center}
 \caption{Statistics related to error correction of the test data set}
 \label{tab:test-correction}
-\begin{tabular}{| r | p{5cm} |}
+\begin{tabular}{| c | c | p{5cm} |}
+Category & Value & Percentage
+\hline
+Total reads & 12475011 & - \\
+\hline
+Removed & 64653 &  $0.52$ \% of all reads. \\
+\hline
+Shortened & 944 & $0.0076$ \% of all reads \\
+\hline
+Total bases & 1880123991 & - \\
+\hline
+Bases repaired & 5098764 &  $0.27$ of all bases \\
+\hline
 \end{tabular}
 \end{table}
 
@@ -50,7 +62,24 @@ As described in Section \ref{sec:data-preprocessing}, not all input reads, even 
 \begin{center}
 \caption{Categories of reads present within the corrected test data set}
 \label{tab:corrected-set-categories}
-\begin{tabular}{| r | p{5cm} |}
+\begin{tabular}{| c | c | p{5cm} |}
+\hline
+Name & Value & Percentage \\
+\hline
+Total reads & 12410475 & - \\
+\hline
+Bad reads & 2357002  & $18.99$ \% of all reads \\
+\hline
+Low MAPQ & 305588 & $12.97$ \% of bad reads \\
+\hline
+Unmapped & 5020 & $0.21$ \% of bad reads \\
+\hline
+Supplementary & 33621 & $1.43$ \% of bad reads \\
+\hline
+Duplicate & 2065795 & $87.65$ \% of bad reads \\
+\hline
+Soft-clipped & 305209 & $3.04$ \% of accempted reads \\
+\hline
 \end{tabular}
 \end{table}
 
