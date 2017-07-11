@@ -10,12 +10,12 @@ The algorithm was tested on the first 40 megabases of chromosome 1 of the human 
 
 The input read set consists of 12475011 reads with lengh of 151 bases. Figure \ref{fig:test-kmer-frequency-distribution} shows k-mer frequency distribution of the set with k-mer size of 21 bases. The shape of the graph, when compared to Figure \ref{fig:kmer-frequency-distribution} suggests that the set contains read errors. Hence, an error correction step was applied.
 
-\begin{figure}[h]
-	\centering
-	\includegraphics{img/test-kmer-frequency-distribution.pdf}
-	\caption{K-mer frequency distrubtion of the raw input read set}
-	\label{fig:test-kmer-frequency-distribution}
-\end{figure}
+% \begin{figure}[h]
+%	\centering
+%	\includegraphics{img/test-kmer-frequency-distribution.pdf}
+%	\caption{K-mer frequency distrubtion of the raw input read set}
+%	\label{fig:test-kmer-frequency-distribution}
+% \end{figure}
 
 
 As Table \ref{tab:test-correction} indicates, the error correction process removed and shortened certain amount of reads. About 21 \% of the input reads was subject to repairs. Figure \ref{fig:test-repair-frequency} shows a distribution of the number of repaired bases per read, not including effects of read shortage. It is clear, that about 21 \% of all reads received a base correction, and that, in most cases, only several bases were fixed. 
@@ -25,7 +25,8 @@ As Table \ref{tab:test-correction} indicates, the error correction process remov
 \caption{Statistics related to error correction of the test data set}
 \label{tab:test-correction}
 \begin{tabular}{| c | c | p{5cm} |}
-Category & Value & Percentage
+\hline
+Category & Value & Percentage \\
 \hline
 Total reads & 12475011 & - \\
 \hline
@@ -38,23 +39,24 @@ Total bases & 1880123991 & - \\
 Bases repaired & 5098764 &  $0.27$ of all bases \\
 \hline
 \end{tabular}
+\end{center}
 \end{table}
 
 \begin{figure}[h]
 	\centering
-	\includegraphics{img/test-repair-frequency.ps}
+	\includegraphics{img/test-repair-frequency.pdf}
 	\caption{Distribution of a number of repaired bases in a single read}
 	\label{fig:test-repair-frequency}
 \end{figure}
 
 Figure \ref{fig:test-kmer-frequency-distribution2} shows the k-mer frequency distribution of the corrected read set. Although quite far from perfect, the graph shape definitely resembles the ideal one better then in case of the raw  read set. 
 
-\begin{figure}[h]
-	\centering
-	\includegraphics{img/test-kmer-frequency-distribution2.pdf}
-	\caption{K-mer frequency distrubtion of the corrected read set}
-	\label{fig:test-kmer-frequency-distribution2}
-\end{figure}
+% \begin{figure}[h]
+%	\centering
+%	\includegraphics{img/test-kmer-frequency-distribution2.pdf}
+%	\caption{K-mer frequency distrubtion of the corrected read set}
+%	\label{fig:test-kmer-frequency-distribution2}
+% \end{figure}
 
 As described in Section \ref{sec:data-preprocessing}, not all input reads, even from the corrected set, can be processed by our algorithm. Table \ref{tab:corrected-set-categories} summarizes numbers of reads unacceptable for various reasons. The preprocessing phase removed nearly one fifth of the corrected data set (18.99 \%). Most of the reads were removed due to being possible duplicates (87.65 \%). Quite a large portion of  reads were not accepted because of their low mapping quality (12.97 \%). Also, about 3 \% of all the reads were shortened in order to remove soft-clipped regions.
 
@@ -81,6 +83,7 @@ Duplicate & 2065795 & $87.65$ \% of bad reads \\
 Soft-clipped & 305209 & $3.04$ \% of accempted reads \\
 \hline
 \end{tabular}
+\end{center}
 \end{table}
 
 
