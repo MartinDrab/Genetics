@@ -18,7 +18,15 @@ The input read set consists of 12475011 reads with lengh of 151 bases. Figure \r
 \end{figure}
 
 
-As Table \ref{tab:test-correction} indicates, the error correction process removed certain amount or shortened of reads. About 21 \% of the input reads was subject to repairs. Figure \ref{fig:test-repair-frequency} shows a distribution of the number of repaired bases per read, not including effects of read shortage. It is clear, that in most cases, only several bases were fixed. Figure \ref{fig:test-pos-repair-frequency} shows the repair frequency at individual read positions. It suggests that most bases were repaired at read's beginning or end, alghtough the difference is not too signifficant.
+As Table \ref{tab:test-correction} indicates, the error correction process removed and shortened certain amount of reads. About 21 \% of the input reads was subject to repairs. Figure \ref{fig:test-repair-frequency} shows a distribution of the number of repaired bases per read, not including effects of read shortage. It is clear, that in most cases, only several bases were fixed. 
+
+\begin{table}[h]
+\begin{center}
+\caption{Statistics related to error correction of the test data set}
+\label{tab:test-correction}
+\begin{tabular}{| r | p{5cm} |}
+\end{tabular}
+\end{table}
 
 \begin{figure}[h]
 	\centering
@@ -38,8 +46,16 @@ Figure \ref{fig:test-kmer-frequency-distribution2} shows the k-mer frequency dis
 
 As described in Section \ref{sec:data-preprocessing}, not all input reads, even from the corrected set, can be processed by our algorithm. Table \ref{tab:corrected-set-categories} summarizes numbers of reads unacceptable for various reasons. The preprocessing phase removed nearly one fifth of the corrected data set (19.23 \%). Most of the reads were removed due to being possible duplicates (86 \%). Quite a large portion of  reads were not accepted because of their low mapping quality (14 \%). Also, about 3 \% of all the reads were shortened in order to remove soft-clipped regions.
 
+\begin{table}[h]
+\begin{center}
+\caption{Categories of reads present within the corrected test data set}
+\label{tab:corrected-set-categories}
+\begin{tabular}{| r | p{5cm} |}
+\end{tabular}
+\end{table}
+
+
 \begin{itemize}
-\item describe the data set used for tests and its sources,
 \item describe algorithms and software to evaluate the results (fermikit, fermikit run at individual regions, GATK, mpileup of samtools, rtgeval for evaluation),
 \item Show the position-based and genotype results of rtgeval.
 \item describe interesting variants (variants that are not found by other software, explain some false negatives, demonstrate that graph optimizations actually revealed some variants...).
