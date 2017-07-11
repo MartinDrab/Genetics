@@ -541,7 +541,7 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	double baseQSum = 0.0;
 	uint64_t baseCount = 0;
-	uint64_t baseQualityDistribution[255];
+	uint64_t baseQualityDistribution[256];
 
 	memset(baseQualityDistribution, 0, sizeof(baseQualityDistribution));
 	ret = utils_calloc_char(KMerSize + 1, &kmerString);
@@ -616,8 +616,10 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 				}
 
 				fprintf(stdout, "\nBase quality distribution:\n");
-				for (uint32_t i = 0; i <= 255; ++i)
-					fprintf(stdout, "%u, %" PRIu64 ", %.3lf %%\n", i, baseQualityDistribution[i], (double)baseQualityDistribution[i]*100 / baseCount);
+				for (uint32_t i = 0; i < 256; ++i) {
+					if (baseQualityDistribution[i] > 0)
+						fprintf(stdout, "%u, %" PRIu64 ", %.3lf %%\n", i, baseQualityDistribution[i], (double)baseQualityDistribution[i] * 100 / baseCount);
+				}
 
 				utils_free(freqArray);
 			}
