@@ -18,7 +18,7 @@ The input read set consists of 12475011 reads with lengh of 151 bases. Figure \r
 \end{figure}
 
 
-As Table \ref{tab:test-correction} indicates, the error correction process removed and shortened certain amount of reads. About 21 \% of the input reads was subject to repairs. Figure \ref{fig:test-repair-frequency} shows a distribution of the number of repaired bases per read, not including effects of read shortage. It is clear, that in most cases, only several bases were fixed. 
+As Table \ref{tab:test-correction} indicates, the error correction process removed and shortened certain amount of reads. About 21 \% of the input reads was subject to repairs. Figure \ref{fig:test-repair-frequency} shows a distribution of the number of repaired bases per read, not including effects of read shortage. It is clear, that about 21 \% of all reads received a base correction, and that, in most cases, only several bases were fixed. 
 
 \begin{table}[h]
 \begin{center}
@@ -42,7 +42,7 @@ Bases repaired & 5098764 &  $0.27$ of all bases \\
 
 \begin{figure}[h]
 	\centering
-	\includegraphics{img/test-repair-frequency.pdf}
+	\includegraphics{img/test-repair-frequency.ps}
 	\caption{Distribution of a number of repaired bases in a single read}
 	\label{fig:test-repair-frequency}
 \end{figure}
@@ -56,7 +56,7 @@ Figure \ref{fig:test-kmer-frequency-distribution2} shows the k-mer frequency dis
 	\label{fig:test-kmer-frequency-distribution2}
 \end{figure}
 
-As described in Section \ref{sec:data-preprocessing}, not all input reads, even from the corrected set, can be processed by our algorithm. Table \ref{tab:corrected-set-categories} summarizes numbers of reads unacceptable for various reasons. The preprocessing phase removed nearly one fifth of the corrected data set (19.23 \%). Most of the reads were removed due to being possible duplicates (86 \%). Quite a large portion of  reads were not accepted because of their low mapping quality (14 \%). Also, about 3 \% of all the reads were shortened in order to remove soft-clipped regions.
+As described in Section \ref{sec:data-preprocessing}, not all input reads, even from the corrected set, can be processed by our algorithm. Table \ref{tab:corrected-set-categories} summarizes numbers of reads unacceptable for various reasons. The preprocessing phase removed nearly one fifth of the corrected data set (18.99 \%). Most of the reads were removed due to being possible duplicates (87.65 \%). Quite a large portion of  reads were not accepted because of their low mapping quality (12.97 \%). Also, about 3 \% of all the reads were shortened in order to remove soft-clipped regions.
 
 \begin{table}[h]
 \begin{center}
