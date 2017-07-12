@@ -9,7 +9,7 @@ size_t read_info_weight(const READ_INFO *Info, const uint8_t *QualityTable)
 {
 	size_t ret = 0;
 	size_t count = 0;
-	size_t readIndex = (size_t)-1;
+	size_t readIndex = SIZE_MAX;
 	const READ_INFO_ENTRY *entry = Info->Array.Data;
 
 	for (size_t i = 0; i < read_info_get_count(Info); ++i) {
@@ -18,13 +18,13 @@ size_t read_info_weight(const READ_INFO *Info, const uint8_t *QualityTable)
 			continue;
 		}
 
-		ret += entry->Quality;
+		ret += QualityTable[entry->Quality];
 		readIndex = entry->ReadIndex;
 		++entry;
 		++count;
 	}
 
-	return (count > 0) ? (ret/count) : 0;
+	return ret;
 }
 
 void read_info_init(PREAD_INFO Info)

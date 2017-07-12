@@ -461,11 +461,7 @@ static boolean _has_outgoing_read_edges(const KMER_VERTEX *Vertex)
 static void _init_quality_table(uint8_t *Table)
 {
 	memset(Table, 100, 256 * sizeof(uint8_t));
-	Table[0] = 0;
-	memset(Table + 1, 0, 9 * sizeof(char));
-	memset(Table + 10, 25, 7 * sizeof(char));
-	memset(Table + 17, 50, 8 * sizeof(char));
-	memset(Table + 25, 75, 5 * sizeof(char));
+	memset(Table, 0, 21 * sizeof(char));
 
 	return;
 }
