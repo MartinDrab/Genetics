@@ -1804,11 +1804,6 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 
 							vc.AltWeight = (total / (rewEndIndex + 1 - rewStartIndex));
 							vc.BinProb = _binomic_probability(vc.AltWeight, gen_array_size(&vc.RefReads), gen_array_size(&vc.AltReads));
-							if (Options->ReadCoverage > 0) {
-								vc.AltWeight /= Options->ReadCoverage;
-								vc.RefWeight /= Options->ReadCoverage;
-							}
-
 							ret = vc_array_add(VCArray, &vc, NULL);
 							if (ret != ERR_SUCCESS) {
 								variant_call_finit(&vc);
