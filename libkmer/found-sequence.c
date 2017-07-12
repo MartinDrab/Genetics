@@ -199,6 +199,7 @@ void vc_array_print(FILE *Stream, const char *ReferenceFile, const GEN_ARRAY_VAR
 	fprintf(Stream, "##INFO=<ID=RC,Number=1,Type=Integer,Description=\"Reference read count\">\n");
 	fprintf(Stream, "##INFO=<ID=AC,Number=A,Type=Integer,Description=\"Alelle read count\">\n");
 	fprintf(Stream, "##INFO=<ID=KS,Number=A,Type=Integer,Description=\"k-mer size used for variant discovery\">\n");
+	fprintf(Stream, "##INFO=<ID=BP,Number=A,Type=Integer,Description=\"Binomial coefficient for the variant\">\n");
 	fprintf(Stream, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n");
 	fprintf(Stream, "##FORMAT=<ID=PS,Number=1,Type=String,Description=\"Phase number\">\n");
 	fprintf(Stream, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t13350_1\n");
