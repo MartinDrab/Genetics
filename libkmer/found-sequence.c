@@ -125,7 +125,8 @@ ERR_VALUE vc_array_add(PGEN_ARRAY_VARIANT_CALL Array, const VARIANT_CALL *VC, PV
 					*Existing = tmp;
 				
 				ret = ERR_ALREADY_EXISTS;
-			}break;
+			}
+
 			break;
 		}
 
@@ -309,7 +310,7 @@ ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL S
 				PVARIANT_CALL minVc = NULL;
 				
 				while (ret == ERR_SUCCESS && remainingCount > 0) {
-					minValue = (uint64_t)-1;
+					minValue = UINT64_MAX;
 					for (size_t i = 0; i < SourceCount; ++i) {
 						if (indices[i] < counts[i]) {
 							PVARIANT_CALL vc = dym_array_item_VARIANT_CALL(Sources + i, indices[i]);
@@ -322,7 +323,7 @@ ERR_VALUE vc_array_merge(PGEN_ARRAY_VARIANT_CALL Dest, PGEN_ARRAY_VARIANT_CALL S
 						}
 					}
 
-					if (minValue != (uint64_t)-1) {
+					if (minValue != UINT64_MAX) {
 						ret = vc_array_add(Dest, minVc, NULL);
 						if (ret == ERR_ALREADY_EXISTS) {
 							variant_call_finit(minVc);
