@@ -8,6 +8,7 @@
 size_t read_info_weight(const READ_INFO *Info, const uint8_t *QualityTable)
 {
 	size_t ret = 0;
+	size_t count = 0;
 	size_t readIndex = (size_t)-1;
 	const READ_INFO_ENTRY *entry = Info->Array.Data;
 
@@ -17,12 +18,13 @@ size_t read_info_weight(const READ_INFO *Info, const uint8_t *QualityTable)
 			continue;
 		}
 
-		ret += QualityTable[entry->Quality];
+		ret += entry->Quality;
 		readIndex = entry->ReadIndex;
 		++entry;
+		++count;
 	}
 
-	return ret;
+	return (count > 0) ? (ret/count) : 0;
 }
 
 void read_info_init(PREAD_INFO Info)

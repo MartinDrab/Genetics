@@ -1703,28 +1703,22 @@ static ERR_VALUE _capture_alt_data(const POINTER_ARRAY_KMER_EDGE *Edges, PREFSEQ
 }
 
 
-static uint32_t _binomic_probability(const size_t RefReads, const size_t AltReads)
+static uint32_t _binomic_probability(const uint8_t Quality, const size_t RefReads, const size_t AltReads)
 {
 	uint32_t ret = 0;
 	double res = 1.0;
-	const size_t n = (RefReads + AltReads) / 100;
-	const double kn = (double)AltReads / (n*100);
-	const size_t k = AltReads / 100;
+	double failProb = exp(-Quality*log(10)/10);
+	const size_t n = AltReads + RefReads;
 
-	if (AltReads > 0 && RefReads > 0) {
-		for (size_t i = 0; i < k; ++i) {
-			res *= (n - i);
-			res /= (i + 1);
-			res *= kn;
-		}
+	for (size_t i = 0; i < AltReads; ++i) {
+		res *= (n - i);
+		res /= (i + 1);
+	}
 
-		for (size_t i = 0; i < n - k; ++i)
-			res *= (1 - kn);
-	} else if (RefReads == 0)
-		res = 1.0;
-	else res = 0;
+	res *= exp(AltReads*log(failProb));
+	res *= exp(RefReads*log(1 - failProb));
 
-	ret = (uint32_t)round(res * 100);
+	ret = round(res*10000);
 
 	return ret;
 }
@@ -1809,9 +1803,7 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 								total += ReadWeights->Data[i];
 
 							vc.AltWeight = (total / (rewEndIndex + 1 - rewStartIndex));
-							vc.ProbByCounts = _binomic_probability(100*gen_array_size(&vc.RefReads), 100*gen_array_size(&vc.AltReads));
-							vc.ProbByWeights = _binomic_probability(vc.RefWeight, vc.AltWeight);
-							
+							vc.BinProb = _binomic_probability(vc.AltWeight, gen_array_size(&vc.RefReads), gen_array_size(&vc.AltReads));
 							if (Options->ReadCoverage > 0) {
 								vc.AltWeight /= Options->ReadCoverage;
 								vc.RefWeight /= Options->ReadCoverage;

@@ -25,8 +25,7 @@ typedef enum _EVariantCallPhaseType {
 typedef struct _VARIANT_CALL {
 	char *Chrom;
 	uint32_t KMerSize;
-	uint32_t ProbByCounts;
-	uint32_t ProbByWeights;
+	uint32_t BinProb;
 	uint32_t ReadCoverage;
 	uint64_t Pos;
 	char *ID;

@@ -222,9 +222,9 @@ void vc_array_print(FILE *Stream, const char *ReferenceFile, const GEN_ARRAY_VAR
 
 			if (refLen == altLen) {
 				for (size_t j = 0; j < refLen; ++j)
-					fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%c\t%c\t60\tPASS\tRW=%zu;RC=%zu;AW=%zu;AC=%zu;KS=%u;PC=%u;PW=%u\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos + j, tmp->ID, tmp->Ref[j], tmp->Alt[j], tmp->RefWeight, gen_array_size(&tmp->RefReads), tmp->AltWeight, gen_array_size(&tmp->AltReads), tmp->KMerSize, tmp->ProbByCounts, tmp->ProbByWeights, genotype, tmp->PhasedPos);
+					fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%c\t%c\t60\tPASS\tRW=%zu;RC=%zu;AW=%zu;AC=%zu;KS=%u;BP=%u\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos + j, tmp->ID, tmp->Ref[j], tmp->Alt[j], tmp->RefWeight, gen_array_size(&tmp->RefReads), tmp->AltWeight, gen_array_size(&tmp->AltReads), tmp->KMerSize, tmp->BinProb, genotype, tmp->PhasedPos);
 			}
-			else fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\tRW=%zu;RC=%zu;AW=%zu;AC=%zu;KS=%u;PC=%u;PW=%u\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, tmp->RefWeight, gen_array_size(&tmp->RefReads), tmp->AltWeight, gen_array_size(&tmp->AltReads), tmp->KMerSize, tmp->ProbByCounts, tmp->ProbByWeights, genotype, tmp->PhasedPos);
+			else fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\tRW=%zu;RC=%zu;AW=%zu;AC=%zu;KS=%u;BP=%u\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, tmp->RefWeight, gen_array_size(&tmp->RefReads), tmp->AltWeight, gen_array_size(&tmp->AltReads), tmp->KMerSize, tmp->BinProb, genotype, tmp->PhasedPos);
 		}
 
 		++tmp;
@@ -378,8 +378,7 @@ ERR_VALUE vc_array_intersection(GEN_ARRAY_VARIANT_CALL *A1, const GEN_ARRAY_VARI
 				ret = variant_call_init(v1->Chrom, v1->Pos, v1->ID, v1->Ref, strlen(v1->Ref), v1->Alt, strlen(v1->Alt), v1->Qual, &v1->RefReads, &v1->AltReads, &tmp);
 				if (ret == ERR_SUCCESS) {
 					tmp.KMerSize = min(v1->KMerSize, v2->KMerSize);
-					tmp.ProbByCounts = v1->ProbByCounts;
-					tmp.ProbByWeights = v1->ProbByWeights;
+					tmp.BinProb = v1->BinProb;
 					tmp.RefWeight = v1->RefWeight;
 					tmp.AltWeight = v1->AltWeight;
 					if (vc_array_add(Intersection, &tmp, NULL) != ERR_SUCCESS)
