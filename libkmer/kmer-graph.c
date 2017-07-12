@@ -1703,24 +1703,82 @@ static ERR_VALUE _capture_alt_data(const POINTER_ARRAY_KMER_EDGE *Edges, PREFSEQ
 }
 
 
-static uint32_t _binomic_probability(const uint8_t Quality, const size_t RefReads, const size_t AltReads)
+#define KF_GAMMA_EPS 1e-14
+#define KF_TINY 1e-290 
+
+/* Log gamma function
+* \log{\Gamma(z)}
+* AS245, 2nd algorithm, http://lib.stat.cmu.edu/apstat/245
+*/
+static double kf_lgamma(double z)
 {
-	uint32_t ret = 0;
-	double res = 1.0;
-	double failProb = exp(-Quality*log(10)/10);
-	const size_t n = AltReads + RefReads;
+	double x = 0;
+	x += 0.1659470187408462e-06 / (z + 7);
+	x += 0.9934937113930748e-05 / (z + 6);
+	x -= 0.1385710331296526 / (z + 5);
+	x += 12.50734324009056 / (z + 4);
+	x -= 176.6150291498386 / (z + 3);
+	x += 771.3234287757674 / (z + 2);
+	x -= 1259.139216722289 / (z + 1);
+	x += 676.5203681218835 / z;
+	x += 0.9999999999995183;
+	return log(x) - 5.58106146679532777 - z + (z - 0.5) * log(z + 6.5);
+}
 
-	for (size_t i = 0; i < AltReads; ++i) {
-		res *= (n - i);
-		res /= (i + 1);
+
+/* Regularized incomplete beta function. The method is taken from
+* Numerical Recipe in C, 2nd edition, section 6.4. The following web
+* page calculates the incomplete beta function, which equals
+* kf_betai(a,b,x) * gamma(a) * gamma(b) / gamma(a+b):
+*
+*   http://www.danielsoper.com/statcalc/calc36.aspx
+*/
+static double kf_betai_aux(double a, double b, double x)
+{
+	double C, D, f;
+	int j;
+	if (x == 0.) return 0.;
+	if (x == 1.) return 1.;
+	f = 1.; C = f; D = 0.;
+	// Modified Lentz's algorithm for computing continued fraction
+	for (j = 1; j < 200; ++j) {
+		double aa, d;
+		int m = j >> 1;
+		aa = (j & 1) ? -(a + m) * (a + b + m) * x / ((a + 2 * m) * (a + 2 * m + 1))
+			: m * (b - m) * x / ((a + 2 * m - 1) * (a + 2 * m));
+		D = 1. + aa * D;
+		if (D < KF_TINY) D = KF_TINY;
+		C = 1. + aa / C;
+		if (C < KF_TINY) C = KF_TINY;
+		D = 1. / D;
+		d = C * D;
+		f *= d;
+		if (fabs(d - 1.) < KF_GAMMA_EPS) break;
 	}
+	return exp(kf_lgamma(a + b) - kf_lgamma(a) - kf_lgamma(b) + a * log(x) + b * log(1. - x)) / a / f;
+}
 
-	res *= exp(AltReads*log(failProb));
-	res *= exp(RefReads*log(1 - failProb));
 
-	ret = round(res*10000);
+double kf_betai(double a, double b, double x)
+{
+	return x < (a + 1.) / (a + b + 2.) ? kf_betai_aux(a, b, x) : 1. - kf_betai_aux(b, a, 1. - x);
+}
 
-	return ret;
+
+static inline uint32_t calc_binom(size_t na, size_t nb)
+{
+	size_t N = na + nb;
+	
+	if (N == 0) 
+		return 1;
+
+	/*
+	kfunc.h implements kf_betai, which is the regularized beta function I_x(a,b) = P(X<=a/(a+b))
+	*/
+	double prob = 2 * kf_betai(na, nb + 1, 0.5);
+	if (prob > 1) prob = 1;
+
+	return (uint32_t)round(prob*10000);
 }
 
 
@@ -1803,7 +1861,7 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 								total += ReadWeights->Data[i];
 
 							vc.AltWeight = (total / (rewEndIndex + 1 - rewStartIndex));
-							vc.BinProb = _binomic_probability(vc.AltWeight, gen_array_size(&vc.RefReads), gen_array_size(&vc.AltReads));
+							vc.BinProb = calc_binom(gen_array_size(&vc.RefReads), gen_array_size(&vc.AltReads));
 							ret = vc_array_add(VCArray, &vc, NULL);
 							if (ret != ERR_SUCCESS) {
 								variant_call_finit(&vc);
