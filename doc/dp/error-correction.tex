@@ -58,9 +58,10 @@ We have successfully extracted the error correction algorithm from the project. 
 
 The main goal of the preprocessing phase is to compute frequencies for all k-mers found in the input read set. The frequencies are computed by inserting the k-mers into a k-mer table. During this phase, several terms related to k-mers and their occurrences are introduced:
 \begin{itemize}
-\item A k-mer occurrence is defined as \textit{high quality} one if quality of all bases covered by the k-mer is greater than certain threshold. If not all bases satisfy this condition, the occurrence is considered as \textit{low quality}.
+\item A k-mer occurrence is defined as \textit{high quality} one if quality of all bases covered by it is greater than certain threshold (set to 20 by default). If not all bases satisfy this condition, the occurrence is considered as \textit{low quality}.
 \item A k-mer is considered \textit{solid} if its frequency is greater than certain threshold.
 \item A k-mer is considered \textit{unique} if it its frequency is zero.
+\item A k-mer is referred as \textit{absent} if it its frequency is is below certain threshold.
 \end{itemize}
 K-mers are implemented as four 64-bit integers,, with structure shown in Figure \ref{fig:fermi-kmer-structure}. Each base is represented by two bits. That gives limitation for maximum k-mer size to 64. The first 64-bit integer stores least signifficant bits of the k-mer bases, the second contains their most signifficant bits. The bases are stored in an opposite order --- the first base resides in bits k-1, the second to k-2 and so on. The second two integers store the same content, but with different order --- the first base is stored in bits 0, the second in bits 1 etc. Such a k-mer form is redundant; only two 64-bit integers are required to hold all the necessary information. The error correction algorithm actually uses the two-integer representation quite often.
 
@@ -75,7 +76,7 @@ Such a represetantion allows quick appends or individual base changes. To append
 
 The k-mer table is actually a set of $2^{l_pre}$ khash tables. When a k-mer is being inserted or looked up, $l_pre$ bits of its data are used to select the table and the rest serves as an input to the hash function. $l_pre = 20$ by default. This representation of the k-mer table increases overall memory consumption, but has great impact on its performance in parallel environemnts. 
 
-The table uses 14 bits to track occurrences of each k-mer. Lower 8 bits count low quality occurrences, higher 6 bits are used by high quality ones. The counting stops on values of 255 and 63, no integer overflow happens.
+The table uses 14 bits to track occurrences of each k-mer. Lower 8 bits count low quality occurrences, higher 6 bits are used by high quality ones. The counting stops on values of 255 and 63, no integer overflow happens. The table actually stores their hashes and occurrences, rather than full k-mers. Hence, distinct k-mers may be treated as one, since the table may use up to $l_{pre}$ (20 by default) of k-mer content to choose the right khash table, and up to 50 bits may be stored as a key. That means, key colisions may be avoided if the k-mer size drops below 35 (the table actually has a different hash function for k-mers size below 33).
 
 After the insertion stage, a k-mer frequency distribution is computed individually for low quality and high quality occurrences. The most common frequency is named \textit{mode} and is used during the second and third pahse of the algorithm.
 
@@ -89,9 +90,9 @@ All phases of the algorithm are partialy driven by its parameters. Table \ref{ta
 \hline
 Parameter & Default value & Description \\
 \hline
-$k$ & 0 & K-mer size \\
+$k$ & - & K-mer size. By default, this value is set to the base-two logarithm of the total number of bases. \\
 \hline
-$q$ & 20 & Base quality threshold used to recongize high quality content from low quality one. $P(error) = 10^{\frac{q}{10}}$ \\
+$q$ & 20 & Base quality threshold used to recongize high quality content from low quality one. $P(error) = 10^{-\frac{q}{10}}$ \\
 \hline
 $min\_cov$ & 4 & Mimimum frequency for solid k-mers. \\
 \hline
@@ -101,15 +102,15 @@ $l_{pre}$ & 20 & Number of khash tables in the k-mer table, defined as $2^{l\_pr
 \hline
 $min\_trim\_frac$ & 0.8 &  Defines how long the sequence of solid k-mers must be in order not to remove the read during unique k-mer filtering. \\
 \hline
-$w_{ec}$ & 1 & Participates in a weighing function used in the error correction step.\\
+$w_{ec}$ & 1 & Participates in the weighing function used in the error correction step.\\
 \hline
-$w_{ec\_high}$ & 7 & Participates in a weighing function used in the error correction step. \\
+$w_{ec\_high}$ & 7 & Participates in the weighing function used in the error correction step. \\
 \hline
-$w_{absent}$ & 3 & Participates in a weighing function used in the error correction step. \\
+$w_{absent}$ & 3 & Participates in the weighing function used in the error correction step. \\
 \hline
-$w_{absent\_high}$ & 1 & Participates in a weighing function used in the error correction step. \\ 
+$w_{absent\_high}$ & 1 & Participates in the weighing function used in the error correction step. \\ 
 \hline
-$max\_path\_diff$ & 15 & Participates in a weighing function used in the error correction step. \\ 
+$max\_path\_diff$ & 15 & Participates in the weighing function used in the error correction step. \\ 
 \hline
 \end{tabular}
 \end{center}
