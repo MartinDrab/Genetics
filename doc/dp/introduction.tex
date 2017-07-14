@@ -47,7 +47,7 @@ Solution to the second problem is implied by the facts that k-mer coverage of th
 \section{The Real World}
 \label{sec:real-world}
 
-One of the main differences between the ideal and real sequencing data lies in the fact that the real one contain sequencing errors. In other words, some of the reads contain incorrectly interpreted bases. To help with identifying such bases, each base of a read has its \texit{base quality}, a probability that the given base is incorrect. Base qualities are usually represented as single small numbers $q$ and the following formula is used to compute the actual error probabilities:
+One of the main differences between the ideal and real sequencing data lies in the fact that the real one contain sequencing errors. In other words, some of the reads contain incorrectly interpreted bases. To help with identifying such bases, each base of a read has its \textit{base quality}, a probability that the given base is incorrect. Base qualities are usually represented as single small numbers $q$ and the following formula is used to compute the actual error probabilities:
 $$
 P(base is wrong) = 10^{-\frac{q}{10}}
 $$
@@ -55,6 +55,23 @@ For read sets stroed using a text format, such as SAM or FASTQ, each base qualit
 
 Also, a read may be accompanied by information about its position within and alignment to the reference sequence. Similarly to the base quality case, these information should not be taken as hard facts. The position information (also referred to as \textit{mapping position}) has also its quality (\textit{mapping quality}) following the same rules as base qualities. Although the position information may be wrong, it may help us in cases when we are interested only in assembling justa part of the genome and would like to filter out reads that do not fall within our region.
 
+The read alignment information are given in form of a CIGAR string that describes how the source of the read set thinks individual bases of the read map to the reference. The string is formatted as a set of numbers defining sequence lengths, each followed by one character describing the alignemnt operation. The most common operations include:
+\begin{itemize}
+\item \textbf{Match (M)}. The base sequence matches exactly the corresponding reference bases.
+\item \textbf{Mismatch (X)}. The sequence is aligned to certain part of the reference but the corresponding bases differ.
+\item \textbf{Insertion (I)}. The sequence is inserted to the reference at a given position. Then, the read continues to follow the reference at this position plus one.
+\item \textbf{Deletion (D)}. The read sequence skips the corresponding part of the reference.
+\item \textbf{Hard-clip (H)}. 
+\item \textbf{Soft-clip (S)}. The sequence does not match the corresponding reference at all. The situation may occur only on the beginning and an end of the read.
+\end{itemize}
+
+For example, assume a reference \texttt{CAGGTGTCTGA} and a read GGTGAATCTA with the following alignment:
+\begin{verbatim}
+           1 2 3 4 5 6     7 8 9 A B
+Reference: C A G G T G     T C T G A
+Read:          G G T G A A T C T   A
+\end{verbatim}
+The read starts at reference position 3 and the alignment can be represented as the \texttt{4M2I3M1D1M} CIGAR string.
 
 
 \begin{itemize}
