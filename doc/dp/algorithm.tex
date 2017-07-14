@@ -37,6 +37,56 @@ The SAM file format is described in great detail in \textit{The SAM/BAM format S
 
 When all the reads are prpeorcessed, their mapping position is used to assign them to individual active regions and the first real phase may begin.
 
+\section{K-mer Representation}
+\label{sec:kmer-representation}
+
+Our algorithm works with k-mers only through an interface consisting from several functions and macros. The k-mer implementation is used as a blackbox which allows us to make several implementations and then choose the best fitting one without any consequences on the rest of the algorithm, exceptthose implied by the interface.
+
+We currently use two implementations representing k-mers in different ways, shown on Figure \ref{fig:kmer-representations}. Due to performance reasons, the implementations may be switched only in compile time. 
+
+The upper part of the figure shows the representation of the \textit{debug} k-mer. Main idea behind this type of k-mers is to make their content easily readable by humans, which is excellent for debugging purposes. The k-mer sequence is stored in a character array, each element represents one base. Except its context number, the purpose of which is explained in the next section, each debug k-mer also remembers its size. That value is used for debugging purposes only, mainly to recognize attempts to pass wrong k-mer size arguemnt to one of the k-mer interface routines. Debug k-mers also have an advantage of potentialy unlimited maximum size. It is clear that debug k-mers are not a good option in terms of performance, especially in higher size.
+
+On the other hand, \textit{short} k-mers are kind of optimized for performance and quick append and prepend operations (moving the k-mer sequence forward or backward). Their design is greatly inspired by the k-mer implementation of the \texttt{fermi-lite} project. The k-mer sequence is stored in three 64-bit integers. Each base is represented by three bit, one in each of integer field. To read a $i^{th}$ base (starting from zero), one needs to combine $(k-i-1)^{th}$ bits of the integers and then translate the result by rules described by Table \ref{tab:base-translation}. The table also describes meaning of individual bases for our algorithm.
+
+Short k-mers are displayed in lower part of Figure \ref{fig:kmer-representations}. Its advantages are fixed size and performance. Limitation of the maximum k-mer size to 63 bases may impose a problem in case of assembling repetitive regions.
+
+\begin{table}[h]
+\begin{center}
+\caption{Base representations in debug and short k-mers}
+\label{tab:base-translation}
+\begin{tabular}{| c | c | p{5cm} |}
+\hline
+Short value & Debug value & Meaning \\
+\hline
+0 & \texttt{A} & - \\
+\hline
+1 & \texttt{C} & - \\
+\hline
+2 & \texttt{G} & - \\
+\hline
+3 & \texttt{T} & - \\
+\hline
+4 & \texttt{B} & Denotes beginning and and of the active region. \\
+\hline
+5 & \texttt{H} & Used to represent k-mers of helper vertices. \\
+\hline
+6 & \texttt{D} & Used to represent k-mers of helper vertices. \\
+\hline
+7 & \texttt{N} & - \\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{figure}[h]
+	\centering
+	\includegraphics{img/kmer-representations}
+	\caption{Two possible k-mer representations used by our algorithm; debug (the upper part) and short (the lower part).}
+	\label{fig:kmer-representations}
+\end{figure}
+
+The \texttt{fermi-lite} project uses two bits to represent each base in the k-mer. Our algorithm can be modified to do the same, since the helper vertices actually do not need k-mers and exist mostly for the sake of code simplicity (no special handling regarding helper vertices is required). Similarly, there is no real reason for marking beginning and end of the active region by a special base, the approach is just good for debugging.
+
 \section{Reference transformation}
 \label{sec:reference-transformation}
 
@@ -51,13 +101,13 @@ Formaly speaking, with the active region of length $l$ represented as a sequence
 \item . . .
 \item $k_i = ((b_i, ..., b_{i+k-1}), c_i), 2 <= i <=  l-k+1$
 \item . . .
-\item $k_{l-k+2} = ((b_{l-k+2}, ..., b_l, E), 0)$
+\item $k_{l-k+2} = ((b_{l-k+2}, ..., b_l, B), 0)$
 \end{itemize}
 $c_i$ represents the context number of the k-mer $k_i$. The number is set to zero for k-mers the sequence of which do not repeat within the active region. On the other hand, let's assume that k-mers $k_{i_1}, ..., k_{i_n}, i_0 < ... < i_n$ represent the same sequence. Their context numbers are defined as
 $$
 c_{i_j} = j, 
 $$
-$k_0$ and $k_{l-k+2}$ are special k-mers added to the set in order to show the start and end of the active region within the graph. $B$ and $E$ are virtual bases that ensure these k-mers represent unique sekquences. The bases must not appear anywhere else within the active region. All k-mers created in this step and all vertices created from them are also called as \textit{reference k-mers} and \textit{reference vertices}. Similarly, k-mers and vertices created during the read integration phase, are sometimes referred as \textit{read k-mers} and \textit{read vertices}.
+$k_0$ and $k_{l-k+2}$ are special k-mers added to the set in order to show the start and end of the active region within the graph. $B$ is a virtual base that ensure these k-mers represent unique sekquences. The bases must not appear anywhere else within the active region. All k-mers created in this step and all vertices created from them are also called as \textit{reference k-mers} and \textit{reference vertices}. Similarly, k-mers and vertices created during the read integration phase, are sometimes referred as \textit{read k-mers} and \textit{read vertices}.
 
 After their derivation, each k-mer $k_i$ is transformed into a single vertex $v_i$. Edges follow the order the k-mers occurrs within the active region. In other words, the edge set of the graph is
 $$

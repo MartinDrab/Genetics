@@ -106,6 +106,7 @@ Rtgeval uses quite simple terminology. Basicaly, it accepts two VCF files: test 
 \item \textbf{False positive (FP)}. It can be found only in the test set.
 \end{itemize}
 
+Rtgeval can compare VCF files in three different modes: positional, allelic and genotypic. The positional mode is quite intuitive; the tool is determining whether the same varaints are present at approximately the same position inside both test and truth set. If the positions difference does not exceed 10 bases, the variants are considered true positives. Otherwise, either false negative, or fale positive is reported. In allelic mode, the tool focuses on biallelic variants and evaluates whether they are correctly detected by both tested algorithms. The genotyping mode compares genotype and phasing information of the variants.
 
 \subsection{Positional}
 \label{subsec:positional-results}
