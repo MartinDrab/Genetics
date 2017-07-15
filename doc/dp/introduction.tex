@@ -75,10 +75,33 @@ The read starts at reference position 3 and the alignment can be represented as 
 
 Genomes of diploid organisms, introduce another problem not covered by the simple mathematical model covered earlier. Since such organism owns two sets of chromosomes (one from each of its parents), both sets are present within the read set obtained by chopping the genome to short reads. That implies that two genome strings are present within, and need to be reconstructed, from the input read set.
 
-\section{Pattern usd by Assembly Algorithms}
-\label{sec:assembly-algorithm-patterns}
+\section{De Bruijn Graphs}
+\label{sec:de-bruijn-graphs}
 
+\subsection{Origin}
+\label{subsec:dbg-origin}
 
+De Bruijn graphs (DBG) were originally invented as an answer to the superstring problem  (finding a shortest circular string containing all possible substrings of length $k$ (k-mers) over a given alphabet) \cite{dbg-apply}. For a given $k$, de Bruijn graph is constructed by creating vertices representing all strings of length $k-1$, one per string. Two vertices are connected with a directed edge if there exist a k-mer such that the source and destination vertices represent its prefix and suffix of length $k-1$ respectively. The k-mer labels the edge. 
+
+Formally, let $L_k$ be a language containing all words of length $k$ over an alphabet $\sigma$, then de Bruijn graph $B(V, E)$ is defined as
+\begin{gather}
+V = \{v_w | w \in L_{k-1}\} \\
+E = \{(v_u, v_w) | x \in L_k,  u is its prefix and w its suffix \} \\
+\end{gather}
+The shortest superstring is found by concatenating all $k-1$-mers represented by vertices on any Eulerian cycle of the corresponding de Bruijn graph. Since a polynomial-time algorithm for finding an Eulerian cycle is known, the superstring problem can be effectively solved.
+
+\subsection{Application to Genome Assembly}
+\label{subsec:dbg-application-to-genome-assembly}
+
+SImilarly, de Bruijn graphs can be used for genome assembly, especially if the genome question is circular. Assume that, for a fixed $k$, all k-mers of the target genome are known. Then a DBG can be constructred in two different ways:
+\begin{itemize}
+\item \textbf{K-mers are represented by edges}. Each edge is labelled by a k-mer in the same way as in the graph used for solving the superstring problem. Each edge connects vertices representing (k-1)-mers forming prefix and suffix of its k-mer. The genome string can be reconstructed by choosing the right one from all possible Eulerian cycles. This approach is presented and discussed in \cite{dbg-apply}.
+\item \textbf{K-mers are represented by vertices}. Each k-mer is represented as a single vertex. Edges reflect the k-mer order within reads. To recover the genome, one needs to find a Hamiltonian path of the graph, which is one of NP-complete. problems. Among others, HaploCall \cite{haplocall} used by GATK takes advantage of this way of de Bruijn graph usage.
+\end{itemize}
+
+\subsection{HaploCall}
+
+Rather than assembling whole genome at once, HaploCall starts with detection of regions that are likely to contain variants. A score is computed for every genome position, reflecting the probability of variant occurrence. Regions are formed around positions classified as interesting. As subset of the input reads is assigned to each of the regions; reads are selected based on their mapping position. Each region is then processed separately and independently of others.
 
 \begin{itemize}
 \item give some interoduction about importance of genome assembly, as all works of this type usualy do,
