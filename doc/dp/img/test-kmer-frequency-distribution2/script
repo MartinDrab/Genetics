@@ -1,0 +1,11 @@
+set xrange [1:70]
+set yrange [:10]
+set term postscript
+set output 'test-kmer-frequency-distribution2.ps'
+set title 'K-mer frequency distribtuion of the test read set after error corrections'
+set xlabel 'K-mer frequency'
+set ylabel 'Percent of k-mer space'
+
+set style histogram rowstacked gap 0
+set style fill solid 0.5 border lt -1
+plot "data.txt" using 1:3 smooth freq with boxes
