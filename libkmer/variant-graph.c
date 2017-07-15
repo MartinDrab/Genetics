@@ -32,6 +32,9 @@ UTILS_TYPED_CALLOC_FUNCTION(VARIANT_GRAPH_PAIRED_EDGE)
 #define _vg_read_edge_exists(aGraph, aSourceType, aDestType, aSourceIndex)	\
 	((aGraph)->ReadEdges.All[((aSourceType) << 1) + (aDestType)][(aSourceIndex)] > (aGraph)->Thresholds.Read)
 
+#define _vg_paired_edge_exists(aGraph, aVertex, aIndex)	\
+	((aVertex)->Paired[(aIndex)].Count > (aGraph)->Thresholds.Paired)
+
 #define _vg_vertex_get(aGraph, aType, aIndex)	\
 	((aGraph)->Vertices.All[(aType)] + (aIndex))
 
@@ -245,7 +248,8 @@ static ERR_VALUE _compute_components(PVARIANT_GRAPH Graph)
 						for (size_t j = 0; j < v->PairedCount; ++j) {
 							PVARIANT_GRAPH_VERTEX p = v->Paired[j].Target;
 
-							if (_vg_vertex_exists(Graph, p)) {
+							if (_vg_paired_edge_exists(Graph, v, j) &&
+								_vg_vertex_exists(Graph, p)) {
 								assert(p->ComponentIndex == 0 || p->ComponentIndex == currentComponent);
 								if (p->ComponentIndex == 0)
 									ret = pointer_array_push_back_VARIANT_GRAPH_VERTEX(&propagationStack, p);
@@ -339,7 +343,8 @@ ERR_VALUE vg_graph_color_component(PVARIANT_GRAPH Graph, const size_t Start, con
 					for (size_t i = 0; i < v->PairedCount; ++i) {
 						PVARIANT_GRAPH_VERTEX p = v->Paired[i].Target;
 
-						if (_vg_vertex_exists(Graph, p)) {
+						if (_vg_paired_edge_exists(Graph, v, i) &&
+							_vg_vertex_exists(Graph, p)) {
 							assert(p->ComponentIndex == v->ComponentIndex);
 							switch (p->Color) {
 								case vgvcSequence1:
@@ -633,25 +638,23 @@ static void _optimize_both_paths(PVARIANT_GRAPH Graph)
 	PVARIANT_GRAPH_VERTEX v = NULL;
 	PVARIANT_GRAPH_VERTEX var = NULL;
 	
-	for (EVariangGraphVertexType type = vgvtReference; type < vgvtMax; ++type) {
-		for (size_t i = 0; i < Graph->VerticesArraySize; ++i) {
-			v = _vg_vertex_get(Graph, type, i);
-			if (_vg_vertex_exists(Graph, v)) {
-				boolean refExists = _vg_read_edge_exists(Graph, v->Type, vgvtReference, i);
-				boolean altExists = _vg_read_edge_exists(Graph, v->Type, vgvtAlternative, i);
-				boolean varExists = FALSE;
+	for (size_t i = 0; i < Graph->VerticesArraySize; ++i) {
+		v = Graph->Vertices.ByType.Alternative + i;
+		if (_vg_vertex_exists(Graph, v)) {
+			boolean refExists = _vg_read_edge_exists(Graph, v->Type, vgvtReference, i);
+			boolean altExists = _vg_read_edge_exists(Graph, v->Type, vgvtAlternative, i);
+			boolean varExists = FALSE;
 
-				var = _vg_vertex_get_variant(Graph, v);
-				varExists = _vg_vertex_exists(Graph, var);
-				if (!varExists /*|| (refExists && altExists)*/) {
-					v->Color = vgvcBoth;
-					if (varExists)
-						_delete_vertex(Graph, var);
-				}
+			var = _vg_vertex_get_variant(Graph, v);
+			varExists = _vg_vertex_exists(Graph, var);
+			if (!varExists || (refExists && altExists)) {
+				v->Color = vgvcBoth;
+				if (varExists)
+					_delete_vertex(Graph, var);
 			}
 		}
 	}
-	
+
 	return;
 }
 
@@ -767,6 +770,7 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 		}
 	}
 
+	
 	fprintf(Stream, "digraph G {\n");
 	fprintf(Stream, "\t/* Total number of vertices: %zu */\n", totalVertexCount);
 	fprintf(Stream, "\t/* Number of reference vertices: %zu */\n", typeCounts[vgvtReference]);
@@ -818,7 +822,8 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 			c = v->Paired[j].Count;
 			p = v->Paired[j].Target;
 			pindex = _vg_vertex_index(Graph, p);
-			if (_vg_vertex_exists(Graph, p)) {
+			if (_vg_paired_edge_exists(Graph, v, j) &&
+				_vg_vertex_exists(Graph, p)) {
 				switch (p->Type) {
 					case vgvtReference:
 				 		if (pindex > i || (pindex == i && p->Type != v->Type))
@@ -839,7 +844,8 @@ void vg_graph_print(FILE *Stream, const VARIANT_GRAPH *Graph)
 			c = v->Paired[j].Count;
 			p = v->Paired[j].Target;
 			pindex = _vg_vertex_index(Graph, p);
-			if (_vg_vertex_exists(Graph, p)) {
+			if (_vg_paired_edge_exists(Graph, v, j) &&
+				_vg_vertex_exists(Graph, p)) {
 				switch (p->Type) {
 				case vgvtReference:
 					if (pindex > i)
@@ -993,13 +999,16 @@ void vg_graph_finalize(PVARIANT_GRAPH Graph)
 {
 	PVARIANT_GRAPH_VERTEX v = Graph->Vertices.ByType.Alternative;
 
-	
 	for (size_t i = 0; i < Graph->VerticesArraySize; ++i) {
-		if (!_vg_vertex_exists(Graph, v))
-			v->Variant->Valid = FALSE;
+		size_t intersectionSize = 0;
+		PVARIANT_GRAPH_VERTEX another = _vg_vertex_get_variant(Graph, v);
+		PVARIANT_CALL variant = v->Variant;
 
-		if (strlen(v->Variant->Ref) >= 40)
-			v->Variant->Valid = FALSE;
+//		if (!_vg_vertex_exists(Graph, v))
+//			variant->Valid = FALSE;
+
+		if (strlen(variant->Ref) >= 40)
+			variant->Valid = FALSE;
 
 		++v;
 	}

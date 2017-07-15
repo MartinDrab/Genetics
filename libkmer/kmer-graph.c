@@ -787,6 +787,7 @@ void kmer_graph_delete_edges_under_threshold(PKMER_GRAPH Graph, const size_t Thr
 		if (e->Type == kmetRead) {
 			if (read_info_get_count(&e->ReadInfo) <= Threshold)
 				kmer_graph_delete_edge(Graph, e);
+			/*
 			else if (e->Source->Type == kmvtRefSeqMiddle) {
 				boolean readStartsOnly = TRUE;
 				const READ_INFO_ENTRY *entry = e->ReadInfo.Array.Data;
@@ -806,6 +807,7 @@ void kmer_graph_delete_edges_under_threshold(PKMER_GRAPH Graph, const size_t Thr
 					}
 				}
 			}
+			*/
 		}
 
 		err = kmer_edge_table_next(Graph->EdgeTable, iter, &iter, (void **)&e);

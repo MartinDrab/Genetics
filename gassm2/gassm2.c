@@ -469,7 +469,7 @@ static ERR_VALUE _compute_graphs(const KMER_GRAPH_ALLOCATOR *Allocator, const PR
 		ret = _compute_graph(kmerSize, Allocator, Options, ParseOptions, Task, &lowerArray);
 		if (ret == ERR_SUCCESS ||
 			(ret == ERR_TOO_COMPLEX && kmerSize + step > KMER_MAXIMUM_SIZE)) {
-			vc_array_intersection(&lowerArray, &lowerArray, VCArray);
+			vc_array_intersection(&lowerArray, &lowerArray, VCArray);			
 			break;
 		}
 
