@@ -598,12 +598,12 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 		}
 
 		if (ret == ERR_SUCCESS) {
-			size_t *freqArray = NULL;
+			uint64_t *freqArray = NULL;
 
 			++maxValue;
-			ret = utils_calloc_size_t(maxValue, &freqArray);
+			ret = utils_calloc_uint64_t(maxValue, &freqArray);
 			if (ret == ERR_SUCCESS) {
-				memset(freqArray, 0, maxValue*sizeof(size_t));
+				memset(freqArray, 0, maxValue*sizeof(uint64_t));
 				for (it = kh_begin(table); it != kh_end(table); ++it) {
 					if (kh_exist(table, it))
 						++freqArray[kh_value(table, it)];
@@ -612,13 +612,7 @@ ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t 
 				fprintf(stderr, "Average error rate: %.2lf\n", baseQSum*100 / baseCount);
 				for (size_t i = 0; i < maxValue; ++i) {
 					if (freqArray[i] > Options->Threshold)
-						fprintf(stdout, "%zu, %zu (%.2lf %%)\n", i, freqArray[i], (double)freqArray[i]*100/ kmerCount);
-				}
-
-				fprintf(stdout, "\nBase quality distribution:\n");
-				for (uint32_t i = 0; i < 256; ++i) {
-					if (baseQualityDistribution[i] > 0)
-						fprintf(stdout, "%u, %" PRIu64 ", %.3lf %%\n", i, baseQualityDistribution[i], (double)baseQualityDistribution[i] * 100 / baseCount);
+						fprintf(stdout, "%zu\t%" PRIu64 "\t%.3lf\n", i, freqArray[i], (double)freqArray[i]*100 / kh_size(table));
 				}
 
 				utils_free(freqArray);

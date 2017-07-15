@@ -1,3 +1,5 @@
+
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -780,6 +782,23 @@ static void worker_ec(void *_data, long k, int tid)
 	return;
 }
 
+
+static void _print_histogram(FILE *Stream, const char *Name, const uint64_t *Data, const size_t Count)
+{
+	uint64_t total = 0;
+
+	for (size_t i = 0; i < Count; ++i)
+		total += Data[i];
+
+	fprintf(Stream, "%s (%" PRIu64 " total)\n", Name, total);
+	for (size_t i = 0; i < Count; ++i) {
+		if (Data[i] > 0)
+			fprintf(Stream, "%zu\t%" PRIu64 "\t%.3lf\n", i, Data[i], (double)Data[i] * 100 / total);
+	}
+
+	return;
+}
+
 float fml_correct_core(const fml_opt_t *opt, int flt_uniq, int n, bseq1_t *seq)
 {
 	bfc_ch_t *ch;
@@ -801,6 +820,9 @@ float fml_correct_core(const fml_opt_t *opt, int flt_uniq, int n, bseq1_t *seq)
 
 	es.ch = ch = fml_count(n, seq, bfc_opt.k, bfc_opt.q, bfc_opt.l_pre, bfc_opt.n_threads);
 	mode = bfc_ch_hist(ch, hist, hist_high);
+	_print_histogram(stderr, "Low histogram:", hist, sizeof(hist) / sizeof(hist[0]));
+	_print_histogram(stderr, "High histogram:", hist_high, sizeof(hist_high) / sizeof(hist_high[0]));
+
 	for (i = opt->min_cnt; i < 256; ++i)
 		sum_k += hist[i], tot_k += i * hist[i];
 	kcov = (float)tot_k / sum_k;
