@@ -47,6 +47,9 @@ typedef struct _KMER_EDGE_TABLE {
 ERR_VALUE kmer_edge_table_create(const uint32_t KMerSize, const size_t Size, const PKMER_EDGE_TABLE_CALLBACKS Callbacks, PKMER_EDGE_TABLE *Table);
 void kmer_edge_table_destroy(PKMER_EDGE_TABLE Table);
 
+#define kmer_edge_table_size(aTable)	\
+	(kh_size((aTable)->KHashTable))
+
 ERR_VALUE kmer_edge_table_insert(PKMER_EDGE_TABLE Table, const KMER *Source, const KMER *Dest, void *Data);
 ERR_VALUE kmer_edge_table_delete(PKMER_EDGE_TABLE Table, const PKMER Source, const PKMER Dest);
 void *kmer_edge_table_get(const struct _KMER_EDGE_TABLE *Table, const struct _KMER *Source, const struct _KMER *Dest);
