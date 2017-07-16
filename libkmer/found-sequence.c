@@ -396,3 +396,43 @@ ERR_VALUE vc_array_intersection(GEN_ARRAY_VARIANT_CALL *A1, const GEN_ARRAY_VARI
 
 	return ret;
 }
+
+
+ERR_VALUE vc_array_union(const GEN_ARRAY_VARIANT_CALL *A1, const GEN_ARRAY_VARIANT_CALL *A2, PGEN_ARRAY_VARIANT_CALL Union)
+{
+	VARIANT_CALL tmp;
+	const VARIANT_CALL *v1 = A1->Data;
+	ERR_VALUE ret = ERR_INTERNAL_ERROR;
+
+	for (size_t i = 0; i < gen_array_size(A1); ++i) {
+		ret = variant_call_init(v1->Chrom, v1->Pos, v1->ID, v1->Ref, strlen(v1->Ref), v1->Alt, strlen(v1->Alt), v1->Qual, &v1->RefReads, &v1->AltReads, &tmp);
+		if (ret == ERR_SUCCESS) {
+			tmp.KMerSize = v1->KMerSize;
+			tmp.BinProb = v1->BinProb;
+			tmp.RefWeight = v1->RefWeight;
+			tmp.AltWeight = v1->AltWeight;
+			if (vc_array_add(Union, &tmp, NULL) != ERR_SUCCESS)
+				variant_call_finit(&tmp);
+		}
+
+		++v1;
+	}
+
+	v1 = A2->Data;
+	for (size_t i = 0; i < gen_array_size(A2); ++i) {
+		ret = variant_call_init(v1->Chrom, v1->Pos, v1->ID, v1->Ref, strlen(v1->Ref), v1->Alt, strlen(v1->Alt), v1->Qual, &v1->RefReads, &v1->AltReads, &tmp);
+		if (ret == ERR_SUCCESS) {
+			tmp.KMerSize = v1->KMerSize;
+			tmp.BinProb = v1->BinProb;
+			tmp.RefWeight = v1->RefWeight;
+			tmp.AltWeight = v1->AltWeight;
+			if (vc_array_add(Union, &tmp, NULL) != ERR_SUCCESS)
+				variant_call_finit(&tmp);
+		}
+
+		++v1;
+	}
+
+	return ret;
+}
+

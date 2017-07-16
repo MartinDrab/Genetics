@@ -1076,7 +1076,6 @@ ERR_VALUE kmer_graph_get_vertices(const KMER_GRAPH *Graph, const KMER *KMer, PPO
 		ret = ERR_SUCCESS;
 	}
 
-
 	return ret;
 }
 
@@ -1450,6 +1449,7 @@ static void _remove_context_apply(PKMER_GRAPH Graph, PEDGE_REMOVE_CONTEXT Contex
 
 	return;
 }
+
 
 ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Threshold, PGEN_ARRAY_KMER_EDGE_PAIR PairArray, size_t *ChangeCount)
 {
