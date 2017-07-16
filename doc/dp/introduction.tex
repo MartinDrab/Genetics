@@ -8,15 +8,15 @@ sequence. This is a very laborous and expensive process, complicated by the fact
 that large proportion of most genomes consists of repetitive sequences. Therefore,
 instead of the pure de novo approach of assembling the complete sequence from
 scratch, most of the sequencing done today merely aims to determine differences
-between the sequenced organism and a complete, gold standard reference genome obtained previously by other means. This approach is known as \textif{resequencing} and is, comparatively, a much simpler task.
+between the sequenced organism and a complete, gold standard reference genome obtained previously by other means. This approach is known as \textit{resequencing} and is, comparatively, a much simpler task.
 
-The most widely used sequencing platform today is Illumina and the algorithms developed in this work assume Illumina data on input. The platform takes advantage of massive parallelism, where an ensemble of DNA molecules is fragmented into very short pieces (usually ∼500 bp) and then sequenced in parallel from both ends. In one sequencing run, more than $10^9$ of short sequences are obtained simultaneously. These sequences are called \textif{reads}. Due to technical limitations, reads are only ∼150 bp long, but when they are mapped to the reference genome, many will overlap and cover the whole genome, thus enabling to determine the differences between the sequenced organism, such as single nucleotide polymorphisms (SNPs) or short insertions and deletions (indels). Collectively, these differences are refered to as \textit{variants} and the process of determining the variants is known as \textif{variant calling}.
+The most widely used sequencing platform today is Illumina and the algorithms developed in this work assume Illumina data on input. The platform takes advantage of massive parallelism, where an ensemble of DNA molecules is fragmented into very short pieces (usually \textasciitilde 500 bp) and then sequenced in parallel from both ends. In one sequencing run, more than $10^9$ of short sequences are obtained simultaneously. These sequences are called \textit{reads}. Due to technical limitations, reads are only \textasciitilde 150 bp long, but when they are mapped to the reference genome, many will overlap and cover the whole genome, thus enabling to determine the differences between the sequenced organism, such as single nucleotide polymorphisms (SNPs) or short insertions and deletions (indels). Collectively, these differences are refered to as \textit{variants} and the process of determining the variants is known as \textit{variant calling}.
 
 [show IGV snapshot - what alignment looks like, with a SNP and an indel]
 
 In order to distinguish between random sequencing errors and real variants, we need sufficient coverage (the average number of reads mapped to a position of
 the genome). Thus for variant calling we need first to confidently place the reads
-to the correct location of the genome (the problem known as \textif{mapping}), correctly determine the exact sequence of matches, mismatches, insertions and deletions at the location (\textit{alignment}) and finally apply a statistical model to tell appart true variation from random sequencing errors, mapping errors and alignment errors (variant cal ling).
+to the correct location of the genome (the problem known as \textit{mapping}), correctly determine the exact sequence of matches, mismatches, insertions and deletions at the location (\textit{alignment}) and finally apply a statistical model to tell appart true variation from random sequencing errors, mapping errors and alignment errors (variant cal ling).
 
 Single nucleotide variants are easier to call, indels are more problematic. This is partly because reads containing indels can be often aligned in multiple ways,
 leading to ambigous alignments and false calls, especially in difficult parts of
@@ -60,31 +60,32 @@ Answer to the second question is implied by the facts that k-mer coverage of the
 \section{The Real World}
 \label{sec:real-world}
 
-One of the main differences between the ideal and real sequencing data lies in the fact that the real one contain sequencing errors. In other words, some of the reads contain incorrectly interpreted bases. To help with identifying such bases, each base of a read has its \textit{base quality}, a probability that the given base is incorrect. Base qualities are usually represented as single small numbers $q$ and the following formula is used to compute the actual error probabilities:
-$$
-P(base is wrong) = 10^{-\frac{q}{10}}
-$$
-For read sets stroed using a text format, such as SAM or FASTQ, each base quality is encoded as a single ANSI character. Since the first 32 characters of the ASCII table are not printable, and the space character is coded by $32$, the base quality values are incremented by $33$. When loading the reads from such a text format, the bias need to be taken into account. 
+In contrast to the idealized model described in the previous section (\ref{sec:the-model}), read seuqncing data contain sequencing errors. In other words, some of the reads contain incorrectly interpreted bases. To help with identifying such bases, each base of a read has its \textit{base quality}, a probability that the given base is incorrect. Bae quality (BQ) is usually represented as a Phred score $Q$ defined as
+\begin{align*}
+P(base \: is \: wrong) = 10^{-\frac{Q}{10}}
+\end{align*}
 
-Also, a read may be accompanied by information about its position within and alignment to the reference sequence. Similarly to the base quality case, these information should not be taken as hard facts. The position information (also referred to as \textit{mapping position}) has also its quality (\textit{mapping quality}) following the same rules as base qualities. Although the position information may be wrong, it may help us in cases when we are interested only in assembling justa part of the genome and would like to filter out reads that do not fall within our region.
+Phred score has a natural interpretation, for example $Q=40$ indicates one error in $10000$ bases, $Q=30$ one error in $1000$ bases etc. When stored in a text format, such as SAM or FASTQ, base qualities are encoded as ANSI characters. Because the first 32 ASCII characters are not printable, and the space character is coded by $32$, the base quality values are incremented by $33$. When loading the reads from such a text format, this needs to be taken in account.
 
-The read alignment information are given in form of a CIGAR string that describes how the source of the read set thinks individual bases of the read map to the reference. The string is formatted as a set of numbers defining sequence lengths, each followed by one character describing the alignemnt operation. The most common operations include:
+Mapped reads are accompanied by their position (POS) in the reference sequence, by additional alignment details and a mapping quality (MQ), which is a measure of mapping confidence expressed as a Phred score. Although the position information may be wrong, it may help us in cases when we are interested in correcting only a part of the genome and would like to filter out reads that do not map confidently.
+
+The alignment details are given in form of a CIGAR string which describes how the individual bases of the read map to the reference. The string is formatted as a set of numbers defining the number of bases, and a character code describing the alignemnt alignment. The most common operations include:
 \begin{itemize}
-\item \textbf{Match (M)}. The base sequence matches exactly the corresponding reference bases.
-\item \textbf{Mismatch (X)}. The sequence is aligned to certain part of the reference but the corresponding bases differ.
-\item \textbf{Insertion (I)}. The sequence is inserted to the reference at a given position. Then, the read continues to follow the reference at this position plus one.
+\item \textbf{Match (M)}. Alignment match. That can represent both sequence match and mismatch.
+\item \textbf{Mismatch (X)}. The sequence mismatch. In practice, this code is seldomly used since M may code both matches and mismatches
+\item \textbf{Insertion (I)}. The sequence is inserted to the reference at a given position. Then, the read continues to follow the reference at this position plus one unless alignment operation following the insertion tells otherwise.
 \item \textbf{Deletion (D)}. The read sequence skips the corresponding part of the reference.
-\item \textbf{Hard-clip (H)}. 
-\item \textbf{Soft-clip (S)}. The sequence does not match the corresponding reference at all. The situation may occur only on the beginning and an end of the read.
+\item \textbf{Hard-clip (H)}. The original read was longer, but was trimmed in downstream analysis.
+\item \textbf{Soft-clip (S)}. This part of the read could not be aligned well and was excluded from the alignment.
 \end{itemize}
 
-For example, assume a reference \texttt{CAGGTGTCTGA} and a read GGTGAATCTA with the following alignment:
+For example, assume a reference sequence \texttt{CAGGTGTCTGA} and the read GGTGAATCTA aligned as follows:
 \begin{verbatim}
            1 2 3 4 5 6     7 8 9 A B
 Reference: C A G G T G     T C T G A
 Read:          G G T G A A T C T   A
 \end{verbatim}
-The read starts at reference position 3 and the alignment can be represented as the \texttt{4M2I3M1D1M} CIGAR string.
+The read was mapped to the reference position 3 and the CIGAR string of the alignment is \texttt{4M2I3M1D1M}.
 
 Genomes of diploid organisms, introduce another problem not covered by the simple mathematical model covered earlier. Since such organism owns two sets of chromosomes (one from each of its parents), both sets are present within the read set obtained by chopping the genome to short reads. That implies that two genome strings are present within, and need to be reconstructed, from the input read set.
 
