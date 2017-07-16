@@ -42,29 +42,29 @@ When all the reads are preprocessed this way, they are assigned to that respecti
 
 Our algorithm works with k-mers only through an interface consisting from several functions and macros. The k-mer implementation is used as a blackbox which allows us to make several implementations and then choose the best fitting one without any consequences on the rest of the algorithm, exceptthose implied by the interface.
 
-We currently use two implementations representing k-mers in different ways, shown on Figure \ref{fig:kmer-representations}. Due to performance reasons, the implementations may be switched only in compile time. 
+We currently use two implementations representing k-mers in different ways, shown on Figure \ref{fig:kmer-representations}. For performance reasons, the implementations may be switched only in compile time. 
 
-The upper part of the figure shows the representation of the \textit{debug} k-mer. Main idea behind this type of k-mers is to make their content easily readable by humans, which is excellent for debugging purposes. The k-mer sequence is stored in a character array, each element represents one base. Except its context number, the purpose of which is explained in the next section, each debug k-mer also remembers its size. That value is used for debugging purposes only, mainly to recognize attempts to pass wrong k-mer size arguemnt to one of the k-mer interface routines. Debug k-mers also have an advantage of potentialy unlimited maximum size. It is clear that debug k-mers are not a good option in terms of performance, especially in higher size.
+The upper part of the figure shows the representation of the \textit{debuging} k-mer. The main idea behind this type of k-mer is to make the content easily human-readable, which is excellent for debugging purposes. The k-mer sequence is stored in a character array, each element represents one base. Except its context number, the purpose of which is explained in the next section, each debug k-mer also remembers its size. That value is used for debugging purposes only, mainly to recognize attempts to pass wrong k-mer size arguemnt to one of the k-mer interface routines. Debug k-mers also have an advantage of potentialy unlimited maximum size. It is clear that debug k-mers are not a good option in terms of performance, especially for bigger $k$.
 
-On the other hand, \textit{short} k-mers are kind of optimized for performance and quick append and prepend operations (moving the k-mer sequence forward or backward). Their design is greatly inspired by the k-mer implementation of the \texttt{fermi-lite} project. The k-mer sequence is stored in three 64-bit integers. Each base is represented by three bit, one in each of integer field. To read a $i^{th}$ base (starting from zero), one needs to combine $(k-i-1)^{th}$ bits of the integers and then translate the result by rules described by Table \ref{tab:base-translation}. The table also describes meaning of individual bases for our algorithm.
+\textit{Compact}, k-mers in contrast,  are more optimized for performance and quick append and prepend operations (moving the k-mer sequence forward or backward). Their design is greatly inspired by the k-mer implementation of the \texttt{fermi-lite} project. The k-mer sequence is stored in three 64-bit integers. Each base is represented by three bits, each stored separately in  the three integer fields. To read a $i^{th}$ base (starting from zero), one needs to combine $(k-i-1)^{th}$ bits of the integers and then translate the result by rules described in Table \ref{tab:base-translation}. The table also describes the meaning of the eight possible values.
 
-Short k-mers are displayed in lower part of Figure \ref{fig:kmer-representations}. Its advantages are fixed size and performance. Limitation of the maximum k-mer size to 63 bases may impose a problem in case of assembling repetitive regions.
+Structure of a compact k-mer is displayed in lower part of Figure \ref{fig:kmer-representations}. Its advantages are a fixed size of 28 bytes for all k-mer sizes and performance. However, limiting the maximum k-mer size to 63 bases this way may impose a problem in case of assembling repetitive regions.
 
 \begin{table}[h]
 \begin{center}
-\caption{Base representations in debug and short k-mers}
+\caption{Base representations in debugging and compact k-mers}
 \label{tab:base-translation}
 \begin{tabular}{| c | c | p{5cm} |}
 \hline
-Short value & Debug value & Meaning \\
+Compact value & Debugging value & Meaning \\
 \hline
-0 & \texttt{A} & - \\
+0 & \texttt{A} & The base \texttt{A} \\
 \hline
-1 & \texttt{C} & - \\
+1 & \texttt{C} & The base \texttt{C} \\
 \hline
-2 & \texttt{G} & - \\
+2 & \texttt{G} & The base \texttt{G} \\
 \hline
-3 & \texttt{T} & - \\
+3 & \texttt{T} & The base \texttt{T} \\
 \hline
 4 & \texttt{B} & Denotes beginning and and of the active region. \\
 \hline
@@ -81,53 +81,57 @@ Short value & Debug value & Meaning \\
 \begin{figure}[h]
 	\centering
 	\includegraphics{img/kmer-representations}
-	\caption{Two possible k-mer representations used by our algorithm; debug (the upper part) and short (the lower part).}
+	\caption{Two possible k-mer representations used by our algorithm; debugging (the upper part) and compact (the lower part).}
 	\label{fig:kmer-representations}
 \end{figure}
 
-The \texttt{fermi-lite} project uses two bits to represent each base in the k-mer. Our algorithm can be modified to do the same, since the helper vertices actually do not need k-mers and exist mostly for the sake of code simplicity (no special handling regarding helper vertices is required). Similarly, there is no real reason for marking beginning and end of the active region by a special base, the approach is just good for debugging.
+All k-mer implementations usable by our algorithm must reserve some space for storing a \textit{k-mer context number}. The number is used to differentiate even between k-mers that contain the same substring of length $k$. That implies that a k-mer, according to this new definition, is unique only if it differs in both the substring and the context number from all other k-mers. K-mers that differ only in the context number are sometimes referred as \textit{equal by (sub)string} or \textit{equal by sequence}. The context number proves to be useful when fighting repeats within the reference sequence (described in Section \ref{sec:reference-transformation}).
+
+\textbf{The whole chapter uses the term k-mer in this sense described above, unless explicity specified otherwise}.
+
+The \texttt{fermi-lite} project uses two bits to represent each base in the k-mer. Our algorithm can be modified to do the same, since the helper vertices actually do not need k-mers and exist mostly for the sake of code simplicity (no special handling regarding helper vertices is required). Similarly, there is no real reason for marking beginning and end of the active region by a special character, this was only useful for debugging.
 
 \section{Reference transformation}
 \label{sec:reference-transformation}
 
-The first step of the algorithm lies in transforming a reference sequence covering the selected active region into a De Bruin-like graph. The idea behind this step is very similar to other assembly algorithms based on these graph types. 
+The first step of the algorithm lies in transforming a reference sequence covering the selected active region into a de Bruijn-like graph. The idea behind this step is very similar to other assembly algorithms based on these graph types. 
 
-The reference is divided into k-mers, each overlaps with the adjacent ones by $k-1$ bases. K-mers representing the same sequence are differentiated by their context number, so each k-mer derived from the reference is unique. Two extra k-mers, denoting the beginning and the end of the active region are added to the set. Then, each k-mer is represented by a single vertex in the graph, and edges are defined by the order of the k-mers within the reference.
+The reference is decomposed into k-mers, each overlaps with the adjacent ones by $k-1$ bases. K-mers representing the same sequence are differentiated by their context number, so each k-mer derived from the reference is unique. Two extra k-mers, denoting the beginning and the end of the active region are added to the set. Then, each k-mer is represented by a single vertex in the graph, and edges are defined by the order of the k-mers within the reference.
 
-Formaly speaking, with the active region of length $l$ represented as a sequence of bases $(b_1, ..., b_{l})$, k-mers $k_0, ..., k_{l-k+2}$ are derived from the region as follows:
+Formaly speaking, with the active region of length $l$ represented as a string $b_1 \ldots b_{l}$, k-mers $k_0, ..., k_{l-k+2}$ are derived from the region as follows:
 \begin{itemize}
-\item $k_0 = ((B, b_1, ..., b_{k-1}), 0)$
-\item $k_1 = ((b_1, ..., b_k), 0)$
+\item $k_0 = (Bb_1 \ldots b_{k-1}, 0)$
+\item $k_1 = (b_1 \ldots b_k, 0)$
 \item . . .
-\item $k_i = ((b_i, ..., b_{i+k-1}), c_i), 2 <= i <=  l-k+1$
+\item $k_i = (b_i b_{i+k-1}, c_i), 2 \leq i \leq  l-k+1$
 \item . . .
-\item $k_{l-k+2} = ((b_{l-k+2}, ..., b_l, B), 0)$
+\item $k_{l-k+2} = (b_{l-k+2} \ldots b_lB) 0)$
 \end{itemize}
-$c_i$ represents the context number of the k-mer $k_i$. The number is set to zero for k-mers the sequence of which do not repeat within the active region. On the other hand, let's assume that k-mers $k_{i_1}, ..., k_{i_n}, i_0 < ... < i_n$ represent the same sequence. Their context numbers are defined as
+$c_i$ represents the context number of the k-mer $k_i$. The number is set to zero for k-mers unique within the active region. On the other hand, let's assume that k-mers $k_{i_1}, ..., k_{i_n}, i_0 < ... < i_n$, contain the same string. Their context numbers are defined as
 $$
 c_{i_j} = j, 
 $$
-$k_0$ and $k_{l-k+2}$ are special k-mers added to the set in order to show the start and end of the active region within the graph. $B$ is a virtual base that ensure these k-mers represent unique sekquences. The bases must not appear anywhere else within the active region. All k-mers created in this step and all vertices created from them are also called as \textit{reference k-mers} and \textit{reference vertices}. Similarly, k-mers and vertices created during the read integration phase, are sometimes referred as \textit{read k-mers} and \textit{read vertices}.
+$k_0$ and $k_{l-k+2}$ are special k-mers added to the set in order to show the start and end of the active region within the graph. \texttt{B} is a virtual base that ensures these k-mers are unique. The bases must not appear anywhere else within the active region. All k-mers created in this step and all vertices created from them are also called as \textit{reference k-mers} and \textit{reference vertices}. Similarly, k-mers and vertices created during the read integration phase, are sometimes referred as \textit{read k-mers} and \textit{read vertices}.
 
-After their derivation, each k-mer $k_i$ is transformed into a single vertex $v_i$. Edges follow the order the k-mers occurrs within the active region. In other words, the edge set of the graph is
+Each k-mer $k_i$ is transformed into a single vertex $v_i$. Edges follow the order of the k-mers in the active region. In other words, the edge set of the graph is
 $$
-E = {(v_i, v_{i+1})}, 0 <= i <= l-k+1
+E = \{(v_i, v_{i+1})\}\quad 0 \leq i \leq l-k+1
 $$
-Figure \ref{fig:ref-my} displays a graph created by transformation of an active region \texttt{ATCTGTATATATG} with k-mer size of 5. The algorithm derives the following k-mers:
-$$
-k_0 = ((B, A, T, C, T), 0) \\
-k_1 = ((A, T, C, T, G), 0) \\
-k_2 = ((T, C, T, G, T), 0) \\
-k_3 = ((C, T, G, T, A), 0) \\
-k_4 = ((T, G, T, A, T), 0) \\
-k_5 = ((G, T, A, T, A), 0) \\
-k_6 = ((T, A, T, A, T), 0) \\
-k_7 = ((A, T, A, T, A), 0) \\
-k_8 = ((T, A, T, A, T), 1) \\
-k_9 = ((A, T, A, T, G), 0) \\
-k_{10} = ((T, A, T, G, E), 0)
-$$
-As can bee seen, there are two k-mers representing sequence \texttt{TATAT}, namely $k_6$ and $k_8$. Because of their distinct context numbers, they are represented as separate vertices. Introduction of the context numbers removed a loop from the graph. The loop can be observed on Figure \ref{fig:ref-db} that shows a standard De Bruin graph constructed from the same active region. K-mers $k_6$ and $k_8$ are represented by the same vertex. In order to recover the sequence, it is required to know how many times the loop was actually used during the transformation step.
+Figure \ref{fig:ref-my} displays a graph created by transforming the active region \texttt{ATCTGTATATATG} with k-mer size of 5. The algorithm creates the following k-mers:
+\begin{align}
+k_0 = (BATCT, 0) \\
+k_1 = (ATCTG, 0) \\
+k_2 = (TCTGT, 0) \\
+k_3 = (CTGTA, 0) \\
+k_4 = (TGTAT, 0) \\
+k_5 = (GTATA, 0) \\
+k_6 = (TATAT, 0) \\
+k_7 = (ATATA, 0) \\
+k_8 = (TATAT, 1) \\
+k_9 = (ATATG, 0) \\
+k_{10} = (TATGB, 0)
+\end{align}
+As can bee seen, there are two k-mers representing sequence \texttt{TATAT}, namely $k_6$ and $k_8$. Because of their distinct context numbers, they are represented as separate vertices. Introduction of the context numbers removed a loop from the graph. The loop can be observed on Figure \ref{fig:ref-db} that shows a standard de Bruijn graph constructed from the same active region. K-mers $k_6$ and $k_8$ are represented by the same vertex. In order to recover the sequence, it is required to know how many times the loop was actually used during the transformation step.
 
 \begin{figure}[h]
 	\centering
@@ -143,9 +147,10 @@ As can bee seen, there are two k-mers representing sequence \texttt{TATAT}, name
 	\label{fig:ref-db}
 \end{figure}
 
-Although we solved the loop problem, at least for now, by not permitting them to appear, things get more complicated in the next step that covers introducing individual reads into the graph. 
+Although this solves the problem of cycles for now, at least for now, things become more complicated in the next step of the algorithm which inserts individual reads into the graph
 
 \section{Adding Reads}
+\label{Adding Reads}
 
 The basic idea behind this stage is farily simple and similar to the approach used in the previous one. The read being added is divided into a sequence of k-mers. If a k-mer is not represented by any existing graph vertex, a new vertex is created for it. In other cases, existing vertices are used. Again, vertices representing adjacent k-mers in the read are connected by edges. 
 
