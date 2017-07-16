@@ -46,9 +46,9 @@ We currently use two implementations representing k-mers in different ways, show
 
 The upper part of the figure shows the representation of the \textit{debuging} k-mer. The main idea behind this type of k-mer is to make the content easily human-readable, which is excellent for debugging purposes. The k-mer sequence is stored in a character array, each element represents one base. Except its context number, the purpose of which is explained in the next section, each debug k-mer also remembers its size. That value is used for debugging purposes only, mainly to recognize attempts to pass wrong k-mer size arguemnt to one of the k-mer interface routines. Debug k-mers also have an advantage of potentialy unlimited maximum size. It is clear that debug k-mers are not a good option in terms of performance, especially for bigger $k$.
 
-\textit{Compact}, k-mers in contrast,  are more optimized for performance and quick append and prepend operations (moving the k-mer sequence forward or backward). Their design is greatly inspired by the k-mer implementation of the \texttt{fermi-lite} project. The k-mer sequence is stored in three 64-bit integers. Each base is represented by three bits, each stored separately in  the three integer fields. To read a $i^{th}$ base (starting from zero), one needs to combine $(k-i-1)^{th}$ bits of the integers and then translate the result by rules described in Table \ref{tab:base-translation}. The table also describes the meaning of the eight possible values.
+\textit{Compact}, k-mers in contrast,  are more optimized for performance and quick append and prepend operations (moving the k-mer sequence forward or backward). Their design is greatly inspired by the k-mer implementation of the \texttt{fermi-lite} project. The k-mer substring is stored in three 64-bit integers. Each base is represented by three bits, each stored separately in  the three integer fields. To read a $i^{th}$ base (starting from zero), one needs to combine $(k-i-1)^{th}$ bits of the integers and then translate the result by rules described in Table \ref{tab:base-translation}. The table also describes the meaning of the eight possible values.
 
-Structure of a compact k-mer is displayed in lower part of Figure \ref{fig:kmer-representations}. Its advantages are a fixed size of 28 bytes for all k-mer sizes and performance. However, limiting the maximum k-mer size to 63 bases this way may impose a problem in case of assembling repetitive regions.
+Structure of a compact k-mer is displayed in lower part of Figure \ref{fig:kmer-representations}. Its advantages are a fixed size of 28 bytes regardless of $k$ and performance (on the other hand, space occupied by a debugging k-mer depends on used $k$ value and is not known at the compilation time). However, limiting the maximum k-mer size to 63 bases this way may impose a problem in case of assembling repetitive regions.
 
 \begin{table}[h]
 \begin{center}
@@ -91,7 +91,7 @@ All k-mer implementations usable by our algorithm must reserve some space for st
 
 The \texttt{fermi-lite} project uses two bits to represent each base in the k-mer. Our algorithm can be modified to do the same, since the helper vertices actually do not need k-mers and exist mostly for the sake of code simplicity (no special handling regarding helper vertices is required). Similarly, there is no real reason for marking beginning and end of the active region by a special character, this was only useful for debugging.
 
-\section{Reference transformation}
+\section{Reference Transformation}
 \label{sec:reference-transformation}
 
 The first step of the algorithm lies in transforming a reference sequence covering the selected active region into a de Bruijn-like graph. The idea behind this step is very similar to other assembly algorithms based on these graph types. 
