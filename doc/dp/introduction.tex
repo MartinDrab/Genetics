@@ -1,22 +1,35 @@
 \chapter{Introduction}
 \label{chap:introduction}
 
-Sequencing (reading) a larger genome in one piece still belongs to very expensive, or even hardly possible, tasks. Fortunately, a much cheaper approach exist and is widely used in todays genome sequencing. Its core lies in chopping the genome (or the part of interest) into many short sequences, called reads, and their later assembly into the original sequence. The shorter the reads are, the lower the cost of their reading is. 
+Despite technological advances in the past fifteen years, genome sequencing (determining the DNA sequence of an organism) remains a challenging task. With the current technology it is not possible to ”read” the DNA sequence in one
+piece from the beginning to the end. Instead, relatively short fragments must
+be sequenced individually and then painstakingly assembled into the complete
+sequence. This is a very laborous and expensive process, complicated by the fact
+that large proportion of most genomes consists of repetitive sequences. Therefore,
+instead of the pure de novo approach of assembling the complete sequence from
+scratch, most of the sequencing done today merely aims to determine differences
+between the sequenced organism and a complete, gold standard reference genome obtained previously by other means. This approach is known as \textif{resequencing} and is, comparatively, a much simpler task.
 
-Howerver, short reads make the task of their assembly more complicated. Unlike the genome chopping phase, the reads assembly stage would execute purely in software if a mathematical model, properly describing the genome sequencing, existed. Since such models were developed, various genome assembly algorithms were implemented.
+The most widely used sequencing platform today is Illumina and the algorithms developed in this work assume Illumina data on input. The platform takes advantage of massive parallelism, where an ensemble of DNA molecules is fragmented into very short pieces (usually ∼500 bp) and then sequenced in parallel from both ends. In one sequencing run, more than $10^9$ of short sequences are obtained simultaneously. These sequences are called \textif{reads}. Due to technical limitations, reads are only ∼150 bp long, but when they are mapped to the reference genome, many will overlap and cover the whole genome, thus enabling to determine the differences between the sequenced organism, such as single nucleotide polymorphisms (SNPs) or short insertions and deletions (indels). Collectively, these differences are refered to as \textit{variants} and the process of determining the variants is known as \textif{variant calling}.
 
-We start a description of ideal sequencing data and mathematical model behind the assembly. Next, we explain that the real world is not so bright as the model may indicate. FInal section of this chapter is dedicated to description of two main approaches used by todays assembly algorithms, and to definition of the main goal of this work --- to implement ou own assembly algorithm.
+[show IGV snapshot - what alignment looks like, with a SNP and an indel]
+
+In order to distinguish between random sequencing errors and real variants, we need sufficient coverage (the average number of reads mapped to a position of
+the genome). Thus for variant calling we need first to confidently place the reads
+to the correct location of the genome (the problem known as \textif{mapping}), correctly determine the exact sequence of matches, mismatches, insertions and deletions at the location (\textit{alignment}) and finally apply a statistical model to tell appart true variation from random sequencing errors, mapping errors and alignment errors (variant cal ling).
+
+Single nucleotide variants are easier to call, indels are more problematic. This is partly because reads containing indels can be often aligned in multiple ways,
+leading to ambigous alignments and false calls, especially in difficult parts of
+the genome of low complexity or high repeat content. 
 
 \section{Basic Terms}
 \label{sec:basic-terms}
 
-For the rest of this thesis, a genome is viewed as a string of character, each describe a nucleotide, at certain position. Since DNA molecules consist of four types of nucleotides, only four characters, \texttt{A}, \texttt{C}, \texttt{G} or \texttt{T}, appear in the string. Usually, a term base is used as a synonym for nucleotides.
+For the rest of this thesis, a genome is viewed as a string of character, each represents a nucleotide, at certain position. Since DNA molecules consist of four types of nucleotides, only four characters, \texttt{A}, \texttt{C}, \texttt{G} or \texttt{T}, appear in the string. The four nucleotides have similar chemical structure. They are composed of a sugar molecule and a posphate group, which are identical for all four of them, and a unique nitrogenous base. Hence the term \textit{base} is often used when referring to a nucleotide at a specific position. Each of the bases pairs with one other, \texttt{A} with \texttt{T} and \texttt{C} with \texttt{G}, therefore knowing the sequence of one strand of a DNA double helix determines the sequence of the complementary strand. Hence the terms \textit{base pair} and \textit{base} are used interchangeably.
 
-Although we do not know contents of the genome string (since its sequencing is exactly the task for assembly algorithms), we still know its approximate length. Since this thesis focuses on human genome assembly, we expect the genome length around 3 billions of bases (gigabases, Gb). As stated in the beginning of the chapter, the genome to be read is chopped into a large amount of short strings, called reads. In an ideal case, we expect all reads to be of the same length, much lower than the genome string. Usually, read length does not exceed several hundred bases. 
+The algorithm developed and discussed in this work expect a large bunch of short reads on input. It expects that the sequenced organism and the reference genome are similar enough to, so an assumption that reads are correctly mapped can be made. Its task is to resolve local differences arising from incorrect read alignments. This is a subproblem of the assembly one, called \textit{microassembly}.
 
-For some species, including humans, a so-called \textit{reference} genome (or sequence) is available. Ideally, it is a fully sequenced (assembled) genome of one individual. SInce genomes of other individuals of the same species show great similarity, the reference may prove being an useful input for an assembly algorithm. 
-
-Some assembly algorithm transform each read into a sequence of \textit{k-mers}, a very short strings of equal length. The read sequence of length $k$ is divided into $l - k + 1$ k-mers $k_0, ..., k_{l-k}$ of length $k$. If we denote bases in the read as $b_0, ..., b_{l-1}$, the k-mer $k_i$ covers bases from $b_i$ to $b_{i+k-1}$. Such definition implies that adjacent k-mers overlap by $k-1$ bases. 
+Some assembly algorithm transform each read into a sequence of \textit{k-mers}, substrings of equal length, usually named $k$. The read sequence of length $l$ is decomposed into $l - k + 1$ k-mers $k_0, ..., k_{l-k}$ of length $k$. If we denote bases in the read as $b_0, ..., b_{l-1}$, the k-mer $k_i$ covers bases from $b_i$ to $b_{i+k-1}$. Such definition implies that adjacent k-mers overlap by $k-1$ bases. 
 
 An example of transforming e sequence \texttt{TACTGGCC} into k-mers of length $3$ is ilustrated on Figure \ref{fig:seq-division}. The sequence has $8$ bases in length and $6$ k-mers are created from it. The read sequence, as in all other figures in this work, is marked red, contents of individual k-mers is in yellow.
 
