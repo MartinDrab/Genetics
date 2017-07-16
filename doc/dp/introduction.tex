@@ -75,11 +75,13 @@ The read starts at reference position 3 and the alignment can be represented as 
 
 Genomes of diploid organisms, introduce another problem not covered by the simple mathematical model covered earlier. Since such organism owns two sets of chromosomes (one from each of its parents), both sets are present within the read set obtained by chopping the genome to short reads. That implies that two genome strings are present within, and need to be reconstructed, from the input read set.
 
-\section{De Bruijn Graphs}
-\label{sec:de-bruijn-graphs}
+\section{Major Assembly Algorithm Classes}
+\label{sec:major-assembly-algorithm-classes}
 
-\subsection{Origin}
-\label{subsec:dbg-origin}
+Currently, there are two widely used classes of algorithms: overlap-layout-consensus (OLC) and de-bruijn-graph (DBG) \cite{alg-compare}. Algorithms belonging to the former base their idea on constructing a graph recording overlapping reads and extracting the alternate sequences from it. Main idea behind the DBG class is to chop all reads into k-mers that are then uses to construct a de Bruijn graph which is, after some optimizations, is subject to derivations of alternate sequences.
+
+\subsection{De Bruijn Graphs}
+\label{subsec:de-bruijn-graphs}
 
 De Bruijn graphs (DBG) were originally invented as an answer to the superstring problem  (finding a shortest circular string containing all possible substrings of length $k$ (k-mers) over a given alphabet) \cite{dbg-apply}. For a given $k$, de Bruijn graph is constructed by creating vertices representing all strings of length $k-1$, one per string. Two vertices are connected with a directed edge if there exist a k-mer such that the source and destination vertices represent its prefix and suffix of length $k-1$ respectively. The k-mer labels the edge. 
 
@@ -90,8 +92,8 @@ E = \{(v_u, v_w) | x \in L_k,  u is its prefix and w its suffix \} \\
 \end{gather}
 The shortest superstring is found by concatenating all $k-1$-mers represented by vertices on any Eulerian cycle of the corresponding de Bruijn graph. Since a polynomial-time algorithm for finding an Eulerian cycle is known, the superstring problem can be effectively solved.
 
-\subsection{Application to Genome Assembly}
-\label{subsec:dbg-application-to-genome-assembly}
+\subsubsection{Application to Genome Assembly}
+\label{subsub:dbg-application-to-genome-assembly}
 
 SImilarly, de Bruijn graphs can be used for genome assembly, especially if the genome question is circular. Assume that, for a fixed $k$, all k-mers of the target genome are known. Then a DBG can be constructred in two different ways:
 \begin{itemize}
@@ -99,7 +101,8 @@ SImilarly, de Bruijn graphs can be used for genome assembly, especially if the g
 \item \textbf{K-mers are represented by vertices}. Each k-mer is represented as a single vertex. Edges reflect the k-mer order within reads. To recover the genome, one needs to find a Hamiltonian path of the graph, which is one of NP-complete. problems. Among others, HaploCall \cite{haplocall} used by GATK takes advantage of this way of de Bruijn graph usage.
 \end{itemize}
 
-\subsection{HaploCall}
+\subsubsection{HaploCall}
+\label{subsub:haplocall}
 
 Rather than assembling whole genome at once, HaploCall starts with detection of regions that are likely to contain variants. A score is computed for every genome position, reflecting the probability of variant occurrence. Regions are formed around positions classified as interesting. As subset of the input reads is assigned to each of the regions; reads are selected based on their mapping position. Each region is then processed separately and independently of others.
 
@@ -111,13 +114,21 @@ After inserting all the reads into the graph (the HaploCall documentation refers
 
 In the next stage, most probable sequences are extracted from the resulting graph. Each sequence is represented by a path leading from the starting k-mer of the reference to ending one and its probability score is computed as the product of so-called transition probabilities of the path edges. Transition probability of an edge is computed as its weight divided by the by the sum of weights of all edges sharing the same source vertex. By default, 128 most probable paths are selected.
 
- The Smith-Waterman algorithm is used to align each of the selected sequences to the reference. The alignment is retrieved in form of a CIGAR string that indicates places of possible variants, such as SNPs and indels. Indel positions are normalized (left aligned). 
+The Smith-Waterman algorithm is used to align each of the selected sequences to the reference. The alignment is retrieved in form of a CIGAR string that indicates places of possible variants, such as SNPs and indels. Indel positions are normalized (left aligned). 
 
 The CIGAR strings actually contain a super set of the final set of called variants. To filter out false positives, other solutions are employed (for example, the HaploCall documentation mentions UnifiedGenotyper for GATK).
 
-\begin{itemize}
-\item give some interoduction about importance of genome assembly, as all works of this type usualy do,
-\item define basic terms, such as reference sequence, active region, k-mer, read, base quality, CIGAR string or variant,
-\item describe current and past approaches for doing genome assembly (AllPath, Euler, Velvet, possibly others. Also HaploCall since it forms a starting point for this thesis). 
-\item formulate the problem this thesis works on,
-\end{itemize}
+\subsection{Overlap-Layout-Consensus}
+\label{subsec:overlap-layout-consensus}
+
+Algorithms taking advantage of this approach usually do not decompose reads into k-mer sequences. Reads are considered to be the smallset units. As the name suggests, the work is done in three steps.
+
+Main purpose of the overlap phase is, not surprisingly, to compute overlaps between all possible pairs of the input reads. Since number of short reads within high coverage data sets may go to milions, the process of overlap computation may take a lot of processor and memory resources. Overlapping reads are connected into longer seuqnces called \textit{contigs}. Actually, a graph is being constructed, its vertices represents individual reads (or contigs) and edges represent overlaps.
+
+The definition of read overlapping is not strict. Two reads are considered overlapping (and thus, are connected by an edge) if they overlap at least by $t$ bases, allowing several mismatches. The constant $t$ is a parameter of the algorithm and is called a \textit{cutoff}.
+
+During the \textit{layout} phase, a read-pairing information is used to put disconnected parts of the read overlapping graph together and resolving structures created by sequencing errors. The \textit{consensus} phase is responsible for deriving candidate seuqnces for variant calling from the graph. In an ideal case, the cadidate sequences would be the Hamiltonian apths of the graph.
+
+\section{Goal of this Work}
+\label{sec:goal-of-this-work}
+
