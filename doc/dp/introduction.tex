@@ -129,6 +129,9 @@ The definition of read overlapping is not strict. Two reads are considered overl
 
 During the \textit{layout} phase, a read-pairing information is used to put disconnected parts of the read overlapping graph together and resolving structures created by sequencing errors. The \textit{consensus} phase is responsible for deriving candidate seuqnces for variant calling from the graph. In an ideal case, the cadidate sequences would be the Hamiltonian apths of the graph.
 
-\section{Goal of this Work}
-\label{sec:goal-of-this-work}
+\section{Goals of this Work}
+\label{sec:goals-of-this-work}
 
+Main goal of this work is to develop an algorithm capable of variant calling on high-thorought data sets, comparable to, or more precies than methods currenlty employed. The approach used by HaplotypeCaller (HaploCall) should be used as an inspiration which implies the newly developed algorithm would take advantage of the reference sequence and would belong to the class of algorithms utilizing de Bruijn graphs.
+
+The new algorithm should accept the input data set in widely used formats, such as SAM for the read set and FASTA for the reference sequence, and output the called variants in the VCF format. Its results need to be compared to at least two other assembly and variant calling tools. GATK (HaploCall) \cite{haplocall}, as a representative of the DBG class and reference-aided methods, and FermiKit \cite{fermikit}, utilizing the OLC concept.
