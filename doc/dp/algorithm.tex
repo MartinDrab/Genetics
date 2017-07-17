@@ -150,31 +150,41 @@ As can bee seen, there are two k-mers representing sequence \texttt{TATAT}, name
 Although this solves the problem of cycles for now, at least for now, things become more complicated in the next step of the algorithm which inserts individual reads into the graph
 
 \section{Adding Reads}
-\label{Adding Reads}
+\label{sec:adding-reads}
 
-The basic idea behind this stage is farily simple and similar to the approach used in the previous one. The read being added is divided into a sequence of k-mers. If a k-mer is not represented by any existing graph vertex, a new vertex is created for it. In other cases, existing vertices are used. Again, vertices representing adjacent k-mers in the read are connected by edges. 
+The basic idea behind this stage is farily simple and similar to the approach used in the previous case. The read being added is decomposed into k-mers. If the k-mer is not present in the graph already, a new vertex is created. Again, vertices representing adjacent k-mers in the read are connected by edges. 
 
-Figure \ref{fig:read-idea} shows a graph created by transforming a region of \texttt{ACCGTGGTAAT} and adding a read \texttt{ACCGTAGTAAT} to the resulting graph. K-mer size is set to 5. The read is divided into the following k-mers:
-\begin{gather}
-k_0 = ((A, C, C, G, T), 0) \\
-k_1 = ((C, C, G, T, A), 0) \\
-k_2 = ((C, G, T, A, G), 0) \\
-k_3 = ((G, T, A, G, T), 0) \\
-k_4 = (T, A, G, T, A), 0) \\
-k_5 = ((A, G, T, A, A), 0) \\
-k_6 = ((G, T, A, A, T), 0)
-\end{gather}
+Figure \ref{fig:read-idea} shows a graph created by transforming a region of \texttt{ACCGTGGTAAT} and adding the read \texttt{ACCGTAGTAAT} to the resulting graph. K-mer size is set to 5. The read is divided into the following k-mers:
+\begin{align}
+k_0 = (ACCGT, 0) \\
+k_1 = (CCGTA, 0) \\
+k_2 = (CGTAG, 0) \\
+k_3 = (GTAGT, 0) \\
+k_4 = (TAGTA, 0) \\
+k_5 = (AGTAA, 0) \\
+k_6 = (GTAAT, 0)
+\end{align}
 
-In the graph, there already are vertices representing k-mers $k_0$ and $k_6$. For others, new vertices are created. Finally, edges are added (if necessary) to show the k-mer order within the read. The figure also suggests how to retrieve the sequence covered by the read --- just by following the edges and using the last base of all the k-mers except the first one that is used as a whole. 
+In this example, the k-mers $k_0$ and $k_6$ were already present in the reference graph but new vertices has to be created for the rest.
+
+Finally, edges are added (if necessary) to show the k-mer order within the read. When talking about the standard de Bruijn graphs, edges connecting k-mers need not to be expressed explicitly since they always connect adjacent k-mers. In case of our modification to de Bruijn graph, we decided to make the k-mer connection explicit. Two reasons led us to such decision:
+\begin{itemize}
+\item our definition adds context number to k-mers and we wish to connect only certain k-mers adjacent by their strings,
+\item we need to make connections between non-adjacent k-mers, e.g. shortcuts representing paths with no branches, or fullfilling purposes discussed mainly in Section \ref{sec:graph-structure-optimization}.
+\end{itemize}
+
+Keeping graph edges explicitly has also its drawbacks, especially those related to performance. Classical de Bruijn graphs can be represented only by a set of their vertices, since the edges can be deduced on demand.
+
+The figure also suggests how to retrieve the alternate sequence introduced by the read --- by going through edges supported by the read and concatenating the last bases from the k-mers lying on the path. 
 
 \begin{figure}[h]
 	\centering
 	\includegraphics{img/read-idea.pdf}
-	\caption{Basic idea behind adding a read into a De Bruin graph}
+	\caption{Basic idea behind adding a read into a de Bruijn graph}
 	\label{fig:read-idea}
 \end{figure}
 
-Figure \ref{fig:read-idea} reflects an ideal state, meaning that all places, where the read differs from the reference, are covered by distinct k-mers, and distance between each two of them is greater than $k$. If these conditions are met, each single $n$-base long difference (SNP, insertion or deletion) adds atmost $n+k-1$ new vertices to the graph. However, it may happen that some of the k-mers covering a difference colide by sequence with either k-mers of the reference, or k-mers of other reads covering a totally different place of the active region. To minimize such unfortunate cases, additional graph transformations need to be made after all the reads are added to the graph.
+Figure \ref{fig:read-idea} reflects an ideal state, meaning that all places, where the read differs from the reference, are covered by distinct k-mers, and the distance between each two of them is greater than $k$. If these conditions are met, each single $n$-base long difference (SNP, insertion or deletion) adds atmost $n+k-1$ new vertices to the graph. However, it may happen that some of the k-mers covering a difference colide by sequence with either k-mers of the reference, or k-mers of other reads covering a totally different place of the active region. To minimize such unfortunate cases, additional graph transformations need to be made after all the reads are added to the graph.
 
 Unfortunately, the basic idea does not work in our case. Introduction of the k-mer context numbers prevented loops in the graph derived purely from the reference. But since multiple k-mers representing the same sequence may exist, it is not always possible to easily determine which of the vertices should be assigned to individual k-mers of the read. For example, if looking at the graph from Figure \ref{fig:ref-my}, it is not clear which vertex (or vertices) should be assigned to a k-mer with \texttt{TATAT} sequence. 
 
