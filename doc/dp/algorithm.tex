@@ -244,44 +244,43 @@ Such conditions are met when the read differs from the reference at base $r_{i+k
 \subsection{Assigning Sets of Vertices to K-mers}
 \label{subsec:assign-sets}
 
-The process of assigning vertex sets to individual k-mers derived from the read in the previous step is quite straightforward --- a set assigned to certain k-mer $x$ contains exactly the vertices representing k-mers with sequence equal to $x$. The k-mer context number is not taken into account. If a k-mer is not represented by any vertex of the current graph (thus, the k-mer would receive an empty set), a new vertex is created to represent it. When using a standard De Bruin graph, size of all the sets would contain exactly one vertex and there would be merely anything to speak of. However, introduction of k-mer context numbers caused that also larger sets may appear. That decision, although removing loops from the reference vertices, complicates the task of integrating reads into the graph since the graph may contain multiple path representing a single read (by using differenct vertices with k-mers equal by sequence).
+The process of assigning vertex sets to individual k-mers derived from the read in the previous step is quite straightforward --- a set assigned to a certain k-mer $x$ contains exactly the vertices sharing the same k-mer string. The k-mer context number is not taken into account. If a k-mer is not represented by any vertex of the current graph (thus, the k-mer would receive an empty set), a new vertex is created to represent it. With a classical de Bruijn graph, all sets would contain exactly one vertex. With k-mer context numbers, there can be multiple vertices per k-mer. This complicates the task of integrating reads into the graph because the graph may contain multiple paths representing a single read (by using differenct vertices with k-mers equal by sequence).
 
 Previous steps of the algorithm, described above, impose the following conditions on the assigned vertex sets:
 \begin{itemize}
-\item each set contains either read, or reference vertices, not both,
+\item each set contains either read, or reference vertices, but not both,
 \item if a set contains read vertices, its size is always one,
 \item sets containing reference vertices do not have such restriction,
 \item each two sets are either distinct (their intersection is an empty set) or equal.
 \end{itemize}
-The second and third condition holds because k-mer context numbers are used to differentiate reference k-mers but not the read ones. 
+The second and third condition holds because k-mer context numbers are used to differentiate reference k-mers but not the read ones. The fourth one is implied by the fact that each set contains all existing vertices with k-mers equal by sequence to the read k-mer being processed. So, if two sets have a non-empty intersection, they actually refer to the same read k-mer (k-mer context numbers are not used when processing read k-mers).
 
 In formal terms, a set $M_i$ is assigned to a k-mer $k_i$ where
 $$
-M_i = {v_{i_j} | v_{i_j} \in V(G), kmer(v_{i_j}) equals to k_i by sequence}
+M_i = \{v_{i_j} | v_{i_j} \in V(G), kmer(v_{i_j})\: equals\: to\: k_i\: by\: sequence\}
 $$ 
-When a set is assigned to each k-mer, it is time to integrate the read into the graph in form of a path, starting on a vertex representing $k_1$ and ending in one covering $k_{n-k+1}$. SInce $M_i$ sets may contain more than one vertex, it is required to select vertices to form a path best fitting to the read. To derive a good path, we decided to honour the following observations about reads:
+When a set is assigned to each k-mer, it is time to integrate the read into the graph in the form of a path, starting in the vertex representing $k_1$ and ending in the vertex covering $k_{n-k+1}$. SInce $M_i$ sets may contain more than one vertex, it is necessary to select vertices to form a path best fitting to the read. To derive a good path, we decided to assume the following:
 \begin{itemize}
-\item they should follow the reference sequence in a forward direction,
-\item probability of making big leaps in that direction is low,
+\item they should follow the reference sequence in the forward direction,
+\item The probability of skipping large number of reference vertices (long deletions) is low,
 \item multiple reads cover one place, sharing appropriate parts of their paths.
 \end{itemize}
 
-These observations cannot be enforced too strictly as De Bruin graphs are not very suitable for coping with repeats of length $k$ or more, and similar phenomenoms. The case of a read containing a copy of reference at leat $k$ baes in length might be enough to break the first observation. The second observation permits exceptions by definition. The third one forms a base for most of the genome assembly algorithms.
+These requirements cannot be enforced too strictly as de Bruijn graphs are not very suitable for coping with repeats of length $k$ or more. The case of a difference containing a copy of reference at leat $k$ baes in length might be enough to break the first assumption. The second assumption permits exceptions by definition. The third forms a base for most of the genome assembly algorithms.
 
-To solve the problem of selection of the right vertices from the $M_i$ sets, we decided to reduce it to a shortest-path problem on a helper graph the structure of which is defined by the sets and their contents.
+In order to choose the correct vertices from the $M_i$ sets, we decided to reduce it to a shortest-path problem on a helper graph the structure of which is defined by the sets and their contents as explained in \ref{subsec:helper-graph}.
 
 \subsection{The Helper Graph}
 \label{subsec:helper-graph}
 
-The helper graph is an oriented layered one. Each layer consists of all vertices contained in one reference $M_i$ sets. The order of the layers respect the order of $M_i$ sets. Sets consisting of read vertices are not part of the helper graph. Only adjacent layers are connected by edges, their orientation reflects the order of the sets. Each subgraph consisting of two adjacent layers is a full bipartite graph. The structure of the helper graph does not take equality of $M_i$ into account. In other words, when $M_i = M_j$ for $i \ne j$, both sets are represented within the helper graph as individual layers, even if they refer to the same vertices of the (main, non-helper) graph.
+The helper graph is an oriented layered graph. Each layer consists of all vertices contained in one reference $M_i$ set. The order of the layers respect the order of $M_i$ sets. Sets consisting of read vertices are not part of the helper graph. Only adjacent layers are connected by edges, their orientation reflects the order of the sets. Each subgraph consisting of two adjacent layers is a full bipartite graph. The structure of the helper graph does not take equality of $M_i$ into account. In other words, when $M_i = M_j$ for $i \ne j$, both sets are represented within the helper graph as individual layers, even if they refer to the same vertices of the (main, non-helper) graph.
 
-Formaly speaking, let $M_i = \{v_{i}^{1}, ..., v_{i}^{n_i}\}$ and let $i$ serves as an index to reference sets only. Then the helper graph $G_h$ can be defined as follows:
-\begin{gather}
+Formaly speaking, let $M_i = \{v_{i}^{1}, ..., v_{i}^{n_i}\}$ and let $i$ index the reference sets only. Then the helper graph $G_h$ can be defined as follows:
+\begin{align}
 G_h = (V_h, E_h) \\
 V_h = \cup_i M_i \\
 E_h = \{(u, v) | u \in M_i, v \in M_{i + 1}\}
-\end{gather}
-
+\end{align}
 By finding the shortest path leading from a vertex in the first layer to one in the last layer, we perfrom the process of selection of vertices representing the read in the main graph. The shortest path depends on weights of edges connecting the adjacent layers. In general, the weighting function follows these rules:
 \begin{itemize}
 \item the weight is increased by a \textit{missing edge penalty} if there is a missing edge on the path from $u$ to $v$ in the main graph,
@@ -290,7 +289,7 @@ By finding the shortest path leading from a vertex in the first layer to one in 
 \end{itemize}
 The rules actually indicate why $M_i$ sets covering read vertices are not parts of the helper graph – since their vertices maintain no reference position, only the missing edge penalties would apply and that can be included within missing edge penalties of the reference vertices only.
 
-For an example of a helper graph, let's have a reference sequence \texttt{ACTATACTA} and a read \texttt{ACTAGACTA}. The left part of Figure \ref{fig:heper-graph-short} shows the main graph just after adding vertices for the reference and the read k-mers with short variant optimization applied. The resulting helper graph is shown on the right part of the figure.
+For an example of a helper graph, let's have a reference sequence \texttt{ACTATACTA} and a read \texttt{ACTAGACTA}. The left part of Figure \ref{fig:helper-graph-short} shows the main graph just after adding vertices for the reference and the read k-mers with short variant optimization applied. The resulting helper graph is shown on the right part of the figure.
 
 Six k-mers are derived from the read which means that vertex sets $M_0$, ..., $M_5$ are assigned to them. Since the second k-mer is represented by a read vertex, the $M_1$ set is not included as a layer of the helper graph. Other sets contains reference vertices, so they form individual layers. Adjacent layers are then connected. Edges with applied penalties (only the reference backward penalty in this case) are depicted red. The black edges show the shortest path.
 
