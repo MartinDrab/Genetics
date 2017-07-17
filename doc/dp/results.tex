@@ -1,14 +1,16 @@
 \chapter{Results}
 \label{chap:results}
 
-When an algorithm is being designed, its evaluation against existing solutions belongs to important stages of its development. This chapter describes this stage, informing about a data set used to debug and improve our solution, and the method of comparison with other solutions, such as fermi-kit and GATK. The last part of the chapter covers certain variants that proved to be interesting when examined by our algorithm.
+When developing a new algorithm, an important part is testing and evaluation
+against existing solutions. This chapter describes this stage, informing about a data set used to debug and improve our solution, and the method of comparison with other solutions, such as fermikit and GATK. The last part of the chapter covers certain variants that proved to be interesting when examined by our algorithm.
 
 \section{Test Data Set}
 \label{sec:test-data-set}
 
-The algorithm was tested on the first 40 megabases of chromosome 1 of the human genome. The test set is a high-coverage one and was obtained from the 1000 Genome Project. Except the input reads \cite{testreads}, variants called by fermi.kit and GATK are also available in form of VCF files \cite{testvcf}. The VCF files were used as a measure of algorithm quality. Since our algorithm also requires a reference sequence to work, we took the GRCh37 version \cite{testref}.
+ chr1:1-40,000,000 region of the high-coverage
+data from the 1000 Genome Project. In addition to the input reads \cite{testreads}, also variants called by fermikit and GATK are available in form of VCF files \cite{testvcf}. The VCF files were used to compare the accuracy of the algorithm. In order to be able to make meaningful comparisons and to avoid remapping of all reads, we used the same version of the reference genome which was used also by the 1000 Genome Project (GRCh37 \cite{testref}).
 
-The input read set consists of 12475011 reads with lengh of 151 bases. Figure \ref{fig:test-kmer-frequency-distribution} shows k-mer frequency distribution of the set with k-mer size of 21 bases. The shape of the graph, when compared to Figure \ref{fig:kmer-frequency-distribution} suggests that the set contains read errors. Hence, an error correction step was applied.
+The test read set consists of 12,475,011 reads with lengh of 151 bases. Figure \ref{fig:test-kmer-frequency-distribution} shows k-mer frequency distribution of the set with k-mer size of 21 bases. The shape of the graph, when compared to Figure \ref{fig:kmer-frequency-distribution} suggests that the set indeed contains read errors, therefore the error correction step was applied.
 
 \begin{figure}[h]
 \centering
@@ -17,8 +19,7 @@ The input read set consists of 12475011 reads with lengh of 151 bases. Figure \r
 \label{fig:test-kmer-frequency-distribution}
 \end{figure}
 
-
-As Table \ref{tab:test-correction} indicates, the error correction process removed and shortened certain amount of reads. About 21 \% of the input reads was subject to repairs. Figure \ref{fig:test-repair-frequency} shows a distribution of the number of repaired bases per read, not including effects of read shortage. It is clear, that about 21 \% of all reads received a base correction, and that, in most cases, only several bases were fixed. 
+As Table \ref{tab:test-correction} indicates, the error correction process removed and shortened a signifficant proportion of the reads. Approximately 21\% of the input reads was subject to repairs. Figure \ref{fig:test-repair-frequency} shows a distribution of the number of repaired bases per read, not including effects of read trimming.
 
 \begin{table}[h]
 \begin{center}
@@ -28,15 +29,15 @@ As Table \ref{tab:test-correction} indicates, the error correction process remov
 \hline
 Category & Value & Percentage \\
 \hline
-Total reads & 12475011 & - \\
+Total reads & 12,475,011 & - \\
 \hline
-Removed & 64653 &  $0.52$ \% of all reads. \\
+Removed & 64,653 &  $0.52$\% of all reads. \\
 \hline
-Shortened & 944 & $0.0076$ \% of all reads \\
+Shortened & 944 & $0.0076$\% of all reads \\
 \hline
-Total bases & 1880123991 & - \\
+Total bases & 1,880,123,991 & - \\
 \hline
-Bases repaired & 5098764 &  $0.27$ of all bases \\
+Bases repaired & 5,098,764 &  $0.27$\% of all bases \\
 \hline
 \end{tabular}
 \end{center}
@@ -49,7 +50,7 @@ Bases repaired & 5098764 &  $0.27$ of all bases \\
 	\label{fig:test-repair-frequency}
 \end{figure}
 
-Figure \ref{fig:test-kmer-frequency-distribution2} shows the k-mer frequency distribution of the corrected read set. Although quite far from perfect, the graph shape definitely resembles the ideal one better then in case of the raw set. Especially, the number of low-frequency k-mers dropped dramatically.
+Figure \ref{fig:test-kmer-frequency-distribution2} shows the k-mer frequency distribution of the corrected read set. Although still not perfect, the distribution of corrected reads resembles the theoretical distribution of an ideal error-free set more than the distribution of raw reads.
 
 \begin{figure}[h]
 \centering
@@ -58,7 +59,7 @@ Figure \ref{fig:test-kmer-frequency-distribution2} shows the k-mer frequency dis
 \label{fig:test-kmer-frequency-distribution2}
 \end{figure}
 
-As described in Section \ref{sec:data-preprocessing}, not all input reads, even from the corrected set, can be processed by our algorithm. Table \ref{tab:corrected-set-categories} summarizes numbers of reads unacceptable for various reasons. The preprocessing phase removed nearly one fifth of the corrected data set (18.99 \%). Most of the reads were removed due to being possible duplicates (87.65 \%). Quite a large portion of  reads were not accepted because of their low mapping quality (12.97 \%). Also, about 3 \% of all the reads were shortened in order to remove soft-clipped regions.
+As described in Section \ref{sec:input-output-and-preprocessing}, not all input reads, even from the corrected set, can be processed by our algorithm. Table \ref{tab:corrected-set-categories} summarizes numbers of reads discarded for various reasons. The preprocessing phase removed nearly one fifth of the corrected data set (18.99\%). Most of the reads were removed due to being possible duplicates (87.65\%). Quite a large portion of  reads were not accepted because of their low mapping quality (12.97\%). Also, about 3\% of all the reads were shortened in order to remove soft-clipped regions.
 
 \begin{table}[h]
 \begin{center}
@@ -68,19 +69,19 @@ As described in Section \ref{sec:data-preprocessing}, not all input reads, even 
 \hline
 Name & Value & Percentage \\
 \hline
-Total reads & 12410475 & - \\
+Total reads & 12,410,475 & - \\
 \hline
-Bad reads & 2357002  & $18.99$ \% of all reads \\
+Bad reads & 2,357,002  & $18.99$\% of all reads \\
 \hline
-Low MAPQ & 305588 & $12.97$ \% of bad reads \\
+Low MAPQ & 305,588 & $12.97$\% of bad reads \\
 \hline
-Unmapped & 5020 & $0.21$ \% of bad reads \\
+Unmapped & 5,020 & $0.21$\% of bad reads \\
 \hline
-Supplementary & 33621 & $1.43$ \% of bad reads \\
+Supplementary & 33,621 & $1.43$\% of bad reads \\
 \hline
-Duplicate & 2065795 & $87.65$ \% of bad reads \\
+Duplicate & 2,065,795 & $87.65$\% of bad reads \\
 \hline
-Soft-clipped & 305209 & $3.04$ \% of accempted reads \\
+Soft-clipped & 305,209 & $3.04$\% of accempted reads \\
 \hline
 \end{tabular}
 \end{center}
@@ -89,24 +90,24 @@ Soft-clipped & 305209 & $3.04$ \% of accempted reads \\
 \section{Quality Evaluation}
 \label{sec:quality-evaulation}
 
-In order to evaluate quality of the algorithm, VCF files generated by it were compared to those generated by the following variant calling toolchains:
+In order to evaluate the algorithm, the generated VCF files were compared to those generated by the following variant calling toolchains:
 \begin{itemize}
-\item \textbf{GATK}. These VCFs were taken as referepnce points, since the method used by GATK should be very similar to our algorithm. Hence, results of all algorithms were compared against them. Necessary VCF files are part of the test data set.
-\item \textbf{Fermi.kit}. Unlike GATK and our algorithm, fermi.kit's assembly algorithm is based on the OLC concept. VCFs generated for the test region are part of the test data set.
-\item \textbf{Fermi.kit on regions}. This is a combination of the OLC approach used by Fermi.kit and the short region one adopted by our algorithm (and also by GATK). The fermi.kit assembly algorithm was run on exactly the same regions as our algorithm. The aim of this test case was to force the Fermi.kit to minimize differences of outputs generated by DBG and OLC algorithms.
-\item \textbf{samtools mpileup, bcftools call}. A quite simple variant caller implemented by SAMtools and BCFtools commands \cite{samtools}.
+\item \textbf{GATK}. These VCFs were taken as reference points, since the method used by GATK should be very similar to our algorithm. Hence, results of all algorithms were compared against them.
+\item \textbf{Fermikit}. Unlike GATK and our algorithm, Fermikit's assembly algorithm is based on the OLC concept.
+\item \textbf{Fermikit on regions}. This is a combination of the OLC approach used by Fermikit and the short region one adopted by our algorithm (and also by GATK). The fermikit assembly algorithm was run on exactly the same regions as our algorithm. The aim of this test case was to force the Fermikit to minimize differences of outputs generated by DBG and OLC algorithms.
+\item \textbf{samtools mpileup, bcftools call}. A traditional variant caller implemented by SAMtools and BCFtools packages \cite{samtools}.
 \end{itemize}
 
-Results generated by these algorithms were compared to those of GATK using a tool named rtgeval. Rtleval is a wrapper for RTG's vcfeval, a sophisticated open source variant comparison tool developed by Realtime Genomics. It simplifies the use of vcfeval and potentially helps to get consistent results given VCFs produced by different variant callers \cite{rtgeval}.
+Results generated by these algorithms were compared to those of GATK using the tool\textbf{ rtgeval}. Rtleval is a wrapper for RTG's vcfeval, a sophisticated open source variant comparison tool developed by Realtime Genomics. It simplifies the use of vcfeval and potentially helps to get consistent results given VCFs produced by different variant callers \cite{rtgeval}.
 
-Rtgeval uses quite simple terminology. Basicaly, it accepts two VCF files: test set and truth set. The truth set is a VCF file generated by an assembly algorithm we trust (GATK in our case). The test set VCF is produced by the algorithm to be tested. The evaluation is done separately for SNPs and indels and each variant is sorted into one of three categories:
+Rtgeval accepts two VCF files on input: a test set and a truth set. The truth set is a VCF file generated by a reference algorithm, in our case GATK. The test set VCF is produced by the algorithm to be tested. The evaluation is done separately for SNPs and indels and each variant is sorted into one of three categories:
 \begin{itemize}
 \item \textbf{True positive (TP)}. The variant is present in both sets.
 \item \textbf{False negative (FN)}. It is present in the truth set only.
 \item \textbf{False positive (FP)}. It can be found only in the test set.
 \end{itemize}
 
-Rtgeval can compare VCF files in three different modes: positional, allelic and genotypic. The positional mode is quite intuitive; the tool is determining whether the same varaints are present at approximately the same position inside both test and truth set. If the positions difference does not exceed 10 bases, the variants are considered true positives. Otherwise, either false negative, or fale positive is reported. In allelic mode, the tool focuses on biallelic variants and evaluates whether they are correctly detected by both tested algorithms. The genotyping mode compares genotype and phasing information of the variants.
+Rtgeval can compare VCF files in three different modes: positional, allelic and genotypic. The positional mode is intuitive; the tool is determining whether the same varaints are present at approximately the same position inside both test and truth set. If the positions difference does not exceed 10 bases, the variants are considered true positives. Otherwise, either false negative, or fale positive is reported. In allelic mode, the tool focuses on biallelic variants and evaluates whether they are correctly detected by both tested algorithms. The genotyping mode compares genotype and phasing information of the variants.
 
 \subsection{Positional}
 \label{subsec:positional-results}
@@ -117,19 +118,19 @@ Rtgeval can compare VCF files in three different modes: positional, allelic and 
 \label{tab:positional-results}
 \begin{tabular}{| c | c | c | c | p{3cm} |}
 \hline
-/ & Fermi.kit & Fermi.kit (regions) & mpileup & Our algo \\
+/ & Fermikit & Fermikit (regions) & mpileup & Our algorithm \\
 \hline
-SNP TP & 45241 (89,3 \%) & 47650 (94 \%) & 49201 (97.1 \%) & 48117 (94.96 \%) \\
+SNP TP & 45,241 (89.3\%) & 47,650 (94\%) & 49,201 (97.1\%) & 48,117 (94.96\%) \\
 \hline
-SNP FN & 5432 (10,7 \%) & 3043 (6 \%) & 1472 (2.9 \%) & 2556 (5.04 \%) \\
+SNP FN & 5,432 (10.7\%) & 3,043 (6\%) & 1,472 (2.9\%) & 2,556 (5.04\%) \\
 \hline
-SNP FP & 385 (0,76 \%) & 1441 (2,84 \%) & 2090 (4.12 \%) & 803 (1.58 \%) \\
+SNP FP & 385 (0.76\%) & 1,441 (2.84\%) & 2,090 (4.12\%) & 803 (1.58\%) \\
 \hline
-INDEL TP & 7853 (71, 6 \%) & 9802 (89,4 \%) & 8707 (79.39 \%) & 9468 (86.43 \%) \\
+INDEL TP & 7,853 (71.6\%) & 9,802 (89.4\%) & 8,707 (79.39\%) & 9,468 (86.43\%) \\
 \hline
-INDEL FN & 3114 (28,4 \%) & 1365 (10,6) \%) & 2260 (20.61 \%) & 1499 (13.57 \%) \\
+INDEL FN & 3,114 (28.4\%) & 1,365 (10.6\%) & 2,260 (20.61\%) & 1,499 (13.57\%) \\
 \hline
-INDEL FP & 250 (2,28 \%) & 835 (7,61 \%) & 1412 (12.95 \%) & 1242 (11.32 \%) \\
+INDEL FP & 250 (2.28\%) & 835 (7.61\%) & 1,412 (12.95\%) & 1,242 (11.32\%) \\
 \hline
 \end{tabular}
 \end{center}
