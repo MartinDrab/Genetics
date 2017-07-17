@@ -415,7 +415,7 @@ The most complicated case is shown under in Figure \ref{fig:variant-detection}d.
 \section{Variant Graph and Variant Filtering}
 \label{sec:variant-graph-and-variant-filtering}
 
-When variants are extracted from the De Bruin-like graph, they need to be filtered and their genotype and phasing computed. The DB-like graph is not used to help with these tasks. The problem of genotype and phasing is transformed into a sort of graph colouring problem. A so-called \textit{variant graph} is built for this purpose.
+When variants are extracted from the de Bruijn-like graph, they need to be filtered and their genotype and phasing computed. For this, a \textit{variant graph} is built and the task is transformed into a graph colouring problem.
 
 The variant graph represent each variant by two vertices; one for its reference and one for its alternate sequence. The final task is to colour each vertex by one of these colors:
 \begin{itemize}
@@ -424,13 +424,16 @@ The variant graph represent each variant by two vertices; one for its reference 
 \item \textbf{Purple}. Both sequences go through the variant part.
 \end{itemize}
 
-If a vetex is coloured purple, the vertex representing the other part of the variant is not required (no sequence goes through it) and is removed from the graph. The deletion usually happen only to the vertices representing the reference pats, since removing a vertex of the alternate path means that the variant was filtered out.
+If a vetex is coloured purple, the vertex representing the other part of the variant is not required (no sequence goes through it) and is removed from the graph. The deletion usually happens only to the vertices representing the reference pats, since removing a vertex of the alternate path means that the variant was filtered out.
 
 Before colouring, graph vertices are connected by several types of bidirectional edges that place vairous conditions on the colour of their sources and destinations.
 \begin{itemize}
 \item \textbf{Variant edges} connect vertices representing parts of one variant. Their source and destination must be coloured differently.
-\item \textbf{Read edges} connect variant parts covered by the same subset of reads, such vertices need to be coloured by the same colour, with exception of purpole. If one of the vertices is purple, the other may get arbitrary color.
-\item \textbf{Pair edge} put together variant parts that are covered by paired reads. They place the same conditions as read edges.
+\item \textbf{Read edges} connect variant parts covered by the same subset of reads with size greater than a threshold, such vertices need to be coloured by the same colour, with exception of purple. If one of the vertices is purple, an arbitrary color may be assigned
+to the other.
+\item \textbf{Pair edge} put together variant parts that are covered by paired-end reads. Since paired-end reads indicate that the variants covered by them belong to the same alternate sequence, the coloring restrictions are the same as for the read edges. Two vertices are connected by a paired edge if the share a sufficient number of paired-end reads.
 \end{itemize}
+
+The graph usually has a form of many components. Variants in one component share the same phasing.
 
 When the graph is coloured, the genotype and phasing information are known. The variants are written to the resulting VCF file.
