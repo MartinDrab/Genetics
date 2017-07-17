@@ -321,29 +321,29 @@ When all reads are integrated into the De Bruin-like graph, it is time to optimi
 
 Figure \ref{fig:bubble-connection} demonstrates one class of the structural problems. A subset of reference sequence was transformed into vertices 1, 2, 3, 4, 5 and 6. A set of reads is represented by a "path" 2, 3, 4, 5, R1, R2, 1, 2, 3, R3, 6.  The left part of the figure shows how such a graph woud look like without any optimizations. It is clear that recovering the correct sequence would not be trivial. 
 
-Howerver, since we know that the path leads from R2 to R3 (through 1, 2, 3), we can theoretically replace edges (R2, 1) and (3, R3) by a special edge (R2, R3), as the right part of the figure suggests. An information about the sequence covered by vertices 1 and 2 needs to be recorded within the new edge. Recovering the correct sequence from the right part of the figure does not impose a problem since it is just a simple bubble. 
+However, since we know that the path leads from R2 to R3 (through 1, 2, 3), we can theoretically replace edges (R2, 1) and (3, R3) by a special edge (R2, R3), as the right part of the figure suggests. An information about the sequence covered by vertices 1, 2 and 3 needs to be recorded within the new edge. Recovering the correct sequence from the right part of the figure does not impose a problem since it is just a simple bubble. 
 
 \begin{figure}
 	\centering
 	\includegraphics{img/bubble-connection.pdf}
-	\caption{Benefits of connecting bubbles}
+	\caption{Benefits of connecting bubbles. Green color marks vertices added during the reference transformation, red is used for read vertices}
 	\label{fig:bubble-connection}
 \end{figure}
 
-A more general, and a very typical, sutiation is shown on Figure \ref{fig:connection-general}. The subgraph contains a subset of the reference (vertices $1$, $...$, $n+1$) and two bubbles; one ending by $R1$ and connected to $2$, another starting at $R2$ and leading from $n$. If edges $I_1$ (the input edge) and $O_1$ (the output edge) share reasonable amount of reads ($|reads(I_1) \cap reads(O_1)| > thershold$), the subgraph may also be interpreted as that the reads contain a sequence of length $n-1$ that is also present in the reference. In that case, it is wise to connect the vertices $R1$ and $R2$ directly the same way as on Figure \ref{bubble-connection}, bypassing the reference part. The edge maintaining the direct link is marked as $C_1$ (the connecting edge). Reads shared by the input and the output edges are moved to the connecting one.
+A more general, and a very typical, situation is shown on Figure \ref{fig:connection-general}. The subgraph contains a subset of the reference (vertices $1$, $...$, $n+1$) and two bubbles; one ending by $R1$ and connected to $2$, another starting at $R2$ and leading from $n$. If edges $I_1$ (the input edge) and $O_1$ (the output edge) share reasonable amount of reads ($|reads(I_1) \cap reads(O_1)| > thershold$), the subgraph may also be interpreted as that the reads contain a sequence of length $n-1$ that is also present in the reference. In that case, it is wise to connect the vertices $R1$ and $R2$ directly the same way as on Figure \ref{fig:bubble-connection}, bypassing the reference part. The edge maintaining the direct link is marked as $C_1$ (the connecting edge). Reads shared by the input and the output edges are moved to the connecting one.
 
 If $C_1$ is created, the read set intersection is also used to decide whether the edges $I_1$ and $O_1$ should be removed. The input edge is deleted if does not share enough reads with the next reference edge (meaning there are no valid sequences leading through both these edges). Similarly, the output edge is deleted in case it does not share enough reads with the last reference edge (no valid paths goes through the edges).
 
 \begin{figure}[h]
 	\centering
 	\includegraphics{img/connection-general.pdf}
-	\caption{A subgraph required for connection}
+	\caption{A subgraph required for connection, colors have the same meaning as in Figure \ref{fig:bubble-connection}}
 	\label{fig:connection-general}
 \end{figure}
 
-Figure \ref{fig:connection-abstract} depicts probably the most general case; multiple reads covering different parts of the active region (including the differences from the reference) share the same sequence of $n$ bases. There is $k$ input and $l$ output edges. To determine the association between individual input and output edges, the intersection of covering reads is used again and connecting edges are created if necessary. More precisely, the following rules apply:
+Figure \ref{fig:connection-abstract} depicts probably the most general case; multiple reads share the same sequence of $n$ bases ($R_1, \ldots, R_n$). There is $k$ input and $l$ output edges. To determine the association between individual input and output edges, the intersection of covering reads is used again and connecting edges are created if necessary. More precisely, the following rules apply:
 \begin{itemize}
-\item If $i^{th}$ input and $j^{th}$ output edges share reasonable amount of reads ($|reads(I_i) \cap reads(O_j)| > threhsold$), a connecting edge $C_{i,j}$ is created and the shared reads are moved to it. The new edge starts in $source(I_i)$ and ends in $dest(O_j)$.
+\item If $i^{th}$ input and $j^{th}$ output edges share reasonable amount of reads ($|reads(I_i) \cap reads(O_j)| > threshold$), a connecting edge $C_{i,j}$ is created and the shared reads are moved to it. The new edge starts in $source(I_i)$ and ends in $dest(O_j)$.
 \item $I_i$ and $O_i$ are removed in case their read coverage drops below threshold as a result of moving it to the newly created $C_i$ edges. 
 \end{itemize}
 
@@ -357,17 +357,16 @@ Figure \ref{fig:connection-abstract} depicts probably the most general case; mul
 \subsection{Helper Vertices}
 \label{subsec:helper-vertices}
 
-The bubble connection optimization works well when the bubbles being connected contain at least one read vertex. If this is not the case, howerver, the effect of replacing input and output edges with connection ones leads to a destruction of the sequences recorded within the graph.
+The bubble connection optimization works well when the bubbles being connected contain at least one read vertex. If this is not the case, however, the effect of replacing input and output edges with connecting edges leads to a destruction of the sequences recorded within the graph.
 
-As an example, consider a case ilustrated by the left part of Figure \ref{fig:helper-vertices}. The relevant part of the reference runs from vertex $1$ to $7$ and the read coverage supports a path of $3 \to 4 \to 5 \to 6 \to 1 \to 2 \to 4 \to 5 \to 7$. Applying steps described in this section leads into creating connection edges $6 \to 4$ and $2 \to 7$ and removing edges $6 \to 1$, $2 \to 4$ and $5 \to 7$. Such a graph cannot be used to recover the alternate sequence.
+As an example, consider a case ilustrated by the left part of Figure \ref{fig:helper-vertices}. The relevant part of the reference runs from vertex $1$ to $7$ and the read coverage supports a path of $3 \to 4 \to 5 \to 6 \to 1 \to 2 \to 4 \to 5 \to 7$. Applying steps described in this section results  in creation of connecting edges $6 \to 4$ and $2 \to 7$ and removal of the edges $6 \to 1$, $2 \to 4$ and $5 \to 7$. Such a graph cannot be used to recover the alternate sequence.
 
-Since this problem appears only in case the bubbles are represented only by edges connecting reference vertices (the short variant optimization produces such cases for deletions), the countermeasure is quite straightforward; it lies in insertion of special vertices that presents themself as read ones but carry no information about the sequence on which path they exist. We use a conservative approach for their insertion which means they divide the following sorts of edges:
+As this problem arises only when the bubbles are formed entirely by edges connecting reference vertices (the short variant optimization produces such cases for deletions), the countermeasure is quite straightforward; the solution is to  insert special placeholder vertices with an empty sequence. We use a conservative approach for their insertion which means they divide the following types of edges:
 \begin{itemize}
 \item output degree of their source vertex is greater than one,
 \item input degree of their destination is greater than one.
 \end{itemize}
-
-The right part of Figure \ref{fig:helper-vertices} indicates where the helper vertices would be inserted. They divide edges $6 \to 1$, $2 \to 4$ and $5 \to 7$. If the bubble connection is applied now, it leads to creation of edges $H1 \to H2$ and $H2 \to H3$ and deletion of $H1 \to 2$, $3 \to H2$, $H2 \to 4$ and $5 \to H3$. The optimization caused the alternate sequence being recoverable ($3 \to 4 \to 5 \to 6 \to H1 \to H2 \to H3 \to 7$).
+The right part of Figure \ref{fig:helper-vertices} indicates where the helper vertices would be inserted. They divide edges $6 \to 1$, $2 \to 4$ and $5 \to 7$. If the bubble connection is applied now, it leads to creation of edges $H1 \to H2$ and $H2 \to H3$ and deletion of $H1 \to 2$, $3 \to H2$, $H2 \to 4$ and $5 \to H3$. Thanks to the optimization, the alternate sequence can be now recovered ($3 \to 4 \to 5 \to 6 \to H1 \to H2 \to H3 \to 7$).
 
 \begin{figure}[h]
 	\centering
@@ -376,14 +375,15 @@ The right part of Figure \ref{fig:helper-vertices} indicates where the helper ve
 	\label{fig:helper-vertices}
 \end{figure}
 
-\section{Variant Detection}
-\label{sec:variant-detection}
+\section{Variant Calling}
+\label{sec:variant-calling}
 
-The graph structure optimization phase ends by removing areas not covered enough by the input read set. Then, alternate sequences covered by the reads are recovered. Since the sequences share most of their parts with the reference, they are extracted in form of variants. Each variant describe one place of the reference where the alternate sequence differ which roughly corresponds to one line of a VCF file.
+The graph structure optimization phase ends by removing nodes and edges with insufficient read coverage. Then, alternate sequences covered by the reads are extracted. Because the intra species variability of biological sequences is relatively
+small, it is practical to work with a list of differences (\textit{variants}), rather than whole sequences. The algorithm identifies parts of the sequence shared with the reference genome and the alternate alleles, which roughly correspond to one line of a VCF file. 
 
-Variants are extracted by detecting certain subgraphs with preprogrammed interpretations. When such a subgraph is discovered, a variant is deduced from it and integrated back into the graph by replacing its reference edges by one \textit{variant edge}. Read edges unique to the variant are also removed from the subgraph which simplifies its structure. The process of variant detection stops when no suitable subgraphs are found.
+Variants are extracted by detecting certain subgraphs. When such a subgraph is discovered, the variant sequence is determined and integrated back into the graph by replacing its reference edges by a signle \textit{variant edge}. Read edges unique to the variant are also removed from the subgraph which simplifies its structure. The process of variant detection stops when no suitable subgraphs are found.
 
-Figure \ref{fig:variant-detection} shows four types of subgraphs used for variant extraction and how the extraction changes them. Requirements on the reference part are always the same; it must consist of a path starting in vertex \texttt{1}, ending in \texttt{n} and with all inner vertices having only one input and one output edge. Only edges of reference or variant type may be present in the reference part. In all cases, this path is replaced with a variant edge, shown as blue, connecting directly \texttt{1} and \texttt{n}. All edges that are removed as a result of the extraction are plotted as discontinuous lines.
+Figure \ref{fig:variant-detection} shows four types of subgraphs used for variant extraction and demonstrates how they are modified in the process. The reference part of the graph must always start in vertex $1$, end in $n$ and all inner nodes must have one input and one output edge Only edges of reference or variant type may be present in the reference part. In all cases, this path is replaced with a variant edge, shown as blue, connecting directly $1$ and $n$. All edges that are removed as a result of the extraction are plotted as discontinuous lines.
 
 \begin{figure}[h]
 	\centering
@@ -392,27 +392,27 @@ Figure \ref{fig:variant-detection} shows four types of subgraphs used for varian
 	\label{fig:variant-detection}
 \end{figure}
 
-\subsection{Simple Bubble}
+\subsubsection{Simple Bubble}
 \label{subsec:simple-bubble}
 
-Read edges and vertices form a linear path leading from \texttt{1} to \texttt{n}. Since the edges are not part of any other variant, they all are removed and the whole subgraph degenerates only to two reference vertices connected by a variant edge. Figure \ref{variant-detection} shows this case under the \textbf{c)} sign.
+Read edges and vertices form a linear path leading from $1$ to $n$. Since the edges are not part of any other variant, they all are removed and the whole subgraph degenerates only to two reference vertices connected by a variant edge (Figure \ref{fig:variant-detection}c).
 
-\subsection{Bubble with Inputs}
+\subsubsection{Bubble with Inputs}
 \label{subsec:bubble-with-inputs}
 
-Displayed under the \textbf{a)} sign, this sort of subgraphs differ from the simplest one only by allowing inut degree of the read vertices to reach above one. However, the restriction on the output degree remains in effect. Only the string of read edges leading from the \texttt{1} vertex to the first vertex with more inputs than one are removed. Other read edges may take part also in other variants.
+Figure \ref{fig:variant-detection}b shows a subgraph where the read node has more than one input edge. In such case, only the sequence of read edges leading from the $1$ vertex to the first vertex with more inputs than one is removed. Other read edges may take part also in other variants.
 
-\subsection{Bubble with Outputs}
+\subsubsection{Bubble with Outputs}
 \label{subsec:bubble-with-outputs}
 
-This subgraph may be viewed as an opposite to the bubble with inputs. All read vertices in the subgraph are allowed to have more outputs than one, but only one input. Only the last string of edges, starting in the last read vertex with output greater than one and ending in the \texttt{n} vertex is removed, since it may participate only in one variant. The case is depicted under the \textbf{b)} sign of Figure \ref{fig:variant-detection}.
+This subgraph may be viewed as an opposite to the bubble with inputs. All read vertices in the subgraph are allowed to have more outputs than one, but only one input. Only the last sequence of edges, starting in the last read vertex with output greater than one and ending in the $n$ vertex is removed, since it may participate only in one variant (Figure \ref{fig:variant-detection}b).
 
-\subsection{Diamond}
+\subsubsection{Diamond}
 \label{subsec:diamond}
 
-The most complicated cae is shown under the \textbf{d)} letter and presents sort of a combination of a the \textbf{a)} and \textbf{b)} cases. The sequence of read vertices may contain one with output degree greater than one followed (not necessarily directly) by one with unresticted input degree. Only the edges covering one part of the supposed diamond are present in one variant only and hence are removed. 
+The most complicated case is shown under in Figure \ref{fig:variant-detection}d. The sequence of read vertices may contain one with output degree greater than one followed (not necessarily directly) by one with unresticted input degree. Only the edges covering one part of the supposed diamond are present in one variant only and hence are removed. 
 
-\section{Varinat Graph and Variant Filtering}
+\section{Variant Graph and Variant Filtering}
 \label{sec:variant-graph-and-variant-filtering}
 
 When variants are extracted from the De Bruin-like graph, they need to be filtered and their genotype and phasing computed. The DB-like graph is not used to help with these tasks. The problem of genotype and phasing is transformed into a sort of graph colouring problem. A so-called \textit{variant graph} is built for this purpose.
