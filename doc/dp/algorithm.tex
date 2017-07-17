@@ -143,7 +143,7 @@ As can bee seen, there are two k-mers representing sequence \texttt{TATAT}, name
 \begin{figure}[h]
 	\centering
 	\includegraphics{img/ref-db.pdf}
-	\caption{Transformation of the ATCTGTATATATG squence to a standard De Bruin graph (with no k-mer context numbers)}
+	\caption{Transformation of the \texttt{ATCTGTATATATG} squence to a standard de Bruijn graph (with no k-mer context numbers)}
 	\label{fig:ref-db}
 \end{figure}
 
@@ -167,15 +167,14 @@ k_6 = (GTAAT, 0)
 
 In this example, the k-mers $k_0$ and $k_6$ were already present in the reference graph but new vertices has to be created for the rest.
 
-Finally, edges are added (if necessary) to show the k-mer order within the read. When talking about the standard de Bruijn graphs, edges connecting k-mers need not to be expressed explicitly since they always connect adjacent k-mers. In case of our modification to de Bruijn graph, we decided to make the k-mer connection explicit. Two reasons led us to such decision:
+Finally, edges are added (if necessary) to show the k-mer order within the read. When talking about classical de Bruijn graphs, edges do not need to be expressed explicitly since they always connect adjacent k-mers. In case of our modification to de Bruijn graph, we chose to make the k-mer connection explicit. Two reasons led us to such decision:
 \begin{itemize}
 \item our definition adds context number to k-mers and we wish to connect only certain k-mers adjacent by their strings,
 \item we need to make connections between non-adjacent k-mers, e.g. shortcuts representing paths with no branches, or fullfilling purposes discussed mainly in Section \ref{sec:graph-structure-optimization}.
 \end{itemize}
-
 Keeping graph edges explicitly has also its drawbacks, especially those related to performance. Classical de Bruijn graphs can be represented only by a set of their vertices, since the edges can be deduced on demand.
 
-The figure also suggests how to retrieve the alternate sequence introduced by the read --- by going through edges supported by the read and concatenating the last bases from the k-mers lying on the path. 
+The figure also suggests how to retrieve the alternate sequence introduced by the read --- by going through edges supported by the read and concatenating the last bases from the k-mers present on the path. K-mers covering start and end of the reference region are the only exceptions; all except the \texttt{B} is used from the former, nothing from the latter.
 
 \begin{figure}[h]
 	\centering
@@ -184,40 +183,44 @@ The figure also suggests how to retrieve the alternate sequence introduced by th
 	\label{fig:read-idea}
 \end{figure}
 
-Figure \ref{fig:read-idea} reflects an ideal state, meaning that all places, where the read differs from the reference, are covered by distinct k-mers, and the distance between each two of them is greater than $k$. If these conditions are met, each single $n$-base long difference (SNP, insertion or deletion) adds atmost $n+k-1$ new vertices to the graph. However, it may happen that some of the k-mers covering a difference colide by sequence with either k-mers of the reference, or k-mers of other reads covering a totally different place of the active region. To minimize such unfortunate cases, additional graph transformations need to be made after all the reads are added to the graph.
+Figure \ref{fig:read-idea} reflects an ideal state, meaning that all places, where the read differs from the reference, are covered by distinct k-mers, and the distance between each two of them is greater than $k$. If these conditions are met, each single $n$-base long difference (SNP, insertion or deletion) adds at most $n+k-1$ new vertices to the graph. Each difference then creates only two linear paths, one covering the reference, the other for the alternate allele. Such structures are called \textit{bubbles} and are easy to work with.
+
+However, it may happen that some of the k-mers covering a difference colide by sequence with either k-mers of the reference, or k-mers of other reads covering a totally different place of the active region. To minimize such problematic cases, additional graph transformations need to be made after all the reads are itegrated into the graph.
 
 Unfortunately, the basic idea does not work in our case. Introduction of the k-mer context numbers prevented loops in the graph derived purely from the reference. But since multiple k-mers representing the same sequence may exist, it is not always possible to easily determine which of the vertices should be assigned to individual k-mers of the read. For example, if looking at the graph from Figure \ref{fig:ref-my}, it is not clear which vertex (or vertices) should be assigned to a k-mer with \texttt{TATAT} sequence. 
 
 We decided to solve the issue by transforming the basic idea into the following steps:
 \begin{itemize}
-\item divide the read into sequence of k-mers (a so-called \textit{short variant optimization}, described later, may be applied),
-\item assign a set of vertices to each k-mer, so that all vertices in the set represent k-mers euqal to the read k-mer by sequence,
-\item from each set, select a vertex to represent the k-mer of the read,
-\item connect the vertices representing the read to respect the order of the k-mers in the read.
+\item decompose the read into sequence of k-mers (a so-called \textit{short variant optimization}, described later, may be applied),
+\item to each k-mer assign a set of vertices with the same k-mer sequence (differences in context numbers are permitted),
+\item from each set, select one vertex to represent the k-mer of the read (the selection process is described later in this section),
+\item connect all read vertices in a way that respects the order of the k-mers in the read.
 \end{itemize}
 
 \subsection{Transforming the Read into K-mers}
 \label{subsec:transforming-the-read-info-k-mers}
 
-Let's define a read of length $n$ as a sequence $(r_1, ..., r_n)$ of bases. If the short variant optimization is not applied, the sequence is divided into individual k-mers $k_1, ..., k_{n-k+1}$ in the same way as for the reference case, except that no extra k-mers to denote read start and end are created. The k-mers look as follows:
-\begin{gather}
-k_0 = ((r_1, ..., r_k), 0) \\
+Let's define a read of length $n$ as a sequence $r_1 \ldots r_n$ of bases. If the short variant optimization, described in the next paragraph, is not applied, the read is decomposed into individual k-mers $k_1, \ldots , k_{n-k+1}$ in the same way as for the reference case, except that no extra k-mers to denote read start and end are created. The k-mers look as follows:
+\begin{align}
+k_1 = (r_1 \ldots r_k, 0) \\
 ... \\
-k_{n-k+1} = ((r_{n_k+1}, ...,r_n), 0)
-\end{gather}
+k_{n-k+1} = (r_{n_k+1} \ldots r_n, 0)
+\end{align}
 
 Then, the step described in Subsection \ref{subsec:assign-sets} is applied.
 
-As described in \ref{subsec:idea}, in an ideal case, an $n$-base long difference from the reference produces $n + k - 1$ k-mers different from all reference k-mers. To reduce the probablity that some of the k-mers actually colide with either the reference, or another read, the \textit{short variant optimization} may be applied. The optimization reduces the number of k-mers representing a $n$-base long difference to:
+As described in \ref{subsec:idea}, in an ideal case, a $n$-base long difference from the reference produces $n + k - 1$ k-mers different from all reference k-mers. To reduce the probablity that some of the new k-mers actually colide with either the reference, or another read, the \textit{short variant optimization} may be applied. The optimization reduces the number of k-mers representing a $n$-base long difference to:
 \begin{itemize}
 \item $n$ for an insertion,
 \item zero for a deletion,
 \item $1$ for a SNP.
 \end{itemize}
 
-The optimization assumes that when recovering a sequence from the graph, only the last base of each k-mer, wth an exception of the starting one, is used. So, only k-mers covering the difference by their last base need to be added; reference k-mers may be used for the rest in case the difference is followed by a reasonable number of bases equal to the reference. 
+The optimization assumes that when recovering a sequence from the graph, only the last base of each k-mer, wth the exception of the starting one, is used. So, only k-mers covering the difference by their last base need to be added; reference k-mers may be used for the rest in case the difference is followed by a reasonable number of bases equal to the reference. 
 
-Figure \ref{fig:read-optimization} shows how the graph is optimized for a read containing SNP. The reference and read sequences are taken from Figure \ref{read-idea}. Since the difference has 1 base in length, only one k-mer (\texttt{CCTGA\_0}) is used to represent it. The k-mer is followed by reference k-mers. As can be seen, their last base are equal to one of k-mers from Figure \ref{read-idea}.
+To make the k-mers covering a $n$ base long difference by their last bases really unique, the first $n$ bases of the first k-mer is changed to \textit{D}, a virtual base used for helper purposes only. Rest of the k-mers is obtained by appending the bases of the difference to the first one. Keep in mind that $n$ is always smaller than the k-mer size, since we are talking about the \textit{short} variant optimization.
+
+Figure \ref{fig:read-optimization} shows how the graph is optimized for a read containing SNP. The reference and read sequences are taken from Figure \ref{read-idea}. Since the difference has 1 base in length, only one k-mer (\texttt{DCTGA\_0}) is used to represent it. The k-mer is followed by reference k-mers. As can be seen, their last base are equal to one of k-mers from Figure \ref{read-idea}.
 
 \begin{figure}
 	\centering
@@ -231,7 +234,7 @@ The short variant optimization is applied for k-mer $k_i$ if the following holds
 \item There is only one reference vertex with a k-mer equal to $k_{i-1}$ by sequence. Let's assume this is vertex $v_{j-1}$
 \item There is at most one vertex for $k_i$ that either is a result of a read addition, or is a reference one but do not immediately follows  the vertex $v_{j-1}$ in the reference.
 \end{itemize}
-Such conditions are met when the read differs from the reference at base $r_{i+k-1}$. To determine whether the difference is only a short one, the Smith-Waterman algorithm is applied. If this is the case, the action depends on the difference type:
+Such conditions are met when the read differs from the reference at base $r_{i+k-1}$. To determine whether the difference is only a short one, the Smith-Watterman algorithm is applied. If this is the case, the action depends on the difference type:
 \begin{itemize}
 \item for $n$-base long deletion, $k_i$ is defined as $v_{j + n - 1}$,
 \item for insertion of length $n$, $k_i$, ..., $k_{i + n - 1}$ are defined as with no short variant optimization and $k_{i + n}$ is set to $v_j$,
