@@ -65,7 +65,15 @@ In contrast to the idealized model described in the previous section (\ref{sec:t
 P(base \: is \: wrong) = 10^{-\frac{Q}{10}}
 \end{align*}
 
-Phred score has a natural interpretation, for example $Q=40$ indicates one error in $10000$ bases, $Q=30$ one error in $1000$ bases etc. When stored in a text format, such as SAM or FASTQ, base qualities are encoded as ANSI characters. Because the first 32 ASCII characters are not printable, and the space character is coded by $32$, the base quality values are incremented by $33$. When loading the reads from such a text format, this needs to be taken in account.
+Phred score has a natural interpretation, for example $Q=40$ indicates one error in $10000$ bases, $Q=30$ one error in $1000$ bases and so on (Figure \ref{fig:quality-score} map the score values to probabilities). When stored in a text format, such as SAM or FASTQ, base qualities are encoded as ANSI characters. Because the first 32 ASCII characters are not printable, and the space character is coded by $32$, the base quality values are incremented by $33$. When loading the reads from such a text format, this needs to be taken in account.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics{img/quality-score.pdf}
+	\caption{Mapping Phred score values to probabilities. Be aware of the logarithmic scale on the $y$ axis}
+	\label{fig:quality-score}
+\end{figure}
+
 
 Mapped reads are accompanied by their position (POS) in the reference sequence, by additional alignment details and a mapping quality (MQ), which is a measure of mapping confidence expressed as a Phred score. Although the position information may be wrong, it may help us in cases when we are interested in correcting only a part of the genome and would like to filter out reads that do not map confidently.
 
