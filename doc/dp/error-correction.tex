@@ -46,7 +46,7 @@ This approach is also used by the \texttt{fermi-lite}\cite{fermi-lite} software 
 \section{The Fermi-lite Approach}
 \label{sec:fermi-lite}
 
-\texttt{Fermi-lite} is a standalone C library as well as a command-line tool for assembling Illumina short reads in regions from 100 bp to 10 million bp in size. It is largely a light-weight in-memory version of \texttt{fermikit}\cite{fermikit} without generating any intermediate files\cite{fermi-lite}. Results of the assembly are not produced in the VCF format, but as a graph. Read error corrections are not the main goal of the project, although this step is definitely required for a successful assembly.
+Fermi-lite is a standalone C library as well as a command-line tool for assembling Illumina short reads in regions from 100 bp to 10 million bp in size. It is largely a light-weight in-memory version of Fermikit\cite{fermikit} without generating any intermediate files\cite{fermi-lite}. Results of the assembly are not produced in the VCF format, but as a graph. Read error corrections are not the main goal of the project, although this step is definitely required for a successful assembly.
 
 We have successfully extracted the error correction algorithm from the project. The implementation should work well on multiprocessor systems and trades performance over memory consumption. The algorithm proceeds in the following steps:
 \begin{itemize}
@@ -55,6 +55,8 @@ We have successfully extracted the error correction algorithm from the project. 
 \item \textbf{Unique k-mer filtering}. Unique k-mers introduced during the error correction phase are removed from the read sequences.
 \end{itemize}
  
+Description of the error-correction algorithm is based on analysis of Fermi-lite's source code, Since the source, especially the analyzed part, lacks comments and other characteristics typical for easy-to-read codes, some minor aspects of the algorithm still remain unclear.
+
 \subsection{Data Preprocessing}
 \label{subsec:fermi-data-preprocessing}
 
@@ -69,6 +71,8 @@ K-mers are implemented as four 64-bit integers (Figure \ref{fig:fermi-kmer-struc
 
 Such a represetantion allows quick appends or individual base changes. To append a base into the first two integers, they just need to be shifted by one to the left, ORed with the new base, and ANDed with $2^k-1$ to set the unused bits to zero.
 
+Since the k-mer representation reserves only 2 bits for one base, it is used to represent k-mers containing at most four types of bases which seems to be OK since the genome also consists from four types of bases. Howerver, a virtual base \texttt{N} may appear within a read sequence, denoting places that the sequencing technology was unable to read. Fermi-lite solves the issue by ignoring all k-mers containing any number of \texttt{N}s.
+
 \begin{figure}[h]
 	\centering
 	\includegraphics{img/fermi-kmer-structure.pdf}
@@ -78,7 +82,7 @@ Such a represetantion allows quick appends or individual base changes. To append
 
 The k-mer table is actually a set of $2^{l_{pre}}$ khash tables. When a k-mer is being inserted or looked up, $l_{pre}$ bits of its data are used to select the table and the rest serves as an input to the hash function. $l_{pre} = 20$ by default. This representation of the k-mer table increases overall memory consumption, but has great impact on its performance in parallel environemnts. 
 
-The table uses 14 bits to track occurrences of each k-mer. Lower 8 bits count low quality occurrences, higher 6 bits are used by high quality ones. The counting stops on values of 255 and 63, no integer overflow happens. The table actually stores their hashes and occurrences, rather than full k-mers. Hence, distinct k-mers may be treated as one, since the table may use up to $l_{pre}$ (20 by default) of k-mer content to choose the right khash table, and up to 50 bits may be stored as a key. That means, key colisions may be avoided if the k-mer size drops below 35 (the table actually has a different hash function for k-mers size below 33).
+The table uses 14 bits to track occurrences of each k-mer. Lower 8 bits count low quality occurrences, higher 6 bits are used by high quality ones. The counting stops on values of 255 and 63, no integer overflow happens. The table actually stores their hashes and occurrences, rather than full k-mers. Hence, distinct k-mers may be treated as one, since the table may use up to $l_{pre}$ of k-mer content to choose the right khash table, and up to 50 bits may be stored as a key. That means, key colisions may be avoided if the k-mer size drops below 35 (the table actually has a different hash function for k-mers size below 33).
 
 After the insertion stage, a k-mer frequency distribution is computed individually for low quality and high quality occurrences. The most common frequency is named \textit{mode} and is used during the second and third pahse of the algorithm.
 
@@ -94,15 +98,15 @@ Parameter & Default value & Description \\
 \hline
 $k$ & - & K-mer size. By default, this value is set to the base-two logarithm of the total number of bases. \\
 \hline
-$q$ & 20 & Base quality threshold used to recongize high quality content from low quality one. $P(error) = 10^{-\frac{q}{10}}$ \\
+q & 20 & Base quality threshold used to recongize high quality content from low quality one. $P(error) = 10^{-\frac{q}{10}}$ \\
 \hline
-$min\_cov$ & 4 & Mimimum frequency for solid k-mers. \\
+min\_cov & 4 & Mimimum frequency for solid k-mers. \\
 \hline
-$win\_multi\_ec$ & 10 &  \\
+win\_multi\_ec & 10 & Takes part in pruning the graph created during the error correction phase. The exact meaning, however, remains unclear. \\
 \hline
 $l_{pre}$ & 20 & Number of khash tables in the k-mer table, defined as $2^{l\_pre}$ \\
 \hline
-$min\_trim\_frac$ & 0.8 &  Defines how long the sequence of solid k-mers must be in order not to remove the read during unique k-mer filtering. \\
+min\_trim\_frac & 0.8 &  Defines how long the sequence of solid k-mers must be in order not to remove the read during unique k-mer filtering. \\
 \hline
 $w_{ec}$ & 1 & Participates in the weighing function used in the error correction step.\\
 \hline
@@ -112,7 +116,7 @@ $w_{absent}$ & 3 & Participates in the weighing function used in the error corre
 \hline
 $w_{absent\_high}$ & 1 & Participates in the weighing function used in the error correction step. \\ 
 \hline
-$max\_path\_diff$ & 15 & Participates in the weighing function used in the error correction step. \\ 
+max\_path\_diff & 15 & Defines a maximum cost difference between paths found by the modified Dijkstra's algorithm. If this value is reached, no additional paths are examined. \\ 
 \hline
 \end{tabular}
 \end{center}
@@ -161,11 +165,13 @@ bq(k_i) =
 Dijkstra's search algorithm is used and its main loop can be decomposed into the following steps:
 \begin{itemize}
 \item Retrieve the vertex with lowest price, and its k-mer from the heap.
-\item by separately appending \texttt{A}, \texttt{C}, \texttt{G}, and \texttt{T} to the k-mer, touch the adjacent vertices on the next layer and compute the cost of their connections.
+\item by separately appending \texttt{A}, \texttt{C}, \texttt{G}, and \texttt{T} to the k-mer, touch the adjacent vertices on the next layer and compute the cost of their connections. Without appropriate pruning, this step would produce exponential amount of new vertices. Thus, error correction resulting into non-solid k-mers are not tracked. Additional criteria, such as proximity of a corrected high-quality k-mer, or clustering of corrected bases, are applied, however, this part of the code still remains unclear.
 \item Insert the newly created vertices into the heap.
 \end{itemize}
 
 Each path from the starting vertex to a vertex in the last layer represents one possible corrected part of the read sequence. Four such paths are computed. The path computation stops if a gap greater than \texttt{max\_path\_diff} is detected in their costs.
+
+The error correction algorithm described above is applied to both the read sequence and its reverse complement, which is reverse-complemented again after the correction is finished. Thus, two potentialy error-free sequences are generated for one read. The resulting corrected sequence is their combination --- if one of the source sequences contains the \texttt{N} base at certain position, content of the second one is used instead. This approach reduces number of \texttt{N}s in the corrected read set.
 
 \subsection{Unique k-mer Filtering}
 \label{subsec:fermi-unique-kmer-filtering}
