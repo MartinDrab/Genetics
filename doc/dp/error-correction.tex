@@ -127,7 +127,7 @@ max\_path\_diff & 15 & Defines a maximum cost difference between paths found by 
 
 The error correction is performed separately for each read sequence. The correction problem is transformed into a shortest-path search in a layered oriented graph. Vertices represent individual k-mers, edges connect adjacent ones and their weights reflect the cost of transforming one k-mer to another. The weight function is defined by formula
 \begin{align*}
-	w(k_i) = w_{absent\_high}*nhq(k_i) + w_{absent}*nlq(k_i) + w_{ec}*ec(k_i) + w_{ec\_high}*bq(k_i)
+	w(k_i) = w_{absent\_high} \cdot nhq(k_i) + w_{absent} \cdot nlq(k_i) + w_{ec} \cdot ec(k_i) + w_{ec\_high} \cdot bq(k_i)
 \end{align*}
 
 \begin{equation*}

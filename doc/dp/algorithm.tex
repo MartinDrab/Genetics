@@ -133,7 +133,7 @@ $$
 E = \{(v_i, v_{i+1})\}\quad 0 \leq i \leq l-k+1
 $$
 Figure \ref{fig:ref-my} displays a graph created by transforming the active region \texttt{ATCTGTATATATG} with k-mer size of 5. The algorithm creates the following k-mers:
-\begin{align}
+\begin{align*}
 k_0 = (BATCT, 0) \\
 k_1 = (ATCTG, 0) \\
 k_2 = (TCTGT, 0) \\
@@ -145,7 +145,7 @@ k_7 = (ATATA, 0) \\
 k_8 = (TATAT, 1) \\
 k_9 = (ATATG, 0) \\
 k_{10} = (TATGB, 0)
-\end{align}
+\end{align*}
 As can bee seen, there are two k-mers representing sequence \texttt{TATAT}, namely $k_6$ and $k_8$. Because of their distinct context numbers, they are represented as separate vertices. Introduction of the context numbers removed a loop from the graph. The loop can be observed on Figure \ref{fig:ref-db} that shows a standard de Bruijn graph constructed from the same active region. K-mers $k_6$ and $k_8$ are represented by the same vertex. In order to recover the sequence, it is required to know how many times the loop was actually used during the transformation step.
 
 \begin{figure}[h]
@@ -170,7 +170,7 @@ Although this solves the problem of cycles for now, at least for now, things bec
 The basic idea behind this stage is farily simple and similar to the approach used in the previous case. The read being added is decomposed into k-mers. If the k-mer is not present in the graph already, a new vertex is created. Again, vertices representing adjacent k-mers in the read are connected by edges. 
 
 Figure \ref{fig:read-idea} shows a graph created by transforming a region of \texttt{ACCGTGGTAAT} and adding the read \texttt{ACCGTAGTAAT} to the resulting graph. K-mer size is set to 5. The read is divided into the following k-mers:
-\begin{align}
+\begin{align*}
 k_0 = (ACCGT, 0) \\
 k_1 = (CCGTA, 0) \\
 k_2 = (CGTAG, 0) \\
@@ -178,7 +178,7 @@ k_3 = (GTAGT, 0) \\
 k_4 = (TAGTA, 0) \\
 k_5 = (AGTAA, 0) \\
 k_6 = (GTAAT, 0)
-\end{align}
+\end{align*}
 
 In this example, the k-mers $k_0$ and $k_6$ were already present in the reference graph but new vertices has to be created for the rest.
 
@@ -216,11 +216,11 @@ We decided to solve the issue by transforming the basic idea into the following 
 \label{subsec:transforming-the-read-info-k-mers}
 
 Let's define a read of length $n$ as a sequence $r_1 \ldots r_n$ of bases. If the short variant optimization, described in the next paragraph, is not applied, the read is decomposed into individual k-mers $k_1, \ldots , k_{n-k+1}$ in the same way as for the reference case, except that no extra k-mers to denote read start and end are created. The k-mers look as follows:
-\begin{align}
+\begin{align*}
 k_1 = (r_1 \ldots r_k, 0) \\
 ... \\
 k_{n-k+1} = (r_{n_k+1} \ldots r_n, 0)
-\end{align}
+\end{align*}
 
 Then, the step described in Subsection \ref{subsec:assign-sets} is applied.
 
@@ -230,7 +230,6 @@ As described in \ref{subsec:idea}, in an ideal case, a $n$-base long difference 
 \item zero for a deletion,
 \item $1$ for a SNP.
 \end{itemize}
-
 The optimization assumes that when recovering a sequence from the graph, only the last base of each k-mer, wth the exception of the starting one, is used. So, only k-mers covering the difference by their last base need to be added; reference k-mers may be used for the rest in case the difference is followed by a reasonable number of bases equal to the reference. 
 
 To make the k-mers covering a $n$ base long difference by their last bases really unique, the first $n$ bases of the first k-mer is changed to \textit{D}, a virtual base used for helper purposes only. Rest of the k-mers is obtained by appending the bases of the difference to the first one. Keep in mind that $n$ is always smaller than the k-mer size, since we are talking about the \textit{short} variant optimization.
@@ -291,11 +290,11 @@ In order to choose the correct vertices from the $M_i$ sets, we decided to reduc
 The helper graph is an oriented layered graph. Each layer consists of all vertices contained in one reference $M_i$ set. The order of the layers respect the order of $M_i$ sets. Sets consisting of read vertices are not part of the helper graph. Only adjacent layers are connected by edges, their orientation reflects the order of the sets. Each subgraph consisting of two adjacent layers is a full bipartite graph. The structure of the helper graph does not take equality of $M_i$ into account. In other words, when $M_i = M_j$ for $i \ne j$, both sets are represented within the helper graph as individual layers, even if they refer to the same vertices of the (main, non-helper) graph.
 
 Formaly speaking, let $M_i = \{v_{i}^{1}, ..., v_{i}^{n_i}\}$ and let $i$ index the reference sets only. Then the helper graph $G_h$ can be defined as follows:
-\begin{align}
+\begin{align*}
 G_h = (V_h, E_h) \\
 V_h = \cup_i M_i \\
 E_h = \{(u, v) | u \in M_i, v \in M_{i + 1}\}
-\end{align}
+\end{align*}
 By finding the shortest path leading from a vertex in the first layer to one in the last layer, we perfrom the process of selection of vertices representing the read in the main graph. The shortest path depends on weights of edges connecting the adjacent layers. In general, the weighting function follows these rules:
 \begin{itemize}
 \item the weight is increased by a \textit{missing edge penalty} if there is a missing edge on the path from $u$ to $v$ in the main graph,
@@ -403,7 +402,7 @@ Figure \ref{fig:variant-detection} shows four types of subgraphs used for varian
 \begin{figure}[h]
 	\centering
 	\includegraphics{img/variant-detection.pdf}
-	\caption{Variant detection cases}
+	\caption{Variant detection cases; bubble with outputs (a), bubble with inputs (b), simple bubble (c), diamond (d)}
 	\label{fig:variant-detection}
 \end{figure}
 
@@ -420,7 +419,7 @@ Figure \ref{fig:variant-detection}b shows a subgraph where the read node has mor
 \subsubsection{Bubble with Outputs}
 \label{subsec:bubble-with-outputs}
 
-This subgraph may be viewed as an opposite to the bubble with inputs. All read vertices in the subgraph are allowed to have more outputs than one, but only one input. Only the last sequence of edges, starting in the last read vertex with output greater than one and ending in the $n$ vertex is removed, since it may participate only in one variant (Figure \ref{fig:variant-detection}b).
+This subgraph may be viewed as an opposite to the bubble with inputs. All read vertices in the subgraph are allowed to have more outputs than one, but only one input. Only the last sequence of edges, starting in the last read vertex with output greater than one and ending in the $n$ vertex is removed, since it may participate only in one variant (Figure \ref{fig:variant-detection}a).
 
 \subsubsection{Diamond}
 \label{subsec:diamond}
@@ -431,6 +430,14 @@ The most complicated case is shown under in Figure \ref{fig:variant-detection}d.
 \label{sec:variant-graph-and-variant-filtering}
 
 When variants are extracted from the de Bruijn-like graph, they need to be filtered and their genotype and phasing computed. For this, a \textit{variant graph} is built and the task is transformed into a graph colouring problem.
+
+However, not all variants reach this stage. If a variant extracted in the previous step is considered as a low quality variant (number of supporting reads is not above the low quality variant threshold), a binomial test is applied to check the variant reliability. Variants with low read support may be caused by sequencing errors and such need to be eliminated. The binomial test computes a probability that the variant is not false positive by the formula
+$$
+P(\text{variant is reliable}) = 2 \cdot I_{0.5} (r, a + 1)
+$$
+where $r$ is a number of reads supporting the reference part of the variant, $a$ counts the read support for the alternate part and $I$ is the regularized beta function. 
+
+If the probability falls below the binomial threshold, the variant is treated as a false positive and is removed.
 
 The variant graph represent each variant by two vertices; one for its reference and one for its alternate sequence. The final task is to colour each vertex by one of these colors:
 \begin{itemize}
