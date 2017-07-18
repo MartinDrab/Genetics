@@ -397,34 +397,41 @@ small, it is practical to work with a list of differences (\textit{variants}), r
 
 Variants are extracted by detecting certain subgraphs. When such a subgraph is discovered, the variant sequence is determined and integrated back into the graph by replacing its reference edges by a signle \textit{variant edge}. Read edges unique to the variant are also removed from the subgraph which simplifies its structure. The process of variant detection stops when no suitable subgraphs are found.
 
-Figure \ref{fig:variant-detection} shows four types of subgraphs used for variant extraction and demonstrates how they are modified in the process. The reference part of the graph must always start in vertex $1$, end in $n$ and all inner nodes must have one input and one output edge Only edges of reference or variant type may be present in the reference part. In all cases, this path is replaced with a variant edge, shown as blue, connecting directly $1$ and $n$. All edges that are removed as a result of the extraction are plotted as discontinuous lines.
+Figures \ref{fig:variant-detection-ab} and \ref{fig:variant-detection-cd} show four types of subgraphs used for variant extraction and demonstrate how they are modified in the process. The reference part of the graph must always start in vertex $1$, end in $n$ and all inner nodes must have one input and one output edge Only edges of reference or variant type may be present in the reference part. In all cases, this path is replaced with a variant edge, shown as blue, connecting directly $1$ and $n$. All edges that are removed as a result of the extraction are plotted as discontinuous lines.
 
 \begin{figure}[h]
 	\centering
-	\includegraphics{img/variant-detection.pdf}
-	\caption{Variant detection cases; bubble with outputs (a), bubble with inputs (b), simple bubble (c), diamond (d)}
-	\label{fig:variant-detection}
+	\includegraphics{img/variant-detection-ab.pdf}
+	\caption{Variant detection cases; bubble with outputs (a), bubble with inputs (b)}
+	\label{fig:variant-detection-ab}
+\end{figure}
+
+\begin{figure}[h]
+	\centering
+	\includegraphics{img/variant-detection-cd.pdf}
+	\caption{Variant detection cases; simple bubble (a), diamond (b)}
+	\label{fig:variant-detection-cd}
 \end{figure}
 
 \subsubsection{Simple Bubble}
 \label{subsec:simple-bubble}
 
-Read edges and vertices form a linear path leading from $1$ to $n$. Since the edges are not part of any other variant, they all are removed and the whole subgraph degenerates only to two reference vertices connected by a variant edge (Figure \ref{fig:variant-detection}c).
+Read edges and vertices form a linear path leading from $1$ to $n$. Since the edges are not part of any other variant, they all are removed and the whole subgraph degenerates only to two reference vertices connected by a variant edge (Figure \ref{fig:variant-detection-cd}a).
 
 \subsubsection{Bubble with Inputs}
 \label{subsec:bubble-with-inputs}
 
-Figure \ref{fig:variant-detection}b shows a subgraph where the read node has more than one input edge. In such case, only the sequence of read edges leading from the $1$ vertex to the first vertex with more inputs than one is removed. Other read edges may take part also in other variants.
+Figure \ref{fig:variant-detection-ab}b shows a subgraph where the read node has more than one input edge. In such case, only the sequence of read edges leading from the $1$ vertex to the first vertex with more inputs than one is removed. Other read edges may take part also in other variants.
 
 \subsubsection{Bubble with Outputs}
 \label{subsec:bubble-with-outputs}
 
-This subgraph may be viewed as an opposite to the bubble with inputs. All read vertices in the subgraph are allowed to have more outputs than one, but only one input. Only the last sequence of edges, starting in the last read vertex with output greater than one and ending in the $n$ vertex is removed, since it may participate only in one variant (Figure \ref{fig:variant-detection}a).
+This subgraph may be viewed as an opposite to the bubble with inputs. All read vertices in the subgraph are allowed to have more outputs than one, but only one input. Only the last sequence of edges, starting in the last read vertex with output greater than one and ending in the $n$ vertex is removed, since it may participate only in one variant (Figure \ref{fig:variant-detection-ab}a).
 
 \subsubsection{Diamond}
 \label{subsec:diamond}
 
-The most complicated case is shown under in Figure \ref{fig:variant-detection}d. The sequence of read vertices may contain one with output degree greater than one followed (not necessarily directly) by one with unresticted input degree. Only the edges covering one part of the supposed diamond are present in one variant only and hence are removed. 
+The most complicated case is shown under in Figure \ref{fig:variant-detection-cd}b. The sequence of read vertices may contain one with output degree greater than one followed (not necessarily directly) by one with unresticted input degree. Only the edges covering one part of the supposed diamond are present in one variant only and hence are removed. 
 
 \section{Variant Graph and Variant Filtering}
 \label{sec:variant-graph-and-variant-filtering}
