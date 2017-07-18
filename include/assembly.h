@@ -29,6 +29,8 @@ typedef struct _PARSE_OPTIONS {
 	const char *Reference;
 	uint64_t RegionStart;
 	uint32_t RegionLength;
+	uint64_t BinomThreshold;
+	uint32_t LQVariant;
 	PLOT_OPTIONS PlotOptions;
 } PARSE_OPTIONS, *PPARSE_OPTIONS;
 

@@ -97,6 +97,7 @@ POINTER_ARRAY_IMPLEMENTATION(ONE_READ)
 
 typedef struct _BAD_READS_STATISTICS {
 	size_t Total;
+	size_t Paired;
 	size_t BadTotal;
 	size_t BadPosZero;
 	size_t BadUnmapped;

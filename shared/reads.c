@@ -406,7 +406,10 @@ void read_set_stats(const ONE_READ *Reads, const size_t Count, const uint8_t Min
 	memset(Stats, 0, sizeof(BAD_READS_STATISTICS));
 	Stats->Total = Count;
 	for (size_t i = 0; i < Count; ++i) {
-		if (Reads->Pos == (uint64_t)-1LL ||
+		if (Reads->Extension->Flags.Bits.Paired)
+			++Stats->Paired;
+		
+		if (Reads->Pos == UINT64_MAX ||
 			Reads->PosQuality < MinPosQuality ||
 			Reads->Extension->Flags.Bits.Unmapped ||
 			Reads->Extension->Flags.Bits.Supplementary ||
@@ -466,6 +469,7 @@ void read_set_stats(const ONE_READ *Reads, const size_t Count, const uint8_t Min
 void read_set_stats_print(FILE *Stream, const BAD_READS_STATISTICS *Stats)
 {
 	fprintf(Stream, "Total reads:         %zu\n", Stats->Total);
+	fprintf(Stream, "Total paired:        %zu\n", Stats->Paired);
 	fprintf(Stream, "Bad reads:           %zu (%.2lf %%)\n", Stats->BadTotal, (double)Stats->BadTotal * 100 / Stats->Total);
 	fprintf(Stream, "Zero POS:            %zu (%.2lf %%)\n", Stats->BadPosZero, (double)Stats->BadPosZero * 100 / Stats->BadTotal);
 	fprintf(Stream, "Bad MAPQ:            %zu (%.2lf %%)\n", Stats->BadPosQuality, (double)Stats->BadPosQuality * 100 / Stats->BadTotal);

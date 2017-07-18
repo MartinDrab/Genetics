@@ -76,6 +76,8 @@ static ERR_VALUE _init_default_values()
 	program_option_init(PROGRAM_OPTION_VCFFILE, PROGRAM_OPTION_VCFFILE_DESC, String, "result.vcf");
 	program_option_init(PROGRAM_OPTION_OMP_THREADS, PROGRAM_OPTION_OMP_THREADS, Int32, omp_get_num_procs());
 	program_option_init(PROGRAM_OPTION_PLOT_FLAGS, PROGRAM_OPTION_PLOT_FLAGS, UInt16, GRAPH_PRINT_ALL);
+	program_option_init("binom-threshold", "", UInt64, 2500000);
+	program_option_init("low-quality-variant", "", UInt32, 4);
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_String(PROGRAM_OPTION_OUTPUT_DIRECTORY, ".");
@@ -130,8 +132,14 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	memset(Options, 0, sizeof(PROGRAM_OPTIONS));
-	
-	ret = option_get_UInt64(PROGRAM_OPTION_PLOT_START, &Options->ParseOptions.PlotOptions.PlotRefStart);
+
+	ret = option_get_UInt64("binom-threshold", &Options->ParseOptions.BinomThreshold);
+	if (ret == ERR_SUCCESS)
+		ret = option_get_UInt32("low-quality-variant", &Options->ParseOptions.LQVariant);
+
+	if (ret == ERR_SUCCESS)
+		ret = option_get_UInt64(PROGRAM_OPTION_PLOT_START, &Options->ParseOptions.PlotOptions.PlotRefStart);
+
 	if (ret == ERR_SUCCESS)
 		ret = option_get_UInt64(PROGRAM_OPTION_PLOT_END, &Options->ParseOptions.PlotOptions.PlotRefEnd);
 	
@@ -928,7 +936,9 @@ int main(int argc, char *argv[])
 						fprintf(stderr, "Connect reads:              %u\n", po.ParseOptions.ConnectRefSeq);
 						fprintf(stderr, "Helper vertices:            %u\n", po.ParseOptions.HelperVertices);
 						fprintf(stderr, "Linear shrink:              %u\n", po.ParseOptions.LinearShrink);
-						fprintf(stderr, "Read threshold:             %u\n", po.ParseOptions.ReadThreshold);
+						fprintf(stderr, "Read threshold:             %u\n", po.Threshold);
+						fprintf(stderr, "Binomic threshold:          %" PRIu64 "\n", po.ParseOptions.BinomThreshold);
+						fprintf(stderr, "Low q. variant threshold:   %u\n", po.ParseOptions.LQVariant);
 
 						fprintf(stderr, "Filtering out reads with MAPQ less than %u and stripping %u bases from read ends...\n", po.ReadPosQuality, po.ReadStrip);
 						BAD_READS_STATISTICS badStats;

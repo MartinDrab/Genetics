@@ -1839,12 +1839,15 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 
 							vc.AltWeight = (total / (rewEndIndex + 1 - rewStartIndex));
 							vc.BinProb = calc_binom(gen_array_size(&vc.RefReads), gen_array_size(&vc.AltReads));
-							ret = vc_array_add(VCArray, &vc, NULL);
-							if (ret != ERR_SUCCESS) {
+							if (gen_array_size(&vc.AltReads) > Options->LQVariant || vc.BinProb >= Options->BinomThreshold)
+								ret = vc_array_add(VCArray, &vc, NULL);
+							else ret = ERR_ALREADY_EXISTS;
+
+							if (ret != ERR_SUCCESS)
 								variant_call_finit(&vc);
-								if (ret == ERR_ALREADY_EXISTS)
-									ret = ERR_SUCCESS;
-							}
+
+							if (ret == ERR_ALREADY_EXISTS)
+								ret = ERR_SUCCESS;
 						}
 
 						dym_array_finit_size_t(&altIndices);
