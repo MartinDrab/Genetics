@@ -12,6 +12,8 @@ The variant calling is done on region basis. The reference sequence is divided i
 \item genotypes and phasing are determined,
 \end{itemize}
 
+The k-mer size used to build the de Bruijn graph belongs to parameters of the algorithm (Section \ref{sec:algorithm-parameters}). If thegraph is too complex after the structural optimizations, it is discarded and the algorithm makes another attempt using higher value for k-mer size. This behavior is very similar to the HaploCall algorithm.
+
 \section{Input, Output and Preprocessing}
 \label{sec:input-output-and-preprocessing}
 
@@ -36,6 +38,19 @@ Several other SAM fields play a role in read preprocessing. The \texttt{CIGAR} s
 The SAM file format is described in great detail in \cite{sambam}.
 
 When all the reads are preprocessed this way, they are assigned to that respective active regions based on the mapping position. Then, the main algorithm comes into play.
+
+\section{Algorithm parameters}
+\label{sec:algorithm-parameters}
+
+Behavior of the algorithm and produced results can be controlled by several parameters:
+\begin{itemize}
+\item \textbf{Initial k-mer size}. Defines the initial k-mer size used to build the de Bruijn-like graph. If the resulting graph is too complex, another attempt is made with higher k-mer size. By default, this parameter is set to 21.
+\item \textbf{Minimum position quality}. Only reads which mapping quality (MAPQ) is greater than this parameter are used. The default value is 10.
+\item \textbf{Global threshold}. Defines a threshold value used globally through the algorithm. Edges of the de Bruijn graph with read coverage lower than the threshold are automatically removed. Similar approach is used when computing genotypes and phasing information; variant connection covered by less reads than the global threshold are ignored. The default value of the parameter is 4.
+\item \textbf{Region length}. Length of active regions. Set to 2000 bases by default.
+\item \textbf{Low quality variant threshold}. If the number of reads supporting a certain variant is not above this value, the variant is considered as a low quality variant. Such variants are subjects to a binomial test that decides whether they will be written to the resulting VCF. By default, this parameter is set to 3.
+\item \textbf{Binomial threshold}. Defines a threshold for accempting low quality variants. The binomial test gives a probability how a given low quality variant is reliable. If this probability is above the threshold (set to 25\% by default), the variant is reported in the resulting VCF.
+\end{itemize}
 
 \section{K-mer Representation}
 \label{sec:kmer-representation}

@@ -39,7 +39,7 @@ This approach is also used by the \texttt{fermi-lite}\cite{fermi-lite} software 
 \begin{figure}[h]
 	\centering
 	\includegraphics{img/kmer-frequency-distribution.pdf}
-	\caption{K-mer frequency distribution for errornous and error-free read sets}
+	\caption{K-mer frequency distribution for errornous and error-free read sets\cite{alg-compare}}
 	\label{fig:kmer-frequency-distribution}
 \end{figure}
 
@@ -169,14 +169,14 @@ Dijkstra's search algorithm is used and its main loop can be decomposed into the
 \item Insert the newly created vertices into the heap.
 \end{itemize}
 
-Each path from the starting vertex to a vertex in the last layer represents one possible corrected part of the read sequence. Four such paths are computed. The path computation stops if a gap greater than \texttt{max\_path\_diff} is detected in their costs.
+Each path from the starting vertex to a vertex in the last layer represents one possible corrected part of the read sequence. Four such paths are computed. The path computation stops if a gap greater than max\_path\_diff is detected in their costs.
 
 The error correction algorithm described above is applied to both the read sequence and its reverse complement, which is reverse-complemented again after the correction is finished. Thus, two potentialy error-free sequences are generated for one read. The resulting corrected sequence is their combination --- if one of the source sequences contains the \texttt{N} base at certain position, content of the second one is used instead. This approach reduces number of \texttt{N}s in the corrected read set.
 
 \subsection{Unique k-mer Filtering}
 \label{subsec:fermi-unique-kmer-filtering}
 
-The error correction phase may produce unique k-mers which, as Figure \ref{fig:kmer-frequency-distribution} indicates, are not desirable. The \texttt{fermi-lite} library attempts to get rid of such k-mers. Each corrected read sequence is processed separately (and in parallel with others). 
+The error correction phase may produce unique k-mers which, as Figure \ref{fig:kmer-frequency-distribution} indicates, are not desirable. The Fermi-lite library attempts to get rid of such k-mers. Each corrected read sequence is processed separately (and in parallel with others). 
 
 At first, the longest k-mer sequence covered by non-unique k-mers is found. Denote its length, in k-mers, as $n$ and the read sequence length as $l$. Then, the read sequence between the read start and the first base covered by the found k-mer sequence is removed from the read. If the read is covered only by non-unique k-mers, nothing is removed, since the k-mer sequence covers the whole read. However, if the following condition holds:
 $$

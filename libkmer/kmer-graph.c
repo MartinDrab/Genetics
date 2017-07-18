@@ -1747,7 +1747,7 @@ static inline uint32_t calc_binom(size_t na, size_t nb)
 	size_t N = na + nb;
 	
 	if (N == 0) 
-		return 1;
+		return 100;
 
 	/*
 	kfunc.h implements kf_betai, which is the regularized beta function I_x(a,b) = P(X<=a/(a+b))
@@ -1755,7 +1755,7 @@ static inline uint32_t calc_binom(size_t na, size_t nb)
 	double prob = 2 * kf_betai(na, nb + 1, 0.5);
 	if (prob > 1) prob = 1;
 
-	return (uint32_t)round(prob*10000000);
+	return (uint32_t)round(prob*100);
 }
 
 
