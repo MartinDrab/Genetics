@@ -1,4 +1,4 @@
-\chapter{The Algorithm}
+﻿\chapter{The Algorithm}
 \label{chap:the-algorithm}
 
 Our algorithm takes a reference sequence and a set of reads as inputs, and outputs a VCF file containing all detected variants. Both inputs are read into memory during the initialization phase, there are no memory-saving optimizations employed. In other words, no index files are used for the input data.
@@ -39,7 +39,7 @@ The SAM file format is described in great detail in \cite{sambam}.
 
 When all the reads are preprocessed this way, they are assigned to that respective active regions based on the mapping position. Then, the main algorithm comes into play.
 
-\section{Algorithm parameters}
+\section{Algorithm Parameters}
 \label{sec:algorithm-parameters}
 
 Behavior of the algorithm and produced results can be controlled by several parameters:
@@ -329,7 +329,7 @@ As Figure \ref{fig:helper-graph} indicates, both graphs look a little bit differ
 \section{Graph Structure Optimization}
 \label{sec:graph-structure-optimization}
 
-When all reads are integrated into the De Bruin-like graph, it is time to optimize its structure in order to get rid of unpopulated paths, usually created by read errors, and resolve some other issues caused mostly by repetitive regions inside either the reference or the reads.
+When all reads are integrated into the de Bruijn-like graph, it is time to optimize its structure in order to get rid of unpopulated paths, usually created by read errors, and resolve some other issues caused mostly by repetitive regions inside either the reference or the reads.
 
 \subsection{Connecting Bubbles}
 \label{subsec:connecting-bubbles}
