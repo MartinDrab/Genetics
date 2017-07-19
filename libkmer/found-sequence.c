@@ -197,8 +197,8 @@ void vc_array_print(FILE *Stream, const char *ReferenceFile, const GEN_ARRAY_VAR
 	fprintf(Stream, "##phasing=partial\n");
 	fprintf(Stream, "##INFO=<ID=RW,Number=1,Type=Integer,Description=\"Reference weight\">\n");
 	fprintf(Stream, "##INFO=<ID=AW,Number=A,Type=Integer,Description=\"Allele weight\">\n");
-	fprintf(Stream, "##INFO=<ID=RC,Number=1,Type=Integer,Description=\"Reference read count\">\n");
-	fprintf(Stream, "##INFO=<ID=AC,Number=A,Type=Integer,Description=\"Alelle read count\">\n");
+	fprintf(Stream, "##INFO=<ID=RefCount,Number=1,Type=Integer,Description=\"Reference read count\">\n");
+	fprintf(Stream, "##INFO=<ID=AltCount,Number=A,Type=Integer,Description=\"Alelle read count\">\n");
 	fprintf(Stream, "##INFO=<ID=KS,Number=A,Type=Integer,Description=\"k-mer size used for variant discovery\">\n");
 	fprintf(Stream, "##INFO=<ID=BP,Number=A,Type=Integer,Description=\"Binomial coefficient for the variant\">\n");
 	fprintf(Stream, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n");
@@ -219,14 +219,7 @@ void vc_array_print(FILE *Stream, const char *ReferenceFile, const GEN_ARRAY_VAR
 				default: assert(FALSE); break;
 			}
 
-			size_t refLen = strlen(tmp->Ref);
-			size_t altLen = strlen(tmp->Alt);
-
-			if (refLen == altLen) {
-				for (size_t j = 0; j < refLen; ++j)
-					fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%c\t%c\t60\tPASS\tRW=%zu;RC=%zu;AW=%zu;AC=%zu;KS=%u;BP=%u\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos + j, tmp->ID, tmp->Ref[j], tmp->Alt[j], tmp->RefWeight, gen_array_size(&tmp->RefReads), tmp->AltWeight, gen_array_size(&tmp->AltReads), tmp->KMerSize, tmp->BinProb, genotype, tmp->PhasedPos);
-			}
-			else fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\tRW=%zu;RC=%zu;AW=%zu;AC=%zu;KS=%u;BP=%u\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, tmp->RefWeight, gen_array_size(&tmp->RefReads), tmp->AltWeight, gen_array_size(&tmp->AltReads), tmp->KMerSize, tmp->BinProb, genotype, tmp->PhasedPos);
+			fprintf(Stream, "%s\t%" PRIu64  "\t%s\t%s\t%s\t60\tPASS\tRW=%zu;RefCount=%zu;AW=%zu;AltCount=%zu;KS=%u;BP=%u\tGT:PS\t%s:%" PRIu64 "\n", tmp->Chrom, tmp->Pos, tmp->ID, tmp->Ref, tmp->Alt, tmp->RefWeight, gen_array_size(&tmp->RefReads), tmp->AltWeight, gen_array_size(&tmp->AltReads), tmp->KMerSize, tmp->BinProb, genotype, tmp->PhasedPos);
 		}
 
 		++tmp;

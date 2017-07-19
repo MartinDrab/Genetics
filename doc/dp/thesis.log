@@ -1,7 +1,7 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (MiKTeX 2.9.6350) (preloaded format=pdflatex 2017.6.7)  13 JUL 2017 23:49
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (MiKTeX 2.9.6350) (preloaded format=pdflatex 2017.6.7)  19 JUL 2017 22:48
 entering extended mode
-**D:/MFF/Diplomka/Genetics/doc/dp/thesis.tex
-(D:/MFF/Diplomka/Genetics/doc/dp/thesis.tex
+**./thesis.tex
+(thesis.tex
 LaTeX2e <2017-04-15>
 Babel <3.10> and hyphenation patterns for 1 language(s) loaded.
 (C:\MikTex\texmfs\install\tex\latex\base\report.cls
@@ -1316,9 +1316,16 @@ Style option: `fancyvrb' v2.7a, with DG/SPQR fixes, and firstline=lastline fix
 \c@FancyVerbLine=\count112
 \FV@StepNumber=\count113
 \FV@OutFile=\write4
-) (C:\MikTex\texmfs\install\tex\latex\tocbibind\tocbibind.sty
+) (C:\MikTex\texmfs\install\tex\latex\tools\verbatim.sty
+Package: verbatim 2014/10/28 v1.5q LaTeX2e package for verbatim enhancements
+\every@verbatim=\toks31
+\verbatim@line=\toks32
+\verbatim@in@stream=\read3
+)
+(C:\MikTex\texmfs\install\tex\latex\tocbibind\tocbibind.sty
 Package: tocbibind 2010/10/13 v1.5k extra ToC listings
 Package tocbibind Info: The document has chapter divisions on input line 50.
+
 
 Package tocbibind Note: Using chapter style headings, unless overridden.
 
@@ -1329,7 +1336,7 @@ Package: dcolumn 2014/10/28 v1.06 decimal alignment package (DPC)
 Package: array 2016/10/06 v2.4d Tabular extension package (FMi)
 \col@sep=\dimen118
 \extrarowheight=\dimen119
-\NC@list=\toks31
+\NC@list=\toks33
 \extratabsurround=\skip50
 \backup@length=\skip51
 ))
@@ -1359,7 +1366,7 @@ Package: paralist 2017/01/22 v2.7 Extended list environments
 \plpartopsep=\skip53
 \plitemsep=\skip54
 \plparsep=\skip55
-\pl@lab=\toks32
+\pl@lab=\toks34
 )
 (C:\MikTex\texmfs\install\tex\latex\xcolor\xcolor.sty
 Package: xcolor 2016/05/11 v2.12 LaTeX color extensions (UK)
@@ -1403,42 +1410,42 @@ Package shellesc Info: Restricted shell escape enabled on input line 69.
 Package: transparent 2016/05/16 v1.1 Transparency via pdfTeX's color stack (HO)
 
 )
-Package hyperref Info: Option `unicode' set `true' on input line 105.
-Package hyperref Info: Option `breaklinks' set `true' on input line 106.
+Package hyperref Info: Option `unicode' set `true' on input line 109.
+Package hyperref Info: Option `breaklinks' set `true' on input line 110.
 
 \@input{macros.aux}
 \openout2 = `macros.aux'.
 
-(D:/MFF/Diplomka/Genetics/doc/dp\macros.tex
+(macros.tex
 \c@thm=\count120
 \c@defn=\count121
 )
 No file thesis.aux.
 \openout1 = `thesis.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 112.
-LaTeX Font Info:    ... okay on input line 112.
-LaTeX Font Info:    Try loading font information for OT1+lmr on input line 112.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 116.
+LaTeX Font Info:    ... okay on input line 116.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 116.
+LaTeX Font Info:    ... okay on input line 116.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 116.
+LaTeX Font Info:    ... okay on input line 116.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 116.
+LaTeX Font Info:    ... okay on input line 116.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 116.
+LaTeX Font Info:    ... okay on input line 116.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 116.
+LaTeX Font Info:    ... okay on input line 116.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 116.
+LaTeX Font Info:    ... okay on input line 116.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 116.
+LaTeX Font Info:    ... okay on input line 116.
+LaTeX Font Info:    Try loading font information for OT1+lmr on input line 116.
 
 (C:\MikTex\texmfs\install\tex\latex\lm\ot1lmr.fd
 File: ot1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
 \AtBeginShipoutBox=\box29
-Package hyperref Info: Link coloring OFF on input line 112.
+Package hyperref Info: Link coloring OFF on input line 116.
 
 (C:\MikTex\texmfs\install\tex\latex\hyperref\nameref.sty
 Package: nameref 2016/05/21 v2.44 Cross-referencing by name of section
@@ -1448,9 +1455,9 @@ Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
 )
 \c@section@level=\count122
 )
-LaTeX Info: Redefining \ref on input line 112.
-LaTeX Info: Redefining \pageref on input line 112.
-LaTeX Info: Redefining \nameref on input line 112.
+LaTeX Info: Redefining \ref on input line 116.
+LaTeX Info: Redefining \pageref on input line 116.
+LaTeX Info: Redefining \nameref on input line 116.
 \@outlinefile=\write5
 \openout5 = `thesis.out'.
 
@@ -1462,12 +1469,12 @@ LaTeX Info: Redefining \nameref on input line 112.
 \scratchbox=\box30
 \nofMPsegments=\count124
 \nofMParguments=\count125
-\everyMPshowfont=\toks33
+\everyMPshowfont=\toks35
 \MPscratchCnt=\count126
 \MPscratchDim=\dimen134
 \MPnumerator=\count127
 \makeMPintoPDFobject=\count128
-\everyMPtoPDFconversion=\toks34
+\everyMPtoPDFconversion=\toks36
 ) (C:\MikTex\texmfs\install\tex\latex\oberdiek\epstopdf-base.sty
 Package: epstopdf-base 2016/05/15 v2.6 Base part for package epstopdf
 
@@ -1483,14 +1490,12 @@ G,.JBIG2,.JB2,.eps]
 )
 \openout2 = `title.aux'.
 
-
-(D:/MFF/Diplomka/Genetics/doc/dp\title.tex
+ (title.tex
 Package hyperref Info: Option `pageanchor' set `false' on input line 6.
 
 
-pdfTeX warning: pdflatex.EXE (file D:/MFF/Diplomka/Genetics/doc/dp/img/logo-en.
-pdf): PDF inclusion: found PDF version <1.5>, but at most version <1.4> allowed
-
+pdfTeX warning: miktex-pdftex.exe (file ./img/logo-en.pdf): PDF inclusion: foun
+d PDF version <1.5>, but at most version <1.4> allowed
 <img/logo-en.pdf, id=6, 506.4591pt x 156.49065pt>
 File: img/logo-en.pdf Graphic file (type pdf)
  <use img/logo-en.pdf>
@@ -1533,9 +1538,10 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 
 
 
- <D:/MFF/Diplomka/Genetics/doc/dp/img/logo-en.pdf>]
+ <./img/logo-en.pdf>]
 Package hyperref Info: Option `pageanchor' set `true' on input line 55.
- [1
+
+[1
 
 ] [2
 
@@ -1552,47 +1558,757 @@ Package hyperref Info: Option `pageanchor' set `true' on input line 55.
 ]
 \openout2 = `introduction.aux'.
 
-
-(D:/MFF/Diplomka/Genetics/doc/dp\introduction.tex
+ (introduction.tex
 Chapter 1.
-LaTeX Font Info:    Try loading font information for OT1+lmtt on input line 13.
+LaTeX Font Info:    Try loading font information for OT1+lmtt on input line 28.
 
 (C:\MikTex\texmfs\install\tex\latex\lm\ot1lmtt.fd
 File: ot1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
+) [2
+
+
+]
+
+LaTeX Warning: Reference `fig:seq-division' on page 3 undefined on input line 3
+4.
+
+<img/seq-division.pdf, id=53, 232.61906pt x 225.09094pt>
+File: img/seq-division.pdf Graphic file (type pdf)
+
+<use img/seq-division.pdf>
+Package pdftex.def Info: img/seq-division.pdf used on input line 38.
+(pdftex.def)             Requested size: 232.61848pt x 225.09038pt.
+ [3 <./img/seq-division.pdf>]
+
+LaTeX Warning: Reference `chap:read-error-correction' on page 4 undefined on in
+put line 58.
+
+
+LaTeX Warning: Reference `sec:the-model' on page 4 undefined on input line 63.
+
+
+LaTeX Warning: Reference `fig:quality-score' on page 4 undefined on input line 
+68.
+
+<img/quality-score.pdf, id=67, 391.4625pt x 276.28218pt>
+File: img/quality-score.pdf Graphic file (type pdf)
+
+<use img/quality-score.pdf>
+Package pdftex.def Info: img/quality-score.pdf used on input line 72.
+(pdftex.def)             Requested size: 391.46153pt x 276.2815pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[4]
+LaTeX Font Info:    Try loading font information for OMS+lmr on input line 82.
+ (C:\MikTex\texmfs\install\tex\latex\lm\omslmr.fd
+File: omslmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
 )
+LaTeX Font Info:    Font shape `OMS/lmr/m/n' in size <12> not available
+(Font)              Font shape `OMS/lmsy/m/n' tried instead on input line 82.
+ [5 <./img/quality-score.pdf>]
 
-LaTeX Warning: Reference `fig:seq-division' on page 2 undefined on input line 2
-1.
+LaTeX Warning: Citation `alg-compare' on page 6 undefined on input line 103.
 
 
-LaTeX Warning: File `img/seq-division.pdf' not found on input line 25.
+Overfull \hbox (7.62715pt too wide) in paragraph at lines 103--104
+\OT1/lmr/m/n/12 Currently, there are t-wo wide-ly used class-es of al-go-rithm-
+s: overlap-layout-consensus|
+ []
 
 
-! Package pdftex.def Error: File `img/seq-division.pdf' not found.
+LaTeX Warning: Citation `dbg-apply' on page 6 undefined on input line 108.
 
-See the pdftex.def package documentation for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.25 	\includegraphics{img/seq-division.pdf}
-                                            
-? 
-! Emergency stop.
- ...                                              
-                                                  
-l.25 	\includegraphics{img/seq-division.pdf}
-                                            
-Using draft setting for this image.
-Try typing  <return>  to proceed.
-If that doesn't work, type  X <return>  to quit.
+[6]
 
- 
+LaTeX Warning: Citation `dbg-apply' on page 7 undefined on input line 122.
+
+
+LaTeX Warning: Citation `haplocall' on page 7 undefined on input line 123.
+
+
+LaTeX Warning: Citation `haplocall-1' on page 7 undefined on input line 129.
+
+[7]
+
+LaTeX Warning: Citation `abyss' on page 8 undefined on input line 146.
+
+[8]
+
+LaTeX Warning: Citation `vcf-format' on page 9 undefined on input line 172.
+
+
+LaTeX Warning: Citation `haplocall' on page 9 undefined on input line 172.
+
+
+LaTeX Warning: Citation `fermikit' on page 9 undefined on input line 172.
+
+) [9]
+\openout2 = `algorithm.aux'.
+
+ (algorithm.tex
+Chapter 2.
+
+LaTeX Warning: Reference `sec:algorithm-parameters' on page 10 undefined on inp
+ut line 15.
+
+
+LaTeX Warning: Citation `fermi-lite' on page 10 undefined on input line 22.
+
+
+LaTeX Warning: Reference `chap:read-error-correction' on page 10 undefined on i
+nput line 22.
+
+[10
+
+
+
+]
+
+LaTeX Warning: Citation `sambam' on page 11 undefined on input line 38.
+
+[11]
+
+LaTeX Warning: Reference `fig:kmer-representations' on page 12 undefined on inp
+ut line 60.
+
+
+LaTeX Warning: Reference `tab:base-translation' on page 12 undefined on input l
+ine 64.
+
+
+LaTeX Warning: Reference `fig:kmer-representations' on page 12 undefined on inp
+ut line 66.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+<img/kmer-representations.pdf, id=120, 391.4625pt x 108.405pt>
+File: img/kmer-representations.pdf Graphic file (type pdf)
+
+<use img/kmer-representations.pdf>
+Package pdftex.def Info: img/kmer-representations.pdf used on input line 98.
+(pdftex.def)             Requested size: 391.46153pt x 108.40472pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+LaTeX Warning: Reference `sec:reference-transformation' on page 12 undefined on
+ input line 103.
+
+[12] [13 <./img/kmer-representations.pdf>]
+
+LaTeX Warning: Reference `fig:ref-my' on page 14 undefined on input line 135.
+
+
+Overfull \hbox (11.17958pt too wide) in paragraph at lines 134--136
+\OT1/lmr/m/n/12 Figure [] dis-plays a graph cre-at-ed by trans-form-ing the ac-
+tive re-gion \OT1/lmtt/m/n/12 ATCTGTATATATG|
+ []
+
+
+LaTeX Warning: Reference `fig:ref-db' on page 14 undefined on input line 149.
+
+[14] <img/ref-my.pdf, id=139, 182.18062pt x 395.97937pt>
+File: img/ref-my.pdf Graphic file (type pdf)
+ <use img/ref-my.pdf>
+Package pdftex.def Info: img/ref-my.pdf used on input line 153.
+(pdftex.def)             Requested size: 182.18016pt x 395.97841pt.
+
+<img/ref-db.pdf, id=140, 197.23688pt x 403.5075pt>
+File: img/ref-db.pdf Graphic file (type pdf)
+ <use img/ref-db.pdf>
+Package pdftex.def Info: img/ref-db.pdf used on input line 160.
+(pdftex.def)             Requested size: 197.23637pt x 403.50652pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+LaTeX Warning: Reference `fig:read-idea' on page 15 undefined on input line 172
+.
+
+[15 <./img/ref-my.pdf>] [16 <./img/ref-db.pdf>]
+
+LaTeX Warning: Reference `sec:graph-structure-optimization' on page 17 undefine
+d on input line 188.
+
+<img/read-idea.pdf, id=157, 343.2825pt x 405.01312pt>
+File: img/read-idea.pdf Graphic file (type pdf)
+ <use img/read-idea.pdf>
+Package pdftex.def Info: img/read-idea.pdf used on input line 196.
+(pdftex.def)             Requested size: 343.28165pt x 405.01212pt.
+
+
+LaTeX Warning: Reference `fig:read-idea' on page 17 undefined on input line 201
+.
+
+[17 <./img/read-idea.pdf>]
+
+LaTeX Warning: Reference `fig:ref-my' on page 18 undefined on input line 205.
+
+
+LaTeX Warning: Reference `subsec:assign-sets' on page 18 undefined on input lin
+e 225.
+
+
+LaTeX Warning: Reference `subsec:idea' on page 18 undefined on input line 227.
+
+[18]
+
+LaTeX Warning: Reference `fig:read-optimization' on page 19 undefined on input 
+line 237.
+
+
+LaTeX Warning: Reference `read-idea' on page 19 undefined on input line 237.
+
+
+LaTeX Warning: Reference `read-idea' on page 19 undefined on input line 237.
+
+<img/read-optimization.pdf, id=170, 263.48438pt x 399.74344pt>
+File: img/read-optimization.pdf Graphic file (type pdf)
+
+<use img/read-optimization.pdf>
+Package pdftex.def Info: img/read-optimization.pdf used on input line 241.
+(pdftex.def)             Requested size: 263.48372pt x 399.74245pt.
+ [19] [20 <./img/read-optimization.pdf>]
+
+LaTeX Warning: Reference `subsec:helper-graph' on page 21 undefined on input li
+ne 285.
+
+[21]
+
+LaTeX Warning: Reference `fig:helper-graph-short' on page 22 undefined on input
+ line 306.
+
+<img/helper-graph-short.pdf, id=189, 390.70969pt x 443.40656pt>
+File: img/helper-graph-short.pdf Graphic file (type pdf)
+
+<use img/helper-graph-short.pdf>
+Package pdftex.def Info: img/helper-graph-short.pdf used on input line 312.
+(pdftex.def)             Requested size: 390.70872pt x 443.40547pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+LaTeX Warning: Reference `fig:helper-graph' on page 22 undefined on input line 
+319.
+
+<img/helper-graph.pdf, id=190, 376.40625pt x 338.01282pt>
+File: img/helper-graph.pdf Graphic file (type pdf)
+
+<use img/helper-graph.pdf>
+Package pdftex.def Info: img/helper-graph.pdf used on input line 323.
+(pdftex.def)             Requested size: 376.40532pt x 338.01198pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[22]
+
+LaTeX Warning: Reference `fig:bubble-connection' on page 23 undefined on input 
+line 336.
+
+[23 <./img/helper-graph-short.pdf>]
+<img/bubble-connection.pdf, id=204, 376.40625pt x 219.06844pt>
+File: img/bubble-connection.pdf Graphic file (type pdf)
+
+<use img/bubble-connection.pdf>
+Package pdftex.def Info: img/bubble-connection.pdf used on input line 342.
+(pdftex.def)             Requested size: 376.40532pt x 219.06789pt.
+
+
+LaTeX Warning: Reference `fig:connection-general' on page 24 undefined on input
+ line 347.
+
+
+LaTeX Warning: Reference `fig:bubble-connection' on page 24 undefined on input 
+line 347.
+
+<img/connection-general.pdf, id=205, 391.4625pt x 131.74219pt>
+File: img/connection-general.pdf Graphic file (type pdf)
+
+<use img/connection-general.pdf>
+Package pdftex.def Info: img/connection-general.pdf used on input line 353.
+(pdftex.def)             Requested size: 391.46153pt x 131.74185pt.
+
+
+LaTeX Warning: Reference `fig:bubble-connection' on page 24 undefined on input 
+line 354.
+
+
+LaTeX Warning: Reference `fig:bubble-connection' on page 24 undefined on input 
+line 354.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+LaTeX Warning: Reference `fig:connection-abstract' on page 24 undefined on inpu
+t line 358.
+
+[24 <./img/helper-graph.pdf>]
+Overfull \hbox (8.92915pt too wide) in paragraph at lines 360--361
+[]\OT1/lmr/m/n/12 If $\OML/lmm/m/it/12 i[]$ \OT1/lmr/m/n/12 in-put and $\OML/lm
+m/m/it/12 j[]$ \OT1/lmr/m/n/12 out-put edges share rea-son-able amoun-t of read
+-s ($\OMS/lmsy/m/n/12 j\OML/lmm/m/it/12 reads\OT1/lmr/m/n/12 (\OML/lmm/m/it/12 
+I[]\OT1/lmr/m/n/12 ) \OMS/lmsy/m/n/12 \|
+ []
+
+<img/connection-abstract.pdf, id=213, 335.75438pt x 198.7425pt>
+File: img/connection-abstract.pdf Graphic file (type pdf)
+
+<use img/connection-abstract.pdf>
+Package pdftex.def Info: img/connection-abstract.pdf used on input line 366.
+(pdftex.def)             Requested size: 335.75356pt x 198.742pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[25 <./img/bubble-connection.pdf> <./img/connection-general.pdf>]
+
+LaTeX Warning: Reference `fig:helper-vertices' on page 26 undefined on input li
+ne 376.
+
+
+LaTeX Warning: Reference `fig:helper-vertices' on page 26 undefined on input li
+ne 383.
+
+<img/helper-vertices.pdf, id=225, 398.23781pt x 304.88907pt>
+File: img/helper-vertices.pdf Graphic file (type pdf)
+
+<use img/helper-vertices.pdf>
+Package pdftex.def Info: img/helper-vertices.pdf used on input line 387.
+(pdftex.def)             Requested size: 398.23683pt x 304.88832pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[26 <./img/connection-abstract.pdf>]
+
+LaTeX Warning: Reference `fig:variant-detection-ab' on page 27 undefined on inp
+ut line 400.
+
+
+LaTeX Warning: Reference `fig:variant-detection-cd' on page 27 undefined on inp
+ut line 400.
+
+<img/variant-detection-ab.pdf, id=234, 391.4625pt x 260.47313pt>
+File: img/variant-detection-ab.pdf Graphic file (type pdf)
+
+<use img/variant-detection-ab.pdf>
+Package pdftex.def Info: img/variant-detection-ab.pdf used on input line 404.
+(pdftex.def)             Requested size: 391.46153pt x 260.47249pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+<img/variant-detection-cd.pdf, id=235, 391.4625pt x 232.61906pt>
+File: img/variant-detection-cd.pdf Graphic file (type pdf)
+
+<use img/variant-detection-cd.pdf>
+Package pdftex.def Info: img/variant-detection-cd.pdf used on input line 411.
+(pdftex.def)             Requested size: 391.46153pt x 232.61848pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+LaTeX Warning: Reference `fig:variant-detection-cd' on page 27 undefined on inp
+ut line 419.
+
+
+LaTeX Warning: Reference `fig:variant-detection-ab' on page 27 undefined on inp
+ut line 424.
+
+[27 <./img/helper-vertices.pdf>]
+
+LaTeX Warning: Reference `fig:variant-detection-ab' on page 28 undefined on inp
+ut line 429.
+
+
+LaTeX Warning: Reference `fig:variant-detection-cd' on page 28 undefined on inp
+ut line 434.
+
+[28 <./img/variant-detection-ab.pdf>] [29 <./img/variant-detection-cd.pdf>])
+[30]
+\openout2 = `error-correction.aux'.
+
+ (error-correction.tex
+Chapter 3.
+
+LaTeX Warning: Citation `fermi-lite' on page 31 undefined on input line 8.
+
+
+LaTeX Warning: Reference `fig:error-correction-db' on page 31 undefined on inpu
+t line 18.
+
+
+LaTeX Warning: Reference `fig:error-correction-db' on page 31 undefined on inpu
+t line 20.
+
+<img/error-correction-db.pdf, id=267, 391.4625pt x 188.95593pt>
+File: img/error-correction-db.pdf Graphic file (type pdf)
+
+<use img/error-correction-db.pdf>
+Package pdftex.def Info: img/error-correction-db.pdf used on input line 24.
+(pdftex.def)             Requested size: 391.46153pt x 188.95546pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+LaTeX Warning: Reference `fig:kmer-frequency-distribution' on page 31 undefined
+ on input line 32.
+
+[31
+
+
+
+]
+
+LaTeX Warning: Citation `fermi-lite' on page 32 undefined on input line 37.
+
+<img/kmer-frequency-distribution.pdf, id=274, 211.54031pt x 143.03438pt>
+File: img/kmer-frequency-distribution.pdf Graphic file (type pdf)
+
+<use img/kmer-frequency-distribution.pdf>
+Package pdftex.def Info: img/kmer-frequency-distribution.pdf used on input line
+ 41.
+(pdftex.def)             Requested size: 211.53978pt x 143.03401pt.
+
+
+LaTeX Warning: Citation `alg-compare' on page 32 undefined on input line 42.
+
+
+LaTeX Warning: Citation `alg-compare' on page 32 undefined on input line 42.
+
+
+LaTeX Warning: Citation `fermikit' on page 32 undefined on input line 49.
+
+
+LaTeX Warning: Citation `fermi-lite' on page 32 undefined on input line 49.
+
+[32 <./img/error-correction-db.pdf> <./img/kmer-frequency-distribution.pdf>]
+
+LaTeX Warning: Reference `fig:fermi-kmer-structure' on page 33 undefined on inp
+ut line 70.
+
+[33] <img/fermi-kmer-structure.pdf, id=293, 259.7203pt x 225.84375pt>
+File: img/fermi-kmer-structure.pdf Graphic file (type pdf)
+
+<use img/fermi-kmer-structure.pdf>
+Package pdftex.def Info: img/fermi-kmer-structure.pdf used on input line 78.
+(pdftex.def)             Requested size: 259.71967pt x 225.84319pt.
+
+
+LaTeX Warning: Reference `tab:fermi-parameters' on page 34 undefined on input l
+ine 89.
+
+
+Underfull \hbox (badness 1762) in paragraph at lines 101--102
+\OT1/lmr/m/n/12 to re-con-gize high qual-i-ty
+ []
+
+
+Underfull \hbox (badness 1997) in paragraph at lines 101--102
+\OT1/lmr/m/n/12 con-tent from low qual-i-ty
+ []
+
+
+Underfull \hbox (badness 1072) in paragraph at lines 109--110
+[]|\OT1/lmr/m/n/12 Defines how long the se-
+ []
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[34 <./img/fermi-kmer-structure.pdf>]
+
+LaTeX Warning: Reference `fig:kmer-frequency-distribution' on page 35 undefined
+ on input line 179.
+
+[35]) [36] [37]
+\openout2 = `results.aux'.
+
+ (results.tex
+Chapter 4.
+
+LaTeX Warning: Citation `testreads' on page 38 undefined on input line 11.
+
+
+LaTeX Warning: Citation `testvcf' on page 38 undefined on input line 11.
+
+
+LaTeX Warning: Citation `testref' on page 38 undefined on input line 11.
+
+
+LaTeX Warning: Reference `fig:test-kmer-frequency-distribution' on page 38 unde
+fined on input line 13.
+
+
+LaTeX Warning: Reference `fig:kmer-frequency-distribution' on page 38 undefined
+ on input line 13.
+
+<img/test-kmer-frequency-distribution.pdf, id=317, 391.4625pt x 276.28218pt>
+File: img/test-kmer-frequency-distribution.pdf Graphic file (type pdf)
+
+<use img/test-kmer-frequency-distribution.pdf>
+Package pdftex.def Info: img/test-kmer-frequency-distribution.pdf used on input
+ line 17.
+(pdftex.def)             Requested size: 391.46153pt x 276.2815pt.
+
+
+LaTeX Warning: Reference `tab:test-correction' on page 38 undefined on input li
+ne 22.
+
+
+LaTeX Warning: Reference `fig:test-repair-frequency' on page 38 undefined on in
+put line 22.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+<img/test-repair-frequency.pdf, id=318, 391.4625pt x 276.28218pt>
+File: img/test-repair-frequency.pdf Graphic file (type pdf)
+
+<use img/test-repair-frequency.pdf>
+Package pdftex.def Info: img/test-repair-frequency.pdf used on input line 48.
+(pdftex.def)             Requested size: 391.46153pt x 276.2815pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+LaTeX Warning: Reference `fig:test-kmer-frequency-distribution2' on page 38 und
+efined on input line 53.
+
+[38
+
+
+
+ <./img/test-kmer-frequency-distribution.pdf>]
+<img/test-kmer-frequency-distribution2.pdf, id=328, 391.4625pt x 276.28218pt>
+File: img/test-kmer-frequency-distribution2.pdf Graphic file (type pdf)
+
+<use img/test-kmer-frequency-distribution2.pdf>
+Package pdftex.def Info: img/test-kmer-frequency-distribution2.pdf used on inpu
+t line 57.
+(pdftex.def)             Requested size: 391.46153pt x 276.2815pt.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+
+LaTeX Warning: Reference `sec:input-output-and-preprocessing' on page 39 undefi
+ned on input line 62.
+
+
+LaTeX Warning: Reference `tab:corrected-set-categories' on page 39 undefined on
+ input line 62.
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[39 <./img/test-repair-frequency.pdf>]
+
+LaTeX Warning: Citation `samtools' on page 40 undefined on input line 98.
+
+
+LaTeX Warning: Citation `rtgeval' on page 40 undefined on input line 101.
+
+[40 <./img/test-kmer-frequency-distribution2.pdf>]
+
+LaTeX Warning: Reference `tab:positional-results' on page 41 undefined on input
+ line 115.
+
+
+LaTeX Warning: Reference `sec:algorithm-parameters' on page 41 undefined on inp
+ut line 119.
+
+
+Overfull \hbox (38.29189pt too wide) in paragraph at lines 127--144
+ [] |
+ []
+
+[41]
+
+LaTeX Warning: Reference `fig:binom-all' on page 42 undefined on input line 149
+.
+
+
+LaTeX Warning: Reference `fig:binom-3' on page 42 undefined on input line 149.
+
+<img/binom-all.pdf, id=352, 391.4625pt x 276.28218pt>
+File: img/binom-all.pdf Graphic file (type pdf)
+ <use img/binom-all.pdf>
+Package pdftex.def Info: img/binom-all.pdf used on input line 153.
+(pdftex.def)             Requested size: 391.46153pt x 276.2815pt.
+
+<img/binom-3.pdf, id=353, 391.4625pt x 276.28218pt>
+File: img/binom-3.pdf Graphic file (type pdf)
+ <use img/binom-3.pdf>
+Package pdftex.def Info: img/binom-3.pdf used on input line 160.
+(pdftex.def)             Requested size: 391.46153pt x 276.2815pt.
+
+
+LaTeX Warning: Reference `fig:binom-all' on page 42 undefined on input line 165
+.
+
+) [42] [43 <./img/binom-all.pdf> <./img/binom-3.pdf>]
+\openout2 = `conclusion.aux'.
+
+ (conclusion.tex
+Chapter 5.
+) [44
+
+
+
+]
+\openout2 = `bibliography.aux'.
+
+ (bibliography.tex
+Underfull \hbox (badness 5161) in paragraph at lines 39--43
+\OT1/lmr/m/it/12 mi-na-tion \OT1/lmr/m/n/12 https://gatkforums.broadinstitute.o
+rg/gatk/discussion/4146/hc-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 45--49
+[]\OT1/lmr/m/sc/12 GATK De-v Team\OT1/lmr/m/n/12 : \OT1/lmr/m/it/12 HC step 1: 
+Defin-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 45--49
+\OT1/lmr/m/it/12 ing Ac-tiveRe-gion-s by mea-sur-ing da-ta en-tropy \OT1/lmr/m/
+n/12 http-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 45--49
+\OT1/lmr/m/n/12 s://software.broadinstitute.org/gatk/documentation/article.php?
+id=4147
+ []
+
+
+Underfull \hbox (badness 5985) in paragraph at lines 63--68
+[]\OT1/lmr/m/sc/12 Li, \OT1/lmr/m/n/12 Heng: \OT1/lmr/m/it/12 Fer-miK-it: assem
+bly-based vari-ant call-ing for Il-lu-mi-
+ []
+
+
+Underfull \hbox (badness 2165) in paragraph at lines 63--68
+\OT1/lmr/m/it/12 na re-se-quenc-ing da-ta \OT1/lmr/m/n/12 Cor-nel-l U-ni-ver-si
+-ty Li-brary, 24. 4. 2015 http-
+ []
+
+
+Underfull \hbox (badness 4739) in paragraph at lines 76--81
+[]\OT1/lmr/m/sc/12 Genome Re-search Lim-it-ed\OT1/lmr/m/n/12 : \OT1/lmr/m/it/12
+ Se-quence Align-men-t / Map For-
+ []
+
+
+Underfull \hbox (badness 1077) in paragraph at lines 83--87
+[]\OT1/lmr/m/sc/12 100 Genomes Project\OT1/lmr/m/n/12 : \OT1/lmr/m/it/12 chr1 I
+l-lu-mi-na high cov-er-age Read set \OT1/lmr/m/n/12 ft-
+ []
+
+
+Overfull \hbox (171.331pt too wide) in paragraph at lines 83--87
+\OT1/lmr/m/n/12 p://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/pilot2[]high[]
+cov[]GRCh37[]bams/data/NA12878/alignment/|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 95--99
+[]\OT1/lmr/m/sc/12 100 Genomes Project\OT1/lmr/m/n/12 : \OT1/lmr/m/it/12 Ref-er
+-ence se-quence GRCh37
+ []
+
+
+Overfull \hbox (58.84538pt too wide) in paragraph at lines 95--99
+\OT1/lmr/m/n/12 http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/h
+uman[]g1k[]v37.fasta.gz|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 101--105
+[]\OT1/lmr/m/sc/12 Genome Re-search Lim-it-ed\OT1/lmr/m/n/12 : \OT1/lmr/m/it/12
+ The SAM-Tool-s project
+ []
+
+[45
+
+
+
+]) [46]
+\tf@lof=\write7
+\openout7 = `thesis.lof'.
+
+ [47
+
+
+]
+\tf@lot=\write8
+\openout8 = `thesis.lot'.
+
+ [48
+
+]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 162.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 162.
+ (thesis.aux (title.aux) (introduction.aux) (algorithm.aux) (error-correction.a
+ux) (results.aux) (conclusion.aux) (bibliography.aux))
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 162.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 162.
+
+
+Package rerunfilecheck Warning: File `thesis.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `thesis.out':
+(rerunfilecheck)             Before: <no file>
+(rerunfilecheck)             After:  55CAC06AB0618F0C0C3D34445502BD28;5699.
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 162.
+ ) 
 Here is how much of TeX's memory you used:
- 14597 strings out of 495222
- 202007 string characters out of 3182018
- 276589 words of memory out of 3000000
- 17671 multiletter control sequences out of 15000+200000
- 49255 words of font info for 48 fonts, out of 3000000 for 9000
+ 15053 strings out of 495222
+ 209811 string characters out of 3182018
+ 285317 words of memory out of 3000000
+ 17924 multiletter control sequences out of 15000+200000
+ 66108 words of font info for 61 fonts, out of 3000000 for 9000
  14 hyphenation exceptions out of 8191
- 37i,7n,42p,640b,2258s stack positions out of 5000i,500n,10000p,200000b,50000s
-!  ==> Fatal error occurred, no output PDF file produced!
+ 37i,16n,42p,1010b,2258s stack positions out of 5000i,500n,10000p,200000b,50000s
+{C:/MikTex/texmfs/install/fonts/enc/dvips/lm/lm-rmsc.enc}{C:/MikTex/texmfs/in
+stall/fonts/enc/dvips/lm/lm-mathex.enc}{C:/MikTex/texmfs/install/fonts/enc/dvip
+s/lm/lm-rm.enc}{C:/MikTex/texmfs/install/fonts/enc/dvips/lm/lm-mathit.enc}{C:/M
+ikTex/texmfs/install/fonts/enc/dvips/lm/lm-mathsy.enc}{C:/MikTex/texmfs/install
+/fonts/enc/dvips/lm/lm-rmtt.enc}<C:/MikTex/texmfs/install/fonts/type1/public/lm
+/lmbx12.pfb><C:/MikTex/texmfs/install/fonts/type1/public/lm/lmcsc10.pfb><C:/Mik
+Tex/texmfs/install/fonts/type1/public/lm/lmex10.pfb><C:/MikTex/texmfs/install/f
+onts/type1/public/lm/lmmi12.pfb><C:/MikTex/texmfs/install/fonts/type1/public/lm
+/lmmi6.pfb><C:/MikTex/texmfs/install/fonts/type1/public/lm/lmmi8.pfb><C:/MikTex
+/texmfs/install/fonts/type1/public/lm/lmr12.pfb><C:/MikTex/texmfs/install/fonts
+/type1/public/lm/lmr17.pfb><C:/MikTex/texmfs/install/fonts/type1/public/lm/lmr6
+.pfb><C:/MikTex/texmfs/install/fonts/type1/public/lm/lmr8.pfb><C:/MikTex/texmfs
+/install/fonts/type1/public/lm/lmri12.pfb><C:/MikTex/texmfs/install/fonts/type1
+/public/lm/lmsy10.pfb><C:/MikTex/texmfs/install/fonts/type1/public/lm/lmsy8.pfb
+><C:/MikTex/texmfs/install/fonts/type1/public/lm/lmtt12.pfb>
+Output written on thesis.pdf (52 pages, 1374658 bytes).
+PDF statistics:
+ 505 PDF objects out of 1000 (max. 8388607)
+ 142 named destinations out of 1000 (max. 500000)
+ 133 words of extra memory for PDF output out of 10000 (max. 10000000)
+
