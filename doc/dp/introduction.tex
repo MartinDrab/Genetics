@@ -100,7 +100,7 @@ Genomes of diploid organisms, introduce another problem not covered by the simpl
 \section{Major Assembly Algorithm Classes}
 \label{sec:major-assembly-algorithm-classes}
 
-Currently, there are two widely used classes of algorithms: overlap-layout-consensus (OLC) and de-bruijn-graph (DBG) \cite{alg-compare}. Algorithms belonging to the former base their idea on constructing a graph recording overlapping reads and extracting the alternate sequences from it. Main idea behind the DBG class is to chop all reads into k-mers that are then uses to construct a de Bruijn graph which is, after some optimizations, is subject to derivations of alternate sequences.
+Currently, there are two widely used classes of algorithms: overlap-layout-consensus (OLC) and de-bruijn-graph (DBG) \cite{alg-compare}. Algorithms belonging to the former base their idea on construction of a graph recording overlapping reads and extracting the alternate sequences from it. Main idea behind the DBG approach is to decompose all reads into k-mers that are then used to construct a de Bruijn graph which, after some optimizations, is subject to derivations of alternate sequences.
 
 \subsection{De Bruijn Graphs}
 \label{subsec:de-bruijn-graphs}
@@ -140,6 +140,19 @@ The Smith-Waterman algorithm is used to align each of the selected sequences to 
 
 The CIGAR strings actually contain a super set of the final set of called variants. To filter out false positives, other solutions are employed (for example, the HaploCall documentation mentions UnifiedGenotyper for GATK).
 
+\subsubsection{AbySS}
+\label{subsub:abyss}
+
+AbySS\cite{abyss} is another representative of assembly algorithms using de Bruijn graphs. Unlike HaploCall, it does not use the reference sequence for assembly. One of its interesting features is a support for running on multi-computer environemnts with fast network connection. Most of the computation is massively paralelized and the MPI (Message Passing Interface) is used for communication between individual computing units.
+
+AbySS starts by decomposing all input reads to k-mers and constructing a de Bruijn graph. Except being distributed amongst nodes of the computing cluster, it trats k-mers and their reverse-complemenshortts as equals. Both are represented by a single vertex and when one is inserted, the other also starts its existence. 
+
+Structure of the distributed de Bruijn is then optimized mainly by removing short branches with dead ends that usually results from sequencing errors. Then, linear sequences of vertices without branching are merged into \textit{contigs}, representing longer sequences of the assembled genome. 
+
+The paired-end information is then used to put individual contigs together. A link is created within two contigs if the number of paired-end reads joining the contigs exceed a given threshold. The final step lies in determining a path going through all contigs linked together.
+
+Although utilizing the de Bruijn graph approach, AbySS actually shares a lot with the oveerlap-layout-consensus class of assembly algorithms. The main difference, at a high level of abstraction, is the usage of k-mers, while the OLC algorithms construct their graphs from whole reads and do not perform the decomposition step.
+
 \subsection{Overlap-Layout-Consensus}
 \label{subsec:overlap-layout-consensus}
 
@@ -156,4 +169,4 @@ During the \textit{layout} phase, a read-pairing information is used to put disc
 
 Main goal of this work is to develop an algorithm capable of variant calling on high-thorought data sets, comparable to, or more precies than methods currenlty employed. The approach used by HaplotypeCaller (HaploCall) should be used as an inspiration which implies the newly developed algorithm would take advantage of the reference sequence and would belong to the class of algorithms utilizing de Bruijn graphs.
 
-The new algorithm should accept the input data set in widely used formats, such as SAM for the read set and FASTA for the reference sequence, and output the called variants in the VCF format. Its results need to be compared to at least two other assembly and variant calling tools. GATK (HaploCall) \cite{haplocall}, as a representative of the DBG class and reference-aided methods, and FermiKit \cite{fermikit}, utilizing the OLC concept.
+The new algorithm should accept the input data set in widely used formats, such as SAM for the read set and FASTA for the reference sequence, and output the called variants in the VCF format\cite{vcf-format}. Its results need to be compared to at least two other assembly and variant calling tools. GATK (HaploCall) \cite{haplocall}, as a representative of the DBG class and reference-aided methods, and FermiKit \cite{fermikit}, utilizing the OLC concept.
