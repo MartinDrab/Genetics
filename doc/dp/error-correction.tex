@@ -5,7 +5,7 @@ Read data used as an input to many assembly algorithms contain plenty of errors,
 
 Currently, two different approaches are used to correct read errors, and both are based on transforming individual reads into series of k-mers. One is based on detecting errors as low covered edges (or paths) in a de Bruijn graph, the other works with a k-mer frequency distribution. During development of our algorithm presented in this thesis, we made several attempts to implement an error correction algorithm based on de Bruijn graphs. Since we use these graphs also during assembly performing error corrections on them seemed to be a natural choice. Although they definitely helped to improve the quality of input reads, all our attempts performed worse compared to the k-mer frequency distribution approach.
 
-In the end, we decided to adopt the error correction algorithm used by the \texttt{fermi-lite} library \cite{fermi-lite} and based on k-mer frequency disbribution. This chapter describes both approaches.
+In the end, we decided to adopt the error correction algorithm used by the Fermi-lite library \cite{fermi-lite} and based on k-mer frequency disbribution. This chapter describes both approaches.
 
 \section{De Bruijn Graphs}
 \label{sec:ec-de-bruin-graphs}
@@ -34,7 +34,7 @@ The method is based on the assumption that k-mer frequency distribution of an er
 As can be seen in the figure, errors lead to enrichment of unique and rare
 k-mers. The idea behind the correction algorithms based on this method is to transform the low-frequency k-mers into those with frequencies in the right place.
 
-This approach is also used by the \texttt{fermi-lite}\cite{fermi-lite} software and is covered in the next section.
+This approach is also used by the Fermi-lite\cite{fermi-lite} software and is covered in the next section.
 
 \begin{figure}[h]
 	\centering
@@ -76,7 +76,7 @@ Since the k-mer representation reserves only 2 bits for one base, it is used to 
 \begin{figure}[h]
 	\centering
 	\includegraphics{img/fermi-kmer-structure.pdf}
-	\caption{K-mer representation used by the \texttt{fermi-lite} project}
+	\caption{K-mer representation used by the Fermi-lite project}
 	\label{fig:fermi-kmer-structure}
 \end{figure}
 
@@ -90,7 +90,7 @@ All phases of the algorithm are partialy driven by its parameters. Table \ref{ta
 
 \begin{table}[h]
 \begin{center}
-\caption{Parameters of the \texttt{fermi-lite} algorithm}
+\caption{Parameters of the Fermi-lite algorithm}
 \label{tab:fermi-parameters}
 \begin{tabular}{| r | r | p{5cm} |}
 \hline

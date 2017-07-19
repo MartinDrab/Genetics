@@ -76,8 +76,8 @@ static ERR_VALUE _init_default_values()
 	program_option_init(PROGRAM_OPTION_VCFFILE, PROGRAM_OPTION_VCFFILE_DESC, String, "result.vcf");
 	program_option_init(PROGRAM_OPTION_OMP_THREADS, PROGRAM_OPTION_OMP_THREADS, Int32, omp_get_num_procs());
 	program_option_init(PROGRAM_OPTION_PLOT_FLAGS, PROGRAM_OPTION_PLOT_FLAGS, UInt16, GRAPH_PRINT_ALL);
-	program_option_init("binom-threshold", "", UInt64, 25);
-	program_option_init("low-quality-variant", "", UInt32, 4);
+	program_option_init("binom-threshold", "", UInt64, 1);
+	program_option_init("low-quality-variant", "", UInt32, 3);
 
 	if (ret == ERR_SUCCESS)
 		ret = option_add_String(PROGRAM_OPTION_OUTPUT_DIRECTORY, ".");

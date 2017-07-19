@@ -126,7 +126,7 @@ SImilarly, de Bruijn graphs can be used for genome assembly, especially if the g
 \subsubsection{HaploCall}
 \label{subsub:haplocall}
 
-Rather than assembling whole genome at once, HaploCall starts with detection of regions that are likely to contain variants. A score is computed for every genome position, reflecting the probability of variant occurrence. Regions are formed around positions classified as interesting. As subset of the input reads is assigned to each of the regions; reads are selected based on their mapping position. Each region is then processed separately and independently of others.
+Rather than assembling whole genome at once, HaploCall starts with detection of regions that are likely to contain variants\cite{haplocall-1}. A score is computed for every genome position, reflecting the probability of variant occurrence. Regions are formed around positions classified as interesting. As subset of the input reads is assigned to each of the regions; reads are selected based on their mapping position. Each region is then processed separately and independently of others.
 
 The active region processing phase starts by decomposing the reference sequence covering the region into k-mers and using them as vertices in a newly constructed de Bruijn graph. Edges connect vertices representing k-mers adjacent by their position within the reference. For each edge, a weight value is initialized to zero.
 
