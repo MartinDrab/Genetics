@@ -12,12 +12,12 @@ The variant calling is done on region basis. The reference sequence is divided i
 \item genotypes and phasing are determined,
 \end{itemize}
 
-The k-mer size used to build the de Bruijn graph belongs to parameters of the algorithm (Section \ref{sec:algorithm-parameters}). If thegraph is too complex after the structural optimizations, it is discarded and the algorithm makes another attempt using higher value for k-mer size. This behavior is very similar to the HaploCall algorithm.
+The k-mer size used to build the de Bruijn graph belongs to parameters of the algorithm (Section \ref{sec:algorithm-parameters}). If the graph is too complex after the structural optimizations, it is discarded and the algorithm makes another attempt using higher value for k-mer size. This behavior is very similar to the HaploCall algorithm.
 
 \section{Input, Output and Preprocessing}
 \label{sec:input-output-and-preprocessing}
 
-The reference sequence is expected to be in the FASTA format and starting at position 1. In a typical scenario, the whole chromosome is provided as an input. The FASTA file may contain multiple distinct reference sequences (covering mutliple chromosomes). Reference sequences are processed one at a time which means that at most one sequence is present in memory at any moment. Only characters \texttt{A}, \texttt{C}, \texttt{G} and \texttt{T} are considered valid nucleotides. Other characters, such as \texttt{N} used to mask low-complexity regions, are treated as invalid and reference regions filled with them are not subject to variant calling.
+The reference sequence is expected to be in the FASTA format and starting at position 1. In a typical scenario, the whole chromosome is provided as an input. The FASTA file may contain multiple distinct reference sequences (covering multiple chromosomes). Reference sequences are processed one at a time which means that at most one sequence is present in memory at any moment. Only characters \texttt{A}, \texttt{C}, \texttt{G} and \texttt{T} are considered valid nucleotides. Other characters, such as \texttt{N} used to mask low-complexity regions, are treated as invalid and reference regions filled with them are not subject to variant calling.
 
 The read set needs to be stored in a text file reflecting the SAM format. Presence of header lines is not required, all information is deduced from the reads. Since the algorithm does not perform any error correction on its own, the input reads must be corrected beforehand. The error correction is supported as a separate command of the tool implementing our algorithm. The correction method was adopted from the Fermi-lite\cite{fermi-lite} project and Chapter \ref{chap:read-error-correction} describes it in detail.
 
@@ -49,17 +49,17 @@ Behavior of the algorithm and produced results can be controlled by several para
 \item \textbf{Global threshold}. Defines a threshold value used globally through the algorithm. Edges of the de Bruijn graph with read coverage lower than the threshold are automatically removed. Similar approach is used when computing genotypes and phasing information; variant connection covered by less reads than the global threshold are ignored. The default value of the parameter is 4.
 \item \textbf{Region length}. Length of active regions. Set to 2000 bases by default.
 \item \textbf{Low quality variant threshold}. If the number of reads supporting a certain variant is not above this value, the variant is considered as a low quality variant. Such variants are subjects to a binomial test that decides whether they will be written to the resulting VCF. By default, this parameter is set to 3.
-\item \textbf{Binomial threshold}. Defines a threshold for accempting low quality variants. The binomial test gives a probability how a given low quality variant is reliable. If this probability is above the threshold (set to 1\% by default), the variant is reported in the resulting VCF.
+\item \textbf{Binomial threshold}. Defines a threshold for accepting low quality variants. The binomial test gives a probability how a given low quality variant is reliable. If this probability is above the threshold (set to 1\% by default), the variant is reported in the resulting VCF.
 \end{itemize}
 
 \section{K-mer Representation}
 \label{sec:kmer-representation}
 
-Our algorithm works with k-mers only through an interface consisting from several functions and macros. The k-mer implementation is used as a blackbox which allows us to make several implementations and then choose the best fitting one without any consequences on the rest of the algorithm, exceptthose implied by the interface.
+Our algorithm works with k-mers only through an interface consisting from several functions and macros. The k-mer implementation is used as a black box which allows us to make several implementations and then choose the best fitting one without any consequences on the rest of the algorithm, except those implied by the interface.
 
 We currently use two implementations representing k-mers in different ways, shown on Figure \ref{fig:kmer-representations}. For performance reasons, the implementations may be switched only in compile time. 
 
-The upper part of the figure shows the representation of the \textit{debuging} k-mer. The main idea behind this type of k-mer is to make the content easily human-readable, which is excellent for debugging purposes. The k-mer sequence is stored in a character array, each element represents one base. Except its context number, the purpose of which is explained in the next section, each debug k-mer also remembers its size. That value is used for debugging purposes only, mainly to recognize attempts to pass wrong k-mer size arguemnt to one of the k-mer interface routines. Debug k-mers also have an advantage of potentialy unlimited maximum size. It is clear that debug k-mers are not a good option in terms of performance, especially for bigger $k$.
+The upper part of the figure shows the representation of the \textit{debugging} k-mer. The main idea behind this type of k-mer is to make the content easily human-readable, which is excellent for debugging purposes. The k-mer sequence is stored in a character array, each element represents one base. Except its context number, the purpose of which is explained in the next section, each debug k-mer also remembers its size. That value is used for debugging purposes only, mainly to recognize attempts to pass wrong k-mer size argument to one of the k-mer interface routines. Debug k-mers also have an advantage of potentially unlimited maximum size. It is clear that debug k-mers are not a good option in terms of performance, especially for bigger $k$.
 
 \textit{Compact}, k-mers in contrast,  are more optimized for performance and quick append and prepend operations (moving the k-mer sequence forward or backward). Their design is greatly inspired by the k-mer implementation of the Fermi-lite project. The k-mer substring is stored in three 64-bit integers. Each base is represented by three bits, each stored separately in  the three integer fields. To read a $i^{th}$ base (starting from zero), one needs to combine $(k-i-1)^{th}$ bits of the integers and then translate the result by rules described in Table \ref{tab:base-translation}. The table also describes the meaning of the eight possible values.
 
@@ -102,7 +102,7 @@ Compact value & Debugging value & Meaning \\
 
 All k-mer implementations usable by our algorithm must reserve some space for storing a \textit{k-mer context number}. The number is used to differentiate even between k-mers that contain the same substring of length $k$. That implies that a k-mer, according to this new definition, is unique only if it differs in both the substring and the context number from all other k-mers. K-mers that differ only in the context number are sometimes referred as \textit{equal by (sub)string} or \textit{equal by sequence}. The context number proves to be useful when fighting repeats within the reference sequence (described in Section \ref{sec:reference-transformation}).
 
-\textbf{The whole chapter uses the term k-mer in this sense described above, unless explicity specified otherwise}.
+\textbf{The whole chapter uses the term k-mer in this sense described above, unless explicitly specified otherwise}.
 
 The Fermi-lite project uses two bits to represent each base in the k-mer. Our algorithm can be modified to do the same, since the helper vertices actually do not need k-mers and exist mostly for the sake of code simplicity (no special handling regarding helper vertices is required). Similarly, there is no real reason for marking beginning and end of the active region by a special character, this was only useful for debugging.
 
@@ -113,7 +113,7 @@ The first step of the algorithm lies in transforming a reference sequence coveri
 
 The reference is decomposed into k-mers, each overlaps with the adjacent ones by $k-1$ bases. K-mers representing the same sequence are differentiated by their context number, so each k-mer derived from the reference is unique. Two extra k-mers, denoting the beginning and the end of the active region are added to the set. Then, each k-mer is represented by a single vertex in the graph, and edges are defined by the order of the k-mers within the reference.
 
-Formaly speaking, with the active region of length $l$ represented as a string $b_1 \ldots b_{l}$, k-mers $k_0, ..., k_{l-k+2}$ are derived from the region as follows:
+Formally speaking, with the active region of length $l$ represented as a string $b_1 \ldots b_{l}$, k-mers $k_0, ..., k_{l-k+2}$ are derived from the region as follows:
 \begin{itemize}
 \item $k_0 = (Bb_1 \ldots b_{k-1}, 0)$
 \item $k_1 = (b_1 \ldots b_k, 0)$
@@ -158,7 +158,7 @@ As can bee seen, there are two k-mers representing sequence \texttt{TATAT}, name
 \begin{figure}[h]
 	\centering
 	\includegraphics{img/ref-db.pdf}
-	\caption{Transformation of the \texttt{ATCTGTATATATG} squence to a standard de Bruijn graph (with no k-mer context numbers)}
+	\caption{Transformation of the \texttt{ATCTGTATATATG} sequence to a standard de Bruijn graph (with no k-mer context numbers)}
 	\label{fig:ref-db}
 \end{figure}
 
@@ -167,7 +167,7 @@ Although this solves the problem of cycles for now, at least for now, things bec
 \section{Adding Reads}
 \label{sec:adding-reads}
 
-The basic idea behind this stage is farily simple and similar to the approach used in the previous case. The read being added is decomposed into k-mers. If the k-mer is not present in the graph already, a new vertex is created. Again, vertices representing adjacent k-mers in the read are connected by edges. 
+The basic idea behind this stage is fairly simple and similar to the approach used in the previous case. The read being added is decomposed into k-mers. If the k-mer is not present in the graph already, a new vertex is created. Again, vertices representing adjacent k-mers in the read are connected by edges. 
 
 Figure \ref{fig:read-idea} shows a graph created by transforming a region of \texttt{ACCGTGGTAAT} and adding the read \texttt{ACCGTAGTAAT} to the resulting graph. K-mer size is set to 5. The read is divided into the following k-mers:
 \begin{align*}
@@ -185,7 +185,7 @@ In this example, the k-mers $k_0$ and $k_6$ were already present in the referenc
 Finally, edges are added (if necessary) to show the k-mer order within the read. When talking about classical de Bruijn graphs, edges do not need to be expressed explicitly since they always connect adjacent k-mers. In case of our modification to de Bruijn graph, we chose to make the k-mer connection explicit. Two reasons led us to such decision:
 \begin{itemize}
 \item our definition adds context number to k-mers and we wish to connect only certain k-mers adjacent by their strings,
-\item we need to make connections between non-adjacent k-mers, e.g. shortcuts representing paths with no branches, or fullfilling purposes discussed mainly in Section \ref{sec:graph-structure-optimization}.
+\item we need to make connections between non-adjacent k-mers, e.g. shortcuts representing paths with no branches, or fulfilling purposes discussed mainly in Section \ref{sec:graph-structure-optimization}.
 \end{itemize}
 Keeping graph edges explicitly has also its drawbacks, especially those related to performance. Classical de Bruijn graphs can be represented only by a set of their vertices, since the edges can be deduced on demand.
 
@@ -200,7 +200,7 @@ The figure also suggests how to retrieve the alternate sequence introduced by th
 
 Figure \ref{fig:read-idea} reflects an ideal state, meaning that all places, where the read differs from the reference, are covered by distinct k-mers, and the distance between each two of them is greater than $k$. If these conditions are met, each single $n$-base long difference (SNP, insertion or deletion) adds at most $n+k-1$ new vertices to the graph. Each difference then creates only two linear paths, one covering the reference, the other for the alternate allele. Such structures are called \textit{bubbles} and are easy to work with.
 
-However, it may happen that some of the k-mers covering a difference colide by sequence with either k-mers of the reference, or k-mers of other reads covering a totally different place of the active region. To minimize such problematic cases, additional graph transformations need to be made after all the reads are itegrated into the graph.
+However, it may happen that some of the k-mers covering a difference collide by sequence with either k-mers of the reference, or k-mers of other reads covering a totally different place of the active region. To minimize such problematic cases, additional graph transformations need to be made after all the reads are integrated into the graph.
 
 Unfortunately, the basic idea does not work in our case. Introduction of the k-mer context numbers prevented loops in the graph derived purely from the reference. But since multiple k-mers representing the same sequence may exist, it is not always possible to easily determine which of the vertices should be assigned to individual k-mers of the read. For example, if looking at the graph from Figure \ref{fig:ref-my}, it is not clear which vertex (or vertices) should be assigned to a k-mer with \texttt{TATAT} sequence. 
 
@@ -224,13 +224,13 @@ k_{n-k+1} = (r_{n_k+1} \ldots r_n, 0)
 
 Then, the step described in Subsection \ref{subsec:assign-sets} is applied.
 
-As described in \ref{subsec:idea}, in an ideal case, a $n$-base long difference from the reference produces $n + k - 1$ k-mers different from all reference k-mers. To reduce the probablity that some of the new k-mers actually colide with either the reference, or another read, the \textit{short variant optimization} may be applied. The optimization reduces the number of k-mers representing a $n$-base long difference to:
+As described in \ref{subsec:idea}, in an ideal case, a $n$-base long difference from the reference produces $n + k - 1$ k-mers different from all reference k-mers. To reduce the probability that some of the new k-mers actually collide with either the reference, or another read, the \textit{short variant optimization} may be applied. The optimization reduces the number of k-mers representing a $n$-base long difference to:
 \begin{itemize}
 \item $n$ for an insertion,
 \item zero for a deletion,
 \item $1$ for a SNP.
 \end{itemize}
-The optimization assumes that when recovering a sequence from the graph, only the last base of each k-mer, wth the exception of the starting one, is used. So, only k-mers covering the difference by their last base need to be added; reference k-mers may be used for the rest in case the difference is followed by a reasonable number of bases equal to the reference. 
+The optimization assumes that when recovering a sequence from the graph, only the last base of each k-mer, with the exception of the starting one, is used. So, only k-mers covering the difference by their last base need to be added; reference k-mers may be used for the rest in case the difference is followed by a reasonable number of bases equal to the reference. 
 
 To make the k-mers covering a $n$ base long difference by their last bases really unique, the first $n$ bases of the first k-mer is changed to \textit{D}, a virtual base used for helper purposes only. Rest of the k-mers is obtained by appending the bases of the difference to the first one. Keep in mind that $n$ is always smaller than the k-mer size, since we are talking about the \textit{short} variant optimization.
 
@@ -258,7 +258,7 @@ Such conditions are met when the read differs from the reference at base $r_{i+k
 \subsection{Assigning Sets of Vertices to K-mers}
 \label{subsec:assign-sets}
 
-The process of assigning vertex sets to individual k-mers derived from the read in the previous step is quite straightforward --- a set assigned to a certain k-mer $x$ contains exactly the vertices sharing the same k-mer string. The k-mer context number is not taken into account. If a k-mer is not represented by any vertex of the current graph (thus, the k-mer would receive an empty set), a new vertex is created to represent it. With a classical de Bruijn graph, all sets would contain exactly one vertex. With k-mer context numbers, there can be multiple vertices per k-mer. This complicates the task of integrating reads into the graph because the graph may contain multiple paths representing a single read (by using differenct vertices with k-mers equal by sequence).
+The process of assigning vertex sets to individual k-mers derived from the read in the previous step is quite straightforward --- a set assigned to a certain k-mer $x$ contains exactly the vertices sharing the same k-mer string. The k-mer context number is not taken into account. If a k-mer is not represented by any vertex of the current graph (thus, the k-mer would receive an empty set), a new vertex is created to represent it. With a classical de Bruijn graph, all sets would contain exactly one vertex. With k-mer context numbers, there can be multiple vertices per k-mer. This complicates the task of integrating reads into the graph because the graph may contain multiple paths representing a single read (by using different vertices with k-mers equal by sequence).
 
 Previous steps of the algorithm, described above, impose the following conditions on the assigned vertex sets:
 \begin{itemize}
@@ -273,14 +273,14 @@ In formal terms, a set $M_i$ is assigned to a k-mer $k_i$ where
 $$
 M_i = \{v_{i_j} | v_{i_j} \in V(G), kmer(v_{i_j})\: equals\: to\: k_i\: by\: sequence\}
 $$ 
-When a set is assigned to each k-mer, it is time to integrate the read into the graph in the form of a path, starting in the vertex representing $k_1$ and ending in the vertex covering $k_{n-k+1}$. SInce $M_i$ sets may contain more than one vertex, it is necessary to select vertices to form a path best fitting to the read. To derive a good path, we decided to assume the following:
+When a set is assigned to each k-mer, it is time to integrate the read into the graph in the form of a path, starting in the vertex representing $k_1$ and ending in the vertex covering $k_{n-k+1}$. Since $M_i$ sets may contain more than one vertex, it is necessary to select vertices to form a path best fitting to the read. To derive a good path, we decided to assume the following:
 \begin{itemize}
 \item they should follow the reference sequence in the forward direction,
 \item The probability of skipping large number of reference vertices (long deletions) is low,
 \item multiple reads cover one place, sharing appropriate parts of their paths.
 \end{itemize}
 
-These requirements cannot be enforced too strictly as de Bruijn graphs are not very suitable for coping with repeats of length $k$ or more. The case of a difference containing a copy of reference at leat $k$ baes in length might be enough to break the first assumption. The second assumption permits exceptions by definition. The third forms a base for most of the genome assembly algorithms.
+These requirements cannot be enforced too strictly as de Bruijn graphs are not very suitable for coping with repeats of length $k$ or more. The case of a difference containing a copy of reference at least $k$ bases in length might be enough to break the first assumption. The second assumption permits exceptions by definition. The third forms a base for most of the genome assembly algorithms.
 
 In order to choose the correct vertices from the $M_i$ sets, we decided to reduce it to a shortest-path problem on a helper graph the structure of which is defined by the sets and their contents as explained in \ref{subsec:helper-graph}.
 
@@ -289,17 +289,17 @@ In order to choose the correct vertices from the $M_i$ sets, we decided to reduc
 
 The helper graph is an oriented layered graph. Each layer consists of all vertices contained in one reference $M_i$ set. The order of the layers respect the order of $M_i$ sets. Sets consisting of read vertices are not part of the helper graph. Only adjacent layers are connected by edges, their orientation reflects the order of the sets. Each subgraph consisting of two adjacent layers is a full bipartite graph. The structure of the helper graph does not take equality of $M_i$ into account. In other words, when $M_i = M_j$ for $i \ne j$, both sets are represented within the helper graph as individual layers, even if they refer to the same vertices of the (main, non-helper) graph.
 
-Formaly speaking, let $M_i = \{v_{i}^{1}, ..., v_{i}^{n_i}\}$ and let $i$ index the reference sets only. Then the helper graph $G_h$ can be defined as follows:
+Formally speaking, let $M_i = \{v_{i}^{1}, ..., v_{i}^{n_i}\}$ and let $i$ index the reference sets only. Then the helper graph $G_h$ can be defined as follows:
 \begin{align*}
 G_h = (V_h, E_h) \\
 V_h = \cup_i M_i \\
 E_h = \{(u, v) | u \in M_i, v \in M_{i + 1}\}
 \end{align*}
-By finding the shortest path leading from a vertex in the first layer to one in the last layer, we perfrom the process of selection of vertices representing the read in the main graph. The shortest path depends on weights of edges connecting the adjacent layers. In general, the weighting function follows these rules:
+By finding the shortest path leading from a vertex in the first layer to one in the last layer, we perform the process of selection of vertices representing the read in the main graph. The shortest path depends on weights of edges connecting the adjacent layers. In general, the weighting function follows these rules:
 \begin{itemize}
 \item the weight is increased by a \textit{missing edge penalty} if there is a missing edge on the path from $u$ to $v$ in the main graph,
 \item the weight is increased by a \textit{reference backward penalty} if reference position of $u$ is greater or equal to the reference position of $v$,
-\item the weight is increased by a \textit{reference forward penalty} if reference psotiion of $u$ is far less than reference position of $v$.
+\item the weight is increased by a \textit{reference forward penalty} if reference potion of $u$ is far less than reference position of $v$.
 \end{itemize}
 The rules actually indicate why $M_i$ sets covering read vertices are not parts of the helper graph – since their vertices maintain no reference position, only the missing edge penalties would apply and that can be included within missing edge penalties of the reference vertices only.
 
@@ -333,7 +333,7 @@ When all reads are integrated into the de Bruijn-like graph, it is time to optim
 \subsection{Connecting Bubbles}
 \label{subsec:connecting-bubbles}
 
-Figure \ref{fig:bubble-connection} demonstrates one class of the structural problems. A subset of reference sequence was transformed into vertices 1, 2, 3, 4, 5 and 6. A set of reads is represented by a "path" 2, 3, 4, 5, R1, R2, 1, 2, 3, R3, 6.  The left part of the figure shows how such a graph woud look like without any optimizations. It is clear that recovering the correct sequence would not be trivial. 
+Figure \ref{fig:bubble-connection} demonstrates one class of the structural problems. A subset of reference sequence was transformed into vertices 1, 2, 3, 4, 5 and 6. A set of reads is represented by a "path" 2, 3, 4, 5, R1, R2, 1, 2, 3, R3, 6.  The left part of the figure shows how such a graph would look like without any optimizations. It is clear that recovering the correct sequence would not be trivial. 
 
 However, since we know that the path leads from R2 to R3 (through 1, 2, 3), we can theoretically replace edges (R2, 1) and (3, R3) by a special edge (R2, R3), as the right part of the figure suggests. An information about the sequence covered by vertices 1, 2 and 3 needs to be recorded within the new edge. Recovering the correct sequence from the right part of the figure does not impose a problem since it is just a simple bubble. 
 
@@ -344,7 +344,7 @@ However, since we know that the path leads from R2 to R3 (through 1, 2, 3), we c
 	\label{fig:bubble-connection}
 \end{figure}
 
-A more general, and a very typical, situation is shown on Figure \ref{fig:connection-general}. The subgraph contains a subset of the reference (vertices $1$, $...$, $n+1$) and two bubbles; one ending by $R1$ and connected to $2$, another starting at $R2$ and leading from $n$. If edges $I_1$ (the input edge) and $O_1$ (the output edge) share reasonable amount of reads ($|reads(I_1) \cap reads(O_1)| > thershold$), the subgraph may also be interpreted as that the reads contain a sequence of length $n-1$ that is also present in the reference. In that case, it is wise to connect the vertices $R1$ and $R2$ directly the same way as on Figure \ref{fig:bubble-connection}, bypassing the reference part. The edge maintaining the direct link is marked as $C_1$ (the connecting edge). Reads shared by the input and the output edges are moved to the connecting one.
+A more general, and a very typical, situation is shown on Figure \ref{fig:connection-general}. The subgraph contains a subset of the reference (vertices $1$, $...$, $n+1$) and two bubbles; one ending by $R1$ and connected to $2$, another starting at $R2$ and leading from $n$. If edges $I_1$ (the input edge) and $O_1$ (the output edge) share reasonable amount of reads ($|reads(I_1) \cap reads(O_1)| > threshold$), the subgraph may also be interpreted as that the reads contain a sequence of length $n-1$ that is also present in the reference. In that case, it is wise to connect the vertices $R1$ and $R2$ directly the same way as on Figure \ref{fig:bubble-connection}, bypassing the reference part. The edge maintaining the direct link is marked as $C_1$ (the connecting edge). Reads shared by the input and the output edges are moved to the connecting one.
 
 If $C_1$ is created, the read set intersection is also used to decide whether the edges $I_1$ and $O_1$ should be removed. The input edge is deleted if does not share enough reads with the next reference edge (meaning there are no valid sequences leading through both these edges). Similarly, the output edge is deleted in case it does not share enough reads with the last reference edge (no valid paths goes through the edges).
 
@@ -373,7 +373,7 @@ Figure \ref{fig:connection-abstract} depicts probably the most general case; mul
 
 The bubble connection optimization works well when the bubbles being connected contain at least one read vertex. If this is not the case, however, the effect of replacing input and output edges with connecting edges leads to a destruction of the sequences recorded within the graph.
 
-As an example, consider a case ilustrated by the left part of Figure \ref{fig:helper-vertices}. The relevant part of the reference runs from vertex $1$ to $7$ and the read coverage supports a path of $3 \to 4 \to 5 \to 6 \to 1 \to 2 \to 4 \to 5 \to 7$. Applying steps described in this section results  in creation of connecting edges $6 \to 4$ and $2 \to 7$ and removal of the edges $6 \to 1$, $2 \to 4$ and $5 \to 7$. Such a graph cannot be used to recover the alternate sequence.
+As an example, consider a case illustrated by the left part of Figure \ref{fig:helper-vertices}. The relevant part of the reference runs from vertex $1$ to $7$ and the read coverage supports a path of $3 \to 4 \to 5 \to 6 \to 1 \to 2 \to 4 \to 5 \to 7$. Applying steps described in this section results  in creation of connecting edges $6 \to 4$ and $2 \to 7$ and removal of the edges $6 \to 1$, $2 \to 4$ and $5 \to 7$. Such a graph cannot be used to recover the alternate sequence.
 
 As this problem arises only when the bubbles are formed entirely by edges connecting reference vertices (the short variant optimization produces such cases for deletions), the countermeasure is quite straightforward; the solution is to  insert special placeholder vertices with an empty sequence. We use a conservative approach for their insertion which means they divide the following types of edges:
 \begin{itemize}
@@ -395,7 +395,7 @@ The right part of Figure \ref{fig:helper-vertices} indicates where the helper ve
 The graph structure optimization phase ends by removing nodes and edges with insufficient read coverage. Then, alternate sequences covered by the reads are extracted. Because the intra species variability of biological sequences is relatively
 small, it is practical to work with a list of differences (\textit{variants}), rather than whole sequences. The algorithm identifies parts of the sequence shared with the reference genome and the alternate alleles, which roughly correspond to one line of a VCF file. 
 
-Variants are extracted by detecting certain subgraphs. When such a subgraph is discovered, the variant sequence is determined and integrated back into the graph by replacing its reference edges by a signle \textit{variant edge}. Read edges unique to the variant are also removed from the subgraph which simplifies its structure. The process of variant detection stops when no suitable subgraphs are found.
+Variants are extracted by detecting certain subgraphs. When such a subgraph is discovered, the variant sequence is determined and integrated back into the graph by replacing its reference edges by a single \textit{variant edge}. Read edges unique to the variant are also removed from the subgraph which simplifies its structure. The process of variant detection stops when no suitable subgraphs are found.
 
 Figures \ref{fig:variant-detection-ab} and \ref{fig:variant-detection-cd} show four types of subgraphs used for variant extraction and demonstrate how they are modified in the process. The reference part of the graph must always start in vertex $1$, end in $n$ and all inner nodes must have one input and one output edge Only edges of reference or variant type may be present in the reference part. In all cases, this path is replaced with a variant edge, shown as blue, connecting directly $1$ and $n$. All edges that are removed as a result of the extraction are plotted as discontinuous lines.
 
@@ -431,12 +431,12 @@ This subgraph may be viewed as an opposite to the bubble with inputs. All read v
 \subsubsection{Diamond}
 \label{subsec:diamond}
 
-The most complicated case is shown under in Figure \ref{fig:variant-detection-cd}b. The sequence of read vertices may contain one with output degree greater than one followed (not necessarily directly) by one with unresticted input degree. Only the edges covering one part of the supposed diamond are present in one variant only and hence are removed. 
+The most complicated case is shown under in Figure \ref{fig:variant-detection-cd}b. The sequence of read vertices may contain one with output degree greater than one followed (not necessarily directly) by one with unrestricted input degree. Only the edges covering one part of the supposed diamond are present in one variant only and hence are removed. 
 
 \section{Variant Graph and Variant Filtering}
 \label{sec:variant-graph-and-variant-filtering}
 
-When variants are extracted from the de Bruijn-like graph, they need to be filtered and their genotype and phasing computed. For this, a \textit{variant graph} is built and the task is transformed into a graph colouring problem.
+When variants are extracted from the de Bruijn-like graph, they need to be filtered and their genotype and phasing computed. For this, a \textit{variant graph} is built and the task is transformed into a graph coloring problem.
 
 However, not all variants reach this stage. If a variant extracted in the previous step is considered as a low quality variant (number of supporting reads is not above the low quality variant threshold), a binomial test is applied to check the variant reliability. Variants with low read support may be caused by sequencing errors and such need to be eliminated. The binomial test computes a probability that the variant is not false positive by the formula
 $$
@@ -446,23 +446,23 @@ where $r$ is a number of reads supporting the reference part of the variant, $a$
 
 If the probability falls below the binomial threshold, the variant is treated as a false positive and is removed.
 
-The variant graph represent each variant by two vertices; one for its reference and one for its alternate sequence. The final task is to colour each vertex by one of these colors:
+The variant graph represent each variant by two vertices; one for its reference and one for its alternate sequence. The final task is to color each vertex by one of these colors:
 \begin{itemize}
 \item \textbf{Blue}. The variant part is used by the first sequence.
 \item \textbf{Red}. The variant part is used by the second sequence.
 \item \textbf{Purple}. Both sequences go through the variant part.
 \end{itemize}
 
-If a vetex is coloured purple, the vertex representing the other part of the variant is not required (no sequence goes through it) and is removed from the graph. The deletion usually happens only to the vertices representing the reference pats, since removing a vertex of the alternate path means that the variant was filtered out.
+If a vertex is colored purple, the vertex representing the other part of the variant is not required (no sequence goes through it) and is removed from the graph. The deletion usually happens only to the vertices representing the reference pats, since removing a vertex of the alternate path means that the variant was filtered out.
 
-Before colouring, graph vertices are connected by several types of bidirectional edges that place vairous conditions on the colour of their sources and destinations.
+Before coloring, graph vertices are connected by several types of bidirectional edges that place various conditions on the color of their sources and destinations.
 \begin{itemize}
-\item \textbf{Variant edges} connect vertices representing parts of one variant. Their source and destination must be coloured differently.
-\item \textbf{Read edges} connect variant parts covered by the same subset of reads with size greater than a threshold, such vertices need to be coloured by the same colour, with exception of purple. If one of the vertices is purple, an arbitrary color may be assigned
+\item \textbf{Variant edges} connect vertices representing parts of one variant. Their source and destination must be colored differently.
+\item \textbf{Read edges} connect variant parts covered by the same subset of reads with size greater than a threshold, such vertices need to be colored by the same color, with exception of purple. If one of the vertices is purple, an arbitrary color may be assigned
 to the other.
 \item \textbf{Pair edge} put together variant parts that are covered by paired-end reads. Since paired-end reads indicate that the variants covered by them belong to the same alternate sequence, the coloring restrictions are the same as for the read edges. Two vertices are connected by a paired edge if the share a sufficient number of paired-end reads.
 \end{itemize}
 
-The graph usually has a form of many components. Variants in one component share the same phasing. All the information used to create read and pair edges remain stored in the graph vertices and can be used to detect false positives amongst the variants, possibly together with a detection method based on searching for certain types of subgraphs.
+The graph usually has a form of many components. Variants in one component share the same phasing. All the information used to create read and pair edges remain stored in the graph vertices and can be used to detect false positives among the variants, possibly together with a detection method based on searching for certain types of subgraphs.
 
-When the graph is coloured, the genotype and phasing information are known. The variants are written to the resulting VCF file.
+When the graph is colored, the genotype and phasing information are known. The variants are written to the resulting VCF file.

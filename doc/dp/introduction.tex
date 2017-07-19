@@ -1,172 +1,170 @@
-\chapter{Introduction}
-\label{chap:introduction}
+\chapter{Introduction} 
+\label{chap:introduction} 
 
-Despite technological advances in the past fifteen years, genome sequencing (determining the DNA sequence of an organism) remains a challenging task. With the current technology it is not possible to ”read” the DNA sequence in one
-piece from the beginning to the end. Instead, relatively short fragments must
-be sequenced individually and then painstakingly assembled into the complete
-sequence. This is a very laborous and expensive process, complicated by the fact
-that large proportion of most genomes consists of repetitive sequences. Therefore,
-instead of the pure de novo approach of assembling the complete sequence from
-scratch, most of the sequencing done today merely aims to determine differences
-between the sequenced organism and a complete, gold standard reference genome obtained previously by other means. This approach is known as \textit{resequencing} and is, comparatively, a much simpler task.
+Despite technological advances in the past fifteen years, genome sequencing (determining the DNA sequence of an organism) remains a challenging task. With the current technology it is not possible to the DNA sequence in one 
+piece from the beginning to the end. Instead, relatively short fragments must 
+be sequenced individually and then painstakingly assembled into the complete 
+sequence. This is a very laborious and expensive process, complicated by the fact 
+that large proportion of most genomes consists of repetitive sequences. Therefore, 
+instead of the pure de novo approach of assembling the complete sequence from 
+scratch, most of the sequencing done today merely aims to determine differences 
+between the sequenced organism and a complete, gold standard reference genome obtained previously by other means. This approach is known as \textit{resequencing} and is, comparatively, a much simpler task. 
 
-The most widely used sequencing platform today is Illumina and the algorithms developed in this work assume Illumina data on input. The platform takes advantage of massive parallelism, where an ensemble of DNA molecules is fragmented into very short pieces (usually \textasciitilde 500 bp) and then sequenced in parallel from both ends. In one sequencing run, more than $10^9$ of short sequences are obtained simultaneously. These sequences are called \textit{reads}. Due to technical limitations, reads are only \textasciitilde 150 bp long, but when they are mapped to the reference genome, many will overlap and cover the whole genome, thus enabling to determine the differences between the sequenced organism, such as single nucleotide polymorphisms (SNPs) or short insertions and deletions (indels). Collectively, these differences are refered to as \textit{variants} and the process of determining the variants is known as \textit{variant calling}.
+The most widely used sequencing platform today is Illumina and the algorithms developed in this work assume Illumina data on input. The platform takes advantage of massive parallelism, where an ensemble of DNA molecules is fragmented into very short pieces (usually \textasciitilde 500 bp) and then sequenced in parallel from both ends. In one sequencing run, more than $10^9$ of short sequences are obtained simultaneously. These sequences are called \textit{reads}. Due to technical limitations, reads are only \textasciitilde 150 bp long, but when they are mapped to the reference genome, many will overlap and cover the whole genome, thus enabling to determine the differences between the sequenced organism, such as single nucleotide polymorphisms (SNPs) or short insertions and deletions (indels). Collectively, these differences are referred to as \textit{variants} and the process of determining the variants is known as \textit{variant calling}. 
 
-[show IGV snapshot - what alignment looks like, with a SNP and an indel]
+In order to distinguish between random sequencing errors and real variants, we need sufficient coverage (the average number of reads mapped to a position of 
+the genome). Thus for variant calling we need first to confidently place the reads 
+to the correct location of the genome (the problem known as \textit{mapping}), correctly determine the exact sequence of matches, mismatches, insertions and deletions at the location (\textit{alignment}) and finally apply a statistical model to tell apart true variation from random sequencing errors, mapping errors and alignment errors (variant cal ling). 
 
-In order to distinguish between random sequencing errors and real variants, we need sufficient coverage (the average number of reads mapped to a position of
-the genome). Thus for variant calling we need first to confidently place the reads
-to the correct location of the genome (the problem known as \textit{mapping}), correctly determine the exact sequence of matches, mismatches, insertions and deletions at the location (\textit{alignment}) and finally apply a statistical model to tell appart true variation from random sequencing errors, mapping errors and alignment errors (variant cal ling).
+Single nucleotide variants are easier to call, indels are more problematic. This is partly because reads containing indels can be often aligned in multiple ways, 
+leading to ambiguous alignments and false calls, especially in difficult parts of 
+the genome of low complexity or high repeat content.  
 
-Single nucleotide variants are easier to call, indels are more problematic. This is partly because reads containing indels can be often aligned in multiple ways,
-leading to ambigous alignments and false calls, especially in difficult parts of
-the genome of low complexity or high repeat content. 
+\section{Basic Terms} 
+\label{sec:basic-terms} 
 
-\section{Basic Terms}
-\label{sec:basic-terms}
+For the rest of this thesis, a genome is viewed as a string of character, each represents a nucleotide, at certain position. Since DNA molecules consist of four types of nucleotides, only four characters, \texttt{A}, \texttt{C}, \texttt{G} or \texttt{T}, appear in the string. The four nucleotides have similar chemical structure. They are composed of a sugar molecule and a phosphate group, which are identical for all four of them, and a unique nitrogenous base. Hence the term \textit{base} is often used when referring to a nucleotide at a specific position. Each of the bases pairs with one other, \texttt{A} with \texttt{T} and \texttt{C} with \texttt{G}, therefore knowing the sequence of one strand of a DNA double helix determines the sequence of the complementary strand. Hence the terms \textit{base pair} and \textit{base} are used interchangeably. 
 
-For the rest of this thesis, a genome is viewed as a string of character, each represents a nucleotide, at certain position. Since DNA molecules consist of four types of nucleotides, only four characters, \texttt{A}, \texttt{C}, \texttt{G} or \texttt{T}, appear in the string. The four nucleotides have similar chemical structure. They are composed of a sugar molecule and a posphate group, which are identical for all four of them, and a unique nitrogenous base. Hence the term \textit{base} is often used when referring to a nucleotide at a specific position. Each of the bases pairs with one other, \texttt{A} with \texttt{T} and \texttt{C} with \texttt{G}, therefore knowing the sequence of one strand of a DNA double helix determines the sequence of the complementary strand. Hence the terms \textit{base pair} and \textit{base} are used interchangeably.
+The algorithm developed and discussed in this work expect a large bunch of short reads on input. It expects that the sequenced organism and the reference genome are similar enough to, so an assumption that reads are correctly mapped can be made. Its task is to resolve local differences arising from incorrect read alignments. This is a subproblem of the assembly one, called \textit{microassembly}. 
 
-The algorithm developed and discussed in this work expect a large bunch of short reads on input. It expects that the sequenced organism and the reference genome are similar enough to, so an assumption that reads are correctly mapped can be made. Its task is to resolve local differences arising from incorrect read alignments. This is a subproblem of the assembly one, called \textit{microassembly}.
+Some assembly algorithm transform each read into a sequence of \textit{k-mers}, substrings of equal length, usually named $k$. The read sequence of length $l$ is decomposed into $l - k + 1$ k-mers $k_0, ..., k_{l-k}$ of length $k$. If we denote bases in the read as $b_0, ..., b_{l-1}$, the k-mer $k_i$ covers bases from $b_i$ to $b_{i+k-1}$. Such definition implies that adjacent k-mers overlap by $k-1$ bases.  
 
-Some assembly algorithm transform each read into a sequence of \textit{k-mers}, substrings of equal length, usually named $k$. The read sequence of length $l$ is decomposed into $l - k + 1$ k-mers $k_0, ..., k_{l-k}$ of length $k$. If we denote bases in the read as $b_0, ..., b_{l-1}$, the k-mer $k_i$ covers bases from $b_i$ to $b_{i+k-1}$. Such definition implies that adjacent k-mers overlap by $k-1$ bases. 
+An example of transforming e sequence \texttt{TACTGGCC} into k-mers of length $3$ is illustrated on Figure \ref{fig:seq-division}. The sequence has $8$ bases in length and $6$ k-mers are created from it. The read sequence, as in all other figures in this work, is marked red, contents of individual k-mers is in yellow. 
 
-An example of transforming e sequence \texttt{TACTGGCC} into k-mers of length $3$ is ilustrated on Figure \ref{fig:seq-division}. The sequence has $8$ bases in length and $6$ k-mers are created from it. The read sequence, as in all other figures in this work, is marked red, contents of individual k-mers is in yellow.
+\begin{figure}[h] 
+	\centering 
+	\includegraphics{img/seq-division.pdf} 
+	\caption{Sequence transformation into k-mers} 
+	\label{fig:seq-division} 
+\end{figure} 
 
-\begin{figure}[h]
-	\centering
-	\includegraphics{img/seq-division.pdf}
-	\caption{Sequence transformation into k-mers}
-	\label{fig:seq-division}
-\end{figure}
+\section{The Model} 
+\label{sec:the-model} 
 
-\section{The Model}
-\label{sec:the-model}
+The simplest mathematical assembly model, assumes that we are assembling genome string of length $g$, given a set of $n$ reads of length $l$ ($l << g$), each potentially transformed into a sequence of $l-k+1$ k-mers. The model assumes that reads are sampled from the genome string uniformly and randomly and that they are error-free. Since the probability of sampling a base at certain genome position is very low for single sampling event, and the number of sampling events is large, genome coverage (i.e. the number of reads covering a position) follows a Poisson distribution. In other words, the probability that base at certain position is covered by $k$ reads is 
+$$ 
+\frac{c^k}{k!}*e^{-c} 
+$$ 
+$c$ is a base coverage depth, also known as sequencing depth, and can be computed simply as a total number of bases within the input read set divided by the length of the genome. 
+$$ 
+c = \frac{n * l}{g} 
+$$ 
+Very similar relations apply for k-mer coverage depth, only the formula for the k-mer coverage depth needs to be changed to $\frac{n*(l - k + 1)}{g - k + 1}$. These details brings answers to at least two important questions. Primo, how many reads need to be created to (statistically) cover the whole genome string, and, secundo, how to determine whether a given read set is free of sequencing errors? 
 
-The simplest mathematical assembly model, assumes that we are assembling genome string of length $g$, given a set of $n$ reads of length $l$ ($l << g$), each potentialy transformed into a sequence of $l-k+1$ k-mers. The model assumes that reads are sampled from the genome string uniformly and randomly and that they are error-free. Since the probability of sampling a base at certain genome position is very low for single sampling event, and the number of sampling events is large, genome coverage (i.e. the number of reads covering a position) follows a Poisson distribution. In other words, the probability that base at certain position is covered by $k$ reads is
-$$
-\frac{c^k}{k!}*e^{-c}
-$$
-$c$ is a base coverage depth, also known as sequencing depth, and can be computed simply as a total number of bases within the input read set divided by the length of the genome.
-$$
-c = \frac{n * l}{g}
-$$
-Very similar relations apply for k-mer coverage depth, only the formula for the k-mer coverage depth needs to be changed to $\frac{n*(l - k + 1)}{g - k + 1}$. These details brings answers to at least two important questions. Primo, how many reads need to be created to (statistically) cover the whole genome string, and, secundo, how to determine whether a given read set is free of sequencing errors?
+The percentage of genome not covered by any read from the set is equal to $P(k=0) = e^{-c}$. Multiplying it by the genome size $g$ gives us the expected number of bases with zero coverage. So, to cover the whole genome, this number must be lower than $1$ which places condition of $c > ln g$. For example, to cover the whole human genome ($g = 3 * 10^9$), the read coverage depth must be at least $22$.  
 
-The percentage of genome not covered by any read from the set is equal to $P(k=0) = e^{-c}$. Multiplying it by the genome size $g$ gives us the expected number of bases with zero coverage. So, to cover the whole genome, this number must be lower than $1$ which places condition of $c > ln g$. For example, to cover the whole human genome ($g = 3 * 10^9$), the read coverage depth must be at least $22$. 
+Answer to the second question is implied by the facts that k-mer coverage of the genome follows the Poisson distribution. In an ideal case, the k-mer frequency distribution function of an error-free read set would follow the probability mass function of the Poisson distribution, meaning that frequencies of most of the k-mers are near the k-mer average depth. However, when we introduce possibility of sequencing errors, some k-mers would be sampled less often and some become even unique. The k-mer frequency distribution of such a read set does not follow the Poisson distribution. The aspect of sequencing errors and their means of their correction are described in great detail in Chapter \ref{chap:read-error-correction}. 
 
-Answer to the second question is implied by the facts that k-mer coverage of the genome follows the Poisson distribution. In an ideal case, the k-mer frequency distribution function of an error-free read set would follow the probability mass function of the Poisson distribution, meaning that frequencies of most of the k-mers are near the k-mer average depth. However, when we introduce possibility of sequencing errors, some k-mers would be sampled less often and some become even unique. The k-mer frequency distribution of such a read set does not follow the Poisson distribution. The aspect of sequencing errors and their means of their correction are described in great detail in Chapter \ref{chap:read-error-correction}.
+\section{The Real World} 
+\label{sec:real-world} 
 
-\section{The Real World}
-\label{sec:real-world}
+In contrast to the idealized model described in the previous section (\ref{sec:the-model}), read sequencing data contain sequencing errors. In other words, some of the reads contain incorrectly interpreted bases. To help with identifying such bases, each base of a read has its \textit{base quality}, a probability that the given base is incorrect. Base quality (BQ) is usually represented as a Phred score $Q$ defined as 
+\begin{align*} 
+P(base \: is \: wrong) = 10^{-\frac{Q}{10}} 
+\end{align*} 
 
-In contrast to the idealized model described in the previous section (\ref{sec:the-model}), read seuqncing data contain sequencing errors. In other words, some of the reads contain incorrectly interpreted bases. To help with identifying such bases, each base of a read has its \textit{base quality}, a probability that the given base is incorrect. Bae quality (BQ) is usually represented as a Phred score $Q$ defined as
-\begin{align*}
-P(base \: is \: wrong) = 10^{-\frac{Q}{10}}
-\end{align*}
+Phred score has a natural interpretation, for example $Q=40$ indicates one error in $10000$ bases, $Q=30$ one error in $1000$ bases and so on (Figure \ref{fig:quality-score} map the score values to probabilities). When stored in a text format, such as SAM or FASTQ, base qualities are encoded as ANSI characters. Because the first 32 ASCII characters are not printable, and the space character is coded by $32$, the base quality values are incremented by $33$. When loading the reads from such a text format, this needs to be taken in account. 
 
-Phred score has a natural interpretation, for example $Q=40$ indicates one error in $10000$ bases, $Q=30$ one error in $1000$ bases and so on (Figure \ref{fig:quality-score} map the score values to probabilities). When stored in a text format, such as SAM or FASTQ, base qualities are encoded as ANSI characters. Because the first 32 ASCII characters are not printable, and the space character is coded by $32$, the base quality values are incremented by $33$. When loading the reads from such a text format, this needs to be taken in account.
-
-\begin{figure}[h]
-	\centering
-	\includegraphics{img/quality-score.pdf}
-	\caption{Mapping Phred score values to probabilities. Be aware of the logarithmic scale on the $y$ axis}
-	\label{fig:quality-score}
-\end{figure}
+\begin{figure}[h] 
+	\centering 
+	\includegraphics{img/quality-score.pdf} 
+	\caption{Mapping Phred score values to probabilities. Be aware of the logarithmic scale on the $y$ axis} 
+	\label{fig:quality-score} 
+\end{figure} 
 
 
-Mapped reads are accompanied by their position (POS) in the reference sequence, by additional alignment details and a mapping quality (MQ), which is a measure of mapping confidence expressed as a Phred score. Although the position information may be wrong, it may help us in cases when we are interested in correcting only a part of the genome and would like to filter out reads that do not map confidently.
+Mapped reads are accompanied by their position (POS) in the reference sequence, by additional alignment details and a mapping quality (MQ), which is a measure of mapping confidence expressed as a Phred score. Although the position information may be wrong, it may help us in cases when we are interested in correcting only a part of the genome and would like to filter out reads that do not map confidently. 
 
-The alignment details are given in form of a CIGAR string which describes how the individual bases of the read map to the reference. The string is formatted as a set of numbers defining the number of bases, and a character code describing the alignemnt alignment. The most common operations include:
-\begin{itemize}
-\item \textbf{Match (M)}. Alignment match. That can represent both sequence match and mismatch.
-\item \textbf{Mismatch (X)}. The sequence mismatch. In practice, this code is seldomly used since M may code both matches and mismatches
-\item \textbf{Insertion (I)}. The sequence is inserted to the reference at a given position. Then, the read continues to follow the reference at this position plus one unless alignment operation following the insertion tells otherwise.
-\item \textbf{Deletion (D)}. The read sequence skips the corresponding part of the reference.
-\item \textbf{Hard-clip (H)}. The original read was longer, but was trimmed in downstream analysis.
-\item \textbf{Soft-clip (S)}. This part of the read could not be aligned well and was excluded from the alignment.
-\end{itemize}
+The alignment details are given in form of a CIGAR string which describes how the individual bases of the read map to the reference. The string is formatted as a set of numbers defining the number of bases, and a character code describing the alignment alignment. The most common operations include: 
+\begin{itemize} 
+\item \textbf{Match (M)}. Alignment match. That can represent both sequence match and mismatch. 
+\item \textbf{Mismatch (X)}. The sequence mismatch. In practice, this code is seldom used since M may code both matches and mismatches 
+\item \textbf{Insertion (I)}. The sequence is inserted to the reference at a given position. Then, the read continues to follow the reference at this position plus one unless alignment operation following the insertion tells otherwise. 
+\item \textbf{Deletion (D)}. The read sequence skips the corresponding part of the reference. 
+\item \textbf{Hard-clip (H)}. The original read was longer, but was trimmed in downstream analysis. 
+\item \textbf{Soft-clip (S)}. This part of the read could not be aligned well and was excluded from the alignment. 
+\end{itemize} 
 
-For example, assume a reference sequence \texttt{CAGGTGTCTGA} and the read GGTGAATCTA aligned as follows:
-\begin{verbatim}
-           1 2 3 4 5 6     7 8 9 A B
-Reference: C A G G T G     T C T G A
-Read:          G G T G A A T C T   A
-\end{verbatim}
-The read was mapped to the reference position 3 and the CIGAR string of the alignment is \texttt{4M2I3M1D1M}.
+For example, assume a reference sequence \texttt{CAGGTGTCTGA} and the read GGTGAATCTA aligned as follows: 
+\begin{verbatim} 
+          1 2 3 4 5 6     7 8 9 A B 
+Reference: C A G G T G     T C T G A 
+Read:          G G T G A A T C T   A 
+\end{verbatim} 
+The read was mapped to the reference position 3 and the CIGAR string of the alignment is \texttt{4M2I3M1D1M}. 
 
-Genomes of diploid organisms, introduce another problem not covered by the simple mathematical model covered earlier. Since such organism owns two sets of chromosomes (one from each of its parents), both sets are present within the read set obtained by chopping the genome to short reads. That implies that two genome strings are present within, and need to be reconstructed, from the input read set.
+Genomes of diploid organisms, introduce another problem not covered by the simple mathematical model covered earlier. Since such organism owns two sets of chromosomes (one from each of its parents), both sets are present within the read set obtained by chopping the genome to short reads. That implies that two genome strings are present within, and need to be reconstructed, from the input read set. 
 
-\section{Major Assembly Algorithm Classes}
-\label{sec:major-assembly-algorithm-classes}
+\section{Major Assembly Algorithm Classes} 
+\label{sec:major-assembly-algorithm-classes} 
 
-Currently, there are two widely used classes of algorithms: overlap-layout-consensus (OLC) and de-bruijn-graph (DBG) \cite{alg-compare}. Algorithms belonging to the former base their idea on construction of a graph recording overlapping reads and extracting the alternate sequences from it. Main idea behind the DBG approach is to decompose all reads into k-mers that are then used to construct a de Bruijn graph which, after some optimizations, is subject to derivations of alternate sequences.
+Currently, there are two widely used classes of algorithms: overlap-layout-consensus (OLC) and de-bruijn-graph (DBG) \cite{alg-compare}. Algorithms belonging to the former base their idea on construction of a graph recording overlapping reads and extracting the alternate sequences from it. Main idea behind the DBG approach is to decompose all reads into k-mers that are then used to construct a de Bruijn graph which, after some optimizations, is subject to derivations of alternate sequences. 
 
-\subsection{De Bruijn Graphs}
-\label{subsec:de-bruijn-graphs}
+\subsection{De Bruijn Graphs} 
+\label{subsec:de-bruijn-graphs} 
 
-De Bruijn graphs (DBG) were originally invented as an answer to the superstring problem  (finding a shortest circular string containing all possible substrings of length $k$ (k-mers) over a given alphabet) \cite{dbg-apply}. For a given $k$, de Bruijn graph is constructed by creating vertices representing all strings of length $k-1$, one per string. Two vertices are connected with a directed edge if there exist a k-mer such that the source and destination vertices represent its prefix and suffix of length $k-1$ respectively. The k-mer labels the edge. 
+De Bruijn graphs (DBG) were originally invented as an answer to the superstring problem  (finding a shortest circular string containing all possible substrings of length $k$ (k-mers) over a given alphabet) \cite{dbg-apply}. For a given $k$, de Bruijn graph is constructed by creating vertices representing all strings of length $k-1$, one per string. Two vertices are connected with a directed edge if there exist a k-mer such that the source and destination vertices represent its prefix and suffix of length $k-1$ respectively. The k-mer labels the edge.  
 
-Formally, let $L_k$ be a language containing all words of length $k$ over an alphabet $\sigma$, then de Bruijn graph $B(V, E)$ is defined as
-\begin{gather}
-V = \{v_w | w \in L_{k-1}\} \\
-E = \{(v_u, v_w) | x \in L_k,  u is its prefix and w its suffix \} \\
-\end{gather}
-The shortest superstring is found by concatenating all $k-1$-mers represented by vertices on any Eulerian cycle of the corresponding de Bruijn graph. Since a polynomial-time algorithm for finding an Eulerian cycle is known, the superstring problem can be effectively solved.
+Formally, let $L_k$ be a language containing all words of length $k$ over an alphabet $\sigma$, then de Bruijn graph $B(V, E)$ is defined as 
+\begin{gather} 
+V = \{v_w | w \in L_{k-1}\} \\ 
+E = \{(v_u, v_w) | x \in L_k,  u is its prefix and w its suffix \} \\ 
+\end{gather} 
+The shortest superstring is found by concatenating all $k-1$-mers represented by vertices on any Eulerian cycle of the corresponding de Bruijn graph. Since a polynomial-time algorithm for finding an Eulerian cycle is known, the superstring problem can be effectively solved. 
 
-\subsubsection{Application to Genome Assembly}
-\label{subsub:dbg-application-to-genome-assembly}
+\subsubsection{Application to Genome Assembly} 
+\label{subsub:dbg-application-to-genome-assembly} 
 
-SImilarly, de Bruijn graphs can be used for genome assembly, especially if the genome question is circular. Assume that, for a fixed $k$, all k-mers of the target genome are known. Then a DBG can be constructred in two different ways:
-\begin{itemize}
-\item \textbf{K-mers are represented by edges}. Each edge is labelled by a k-mer in the same way as in the graph used for solving the superstring problem. Each edge connects vertices representing (k-1)-mers forming prefix and suffix of its k-mer. The genome string can be reconstructed by choosing the right one from all possible Eulerian cycles. This approach is presented and discussed in \cite{dbg-apply}.
-\item \textbf{K-mers are represented by vertices}. Each k-mer is represented as a single vertex. Edges reflect the k-mer order within reads. To recover the genome, one needs to find a Hamiltonian path of the graph, which is one of NP-complete. problems. Among others, HaploCall \cite{haplocall} used by GATK takes advantage of this way of de Bruijn graph usage.
-\end{itemize}
+Similarly, de Bruijn graphs can be used for genome assembly, especially if the genome question is circular. Assume that, for a fixed $k$, all k-mers of the target genome are known. Then a DBG can be constructed in two different ways: 
+\begin{itemize} 
+\item \textbf{K-mers are represented by edges}. Each edge is labeled by a k-mer in the same way as in the graph used for solving the superstring problem. Each edge connects vertices representing (k-1)-mers forming prefix and suffix of its k-mer. The genome string can be reconstructed by choosing the right one from all possible Eulerian cycles. This approach is presented and discussed in \cite{dbg-apply}. 
+\item \textbf{K-mers are represented by vertices}. Each k-mer is represented as a single vertex. Edges reflect the k-mer order within reads. To recover the genome, one needs to find a Hamiltonian path of the graph, which is one of NP-complete. problems. Among others, HaploCall \cite{haplocall} used by GATK takes advantage of this way of de Bruijn graph usage. 
+\end{itemize} 
 
-\subsubsection{HaploCall}
-\label{subsub:haplocall}
+\subsubsection{HaploCall} 
+\label{subsub:haplocall} 
 
-Rather than assembling whole genome at once, HaploCall starts with detection of regions that are likely to contain variants\cite{haplocall-1}. A score is computed for every genome position, reflecting the probability of variant occurrence. Regions are formed around positions classified as interesting. As subset of the input reads is assigned to each of the regions; reads are selected based on their mapping position. Each region is then processed separately and independently of others.
+Rather than assembling whole genome at once, HaploCall starts with detection of regions that are likely to contain variants\cite{haplocall-1}. A score is computed for every genome position, reflecting the probability of variant occurrence. Regions are formed around positions classified as interesting. As subset of the input reads is assigned to each of the regions; reads are selected based on their mapping position. Each region is then processed separately and independently of others. 
 
-The active region processing phase starts by decomposing the reference sequence covering the region into k-mers and using them as vertices in a newly constructed de Bruijn graph. Edges connect vertices representing k-mers adjacent by their position within the reference. For each edge, a weight value is initialized to zero.
+The active region processing phase starts by decomposing the reference sequence covering the region into k-mers and using them as vertices in a newly constructed de Bruijn graph. Edges connect vertices representing k-mers adjacent by their position within the reference. For each edge, a weight value is initialized to zero. 
 
-When the reference is transformed into the graph, a similar process happen with each of the input reads assigned to the active region. The read is decomposed into k-mers that are inserted into the graph in the same manner as the reference k-mers. Again, edges follow the order of k-mers within reads.  New vertices are created only for k-mers not seen in the reference, similar case applies to new edges --- if an edge denoting adjacent position of two k-mers already exists, its weight is increased by one. Otherwise, a new edge with weight initialized to $1$ is inserted into the graph. The weight values actually count number of reads covering individual edges.
+When the reference is transformed into the graph, a similar process happen with each of the input reads assigned to the active region. The read is decomposed into k-mers that are inserted into the graph in the same manner as the reference k-mers. Again, edges follow the order of k-mers within reads.  New vertices are created only for k-mers not seen in the reference, similar case applies to new edges --- if an edge denoting adjacent position of two k-mers already exists, its weight is increased by one. Otherwise, a new edge with weight initialized to $1$ is inserted into the graph. The weight values actually count number of reads covering individual edges. 
 
-After inserting all the reads into the graph (the HaploCall documentation refers to the step as Threading reads through the graph), it is time to simplify the graph structure a little bit. The main concern here is to remove graph sections created due to sequencing errors present in the input reads. Such sections are identified by their low read coverage and removed. Other structure refinements are performed, including removal of paths not leading to the reference end.
+After inserting all the reads into the graph (the HaploCall documentation refers to the step as Threading reads through the graph), it is time to simplify the graph structure a little bit. The main concern here is to remove graph sections created due to sequencing errors present in the input reads. Such sections are identified by their low read coverage and removed. Other structure refinements are performed, including removal of paths not leading to the reference end. 
 
-In the next stage, most probable sequences are extracted from the resulting graph. Each sequence is represented by a path leading from the starting k-mer of the reference to ending one and its probability score is computed as the product of so-called transition probabilities of the path edges. Transition probability of an edge is computed as its weight divided by the by the sum of weights of all edges sharing the same source vertex. By default, 128 most probable paths are selected.
+In the next stage, most probable sequences are extracted from the resulting graph. Each sequence is represented by a path leading from the starting k-mer of the reference to ending one and its probability score is computed as the product of so-called transition probabilities of the path edges. Transition probability of an edge is computed as its weight divided by the by the sum of weights of all edges sharing the same source vertex. By default, 128 most probable paths are selected. 
 
-The Smith-Waterman algorithm is used to align each of the selected sequences to the reference. The alignment is retrieved in form of a CIGAR string that indicates places of possible variants, such as SNPs and indels. Indel positions are normalized (left aligned). 
+The Smith-Waterman algorithm is used to align each of the selected sequences to the reference. The alignment is retrieved in form of a CIGAR string that indicates places of possible variants, such as SNPs and indels. Indel positions are normalized (left aligned).  
 
-The CIGAR strings actually contain a super set of the final set of called variants. To filter out false positives, other solutions are employed (for example, the HaploCall documentation mentions UnifiedGenotyper for GATK).
+The CIGAR strings actually contain a super set of the final set of called variants. To filter out false positives, other solutions are employed (for example, the HaploCall documentation mentions UnifiedGenotyper for GATK). 
 
-\subsubsection{AbySS}
-\label{subsub:abyss}
+\subsubsection{AbySS} 
+\label{subsub:abyss} 
 
-AbySS\cite{abyss} is another representative of assembly algorithms using de Bruijn graphs. Unlike HaploCall, it does not use the reference sequence for assembly. One of its interesting features is a support for running on multi-computer environemnts with fast network connection. Most of the computation is massively paralelized and the MPI (Message Passing Interface) is used for communication between individual computing units.
+AbySS\cite{abyss} is another representative of assembly algorithms using de Bruijn graphs. Unlike HaploCall, it does not use the reference sequence for assembly. One of its interesting features is a support for running on multi-computer environment with fast network connection. Most of the computation is massively parallelized and the MPI (Message Passing Interface) is used for communication between individual computing units. 
 
-AbySS starts by decomposing all input reads to k-mers and constructing a de Bruijn graph. Except being distributed amongst nodes of the computing cluster, it trats k-mers and their reverse-complemenshortts as equals. Both are represented by a single vertex and when one is inserted, the other also starts its existence. 
+AbySS starts by decomposing all input reads to k-mers and constructing a de Bruijn graph. Except being distributed among nodes of the computing cluster, it treats k-mers and their reverse-complements as equals. Both are represented by a single vertex and when one is inserted, the other also starts its existence.  
 
-Structure of the distributed de Bruijn is then optimized mainly by removing short branches with dead ends that usually results from sequencing errors. Then, linear sequences of vertices without branching are merged into \textit{contigs}, representing longer sequences of the assembled genome. 
+Structure of the distributed de Bruijn is then optimized mainly by removing short branches with dead ends that usually results from sequencing errors. Then, linear sequences of vertices without branching are merged into \textit{contigs}, representing longer sequences of the assembled genome.  
 
-The paired-end information is then used to put individual contigs together. A link is created within two contigs if the number of paired-end reads joining the contigs exceed a given threshold. The final step lies in determining a path going through all contigs linked together.
+The paired-end information is then used to put individual contigs together. A link is created within two contigs if the number of paired-end reads joining the contigs exceed a given threshold. The final step lies in determining a path going through all contigs linked together. 
 
-Although utilizing the de Bruijn graph approach, AbySS actually shares a lot with the oveerlap-layout-consensus class of assembly algorithms. The main difference, at a high level of abstraction, is the usage of k-mers, while the OLC algorithms construct their graphs from whole reads and do not perform the decomposition step.
+Although utilizing the de Bruijn graph approach, AbySS actually shares a lot with the overlap-layout-consensus class of assembly algorithms. The main difference, at a high level of abstraction, is the usage of k-mers, while the OLC algorithms construct their graphs from whole reads and do not perform the decomposition step. 
 
-\subsection{Overlap-Layout-Consensus}
-\label{subsec:overlap-layout-consensus}
+\subsection{Overlap-Layout-Consensus} 
+\label{subsec:overlap-layout-consensus} 
 
-Algorithms taking advantage of this approach usually do not decompose reads into k-mer sequences. Reads are considered to be the smallset units. As the name suggests, the work is done in three steps.
+Algorithms taking advantage of this approach usually do not decompose reads into k-mer sequences. Reads are considered to be the smallest units. As the name suggests, the work is done in three steps. 
 
-Main purpose of the overlap phase is, not surprisingly, to compute overlaps between all possible pairs of the input reads. Since number of short reads within high coverage data sets may go to milions, the process of overlap computation may take a lot of processor and memory resources. Overlapping reads are connected into longer seuqnces called \textit{contigs}. Actually, a graph is being constructed, its vertices represents individual reads (or contigs) and edges represent overlaps.
+Main purpose of the overlap phase is, not surprisingly, to compute overlaps between all possible pairs of the input reads. Since number of short reads within high coverage data sets may go to millions, the process of overlap computation may take a lot of processor and memory resources. Overlapping reads are connected into longer sequences called \textit{contigs}. Actually, a graph is being constructed, its vertices represents individual reads (or contigs) and edges represent overlaps. 
 
-The definition of read overlapping is not strict. Two reads are considered overlapping (and thus, are connected by an edge) if they overlap at least by $t$ bases, allowing several mismatches. The constant $t$ is a parameter of the algorithm and is called a \textit{cutoff}.
+The definition of read overlapping is not strict. Two reads are considered overlapping (and thus, are connected by an edge) if they overlap at least by $t$ bases, allowing several mismatches. The constant $t$ is a parameter of the algorithm and is called a \textit{cutoff}. 
 
-During the \textit{layout} phase, a read-pairing information is used to put disconnected parts of the read overlapping graph together and resolving structures created by sequencing errors. The \textit{consensus} phase is responsible for deriving candidate seuqnces for variant calling from the graph. In an ideal case, the cadidate sequences would be the Hamiltonian apths of the graph.
+During the \textit{layout} phase, a read-pairing information is used to put disconnected parts of the read overlapping graph together and resolving structures created by sequencing errors. The \textit{consensus} phase is responsible for deriving candidate sequences for variant calling from the graph. In an ideal case, the candidate sequences would be the Hamiltonian paths of the graph. 
 
-\section{Goals of this Work}
-\label{sec:goals-of-this-work}
+\section{Goals of this Work} 
+\label{sec:goals-of-this-work} 
 
-Main goal of this work is to develop an algorithm capable of variant calling on high-thorought data sets, comparable to, or more precies than methods currenlty employed. The approach used by HaplotypeCaller (HaploCall) should be used as an inspiration which implies the newly developed algorithm would take advantage of the reference sequence and would belong to the class of algorithms utilizing de Bruijn graphs.
+Main goal of this work is to develop an algorithm capable of variant calling on high-coverage data sets, comparable to, or more precise than methods currently employed. The approach used by HaplotypeCaller (HaploCall) should be used as an inspiration which implies the newly developed algorithm would take advantage of the reference sequence and would belong to the class of algorithms utilizing de Bruijn graphs. 
 
-The new algorithm should accept the input data set in widely used formats, such as SAM for the read set and FASTA for the reference sequence, and output the called variants in the VCF format\cite{vcf-format}. Its results need to be compared to at least two other assembly and variant calling tools. GATK (HaploCall) \cite{haplocall}, as a representative of the DBG class and reference-aided methods, and FermiKit \cite{fermikit}, utilizing the OLC concept.
+The new algorithm should accept the input data set in widely used formats, such as SAM for the read set and FASTA for the reference sequence, and output the called variants in the VCF format\cite{vcf-format}. Its results need to be compared to at least two other assembly and variant calling tools. GATK (HaploCall) \cite{haplocall}, as a representative of the DBG class and reference-aided methods, and Fermikit \cite{fermikit}, utilizing the OLC concept.

@@ -5,7 +5,7 @@ Read data used as an input to many assembly algorithms contain plenty of errors,
 
 Currently, two different approaches are used to correct read errors, and both are based on transforming individual reads into series of k-mers. One is based on detecting errors as low covered edges (or paths) in a de Bruijn graph, the other works with a k-mer frequency distribution. During development of our algorithm presented in this thesis, we made several attempts to implement an error correction algorithm based on de Bruijn graphs. Since we use these graphs also during assembly performing error corrections on them seemed to be a natural choice. Although they definitely helped to improve the quality of input reads, all our attempts performed worse compared to the k-mer frequency distribution approach.
 
-In the end, we decided to adopt the error correction algorithm used by the Fermi-lite library \cite{fermi-lite} and based on k-mer frequency disbribution. This chapter describes both approaches.
+In the end, we decided to adopt the error correction algorithm used by the Fermi-lite library \cite{fermi-lite} and based on k-mer frequency distribution. This chapter describes both approaches.
 
 \section{De Bruijn Graphs}
 \label{sec:ec-de-bruin-graphs}
@@ -22,7 +22,7 @@ If the bubble was supported by reasonable amount of reads, it would be treated a
 \begin{figure}[h]
 	\centering
 	\includegraphics{img/error-correction-db.pdf}
-	\caption{Simple examle of a read error detection by utilizing de Bruijn graphs}
+	\caption{Simple example of a read error detection by utilizing de Bruijn graphs}
 	\label{fig:error-correction-db}
 \end{figure}
 
@@ -39,7 +39,7 @@ This approach is also used by the Fermi-lite\cite{fermi-lite} software and is co
 \begin{figure}[h]
 	\centering
 	\includegraphics{img/kmer-frequency-distribution.pdf}
-	\caption{K-mer frequency distribution for errornous and error-free read sets\cite{alg-compare}}
+	\caption{K-mer frequency distribution for erroneous and error-free read sets\cite{alg-compare}}
 	\label{fig:kmer-frequency-distribution}
 \end{figure}
 
@@ -67,11 +67,11 @@ The main goal of the preprocessing phase is to compute frequencies for all k-mer
 \item A k-mer is considered \textit{unique} if it its frequency is zero.
 \item A k-mer is referred as \textit{absent} if it its frequency is is below certain threshold.
 \end{itemize}
-K-mers are implemented as four 64-bit integers (Figure \ref{fig:fermi-kmer-structure}). Each base is represented by two bits. This limits the maximum k-mer size to 64 but allows effective implemtations of standard k-mer operations. The first 64-bit integer stores least signifficant bits of the k-mer bases, the second contains their most signifficant bits. The bases are stored in an opposite order --- the first base resides in bits $k-1$, the second to $k-2$ and so on. The second two integers store the same content, but with different order --- the first base is stored in bits 0, the second in bits 1 etc. Such a k-mer form vastes memory; only two 64-bit integers are required to hold all the necessary information. The error correction algorithm often takes advantage of the two-integer representation.
+K-mers are implemented as four 64-bit integers (Figure \ref{fig:fermi-kmer-structure}). Each base is represented by two bits. This limits the maximum k-mer size to 64 but allows effective implementations of standard k-mer operations. The first 64-bit integer stores least significant bits of the k-mer bases, the second contains their most significant bits. The bases are stored in an opposite order --- the first base resides in bits $k-1$, the second to $k-2$ and so on. The second two integers store the same content, but with different order --- the first base is stored in bits 0, the second in bits 1 etc. Such a k-mer form vastes memory; only two 64-bit integers are required to hold all the necessary information. The error correction algorithm often takes advantage of the two-integer representation.
 
-Such a represetantion allows quick appends or individual base changes. To append a base into the first two integers, they just need to be shifted by one to the left, ORed with the new base, and ANDed with $2^k-1$ to set the unused bits to zero.
+Such a representation allows quick appends or individual base changes. To append a base into the first two integers, they just need to be shifted by one to the left, ORed with the new base, and ANDed with $2^k-1$ to set the unused bits to zero.
 
-Since the k-mer representation reserves only 2 bits for one base, it is used to represent k-mers containing at most four types of bases which seems to be OK since the genome also consists from four types of bases. Howerver, a virtual base \texttt{N} may appear within a read sequence, denoting places that the sequencing technology was unable to read. Fermi-lite solves the issue by ignoring all k-mers containing any number of \texttt{N}s.
+Since the k-mer representation reserves only 2 bits for one base, it is used to represent k-mers containing at most four types of bases which seems to be OK since the genome also consists from four types of bases. However, a virtual base \texttt{N} may appear within a read sequence, denoting places that the sequencing technology was unable to read. Fermi-lite solves the issue by ignoring all k-mers containing any number of \texttt{N}s.
 
 \begin{figure}[h]
 	\centering
@@ -80,13 +80,13 @@ Since the k-mer representation reserves only 2 bits for one base, it is used to 
 	\label{fig:fermi-kmer-structure}
 \end{figure}
 
-The k-mer table is actually a set of $2^{l_{pre}}$ khash tables. When a k-mer is being inserted or looked up, $l_{pre}$ bits of its data are used to select the table and the rest serves as an input to the hash function. $l_{pre} = 20$ by default. This representation of the k-mer table increases overall memory consumption, but has great impact on its performance in parallel environemnts. 
+The k-mer table is actually a set of $2^{l_{pre}}$ khash tables. When a k-mer is being inserted or looked up, $l_{pre}$ bits of its data are used to select the table and the rest serves as an input to the hash function. $l_{pre} = 20$ by default. This representation of the k-mer table increases overall memory consumption, but has great impact on its performance in parallel environments. 
 
-The table uses 14 bits to track occurrences of each k-mer. Lower 8 bits count low quality occurrences, higher 6 bits are used by high quality ones. The counting stops on values of 255 and 63, no integer overflow happens. The table actually stores their hashes and occurrences, rather than full k-mers. Hence, distinct k-mers may be treated as one, since the table may use up to $l_{pre}$ of k-mer content to choose the right khash table, and up to 50 bits may be stored as a key. That means, key colisions may be avoided if the k-mer size drops below 35 (the table actually has a different hash function for k-mers size below 33).
+The table uses 14 bits to track occurrences of each k-mer. Lower 8 bits count low quality occurrences, higher 6 bits are used by high quality ones. The counting stops on values of 255 and 63, no integer overflow happens. The table actually stores their hashes and occurrences, rather than full k-mers. Hence, distinct k-mers may be treated as one, since the table may use up to $l_{pre}$ of k-mer content to choose the right khash table, and up to 50 bits may be stored as a key. That means, key collisions may be avoided if the k-mer size drops below 35 (the table actually has a different hash function for k-mers size below 33).
 
-After the insertion stage, a k-mer frequency distribution is computed individually for low quality and high quality occurrences. The most common frequency is named \textit{mode} and is used during the second and third pahse of the algorithm.
+After the insertion stage, a k-mer frequency distribution is computed individually for low quality and high quality occurrences. The most common frequency is named \textit{mode} and is used during the second and third phase of the algorithm.
 
-All phases of the algorithm are partialy driven by its parameters. Table \ref{tab:fermi-parameters} provides a short description of them.
+All phases of the algorithm are partially driven by its parameters. Table \ref{tab:fermi-parameters} provides a short description of them.
 
 \begin{table}[h]
 \begin{center}
@@ -98,9 +98,9 @@ Parameter & Default value & Description \\
 \hline
 $k$ & - & K-mer size. By default, this value is set to the base-two logarithm of the total number of bases. \\
 \hline
-q & 20 & Base quality threshold used to recongize high quality content from low quality one. $P(error) = 10^{-\frac{q}{10}}$ \\
+q & 20 & Base quality threshold used to recognize high quality content from low quality one. $P(error) = 10^{-\frac{q}{10}}$ \\
 \hline
-min\_cov & 4 & Mimimum frequency for solid k-mers. \\
+min\_cov & 4 & Mimi mum frequency for solid k-mers. \\
 \hline
 win\_multi\_ec & 10 & Takes part in pruning the graph created during the error correction phase. The exact meaning, however, remains unclear. \\
 \hline
@@ -171,7 +171,7 @@ Dijkstra's search algorithm is used and its main loop can be decomposed into the
 
 Each path from the starting vertex to a vertex in the last layer represents one possible corrected part of the read sequence. Four such paths are computed. The path computation stops if a gap greater than max\_path\_diff is detected in their costs.
 
-The error correction algorithm described above is applied to both the read sequence and its reverse complement, which is reverse-complemented again after the correction is finished. Thus, two potentialy error-free sequences are generated for one read. The resulting corrected sequence is their combination --- if one of the source sequences contains the \texttt{N} base at certain position, content of the second one is used instead. This approach reduces number of \texttt{N}s in the corrected read set.
+The error correction algorithm described above is applied to both the read sequence and its reverse complement, which is reverse-complemented again after the correction is finished. Thus, two potentially error-free sequences are generated for one read. The resulting corrected sequence is their combination --- if one of the source sequences contains the \texttt{N} base at certain position, content of the second one is used instead. This approach reduces number of \texttt{N}s in the corrected read set.
 
 \subsection{Unique k-mer Filtering}
 \label{subsec:fermi-unique-kmer-filtering}
