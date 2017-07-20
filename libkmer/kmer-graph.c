@@ -455,6 +455,17 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 }
 
 
+/** @brief
+ *  Attempts to retrieve a reference edge leading to a given vertex.
+ *
+ *  @param Vertex The vertex to examine.
+ *
+ *  @return
+ *  Returns the incomming reference edge, or NULL if no such edge exists.
+ *
+ *  @remark
+ *  At most one reference edge may lead into any vertex.
+ */
 static PKMER_EDGE _get_in_refseq_edge(const KMER_VERTEX *Vertex)
 {
 	PKMER_EDGE ret = NULL;
@@ -472,23 +483,6 @@ static PKMER_EDGE _get_in_refseq_edge(const KMER_VERTEX *Vertex)
 }
 
 
-static boolean _has_outgoing_read_edges(const KMER_VERTEX *Vertex)
-{
-	boolean ret = FALSE;
-	const KMER_EDGE *e = NULL;
-
-	for (size_t i = 0; i < kmer_vertex_out_degree(Vertex); ++i) {
-		PKMER_EDGE e = kmer_vertex_get_succ_edge(Vertex, i);
-
-		ret = (e->Type == kmetRead);
-		if (ret)
-			break;
-	}
-
-	return ret;
-}
-
-
 static void _init_quality_table(uint8_t *Table)
 {
 	memset(Table, 100, 256 * sizeof(uint8_t));
@@ -496,26 +490,6 @@ static void _init_quality_table(uint8_t *Table)
 
 	return;
 }
-
-
-static void kmer_graph_check(const KMER_GRAPH *Graph)
-{
-	void *it = NULL;
-	PKMER_LIST l = NULL;
-
-	if (kmer_table_first(Graph->KmerListTable, &it, &l) == ERR_SUCCESS) {
-		do {
-			for (size_t i = 0; i < pointer_array_size(&l->Vertices); ++i) {
-				assert(kmer_seq_equal(kmer_graph_get_kmer_size(Graph), &l->Kmer, &(l->Vertices.Data[0]->KMer)));
-			}
-
-		} while (kmer_table_next(Graph->KmerListTable, it, &it, &l) == ERR_SUCCESS);
-	}
-
-
-	return;
-}
-
 
 
 /************************************************************************/
