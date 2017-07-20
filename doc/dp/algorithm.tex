@@ -219,12 +219,12 @@ Let's define a read of length $n$ as a sequence $r_1 \ldots r_n$ of bases. If th
 \begin{align*}
 k_1 = (r_1 \ldots r_k, 0) \\
 ... \\
-k_{n-k+1} = (r_{n_k+1} \ldots r_n, 0)
+k_{n-k+1} = (r_{n-k+1} \ldots r_n, 0)
 \end{align*}
 
 Then, the step described in Subsection \ref{subsec:assign-sets} is applied.
 
-As described in \ref{subsec:idea}, in an ideal case, a $n$-base long difference from the reference produces $n + k - 1$ k-mers different from all reference k-mers. To reduce the probability that some of the new k-mers actually collide with either the reference, or another read, the \textit{short variant optimization} may be applied. The optimization reduces the number of k-mers representing a $n$-base long difference to:
+As described above, in an ideal case, a $n$-base long difference from the reference produces $n + k - 1$ k-mers different from all reference k-mers. To reduce the probability that some of the new k-mers actually collide with either the reference, or another read, the \textit{short variant optimization} may be applied. The optimization reduces the number of k-mers representing a $n$-base long difference to:
 \begin{itemize}
 \item $n$ for an insertion,
 \item zero for a deletion,
@@ -234,7 +234,7 @@ The optimization assumes that when recovering a sequence from the graph, only th
 
 To make the k-mers covering a $n$ base long difference by their last bases really unique, the first $n$ bases of the first k-mer is changed to \textit{D}, a virtual base used for helper purposes only. Rest of the k-mers is obtained by appending the bases of the difference to the first one. Keep in mind that $n$ is always smaller than the k-mer size, since we are talking about the \textit{short} variant optimization.
 
-Figure \ref{fig:read-optimization} shows how the graph is optimized for a read containing SNP. The reference and read sequences are taken from Figure \ref{read-idea}. Since the difference has 1 base in length, only one k-mer (\texttt{DCTGA\_0}) is used to represent it. The k-mer is followed by reference k-mers. As can be seen, their last base are equal to one of k-mers from Figure \ref{read-idea}.
+Figure \ref{fig:read-optimization} shows how the graph is optimized for a read containing SNP. The reference and read sequences are taken from Figure \ref{fig:read-idea}. Since the difference has 1 base in length, only one k-mer (\texttt{DCTGA\_0}) is used to represent it. The k-mer is followed by reference k-mers. As can be seen, their last base are equal to one of k-mers from Figure \ref{fig:read-idea}.
 
 \begin{figure}
 	\centering
