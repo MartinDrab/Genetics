@@ -58,71 +58,30 @@ static PUTILS_LOOKASIDE *_edgeLAs;
 	GRAPH_PRINT_LONG_EDGES | GRAPH_PRINT_THRESHOLD_1 | GRAPH_PRINT_CONNECT |	\
 	GRAPH_PRINT_THRESHOLD_2 | GRAPH_PRINT_SHRINK | GRAPH_PRINT_VARIANTS)		\
 
-static ERR_VALUE _init_default_values()
+static void _init_default_values()
 {
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-
-	ret = ERR_SUCCESS;
-	 program_option_init(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC, UInt32, 21);
+	program_option_init(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC, UInt32, 21);
 	program_option_init(PROGRAM_OPTION_SEQFILE, PROGRAM_OPTION_SEQFILE_DESC, String, "\0");
-	program_option_init(PROGRAM_OPTION_SEQSTART, PROGRAM_OPTION_SEQSTART_DESC, UInt64, (uint64_t)-1);
 	program_option_init(PROGRAM_OPTION_SEQLEN, PROGRAM_OPTION_SEQLEN_DESC, UInt32, 2000);
-	program_option_init(PROGRAM_OPTION_TEST_STEP, PROGRAM_OPTION_TEST_STEP_DESC, UInt32, 1500);
 	program_option_init(PROGRAM_OPTION_THRESHOLD, PROGRAM_OPTION_THRESHOLD_DESC, UInt32, 4);
 	program_option_init(PROGRAM_OPTION_READFILE, PROGRAM_OPTION_READFILE_DESC, String, "\0");
-	program_option_init(PROGRAM_OPTION_PLOT_START, PROGRAM_OPTION_PLOT_START, UInt64, (uint64_t)-1);
-	program_option_init(PROGRAM_OPTION_PLOT_END, PROGRAM_OPTION_PLOT_END, UInt64, (uint64_t)-1);
-	program_option_init(PROGRAM_OPTION_PLOT_STEP, PROGRAM_OPTION_PLOT_STEP, UInt16, (uint16_t)-1);
 	program_option_init(PROGRAM_OPTION_VCFFILE, PROGRAM_OPTION_VCFFILE_DESC, String, "result.vcf");
 	program_option_init(PROGRAM_OPTION_OMP_THREADS, PROGRAM_OPTION_OMP_THREADS, Int32, omp_get_num_procs());
-	program_option_init(PROGRAM_OPTION_PLOT_FLAGS, PROGRAM_OPTION_PLOT_FLAGS, UInt16, GRAPH_PRINT_ALL);
 	program_option_init("binom-threshold", "", UInt64, 1);
 	program_option_init("low-quality-variant", "", UInt32, 3);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_String(PROGRAM_OPTION_OUTPUT_DIRECTORY, ".");
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt8(PROGRAM_OPTION_READ_POS_QUALITY, 10);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_NO_CONNECT_REFSEQ, FALSE);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_NO_CONNECT_READS, FALSE);
-	
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_NO_BUBBLE_MERGING, FALSE);
-	
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_NO_LINEAR_SHRINK, FALSE);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_NO_HELPER_VERTICES, FALSE);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_Boolean(PROGRAM_OPTION_NO_SHORT_VARIANTS, FALSE);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_MISSING_EDGE_PENALTY, 3);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY, 8);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_add_UInt32(PROGRAM_OPTION_READ_STRIP, 5);
+	program_option_init(PROGRAM_OPTION_OUTPUT_DIRECTORY, "", String, "\0");
+	program_option_init(PROGRAM_OPTION_READ_POS_QUALITY, "", UInt8, 10);
+	program_option_init(PROGRAM_OPTION_NO_SHORT_VARIANTS, PROGRAM_OPTION_NO_SHORT_VARIANTS_DESC, Boolean, FALSE);
 
 	option_set_shortcut(PROGRAM_OPTION_KMERSIZE, 'k');
 	option_set_shortcut(PROGRAM_OPTION_SEQFILE, 'f');
-	option_set_shortcut(PROGRAM_OPTION_SEQSTART, 'S');
 	option_set_shortcut(PROGRAM_OPTION_SEQLEN, 'l');
-	option_set_shortcut(PROGRAM_OPTION_TEST_STEP, 'e');
 	option_set_shortcut(PROGRAM_OPTION_THRESHOLD, 'w');
 	option_set_shortcut(PROGRAM_OPTION_READFILE, 'F');
 	option_set_shortcut(PROGRAM_OPTION_OUTPUT_DIRECTORY, 'o');
 	option_set_shortcut(PROGRAM_OPTION_VCFFILE, 'v');
 
-	return ret;
+	return;
 }
 
 
@@ -134,32 +93,36 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 	memset(Options, 0, sizeof(PROGRAM_OPTIONS));
 
 	ret = option_get_UInt64("binom-threshold", &Options->ParseOptions.BinomThreshold);
-	if (ret == ERR_SUCCESS)
+	if (ret != ERR_SUCCESS || !in_range(0, 101, Options->ParseOptions.BinomThreshold)) {
+		fprintf(stderr, "Invalid value for the \"%s\" parameter\n", "binom-threshold");
+		ret = ERR_INTERNAL_ERROR;
+	}
+
+	if (ret == ERR_SUCCESS) {
 		ret = option_get_UInt32("low-quality-variant", &Options->ParseOptions.LQVariant);
+		if (ret != ERR_SUCCESS)
+			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", "low-quality-variant");
+	}
 
-	if (ret == ERR_SUCCESS)
-		ret = option_get_UInt64(PROGRAM_OPTION_PLOT_START, &Options->ParseOptions.PlotOptions.PlotRefStart);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_UInt64(PROGRAM_OPTION_PLOT_END, &Options->ParseOptions.PlotOptions.PlotRefEnd);
-	
-	if (ret == ERR_SUCCESS)
-		ret = option_get_UInt16(PROGRAM_OPTION_PLOT_STEP, &Options->ParseOptions.PlotOptions.PlotStep);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_UInt16(PROGRAM_OPTION_PLOT_FLAGS, &Options->ParseOptions.PlotOptions.PlotFlags);
-
-	if (ret == ERR_SUCCESS)
+	if (ret == ERR_SUCCESS) {
 		ret = option_get_UInt32(PROGRAM_OPTION_KMERSIZE, &Options->KMerSize);
-	
-	if (ret == ERR_SUCCESS)
-		ret = option_get_UInt64(PROGRAM_OPTION_SEQSTART, &Options->RegionStart);
+		if (ret != ERR_SUCCESS || Options->KMerSize > KMER_MAXIMUM_SIZE) {
+			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_KMERSIZE);
+			ret = ERR_INTERNAL_ERROR;
+		}
+	}
 
-	if (ret == ERR_SUCCESS)
+	if (ret == ERR_SUCCESS) {
 		ret = option_get_Int32(PROGRAM_OPTION_OMP_THREADS, &Options->OMPThreads);
+		if (ret != ERR_SUCCESS)
+			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_OMP_THREADS);
+	}
 
-	if (ret == ERR_SUCCESS)
+	if (ret == ERR_SUCCESS) {
 		ret = option_get_UInt8(PROGRAM_OPTION_READ_POS_QUALITY, &Options->ReadPosQuality);
+		if (ret != ERR_SUCCESS)
+			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_READ_POS_QUALITY);
+	}
 
 	if (ret == ERR_SUCCESS) {
 		char *outputDirectory = NULL;
@@ -172,7 +135,7 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 				outputDirectory[len] = '\0';
 
 			Options->OutputDirectoryBase = outputDirectory;
-		}
+		} else fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_OUTPUT_DIRECTORY);
 	}
 
 	if (ret == ERR_SUCCESS) {
@@ -181,22 +144,30 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 		ret = option_get_String(PROGRAM_OPTION_VCFFILE, &vcfFile);
 		if (ret == ERR_SUCCESS)
 			Options->VCFFile = vcfFile;
+	
+		if (ret != ERR_SUCCESS)
+			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_VCFFILE);
 	}
 
-	if (ret == ERR_SUCCESS)
+	if (ret == ERR_SUCCESS) {
 		ret = option_get_UInt32(PROGRAM_OPTION_SEQLEN, &Options->RegionLength);
+		if (ret != ERR_SUCCESS || !in_range(500, 50000, Options->RegionLength)) {
+			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_SEQLEN);
+			ret = ERR_INTERNAL_ERROR;
+		}
+	}
 
-	if (ret == ERR_SUCCESS)
-		ret = option_get_UInt32(PROGRAM_OPTION_TEST_STEP, &Options->TestStep);
-
-	if (ret == ERR_SUCCESS)
+	if (ret == ERR_SUCCESS) {
 		ret = option_get_UInt32(PROGRAM_OPTION_THRESHOLD, &Options->Threshold);
+		if (ret != ERR_SUCCESS)
+			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_THRESHOLD);
+	}
 
-	if (ret == ERR_SUCCESS)
+	if (ret == ERR_SUCCESS) {
 		ret = option_get_String(PROGRAM_OPTION_SEQFILE, &Options->RefSeqFile);
-
-	if (ret == ERR_SUCCESS)
-		ret = option_get_UInt32(PROGRAM_OPTION_READ_STRIP, &Options->ReadStrip);
+		if (ret != ERR_SUCCESS)
+			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_SEQFILE);
+	}
 
 	if (ret == ERR_SUCCESS) {
 		char *readFile = NULL;
@@ -205,33 +176,28 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 		if (ret == ERR_SUCCESS && *readFile != '\0') {			
 			fprintf(stderr, "Loading reads from %s...\n", readFile);
 			ret = input_get_reads(readFile, "sam", &Options->Reads, &Options->ReadCount);
-		}
+			if (ret != ERR_SUCCESS)
+				fprintf(stderr, "Error during read loading: %u\n", ret);
+		} else fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_READFILE);
 	}
 
-	option_get_Boolean(PROGRAM_OPTION_NO_CONNECT_REFSEQ, &b);
-	Options->ParseOptions.ConnectRefSeq = !b;
-	option_get_Boolean(PROGRAM_OPTION_NO_CONNECT_READS, &b);
-	Options->ParseOptions.ConnectReads = !b;
-	option_get_Boolean(PROGRAM_OPTION_NO_BUBBLE_MERGING, &b);
-	Options->ParseOptions.MergeBubbles = !b;
-	option_get_Boolean(PROGRAM_OPTION_NO_LINEAR_SHRINK, &b);
-	Options->ParseOptions.LinearShrink = !b;
-	option_get_Boolean(PROGRAM_OPTION_NO_HELPER_VERTICES, &b);
-	Options->ParseOptions.HelperVertices = !b;
-	option_get_Boolean(PROGRAM_OPTION_NO_SHORT_VARIANTS, &b);
-	Options->ParseOptions.OptimizeShortVariants = !b;
-	option_get_UInt32(PROGRAM_OPTION_MISSING_EDGE_PENALTY, &Options->ParseOptions.MissingEdgePenalty);
-	option_get_UInt32(PROGRAM_OPTION_BACKWARD_REFSEQ_PENALTY, &Options->ParseOptions.BackwardRefseqPenalty);
+	if (ret == ERR_SUCCESS) {
+		option_get_Boolean(PROGRAM_OPTION_NO_SHORT_VARIANTS, &b);
+		Options->ParseOptions.OptimizeShortVariants = !b;
+		Options->ParseOptions.PlotOptions.PlotFlags = GRAPH_PRINT_ALL;
+		Options->ParseOptions.ConnectReads = TRUE;
+		Options->ParseOptions.ConnectRefSeq = TRUE;
+		Options->ParseOptions.HelperVertices = TRUE;
+		Options->ParseOptions.LinearShrink = TRUE;
+		Options->ParseOptions.MergeBubbles = TRUE;
+		Options->ParseOptions.BackwardRefseqPenalty = 8;
+		Options->ParseOptions.MissingEdgePenalty = 3;
+		Options->TestStep = Options->RegionLength * 3 / 4;
+		Options->ReadStrip = 5;
+	}
 
 	return ret;
 }
-
-
-typedef enum _EExperimentResult {
-	erSuccess,
-	erFailure,
-	erNotTried,
-} EExperimentResult, *PEExperimentResult;
 
 
 static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *Task, uint16_t Flag, boolean Always)
@@ -254,7 +220,7 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 
 		memset(directory, 0, sizeof(directory));
 #pragma warning (disable : 4996)											
-		snprintf(directory, sizeof(directory), "%s" PATH_SEPARATOR "succ" PATH_SEPARATOR "%s", Options->OutputDirectoryBase, Task->Name);
+		snprintf(directory, sizeof(directory), "%s" PATH_SEPARATOR "%s", Options->OutputDirectoryBase, Task->Name);
 #ifdef _WIN32
 		int err = mkdir(directory);
 #else
@@ -340,29 +306,14 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 				ret = assembly_parse_reads(&state);
 
 			_print_graph(g, Options, Task, GRAPH_PRINT_RAW_READS, FALSE);
-			if (ParseOptions->PlotOptions.PlotStep == 1) {
-				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
-				ret = ERR_PLOT_FINISHED;
-			}
-
 			if (ret == ERR_SUCCESS)
 				ret = assembly_add_helper_vertices(&state);
 				
 			_print_graph(g, Options, Task, GRAPH_PRINT_HELPER, FALSE);
-			if (ParseOptions->PlotOptions.PlotStep == 2) {
-				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
-				ret = ERR_PLOT_FINISHED;
-			}
-
 			if (ret == ERR_SUCCESS)
 				ret = assembly_create_long_edges(&state, &ep);
 
 			_print_graph(g, Options, Task, GRAPH_PRINT_LONG_EDGES, FALSE);
-			if (ParseOptions->PlotOptions.PlotStep == 3) {
-				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
-				ret = ERR_PLOT_FINISHED;
-			}
-
 			if (ret == ERR_SUCCESS) {
 				g->DeleteEdgeCallback = _on_delete_edge;
 				g->DeleteEdgeCallbackContext = &ep;
@@ -372,21 +323,11 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 			}
 
 			_print_graph(g, Options, Task, GRAPH_PRINT_THRESHOLD_1, FALSE);
-			if (ParseOptions->PlotOptions.PlotStep == 4) {
-				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
-				ret = ERR_PLOT_FINISHED;
-			}
-
 			if (ret == ERR_SUCCESS && g->TypedEdgeCount[kmetRead] > 0) {
 				size_t changeCount = 0;
 
 				ret = kmer_graph_connect_reads_by_pairs(g, ParseOptions->ReadThreshold, &ep, &changeCount);
 				_print_graph(g, Options, Task, GRAPH_PRINT_CONNECT, FALSE);
-				if (ParseOptions->PlotOptions.PlotStep == 5) {
-					_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
-					ret = ERR_PLOT_FINISHED;
-				}
-
 				if (ret == ERR_SUCCESS) {
 					kmer_graph_compute_weights(g);
 					kmer_graph_delete_edges_under_threshold(g, ParseOptions->ReadThreshold);
@@ -394,20 +335,10 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 				}
 				
 				_print_graph(g, Options, Task, GRAPH_PRINT_THRESHOLD_2, FALSE);
-				if (ParseOptions->PlotOptions.PlotStep == 6) {
-					_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
-					ret = ERR_PLOT_FINISHED;
-				}
-
 				if (ret == ERR_SUCCESS && ParseOptions->LinearShrink)
 					kmer_graph_delete_1to1_vertices(g);
 
 				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, FALSE);
-				if (ParseOptions->PlotOptions.PlotStep == 7) {
-					_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
-					ret = ERR_PLOT_FINISHED;
-				}
-
 				if (ret == ERR_SUCCESS) {
 					boolean changed = FALSE;
 
@@ -421,11 +352,6 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 					ret = assembly_variants_to_edges(&state, VCArray);
 
 				_print_graph(g, Options, Task, GRAPH_PRINT_VARIANTS, FALSE);
-				if (ParseOptions->PlotOptions.PlotStep == 8) {
-					_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
-					ret = ERR_PLOT_FINISHED;
-				}
-
 				if (g->TypedEdgeCount[kmetRead] > 0)
 					ret = ERR_TOO_COMPLEX;
 			}
@@ -640,10 +566,6 @@ ERR_VALUE process_active_region(const KMER_GRAPH_ALLOCATOR *Allocator, const PRO
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	if (Options->RegionStart != (uint64_t)-1 &&
-		!in_range(RegionStart, Options->RegionLength, Options->RegionStart))
-		return ERR_SUCCESS;
-
 	ret = input_filter_reads(Options->KMerSize, Options->Reads, Options->ReadCount, RegionStart, Options->RegionLength, FilteredReads);
 	if (ret == ERR_SUCCESS) {
 		if (gen_array_size(FilteredReads) > 0) {
@@ -803,9 +725,7 @@ static void _ar_wrapper(PAR_WRAPPER_CONTEXT Context, long WorkIndex, size_t Thre
 	ga.EdgeAllocatorContext = el;
 	ga.EdgeAllocator = _lookaside_edge_alloc;
 	ga.EdgeFreer = _lookaside_edge_free;
-	if (task->Options->RegionStart == (uint64_t)-1 || in_range(task->RegionStart, task->Options->RegionLength, task->Options->RegionStart))
-		process_active_region(&ga, task->Options, task->RegionStart, task->Reference, task->Options->ReadSubArrays + ThreadNo, task->Options->VCSubArrays + ThreadNo);
-	
+	process_active_region(&ga, task->Options, task->RegionStart, task->Reference, task->Options->ReadSubArrays + ThreadNo, task->Options->VCSubArrays + ThreadNo);
 	done = utils_atomic_increment(&_activeRegionProcessed);
 	if (done % (_activeRegionCount / 10000) == 0)
 		fprintf(stderr, "%u %%\r", done * 10000 / _activeRegionCount);
@@ -861,14 +781,12 @@ int main(int argc, char *argv[])
 #endif
 	ret = options_module_init(37);
 	if (ret == ERR_SUCCESS) {
-		ret = _init_default_values();
+		_init_default_values();
 		if (ret == ERR_SUCCESS) {
 			ret = options_parse_command_line(argc - 2, argv + 2);
 			if (ret == ERR_SUCCESS) {
 				PROGRAM_OPTIONS po;
-				PROGRAM_STATISTICS st;
 
-				memset(&st, 0, sizeof(st));
 				ret = _capture_program_options(&po);
 				if (ret == ERR_SUCCESS) {
 					omp_set_num_threads(po.OMPThreads);

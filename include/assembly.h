@@ -8,9 +8,6 @@
 
 
 typedef struct _PLOT_OPTIONS {
-	uint64_t PlotRefStart;
-	uint64_t PlotRefEnd;
-	uint16_t PlotStep;
 	uint16_t PlotFlags;
 } PLOT_OPTIONS, *PPLOT_OPTIONS;
 
