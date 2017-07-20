@@ -67,8 +67,8 @@ static void _init_default_values()
 	program_option_init(PROGRAM_OPTION_READFILE, PROGRAM_OPTION_READFILE_DESC, String, "\0");
 	program_option_init(PROGRAM_OPTION_VCFFILE, PROGRAM_OPTION_VCFFILE_DESC, String, "result.vcf");
 	program_option_init(PROGRAM_OPTION_OMP_THREADS, PROGRAM_OPTION_OMP_THREADS, Int32, omp_get_num_procs());
-	program_option_init("binom-threshold", "", UInt64, 1);
-	program_option_init("low-quality-variant", "", UInt32, 3);
+	program_option_init(PROGRAM_OPTION_BINOM_THRESHOLD, PROGRAM_OPTION_BINOM_THRESHOLD_DESC, UInt64, 1);
+	program_option_init(PROGRAM_OPTION_LOW_QUALITY_VARIANT, PROGRAM_OPTION_LOW_QUALITY_VARIANT_DESC, UInt32, 3);
 	program_option_init(PROGRAM_OPTION_OUTPUT_DIRECTORY, "", String, "\0");
 	program_option_init(PROGRAM_OPTION_READ_POS_QUALITY, "", UInt8, 10);
 	program_option_init(PROGRAM_OPTION_NO_SHORT_VARIANTS, PROGRAM_OPTION_NO_SHORT_VARIANTS_DESC, Boolean, FALSE);
@@ -92,16 +92,16 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 
 	memset(Options, 0, sizeof(PROGRAM_OPTIONS));
 
-	ret = option_get_UInt64("binom-threshold", &Options->ParseOptions.BinomThreshold);
+	ret = option_get_UInt64(PROGRAM_OPTION_BINOM_THRESHOLD, &Options->ParseOptions.BinomThreshold);
 	if (ret != ERR_SUCCESS || !in_range(0, 101, Options->ParseOptions.BinomThreshold)) {
-		fprintf(stderr, "Invalid value for the \"%s\" parameter\n", "binom-threshold");
+		fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_BINOM_THRESHOLD);
 		ret = ERR_INTERNAL_ERROR;
 	}
 
 	if (ret == ERR_SUCCESS) {
-		ret = option_get_UInt32("low-quality-variant", &Options->ParseOptions.LQVariant);
+		ret = option_get_UInt32(PROGRAM_OPTION_LOW_QUALITY_VARIANT, &Options->ParseOptions.LQVariant);
 		if (ret != ERR_SUCCESS)
-			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", "low-quality-variant");
+			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_LOW_QUALITY_VARIANT);
 	}
 
 	if (ret == ERR_SUCCESS) {
@@ -200,7 +200,7 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 }
 
 
-static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *Task, uint16_t Flag, boolean Always)
+static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Options, const ASSEMBLY_TASK *Task, uint16_t Flag)
 {
 	FILE *f = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -208,7 +208,7 @@ static ERR_VALUE _print_graph(const KMER_GRAPH *Graph, const PROGRAM_OPTIONS *Op
 	char graphName[261];
 
 	ret = ERR_SUCCESS;
-	if (Always || (Options->ParseOptions.PlotOptions.PlotFlags & Flag)) {
+	if (*Options->OutputDirectoryBase != '\0' && (Options->ParseOptions.PlotOptions.PlotFlags & Flag)) {
 		const char *flagNames[] = {
 			"ref", "reads", "helper", "long", "th1",
 			"conn", "th2", "shrink", "vars", "res"
@@ -289,31 +289,26 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 		ret = assembly_state_init(g, ParseOptions, Task->Reads, Task->ReadCount, &state);
 		if (ret == ERR_SUCCESS) {
 			size_t deletedThings = 0;
-			GEN_ARRAY_size_t readIndices;
-			GEN_ARRAY_size_t refIndices;
 			GEN_ARRAY_KMER_EDGE_PAIR ep;
 
 			dym_array_init_KMER_EDGE_PAIR(&ep, 140);
-			dym_array_init_size_t(&refIndices, 140);
-			dym_array_init_size_t(&readIndices, 140);
-
 			ret = assembly_parse_reference(&state);
-			_print_graph(g, Options, Task, GRAPH_PRINT_REFERENCE, FALSE);
+			_print_graph(g, Options, Task, GRAPH_PRINT_REFERENCE);
 			if (ret == ERR_REF_REPEATS)
 				ret = ERR_SUCCESS;
 			
 			if (ret == ERR_SUCCESS)
 				ret = assembly_parse_reads(&state);
 
-			_print_graph(g, Options, Task, GRAPH_PRINT_RAW_READS, FALSE);
+			_print_graph(g, Options, Task, GRAPH_PRINT_RAW_READS);
 			if (ret == ERR_SUCCESS)
 				ret = assembly_add_helper_vertices(&state);
 				
-			_print_graph(g, Options, Task, GRAPH_PRINT_HELPER, FALSE);
+			_print_graph(g, Options, Task, GRAPH_PRINT_HELPER);
 			if (ret == ERR_SUCCESS)
 				ret = assembly_create_long_edges(&state, &ep);
 
-			_print_graph(g, Options, Task, GRAPH_PRINT_LONG_EDGES, FALSE);
+			_print_graph(g, Options, Task, GRAPH_PRINT_LONG_EDGES);
 			if (ret == ERR_SUCCESS) {
 				g->DeleteEdgeCallback = _on_delete_edge;
 				g->DeleteEdgeCallbackContext = &ep;
@@ -322,23 +317,23 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 				g->DeleteEdgeCallback = NULL;
 			}
 
-			_print_graph(g, Options, Task, GRAPH_PRINT_THRESHOLD_1, FALSE);
+			_print_graph(g, Options, Task, GRAPH_PRINT_THRESHOLD_1);
 			if (ret == ERR_SUCCESS && g->TypedEdgeCount[kmetRead] > 0) {
 				size_t changeCount = 0;
 
 				ret = kmer_graph_connect_reads_by_pairs(g, ParseOptions->ReadThreshold, &ep, &changeCount);
-				_print_graph(g, Options, Task, GRAPH_PRINT_CONNECT, FALSE);
+				_print_graph(g, Options, Task, GRAPH_PRINT_CONNECT);
 				if (ret == ERR_SUCCESS) {
 					kmer_graph_compute_weights(g);
 					kmer_graph_delete_edges_under_threshold(g, ParseOptions->ReadThreshold);
 					kmer_graph_delete_trailing_things(g, &deletedThings);
 				}
 				
-				_print_graph(g, Options, Task, GRAPH_PRINT_THRESHOLD_2, FALSE);
+				_print_graph(g, Options, Task, GRAPH_PRINT_THRESHOLD_2);
 				if (ret == ERR_SUCCESS && ParseOptions->LinearShrink)
 					kmer_graph_delete_1to1_vertices(g);
 
-				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, FALSE);
+				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK);
 				if (ret == ERR_SUCCESS) {
 					boolean changed = FALSE;
 
@@ -351,7 +346,7 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 				if (ret == ERR_SUCCESS)
 					ret = assembly_variants_to_edges(&state, VCArray);
 
-				_print_graph(g, Options, Task, GRAPH_PRINT_VARIANTS, FALSE);
+				_print_graph(g, Options, Task, GRAPH_PRINT_VARIANTS);
 				if (g->TypedEdgeCount[kmetRead] > 0)
 					ret = ERR_TOO_COMPLEX;
 			}
