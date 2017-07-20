@@ -2044,67 +2044,6 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT
 					dym_array_clear_size_t(&w2);
 					rs_storage_reset(&s2);
 					rs_storage_add_vertex(&s2, path2Start->Source);
-					/*
-					rs_storage_add_edge(&s2, path2Start);
-					dym_array_push_back_array_size_t(&w2, &path2Start->Weights);
-					pointer_array_push_back_array_READ_INFO(&rp2, &path2Start->ReadIndices);
-					pointer_array_push_back_KMER_EDGE(&es2, path2Start);
-					while (ret == ERR_SUCCESS && kmer_vertex_out_degree(path2Vertex) == 1 && path2Vertex->Type == kmvtRead) {
-						int r;
-						PKMER_EDGE e = NULL;
-
-						e = kmer_vertex_get_succ_edge(path2Vertex, 0);
-						if (kh_get(es, table, e->Order) != kh_end(table))
-							break;
-
-						dym_array_push_back_array_size_t(&w2, &e->Weights);
-						pointer_array_push_back_array_READ_INFO(&rp2, &e->ReadIndices);
-						pointer_array_push_back_KMER_EDGE(&es2, e);
-						ret = rs_storage_add_edge(&s2, e);
-						weight2 = max(weight2, e->Seq1Weight);
-						path2Vertex = e->Dest;
-						kh_put(es, table, e->Order, &r);
-					}
-					
-					if (ret == ERR_SUCCESS && path2Vertex->Type == kmvtRead && kmer_vertex_out_degree(path2Vertex) > 1 && kmer_vertex_in_degree(path2Vertex) == 1) {
-						GEN_ARRAY_size_t tmpw2;
-						POINTER_ARRAY_READ_INFO tmpRP;
-						POINTER_ARRAY_KMER_EDGE tmpE;
-
-						pointer_array_init_KMER_EDGE(&tmpE, 140);
-						pointer_array_init_READ_INFO(&tmpRP, 140);
-						dym_array_init_size_t(&tmpw2, 140);
-						for (size_t i = 0; i < kmer_vertex_out_degree(path2Vertex); ++i) {
-							char *tmpSeq = NULL;
-							size_t tmpSeqLen = 0;
-							PKMER_EDGE succEdge = kmer_vertex_get_succ_edge(path2Vertex, i);
-
-							pointer_array_clear_KMER_EDGE(&tmpE);
-							pointer_array_clear_READ_INFO(&tmpRP);
-							dym_array_clear_size_t(&tmpw2);
-							ret = _follow_line(succEdge, &tmpSeq, &tmpSeqLen, &succEdge, &tmpw2, &tmpRP, &tmpE);
-							if (ret == ERR_SUCCESS) {
-								if (path1Vertex == succEdge->Dest) {
-									path2Start = succEdge;
-									path2Vertex = succEdge->Dest;
-									rs_storage_add_seq(&s2, tmpSeq, tmpSeqLen);
-									utils_free(tmpSeq);
-									dym_array_push_back_array_size_t(&w2, &tmpw2);
-									pointer_array_push_back_array_READ_INFO(&rp2, &tmpRP);
-									pointer_array_push_back_array_KMER_EDGE(&es2, &tmpE);
-									break;
-								} else utils_free(tmpSeq);
-							}
-
-							if (ret != ERR_SUCCESS)
-								break;
-						}
-
-						dym_array_finit_size_t(&tmpw2);
-						pointer_array_finit_READ_INFO(&tmpRP);
-						pointer_array_finit_KMER_EDGE(&tmpE);
-					}
-					*/
 					ret = _capture_alternate_edges(path2Start, path1Vertex, &es2);
 					if (ret == ERR_SUCCESS) {
 						size_t narrowCount = 0;
