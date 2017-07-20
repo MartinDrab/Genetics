@@ -43,7 +43,6 @@ void kmer_graph_print(FILE *Stream, const KMER_GRAPH *Graph);
 void kmer_graph_set_starting_vertex(PKMER_GRAPH Graph, const KMER *KMer);
 void kmer_graph_set_ending_vertex(PKMER_GRAPH Graph, const KMER *KMer);
 
-void kmer_graph_range(PKMER_GRAPH Graph, uint64_t Start, uint64_t End);
 void kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph);
 void kmer_graph_delete_edges_under_threshold(PKMER_GRAPH Graph, const size_t Threshold);
 void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings);

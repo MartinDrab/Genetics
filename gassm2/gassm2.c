@@ -341,7 +341,6 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 
 			_print_graph(g, Options, Task, GRAPH_PRINT_RAW_READS, FALSE);
 			if (ParseOptions->PlotOptions.PlotStep == 1) {
-				kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
 				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
 				ret = ERR_PLOT_FINISHED;
 			}
@@ -351,7 +350,6 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 				
 			_print_graph(g, Options, Task, GRAPH_PRINT_HELPER, FALSE);
 			if (ParseOptions->PlotOptions.PlotStep == 2) {
-				kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
 				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
 				ret = ERR_PLOT_FINISHED;
 			}
@@ -361,7 +359,6 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 
 			_print_graph(g, Options, Task, GRAPH_PRINT_LONG_EDGES, FALSE);
 			if (ParseOptions->PlotOptions.PlotStep == 3) {
-				kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
 				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
 				ret = ERR_PLOT_FINISHED;
 			}
@@ -376,7 +373,6 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 
 			_print_graph(g, Options, Task, GRAPH_PRINT_THRESHOLD_1, FALSE);
 			if (ParseOptions->PlotOptions.PlotStep == 4) {
-				kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
 				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
 				ret = ERR_PLOT_FINISHED;
 			}
@@ -387,7 +383,6 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 				ret = kmer_graph_connect_reads_by_pairs(g, ParseOptions->ReadThreshold, &ep, &changeCount);
 				_print_graph(g, Options, Task, GRAPH_PRINT_CONNECT, FALSE);
 				if (ParseOptions->PlotOptions.PlotStep == 5) {
-					kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
 					_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
 					ret = ERR_PLOT_FINISHED;
 				}
@@ -400,7 +395,6 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 				
 				_print_graph(g, Options, Task, GRAPH_PRINT_THRESHOLD_2, FALSE);
 				if (ParseOptions->PlotOptions.PlotStep == 6) {
-					kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
 					_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
 					ret = ERR_PLOT_FINISHED;
 				}
@@ -410,7 +404,6 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 
 				_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, FALSE);
 				if (ParseOptions->PlotOptions.PlotStep == 7) {
-					kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
 					_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
 					ret = ERR_PLOT_FINISHED;
 				}
@@ -431,7 +424,6 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 
 				_print_graph(g, Options, Task, GRAPH_PRINT_VARIANTS, FALSE);
 				if (ParseOptions->PlotOptions.PlotStep == 8) {
-					kmer_graph_range(g, ParseOptions->PlotOptions.PlotRefStart, ParseOptions->PlotOptions.PlotRefEnd);
 					_print_graph(g, Options, Task, GRAPH_PRINT_SHRINK, TRUE);
 					ret = ERR_PLOT_FINISHED;
 				}

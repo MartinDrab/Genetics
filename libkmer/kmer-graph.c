@@ -497,44 +497,28 @@ static void _init_quality_table(uint8_t *Table)
 /************************************************************************/
 
 
-PKMER_EDGE _get_typed_edge(const KMER_VERTEX *Vertex, EKMerEdgeType Type)
-{
-	PKMER_EDGE ret = NULL;
-
-	for (size_t i = 0; i < kmer_vertex_out_degree(Vertex); ++i) {
-		PKMER_EDGE tmp = kmer_vertex_get_succ_edge(Vertex, i);
-
-		if (tmp->Type == Type) {
-			ret = tmp;
-			break;
-		}
-	}
-
-	return ret;
-}
-
-
 PKMER_EDGE _get_refseq_edge(const KMER_VERTEX *Vertex)
 {
 	return Vertex->RefEdge;
-//	return _get_typed_edge(Vertex, kmetReference);
 }
 
 
 PKMER_EDGE _get_refseq_or_variant_edge(const KMER_VERTEX *Vertex)
 {
-	PKMER_EDGE ret = NULL;
-
-	ret = Vertex->RefVarEdge;
-	/*
-	ret = _get_typed_edge(Vertex, kmetReference);
-	if (ret == NULL)
-		ret = _get_typed_edge(Vertex, kmetVariant);
-	*/
-	return ret;
+	return Vertex->RefVarEdge;
 }
 
 
+/** @brief
+ *  Recovers a sequence from given set of edges.
+ *
+ *  @param Graph
+ *  @param Start Starting edge, the sequence should begin here.
+ *  @param RSEdges Intermediate edges.
+ *  @param End The last edge, its destination vertex is not included within the captured sequence.
+ *  @param Seq Receives address of the captured sequence.
+ *  @param SeqLen Receives the length of the sequence.
+ */
 static ERR_VALUE _capture_edge_sequence(const KMER_GRAPH *Graph, const KMER_EDGE *Start, const POINTER_ARRAY_KMER_EDGE *RSEdges, const KMER_EDGE *End, char **Seq, size_t *SeqLen)
 {
 	REFSEQ_STORAGE rsStorage;
@@ -582,6 +566,13 @@ static ERR_VALUE _capture_edge_sequence(const KMER_GRAPH *Graph, const KMER_EDGE
 }
 
 
+/** @brief
+ *  Creates an instance of a de Bruijn-like graph.
+ *
+ *  @param KMerSize Size of the k-mers.
+ *  @param VerticesHint Expected number of vertices.
+ *  @param EdgesHint Expected number of edges.
+ */
 ERR_VALUE kmer_graph_create(const uint32_t KMerSize, const size_t VerticesHint, const size_t EdgesHint, PKMER_GRAPH *Graph)
 {
 	PKMER_GRAPH tmpGraph = NULL;
@@ -652,6 +643,14 @@ ERR_VALUE kmer_graph_create(const uint32_t KMerSize, const size_t VerticesHint, 
 }
 
 
+/** @brief
+ *  Destroys a given graph instance.
+ *
+ *  @param Graph The graph to destroy.
+ *
+ *  @remark
+ *  The graph may be in any state.
+ */
 void kmer_graph_destroy(PKMER_GRAPH Graph)
 {
 	pointer_array_finit_KMER_VERTEX(&Graph->RefVertices);
@@ -676,6 +675,12 @@ void kmer_graph_destroy(PKMER_GRAPH Graph)
 }
 
 
+/** @brief
+ *  Prints the graph in format suitable for dot (Graphwiz).
+ *
+ *  @param Stream Target of the printing.
+ *  @param Graph The graph to print.
+ */
 void kmer_graph_print(FILE *Stream, const KMER_GRAPH *Graph)
 {
 	void *it = NULL;
@@ -701,55 +706,17 @@ void kmer_graph_print(FILE *Stream, const KMER_GRAPH *Graph)
 	return;
 }
 
-/*
-typedef struct _PATH_COMPARE_CONTEXT {
-	const KMER_EDGE **Path;
-	size_t PathLength;
-	size_t CurrentIndex;
-	const KMER_EDGE *CurrentEdge;
-	const char *Seq;
-	size_t SeqLen;
-	uint32_t KMerSize;
-	boolean End;
-} PATH_COMPARE_CONTEXT, *PPATH_COMPARE_CONTEXT;
-*/
 
-
-void kmer_graph_range(PKMER_GRAPH Graph, uint64_t Start, uint64_t End)
-{
-	PKMER_EDGE e = NULL;
-
-	e = _get_refseq_or_variant_edge(Graph->StartingVertex);
-	while (e->Dest != Graph->EndingVertex) {
-		PKMER_VERTEX v = e->Source;
-
-		e = _get_refseq_or_variant_edge(e->Dest);
-		if (v->Type == kmvtRefSeqMiddle &&
-			(v->AbsPos + 1 < Start || v->AbsPos + 1 > End)) {
-			while (pointer_array_size(&v->Successors) > 0)
-				kmer_graph_delete_edge(Graph, v->Successors.Data[0]);
-
-			while (pointer_array_size(&v->Predecessors) > 0)
-				kmer_graph_delete_edge(Graph, v->Predecessors.Data[0]);
-
-			kmer_graph_delete_vertex(Graph, v);
-		} else if (v->AbsPos == Start) {
-			v->Type = kmvtRefSeqStart;
-			Graph->StartingVertex = v;
-		} else if (v->AbsPos == End) {
-			v->Type = kmvtRefSeqEnd;
-			Graph->EndingVertex = v;
-		}
-	}
-
-//	size_t dummy = 0;
-
-//	kmer_graph_delete_trailing_things(Graph, &dummy);
-
-	return;
-}
-
-
+/** @brief
+ *  Removes all vertices with one input and one output edge. The edges are merged
+ *  together.
+ *
+ *  @param Graph The graph.
+ *
+ *  @remark
+ *  This is analogous to contig creation in other algorithms.
+ *  Long edges and variant edges are not merged.
+ */
 void kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph)
 {
 	void *iter = NULL;
@@ -780,6 +747,16 @@ void kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph)
 }
 
 
+/** @brief
+ *  Removes all edges with insufficient read coverage, oredges covered only by read beginnings.
+ *
+ *  @param Graph
+ *  @param Threshold Defines read coverage an edge must exceed in order not to be deleted.
+ *
+ *  @remark
+ *  Removal of edges covered by read beginnings only is indented as a remedy to false positives
+ *  created pa short variant optimization. Well, it seems not working.
+ */
 void kmer_graph_delete_edges_under_threshold(PKMER_GRAPH Graph, const size_t Threshold)
 {
 	PKMER_EDGE e = NULL;
@@ -836,6 +813,12 @@ void kmer_graph_set_ending_vertex(PKMER_GRAPH Graph, const KMER *KMer)
 }
 
 
+/** @brief
+ *  Removes dead-ends from a graph.
+ *
+ *  @param Graph The graph.
+ *  @param DeletedThings Receives the number of deleted edges.
+ */
 void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings)
 {
 	void *iter = NULL;
@@ -884,37 +867,24 @@ void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings)
 	}
 
 	pointer_array_finit_KMER_VERTEX(&stack);
-	/*
-	ret = kmer_table_first(Graph->VertexTable, &iter, (void **)&v);
-	while (ret != ERR_SUCCESS) {
-		boolean deleted = FALSE;
 
-		if (v->Type != kmvtRefSeqStart && v->Type != kmvtRefSeqEnd) {
-			if (kmer_vertex_in_degree(v) == 0) {
-				deleted = TRUE;
-				while (kmer_vertex_out_degree(v) > 0)
-					kmer_graph_delete_edge(Graph, kmer_vertex_get_succ_edge(v, 0));
-			} else if (kmer_vertex_out_degree(v) == 0) {
-				deleted = TRUE;
-				while (kmer_vertex_in_degree(v) > 0)
-					kmer_graph_delete_edge(Graph, kmer_vertex_get_pred_edge(v, 0));
-			}
-
-			if (deleted) {
-				kmer_graph_delete_vertex(Graph, v);
-				*DeletedThings += 1;
-			}
-		}
-
-		ret = (deleted) ?
-			kmer_table_first(Graph->VertexTable, &iter, (void **)&v) :
-			kmer_table_next(Graph->VertexTable, iter, &iter, (void **)&v);
-	}
-	*/
 	return;
 }
 
 
+/** @brief
+ *  Inserts a vertex into the graph.
+ *
+ *  @param Graph
+ *  @param KMer KMer represented by the vertex.
+ *  @param Type Type of the vertex.
+ *  @param Vertex Receives either the newly inserted vertex, or one representing
+ *  the k-mer (already) in the graph.
+ *
+ *  @return
+ *    ERR_SUCCESS for an successful insertion.
+ *    ERR_ALREADY_EXISTS to indicate that the given k-mer is present in the graph.
+ */
 ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EKMerVertexType Type, PKMER_VERTEX *Vertex)
 {
 	PKMER_VERTEX v = NULL;
@@ -969,6 +939,23 @@ ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EK
 }
 
 
+/** @brief
+ *  Inserts a helper vertex into the graph. K-mers defining the edge the new vertex
+ *  should divide need to be given.
+ *
+ *  @param Graph
+ *  @param KMer1 k-mer represented by the edge source.
+ *  @param KMer2 k-mer represented by the edge destination.
+ *  @param Vertex Receives either the new, or existing helper vertex.
+ *
+ *  @return
+ *    ERR_SUCCESS when the new vertex is created.
+ *    ERR_ALREADY_EXISTS when an existing one is just returned.
+ *
+ *  @remark
+ *  The routine does not divide the target edge. The target edge actually may be non-existent
+ *  at a time the routine is called. The vertex is just added into the table of helper vertices.
+ */
 ERR_VALUE kmer_graph_add_helper_vertex(PKMER_GRAPH Graph, const KMER *KMer1, const KMER *KMer2, PKMER_VERTEX *Vertex)
 {
 	PKMER_VERTEX v = NULL;
@@ -1007,6 +994,19 @@ ERR_VALUE kmer_graph_add_helper_vertex(PKMER_GRAPH Graph, const KMER *KMer1, con
 }
 
 
+/** @brief
+ *  Inserts an edge into the graph.
+ *
+ *  @param Graph
+ *  @param Source The source vertex.
+ *  @param Dest The destination vertex.
+ *  @param Type The edge type (reference, read, variant).
+ *  @param Edge Receives either the new or existing edge.
+ *
+ *  @return
+ *    ERR_SUCESS when a new edge is created and inserted.
+ *   ERR_ALREADY_EXISTS when the given vertices are already connected with an edge.
+ */
 ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_VERTEX Dest, const EKMerEdgeType Type, PKMER_EDGE *Edge)
 {
 	PKMER_EDGE edge = NULL;
@@ -1043,6 +1043,17 @@ ERR_VALUE kmer_graph_add_edge_ex(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_V
 }
 
 
+/** @brief
+ *  Retrieves an edge, given k-mers represented by its source and destination vertices.
+ *
+ *  @param Graph
+ *  @param Source K-mer representing the source vertex.
+ *  @param Dest K-mer representing the destination vertex.
+ *
+ *  @return
+ *  Returns the edge connecting the source and destination k-mers. If no such
+ *  edge exists, NULL is returned.
+ */
 PKMER_EDGE kmer_graph_get_edge(const struct _KMER_GRAPH *Graph, const struct _KMER *Source, const struct _KMER *Dest)
 {
 	return (PKMER_EDGE)kmer_edge_table_get(Graph->EdgeTable, Source, Dest);
