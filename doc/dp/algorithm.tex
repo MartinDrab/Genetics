@@ -146,6 +146,9 @@ k_8 = (TATAT, 1) \\
 k_9 = (ATATG, 0) \\
 k_{10} = (TATGB, 0)
 \end{align*}
+
+The figure follows a coloring scheme preserved in de Bruijn graphs across the whole thesis --- green color for reference, red for reads, yellow and blue for marking start and end of an active region.
+
 As can bee seen, there are two k-mers representing sequence \texttt{TATAT}, namely $k_6$ and $k_8$. Because of their distinct context numbers, they are represented as separate vertices. Introduction of the context numbers removed a loop from the graph. The loop can be observed on Figure \ref{fig:ref-db} that shows a standard de Bruijn graph constructed from the same active region. K-mers $k_6$ and $k_8$ are represented by the same vertex. In order to recover the sequence, it is required to know how many times the loop was actually used during the transformation step.
 
 \begin{figure}[h]
@@ -464,5 +467,16 @@ to the other.
 \end{itemize}
 
 The graph usually has a form of many components. Variants in one component share the same phasing. All the information used to create read and pair edges remain stored in the graph vertices and can be used to detect false positives among the variants, possibly together with a detection method based on searching for certain types of subgraphs.
+
+An example of a colored component of the variant graph can be seen on Figure \ref{fig:variant-graph}. The component puts together two variants (at reference positions 534324 and 534447) and a residuum after a variant evaluated as a false positive (position 534547). Blue edges connect parts of each variant together, black edges report connections based on paired-end information and parts sharing some amounts of reads are connected by red. Numbers on the edges specify number of reads participating in the connection. 
+
+\begin{figure}[h]
+	\centering
+	\includegraphics{img/variant-graph.pdf}
+	\caption{An example of a variant graph component}
+	\label{fig:variant-graph}
+\end{figure}
+
+The coloring clearly indicates that both variants are present only in one of two alternate sequences (blue one). Since the variant at 534547 is considered as false positive, both alternate sequences are directed through its reference part and its alternate part is removed from the graph. Keeping residues after fake variants makes certain sense because other variants may connect through them. It can also be observed that the phasing of the two true variants is enforced by the paired-end information, not by reads covering both variants directly.
 
 When the graph is colored, the genotype and phasing information are known. The variants are written to the resulting VCF file.
