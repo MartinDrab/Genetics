@@ -1060,12 +1060,19 @@ PKMER_EDGE kmer_graph_get_edge(const struct _KMER_GRAPH *Graph, const struct _KM
 }
 
 
-PKMER_VERTEX kmer_graph_get_vertex(const struct _KMER_GRAPH *Graph, const struct _KMER *KMer)
-{
-	return (PKMER_VERTEX)kmer_table_get(Graph->VertexTable, KMer);
-}
-
-
+/** @brief
+ *  Retrieves all vertices representing k-mers equal by sequence to the given one.
+ *
+ *  @param Graph
+ *  @param KMer K-mer the sequence of which should be used as the search pattern.
+ *  @param VertexArray Receives address of the array of vertices representing k-mers
+ *  equal (by sequence!) to the given k-mer. Their order is sorted by the context number.
+ *  The address points to internal graph structures and the array MUST NOT be modified in any way.
+ *
+ *  @return
+ *    ERR_SUCCESS when at leat one vertex is found.
+ *    ERR_NOT_FOUND otherwise.
+ */
 ERR_VALUE kmer_graph_get_vertices(const KMER_GRAPH *Graph, const KMER *KMer, PPOINTER_ARRAY_KMER_VERTEX *VertexArray)
 {
 	PKMER lk = NULL;
@@ -1090,6 +1097,15 @@ ERR_VALUE kmer_graph_get_vertices(const KMER_GRAPH *Graph, const KMER *KMer, PPO
 }
 
 
+/** @brief
+ *  Removes a vertex from the graph and destroys it completely.
+ *
+ *  @param Graph
+ *  @param Vertex The vertex to delete.
+ *
+ *  The input and output degree of the vertex must by lower than 2. If both are 1,
+ *  the incoming and outgoing edges are merged.
+ */
 ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex)
 {
 	PKMER_EDGE inEdge = NULL;
@@ -1139,6 +1155,12 @@ ERR_VALUE kmer_graph_delete_vertex(PKMER_GRAPH Graph, PKMER_VERTEX Vertex)
 }
 
 
+/** @brief
+ *  Removes a given edge from the graph and destroys its structure.
+ *
+ *  @param Graph
+ *  @param Edge The edge to remove.
+ */
 void kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge)
 {
 	ERR_VALUE err = ERR_INTERNAL_ERROR;
@@ -1167,6 +1189,18 @@ void kmer_graph_delete_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge)
 }
 
 
+/** @brief
+ *  Merges two edges, including their data, together.
+ *
+ *  @param Graph
+ *  @param Source The source edge.
+ *  @param Dest The destination edge.
+ *
+ *  @remark
+ *  The source edge must share its destination with the destination edge (that must
+ *  lead from that vertex). Merge operation fails if the edge connecting the vertices
+ *  already exists.
+ */
 ERR_VALUE kmer_graph_merge_edges(PKMER_GRAPH Graph, PKMER_EDGE Source, PKMER_EDGE Dest)
 {
 	PKMER_VERTEX v = NULL;
@@ -1259,6 +1293,20 @@ ERR_VALUE kmer_graph_get_splitted_edge(PKMER_GRAPH Graph, const KMER_VERTEX *Sou
 }
 
 
+/** @brief
+ *  Inserts a helper vertex to a given edge.
+ *
+ *  @param Graph
+ *  @param Edge Edge to split
+ *  @param SourceEdge Receives the edge leading to the newly created helper vertex.
+ *  @param DestEdge Receives the edge going from the new helper vertex.
+ *  @param SplitVertex Receives the newly created helper vertex.
+ *
+ *  @return
+ *    ERR_SUCCESS if the edge split operation succeeds.
+ *   ERR_ALREADY_EXISTS if the helper vertex is already defined. In that case,
+ *   returns the vertex and its incoming and outgoin edges.
+ */
 ERR_VALUE kmer_graph_split_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge, PKMER_EDGE *SourceEdge, PKMER_EDGE *DestEdge, PKMER_VERTEX *SplitVertex)
 {
 	PKMER_EDGE es = NULL;
@@ -1333,29 +1381,6 @@ ERR_VALUE kmer_graph_split_edge(PKMER_GRAPH Graph, PKMER_EDGE Edge, PKMER_EDGE *
 	assert(*SourceEdge != NULL);
 	assert(*DestEdge != NULL);
 	assert(*SplitVertex != NULL);
-
-	return ret;
-}
-
-
-ERR_VALUE kmer_vertex_get_certain_edges(const KMER_VERTEX *Vertex, const EKMerEdgeType EdgeType, const boolean Incomming, PPOINTER_ARRAY_KMER_EDGE Array)
-{
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	const PKMER_EDGE *edgeArray = (Incomming) ? (Vertex->Predecessors.Data) : (Vertex->Successors.Data);
-	const size_t count = pointer_array_size((Incomming) ? (&Vertex->Predecessors) : (&Vertex->Successors));
-
-	ret = ERR_SUCCESS;
-	for (size_t i = 0; i < count; ++i) {
-		const KMER_EDGE *e = *edgeArray;
-	
-		if (e->Type == EdgeType)
-			ret = pointer_array_push_back_KMER_EDGE(Array, e);
-		
-		if (ret != ERR_SUCCESS)
-			break;
-
-		++edgeArray;
-	}
 
 	return ret;
 }
@@ -1461,6 +1486,16 @@ static void _remove_context_apply(PKMER_GRAPH Graph, PEDGE_REMOVE_CONTEXT Contex
 }
 
 
+/** @brief
+ *  Goes through a list of long edges connecting possible variants of one alternate
+ *  sequence. If their read coverage is not high enough, they are removed. If it is,
+ *  edges superseeded by the long ones are removed.
+ *
+ *  @param Graph
+ *  @param Threshold Number of reads the long edge must exceed in order to survive.
+ *  @param PairArray Array of the long (connecting) edges.
+ *  @param ChangeCount Receives number of changes made in the graph.
+ */
 ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Threshold, PGEN_ARRAY_KMER_EDGE_PAIR PairArray, size_t *ChangeCount)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
