@@ -413,9 +413,7 @@ static ERR_VALUE _compute_graph(uint32_t KMerSize, const KMER_GRAPH_ALLOCATOR *A
 
 					do {
 						changed = FALSE;
-						kmer_graph_check_weights(g);
-						ret = kmer_graph_detect_uncertainities(g, VCArray, Options->RefSeq.Name, ParseOptions, &changed);
-						kmer_graph_check_weights(g);
+						ret = kmer_graph_detect_variant(g, VCArray, Options->RefSeq.Name, ParseOptions, &changed);
 					} while (ret == ERR_SUCCESS && changed);
 				}
 

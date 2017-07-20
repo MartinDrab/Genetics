@@ -47,7 +47,7 @@ void kmer_graph_delete_1to1_vertices(PKMER_GRAPH Graph);
 void kmer_graph_delete_edges_under_threshold(PKMER_GRAPH Graph, const size_t Threshold);
 void kmer_graph_delete_trailing_things(PKMER_GRAPH Graph, size_t *DeletedThings);
 ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Threshold, PGEN_ARRAY_KMER_EDGE_PAIR PairArray, size_t *ChangeCount);
-ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT_CALL VCArray, const char *CHrom, const PARSE_OPTIONS *Options, boolean *Changed);
+ERR_VALUE kmer_graph_detect_variant(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT_CALL VCArray, const char *CHrom, const PARSE_OPTIONS *Options, boolean *Changed);
 
 ERR_VALUE kmer_graph_add_vertex_ex(PKMER_GRAPH Graph, const KMER *KMer, const EKMerVertexType Type, PKMER_VERTEX *Vertex);
 ERR_VALUE kmer_graph_add_helper_vertex(PKMER_GRAPH Graph, const KMER *KMer1, const KMER *KMer2, PKMER_VERTEX *Vertex);
@@ -66,7 +66,6 @@ PKMER_EDGE _get_refseq_edge(const KMER_VERTEX *Vertex);
 PKMER_EDGE _get_refseq_or_variant_edge(const KMER_VERTEX *Vertex);
 
 ERR_VALUE kmer_graph_compute_weights(PKMER_GRAPH Graph);
-void kmer_graph_check_weights(PKMER_GRAPH Graph);
 
 ERR_VALUE kmer_edge_add_read(PKMER_EDGE Edge, size_t ReadIndex, size_t ReadPosition, uint8_t Quality);
 

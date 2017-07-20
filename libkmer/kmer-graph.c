@@ -1635,6 +1635,18 @@ ERR_VALUE kmer_graph_connect_reads_by_pairs(PKMER_GRAPH Graph, const size_t Thre
 KHASH_SET_INIT_INT(es);
 
 
+/** @brief
+ *  Given a starting edge for an alternate sequence and a reference vertex, performs a DFS to
+ *  find a path from that starting edge to that vertex, covered only by read vertices.
+ *
+ *  @param Start The starting edge.
+ *  @param RefDest The target reference vertex.
+ *  @param Edges The recorded path.
+ *
+ *  @remark
+ *  The routine is capable of detecting loops.
+ *  The recored path is than used as an alternate sequence for variant calling.
+ */
 static ERR_VALUE _capture_alternate_edges(const KMER_EDGE *Start, const KMER_VERTEX *RefDest, PPOINTER_ARRAY_KMER_EDGE Edges)
 {
 	int r;
@@ -1726,6 +1738,15 @@ static ERR_VALUE _capture_alternate_edges(const KMER_EDGE *Start, const KMER_VER
 }
 
 
+/** @brief
+ *  Captures information, such as recovered sequence and read coverage from a given path
+ *  of edges representing an alternate sequence.
+ *
+ *  @param Edges The path of edges.
+ *  @param Seq Receives the sequence.
+ *  @param Weights Receives weights of the edges (not used).
+ *  @param ReadPath Receives the read coverage information.
+ */
 static ERR_VALUE _capture_alt_data(const POINTER_ARRAY_KMER_EDGE *Edges, PREFSEQ_STORAGE Seq, PGEN_ARRAY_size_t Weights, PPOINTER_ARRAY_READ_INFO ReadPath)
 {
 	const KMER_EDGE *e = NULL;
@@ -1825,6 +1846,27 @@ static inline uint32_t calc_binom(size_t na, size_t nb)
 }
 
 
+/** @brief
+ * Given a reference and alternate sequence, creates variants representing
+ * the alternate one.
+ *
+ * @param KMerSize
+ * @param Chrom The chromosome of the reference.
+ * @param Pos Starting postion of the reference.
+ * @param Ref The reference sequence.
+ * @param RefLen Length of the reference.
+ * @param Alt The alternate sequence.
+ * @param AltLen Length of the alternate sequence.
+ * @param RefReads Reads covering the reference sequence.
+ * @param AltReads Reads covering the alternate one.
+ * @param VCArray An array to receive the newly created variants.
+ *
+ * @remark
+ * The VCArray is not cleared, it may just grow.
+ * The alternate and reference sequence should start at a position just before a difference
+ * is detected.
+ * SSW is used to break the sequences into individual variants.
+ */
 static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, uint64_t Pos, const char *Ref, size_t RefLen, const char *Alt, size_t AltLen, const GEN_ARRAY_size_t *RSWeights, const GEN_ARRAY_size_t *ReadWeights, const POINTER_ARRAY_READ_INFO *RefReads, const POINTER_ARRAY_READ_INFO *AltReads, void *Context, const PARSE_OPTIONS *Options, PGEN_ARRAY_VARIANT_CALL VCArray)
 {
 	VARIANT_CALL vc;
@@ -1969,7 +2011,11 @@ static ERR_VALUE _create_variants(const uint32_t KMerSize, const char *Chrom, ui
 }
 
 
-ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT_CALL VCArray, const char *CHrom, const PARSE_OPTIONS *Options, boolean *Changed)
+/** @brief
+ *  Goes through the graph and searches for the subgraphs described in the "Variant Calling"
+ *  section of the thesis.
+ */
+ERR_VALUE kmer_graph_detect_variant(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT_CALL VCArray, const char *CHrom, const PARSE_OPTIONS *Options, boolean *Changed)
 {
 	boolean edgeCreated = FALSE;
 	REFSEQ_STORAGE s1;
@@ -2150,26 +2196,10 @@ ERR_VALUE kmer_graph_detect_uncertainities(PKMER_GRAPH Graph, PGEN_ARRAY_VARIANT
 	pointer_array_finit_KMER_EDGE(&es1);
 
 	kmer_graph_delete_trailing_things(Graph, &dummy);
-//	kmer_graph_delete_1to1_vertices(Graph);
 
 	return ret;
 }
 
-
-void kmer_graph_check_weights(PKMER_GRAPH Graph)
-{
-	void *iter = NULL;
-	PKMER_EDGE e = NULL;
-
-	if (kmer_edge_table_first(Graph->EdgeTable, &iter, &e) == ERR_SUCCESS) {
-		do {
-			assert(gen_array_size(&e->Weights) == pointer_array_size(&e->ReadIndices));
-			assert(pointer_array_size(&e->ReadIndices) == e->SeqLen + (!e->Dest->Helper ? 1 : 0));
-		} while (kmer_edge_table_next(Graph->EdgeTable, iter, &iter, &e) == ERR_SUCCESS);
-	}
-
-	return;
-}
 
 ERR_VALUE kmer_graph_compute_weights(PKMER_GRAPH Graph)
 {
