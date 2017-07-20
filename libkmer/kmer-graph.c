@@ -69,6 +69,17 @@ static void _default_edge_freer(struct _KMER_GRAPH *Graph, PKMER_EDGE Edge, void
 }
 
 
+/** @brief
+ *  Creates and initializes a vertex structure.
+ *
+ *  @param Graph The graph to associate the vertex with.
+ *  @param KMer K-mer represented by the vertex.
+ *  @param Type Type of the vertex (start, end, reference, read).
+ *  @param Result Receives address of the vertex structure.
+ *
+ *  @remark
+ *  The vertex is not inserted into the graph.
+ */
 static ERR_VALUE _vertex_create(PKMER_GRAPH Graph, const KMER *KMer, const EKMerVertexType Type, PKMER_VERTEX *Result)
 {
 	PKMER_VERTEX tmp = NULL;
@@ -99,6 +110,15 @@ static ERR_VALUE _vertex_create(PKMER_GRAPH Graph, const KMER *KMer, const EKMer
 }
 
 
+/** @brief
+ *  Destroys a vertex.
+ *
+ *  @param Graph The graph.
+ *  @param Vertex The vertex to destroy.
+ *
+ *  @remark
+ *  If in the graph, the vertex is not deleted, just added to the listof pending deletions.
+ */
 static void _vertex_destroy(PKMER_GRAPH Graph, PKMER_VERTEX Vertex)
 {
 	PKMER_GRAPH g = Vertex->Lists.Graph;
@@ -146,37 +166,59 @@ static ERR_VALUE _vertex_copy(PKMER_GRAPH Graph, const KMER_VERTEX *Vertex, PKME
 /*                        EDGE BASIC ROUTINES                         */
 /************************************************************************/
 
+
+/** @brief
+ *  Creates and initializes an edge.
+ *
+ *  @param Graph The graph for theedge.
+ *  @param Source Source vertex.
+ *  @param Dest Dest vertex.
+ *  @param Type Edge type (reference, variant, read).
+ *  @param Edge Receives address of the edge structure.
+ *
+ *  @remark
+ *  The edge is not inserted int othe graph.
+ */
 static ERR_VALUE _edge_create(PKMER_GRAPH Graph, PKMER_VERTEX Source, PKMER_VERTEX Dest, const EKMerEdgeType Type, PKMER_EDGE *Edge)
 {
 	PKMER_EDGE tmp = NULL;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-		tmp = Graph->Allocator.EdgeAllocator(Graph, Graph->Allocator.EdgeAllocatorContext);
-		if (tmp != NULL) {
-			tmp->Source = Source;
-			tmp->Dest = Dest;
-			tmp->Type = Type;
-			tmp->Order = 0;
-			tmp->Seq = NULL;
-			tmp->SeqLen = 0;
-			tmp->Seq1Weight = 0;
-			tmp->SeqType = kmetNone;
-			read_info_init(&tmp->ReadInfo);
-			tmp->MarkedForDelete = FALSE;
-			pointer_array_init_VARIANT_CALL(&tmp->VCs, 140);
-			tmp->LongData.LongEdge = FALSE;
-			tmp->LongData.RefSeqEnd = 0;
-			tmp->LongData.RefSeqStart = 0;
-			dym_array_init_size_t(&tmp->Weights, 140);
-			pointer_array_init_READ_INFO(&tmp->ReadIndices, 140);
-			*Edge = tmp;
-			ret = ERR_SUCCESS;
-		} else ret = ERR_OUT_OF_MEMORY;
+	tmp = Graph->Allocator.EdgeAllocator(Graph, Graph->Allocator.EdgeAllocatorContext);
+	if (tmp != NULL) {
+		tmp->Source = Source;
+		tmp->Dest = Dest;
+		tmp->Type = Type;
+		tmp->Order = 0;
+		tmp->Seq = NULL;
+		tmp->SeqLen = 0;
+		tmp->Seq1Weight = 0;
+		tmp->SeqType = kmetNone;
+		read_info_init(&tmp->ReadInfo);
+		tmp->MarkedForDelete = FALSE;
+		pointer_array_init_VARIANT_CALL(&tmp->VCs, 140);
+		tmp->LongData.LongEdge = FALSE;
+		tmp->LongData.RefSeqEnd = 0;
+		tmp->LongData.RefSeqStart = 0;
+		dym_array_init_size_t(&tmp->Weights, 140);
+		pointer_array_init_READ_INFO(&tmp->ReadIndices, 140);
+		*Edge = tmp;
+		ret = ERR_SUCCESS;
+	} else ret = ERR_OUT_OF_MEMORY;
 	
 	return ret;
 }
 
 
+/** @brief
+ *  Destroys an edge record.
+ *
+ *  @param Graph The graph.
+ *  @param Edge The edge to destroy;
+ *  
+ *  @remark
+ *  The edge must not be present in the graph.
+ */
 static void _edge_destroy(PKMER_GRAPH Graph, PKMER_EDGE Edge)
 {
 	for (size_t i = 0; i < pointer_array_size(&Edge->ReadIndices); ++i) {
@@ -233,6 +275,11 @@ static ERR_VALUE _vertex_table_on_copy(struct _KMER_TABLE *Table, void *ItemData
 }
 
 
+/** @brief
+ *  Prints a given vertex in dot-supported format.
+ *
+ *  @param ItemData The vertex to print.
+ */
 static void _vertex_table_on_print(struct _KMER_TABLE *Table, void *ItemData, FILE *Stream)
 {
 	char *colors[] = { "yellow", "lightgreen", "blue", "red", "white" };
@@ -303,6 +350,12 @@ static void _edge_table_on_delete(struct _KMER_EDGE_TABLE *Table, void *ItemData
 }
 
 
+/** @brief
+ *  Prints a given edge, in dot-supported format.
+ *
+ *  @param ItemData The edge to print.
+ *  @param Context The graph.
+ */
 static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData, void *Context, FILE *Stream)
 {
 	PKMER_EDGE e = (PKMER_EDGE)ItemData;
@@ -399,28 +452,6 @@ static void _edge_table_on_print(struct _KMER_EDGE_TABLE *Table, void *ItemData,
 	fprintf(Stream, "];\n");
 
 	return;
-}
-
-
-static boolean _kmer_vertex_no_read_edges(const KMER_VERTEX *Vertex)
-{
-	boolean ret = TRUE;
-
-	for (size_t i = 0; i < kmer_vertex_out_degree(Vertex); ++i) {
-		ret = (kmer_vertex_get_succ_edge(Vertex, i))->Type != kmetRead;
-		if (!ret)
-			break;
-	}
-
-	if (ret) {
-		for (size_t i = 0; i < kmer_vertex_in_degree(Vertex); ++i) {
-			ret = (kmer_vertex_get_pred_edge(Vertex, i))->Type != kmetRead;
-			if (!ret)
-				break;
-		}
-	}
-
-	return ret;
 }
 
 
