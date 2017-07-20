@@ -4,7 +4,7 @@
 
 
 #include "err.h"
-#include "found-sequence.h"
+#include "variant.h"
 
 
 typedef struct _SSW_STATISTICS {

@@ -477,6 +477,6 @@ An example of a colored component of the variant graph can be seen on Figure \re
 	\label{fig:variant-graph}
 \end{figure}
 
-The coloring clearly indicates that both variants are present only in one of two alternate sequences (blue one). Since the variant at 534547 is considered as false positive, both alternate sequences are directed through its reference part and its alternate part is removed from the graph. Keeping residues after fake variants makes certain sense because other variants may connect through them. It can also be observed that the phasing of the two true variants is enforced by the paired-end information, not by reads covering both variants directly.
+The coloring clearly indicates that both variants are present only in one of two alternate sequences (blue one). Since the variant at 534547 is considered as false positive, both alternate sequences are directed through its reference part and its alternate part is removed from the graph. Keeping residues after fake variants may makes sense because other variants may connect through them. It can also be observed that the phasing of the two true variants is enforced by the paired-end information, not by reads covering both variants directly.
 
 When the graph is colored, the genotype and phasing information are known. The variants are written to the resulting VCF file.

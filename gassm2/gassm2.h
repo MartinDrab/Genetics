@@ -8,7 +8,7 @@
 #include "reads.h"
 #include "gen_dym_array.h"
 #include "input-file.h"
-#include "found-sequence-types.h"
+#include "variant-types.h"
 #include "libkmer.h"
 
 /************************************************************************/

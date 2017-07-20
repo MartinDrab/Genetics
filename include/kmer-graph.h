@@ -13,7 +13,7 @@
 #include "pointer_array.h"
 #include "read-info.h"
 #include "kmer-graph-types.h"
-#include "found-sequence.h"
+#include "variant.h"
 #include "assembly.h"
 
 

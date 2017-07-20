@@ -24,7 +24,7 @@
     <ClCompile Include="..\shared\utils-lookaside.c" />
     <ClCompile Include="..\shared\utils.c" />
     <ClCompile Include="assembly.c" />
-    <ClCompile Include="found-sequence.c" />
+    <ClCompile Include="variant.c" />
     <ClCompile Include="kmer-edge.c" />
     <ClCompile Include="kmer-graph.c" />
     <ClCompile Include="kmer-short.c" />
@@ -37,8 +37,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\assembly.h" />
-    <ClInclude Include="..\include\found-sequence-types.h" />
-    <ClInclude Include="..\include\found-sequence.h" />
+    <ClInclude Include="..\include\variant-types.h" />
+    <ClInclude Include="..\include\variant.h" />
     <ClInclude Include="..\include\gen_dym_array.h" />
     <ClInclude Include="..\include\khash.h" />
     <ClInclude Include="..\include\kmer-base.h" />

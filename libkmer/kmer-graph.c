@@ -12,7 +12,7 @@
 #include "kmer-table.h"
 #include "kmer-edge.h"
 #include "reads.h"
-#include "found-sequence.h"
+#include "variant.h"
 #include "refseq-storage.h"
 #include "pointer_array.h"
 #include "gen_dym_array.h"

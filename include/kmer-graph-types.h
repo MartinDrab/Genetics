@@ -11,7 +11,7 @@
 #include "kmer-table.h"
 #include "kmer-edge.h"
 #include "read-info.h"
-#include "found-sequence-types.h"
+#include "variant-types.h"
 
 struct _KMER_VERTEX;
 struct _KMER_GRAPH;

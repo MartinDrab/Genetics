@@ -9,7 +9,7 @@
 #include "gen_dym_array.h"
 #include "pointer_array.h"
 #include "khash.h"
-#include "found-sequence-types.h"
+#include "variant-types.h"
 
 
 typedef enum _EVariantGraphVertexColor {

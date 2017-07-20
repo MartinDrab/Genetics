@@ -33,9 +33,6 @@
     <ClCompile Include="read-info.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="found-sequence.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="paired-reads.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -58,6 +55,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="kmer-short.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="variant.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -84,9 +84,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="graph-reads.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\found-sequence.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\refseq-storage.h">
@@ -134,13 +131,16 @@
     <ClInclude Include="..\include\variant-graph.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\found-sequence-types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\kmer-graph-base-types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\ssw.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\variant.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\variant-types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

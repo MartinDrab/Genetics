@@ -8,7 +8,7 @@
 #include "gen_dym_array.h"
 #include "pointer_array.h"
 #include "khash.h"
-#include "found-sequence.h"
+#include "variant.h"
 #include "paired-reads.h"
 #include "variant-graph.h"
 

@@ -9,7 +9,7 @@
 #include "kmer-edge.h"
 #include "kmer-graph.h"
 #include "assembly.h"
-#include "found-sequence.h"
+#include "variant.h"
 #include "refseq-storage.h"
 #include "paired-reads.h"
 #include "ssw.h"
