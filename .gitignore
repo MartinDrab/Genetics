@@ -1,4 +1,6 @@
 /*.sdf
+/dvd
+*.aux
 fermi-lite
 bcftools
 bin
