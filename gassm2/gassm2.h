@@ -22,7 +22,7 @@
 #define PROGRAM_OPTION_READFILE							"read-file"
 #define PROGRAM_OPTION_OUTPUT_DIRECTORY					"output-directory"
 #define PROGRAM_OPTION_VCFFILE							"vcf-file"
-#define PROGRAM_OPTION_OMP_THREADS						"omp-threads"
+#define PROGRAM_OPTION_THREADS						"threads"
 #define PROGRAM_OPTION_READ_POS_QUALITY					"pos-quality"
 #define PROGRAM_OPTION_LOW_QUALITY_VARIANT				"low-quality-variant"
 #define PROGRAM_OPTION_BINOM_THRESHOLD					"binom-threshold"
@@ -45,6 +45,7 @@
 #define PROGRAM_OPTION_LOW_QUALITY_VARIANT_DESC			"Maximum number of supporting reads for low quality variants"
 #define PROGRAM_OPTION_BINOM_THRESHOLD_DESC				"Binomial threshold (0..100)"
 #define PROGRAM_OPTION_READ_POS_QUALITY_DESC			"Minimal mapping quality of accepted reads"
+#define PROGRAM_OPTION_THREADS_DESC						"Number of threads to parallelize the variant calling"
 
 /************************************************************************/
 /*                                                                      */

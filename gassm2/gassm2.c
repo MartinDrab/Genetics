@@ -50,7 +50,7 @@ static void _init_default_values(int argc, char **argv)
 	program_option_init(PROGRAM_OPTION_THRESHOLD, PROGRAM_OPTION_THRESHOLD_DESC, UInt32, 4);
 	program_option_init(PROGRAM_OPTION_READFILE, PROGRAM_OPTION_READFILE_DESC, String, "\0");
 	program_option_init(PROGRAM_OPTION_VCFFILE, PROGRAM_OPTION_VCFFILE_DESC, String, "-");
-	program_option_init(PROGRAM_OPTION_OMP_THREADS, PROGRAM_OPTION_OMP_THREADS, Int32, omp_get_num_procs());
+	program_option_init(PROGRAM_OPTION_THREADS, PROGRAM_OPTION_THREADS_DESC, Int32, omp_get_num_procs());
 	program_option_init(PROGRAM_OPTION_BINOM_THRESHOLD, PROGRAM_OPTION_BINOM_THRESHOLD_DESC, UInt64, 1);
 	program_option_init(PROGRAM_OPTION_LOW_QUALITY_VARIANT, PROGRAM_OPTION_LOW_QUALITY_VARIANT_DESC, UInt32, 3);
 	program_option_init(PROGRAM_OPTION_OUTPUT_DIRECTORY, PROGRAM_OPTION_OUTPUT_DIRECTORY_DESC, String, "\0");
@@ -107,9 +107,9 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 	}
 
 	if (_command == gctCall && ret == ERR_SUCCESS) {
-		ret = option_get_Int32(PROGRAM_OPTION_OMP_THREADS, &Options->OMPThreads);
+		ret = option_get_Int32(PROGRAM_OPTION_THREADS, &Options->OMPThreads);
 		if (ret != ERR_SUCCESS)
-			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_OMP_THREADS);
+			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_THREADS);
 	}
 
 	if (_command == gctCall && ret == ERR_SUCCESS) {

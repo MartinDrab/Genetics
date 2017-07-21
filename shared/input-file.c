@@ -277,16 +277,7 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 				line = _advance_to_next_line(lineEnd);
 				lineEnd = _read_line(line);
 			}
-		} else if (strcasecmp(fileExt, ".fq") == 0 || strcasecmp(fileExt, ".fastq") == 0) {
-			while (ret == ERR_SUCCESS && *line != 26 && *line != '\0') {
-				ret = read_create_from_fastq(line, &line, &oneRead);
-				if (ret == ERR_SUCCESS) {
-					ret = dym_array_push_back_ONE_READ(&readArray, oneRead);
-					if (ret != ERR_SUCCESS)
-						_read_destroy_structure(&oneRead);
-				}
-			}
-		}
+		} else ret = ERR_INTERNAL_ERROR;
 
 		if (ret == ERR_SUCCESS) {
 			PONE_READ tmpReads = NULL;
