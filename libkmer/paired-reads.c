@@ -224,7 +224,7 @@ void paired_reads_fix_overlaps(boolean Strip)
 		err = paired_reads_next(iter, &iter, &reads);
 	}
 
-	fprintf(stderr, "Overlaps: %Iu, Mismatching: %Iu\n", totalOverlaps, mismatches);
+//	fprintf(stderr, "Overlaps: %Iu, Mismatching: %Iu\n", totalOverlaps, mismatches);
 
 	return;
 }
