@@ -248,36 +248,30 @@ void fasta_free(PFASTA_FILE FastaRecord)
 ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ *Reads, size_t *ReadCount)
 {
 	size_t dataLength = 0;
-	FUTILS_MAPPED_FILE mapped;
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	const char *fileExt = Filename + strlen(Filename);
+	char *data = NULL;
 
-	while (fileExt != Filename && *fileExt != '.')
-		--fileExt;
-
-	ret = utils_file_map(Filename, &mapped);
+	ret = utils_file_read(Filename, &data, &dataLength);
 	if (ret == ERR_SUCCESS) {
-		const char *line = mapped.Address;
+		const char *line = data;
 		ONE_READ oneRead;
 		GEN_ARRAY_ONE_READ readArray;
 		const char *lineEnd = _read_line(line);
 
 		dym_array_init_ONE_READ(&readArray, 140);
-		if (strcasecmp(fileExt, ".sam") == 0) {
-			while (ret == ERR_SUCCESS && line != lineEnd) {
-				if (*line != '@') {
-					ret = read_create_from_sam_line(line, &oneRead);
-					if (ret == ERR_SUCCESS) {
-						ret = dym_array_push_back_ONE_READ(&readArray, oneRead);
-						if (ret != ERR_SUCCESS)
-							_read_destroy_structure(&oneRead);
-					}
+		while (ret == ERR_SUCCESS && line != lineEnd) {
+			if (*line != '@') {
+				ret = read_create_from_sam_line(line, &oneRead);
+				if (ret == ERR_SUCCESS) {
+					ret = dym_array_push_back_ONE_READ(&readArray, oneRead);
+					if (ret != ERR_SUCCESS)
+						_read_destroy_structure(&oneRead);
 				}
-
-				line = _advance_to_next_line(lineEnd);
-				lineEnd = _read_line(line);
 			}
-		} else ret = ERR_INTERNAL_ERROR;
+
+			line = _advance_to_next_line(lineEnd);
+			lineEnd = _read_line(line);
+		}
 
 		if (ret == ERR_SUCCESS) {
 			PONE_READ tmpReads = NULL;
@@ -299,7 +293,7 @@ ERR_VALUE input_get_reads(const char *Filename, const char *InputType, PONE_READ
 		}
 
 		dym_array_finit_ONE_READ(&readArray);
-		utils_file_unmap(&mapped);
+		utils_free(data);
 	}
 	
 	return ret;
