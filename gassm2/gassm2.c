@@ -21,7 +21,6 @@
 #include "input-file.h"
 #include "reads.h"
 #include "pointer_array.h"
-#include "ksw.h"
 #include "librcorrect.h"
 #include "gassm2.h"
 
@@ -32,7 +31,7 @@ UTILS_TYPED_CALLOC_FUNCTION(GEN_ARRAY_VARIANT_CALL)
 
 static PUTILS_LOOKASIDE *_vertexLAs;
 static PUTILS_LOOKASIDE *_edgeLAs;
-
+static 	EGassm2CommandType _command = gctUnknown;
 
 
 #define program_option_init(aOptionName, aOptionDescription, aOptionType, aDefaultValue)	\
@@ -43,34 +42,19 @@ static PUTILS_LOOKASIDE *_edgeLAs;
 
 
 
-#define GRAPH_PRINT_REFERENCE			0x1
-#define GRAPH_PRINT_RAW_READS			0x2
-#define GRAPH_PRINT_HELPER				0x4
-#define GRAPH_PRINT_LONG_EDGES			0X8
-#define GRAPH_PRINT_THRESHOLD_1			0x10
-#define GRAPH_PRINT_CONNECT				0x20
-#define GRAPH_PRINT_THRESHOLD_2			0x40
-#define GRAPH_PRINT_SHRINK				0x80
-#define GRAPH_PRINT_VARIANTS			0x100
-#define GRAPH_PRINT_RESULT				0x200
-
-#define GRAPH_PRINT_ALL	(														\
-	GRAPH_PRINT_LONG_EDGES | GRAPH_PRINT_THRESHOLD_1 | GRAPH_PRINT_CONNECT |	\
-	GRAPH_PRINT_THRESHOLD_2 | GRAPH_PRINT_SHRINK | GRAPH_PRINT_VARIANTS)		\
-
-static void _init_default_values()
+static void _init_default_values(int argc, char **argv)
 {
 	program_option_init(PROGRAM_OPTION_KMERSIZE, PROGRAM_OPTION_KMERSIZE_DESC, UInt32, 21);
 	program_option_init(PROGRAM_OPTION_SEQFILE, PROGRAM_OPTION_SEQFILE_DESC, String, "\0");
 	program_option_init(PROGRAM_OPTION_SEQLEN, PROGRAM_OPTION_SEQLEN_DESC, UInt32, 2000);
 	program_option_init(PROGRAM_OPTION_THRESHOLD, PROGRAM_OPTION_THRESHOLD_DESC, UInt32, 4);
 	program_option_init(PROGRAM_OPTION_READFILE, PROGRAM_OPTION_READFILE_DESC, String, "\0");
-	program_option_init(PROGRAM_OPTION_VCFFILE, PROGRAM_OPTION_VCFFILE_DESC, String, "result.vcf");
+	program_option_init(PROGRAM_OPTION_VCFFILE, PROGRAM_OPTION_VCFFILE_DESC, String, "-");
 	program_option_init(PROGRAM_OPTION_OMP_THREADS, PROGRAM_OPTION_OMP_THREADS, Int32, omp_get_num_procs());
 	program_option_init(PROGRAM_OPTION_BINOM_THRESHOLD, PROGRAM_OPTION_BINOM_THRESHOLD_DESC, UInt64, 1);
 	program_option_init(PROGRAM_OPTION_LOW_QUALITY_VARIANT, PROGRAM_OPTION_LOW_QUALITY_VARIANT_DESC, UInt32, 3);
-	program_option_init(PROGRAM_OPTION_OUTPUT_DIRECTORY, "", String, "\0");
-	program_option_init(PROGRAM_OPTION_READ_POS_QUALITY, "", UInt8, 10);
+	program_option_init(PROGRAM_OPTION_OUTPUT_DIRECTORY, PROGRAM_OPTION_OUTPUT_DIRECTORY_DESC, String, "\0");
+	program_option_init(PROGRAM_OPTION_READ_POS_QUALITY, PROGRAM_OPTION_READ_POS_QUALITY_DESC, UInt8, 10);
 	program_option_init(PROGRAM_OPTION_NO_SHORT_VARIANTS, PROGRAM_OPTION_NO_SHORT_VARIANTS_DESC, Boolean, FALSE);
 
 	option_set_shortcut(PROGRAM_OPTION_KMERSIZE, 'k');
@@ -80,6 +64,14 @@ static void _init_default_values()
 	option_set_shortcut(PROGRAM_OPTION_READFILE, 'F');
 	option_set_shortcut(PROGRAM_OPTION_OUTPUT_DIRECTORY, 'o');
 	option_set_shortcut(PROGRAM_OPTION_VCFFILE, 'v');
+
+	_command = gctHelp;
+	if (argc > 1) {
+		if (strcmp(argv[1], "call") == 0)
+			_command = gctCall;
+		else if (strcmp(argv[1], "correct") == 0)
+			_command = gctCorrect;
+	}
 
 	return;
 }
@@ -91,20 +83,22 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
 	memset(Options, 0, sizeof(PROGRAM_OPTIONS));
-
-	ret = option_get_UInt64(PROGRAM_OPTION_BINOM_THRESHOLD, &Options->ParseOptions.BinomThreshold);
-	if (ret != ERR_SUCCESS || !in_range(0, 101, Options->ParseOptions.BinomThreshold)) {
-		fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_BINOM_THRESHOLD);
-		ret = ERR_INTERNAL_ERROR;
+	ret = ERR_SUCCESS;
+	if (_command == gctCall) {
+		ret = option_get_UInt64(PROGRAM_OPTION_BINOM_THRESHOLD, &Options->ParseOptions.BinomThreshold);
+		if (ret != ERR_SUCCESS || !in_range(0, 101, Options->ParseOptions.BinomThreshold)) {
+			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_BINOM_THRESHOLD);
+			ret = ERR_INTERNAL_ERROR;
+		}
 	}
 
-	if (ret == ERR_SUCCESS) {
+	if (_command == gctCall && ret == ERR_SUCCESS) {
 		ret = option_get_UInt32(PROGRAM_OPTION_LOW_QUALITY_VARIANT, &Options->ParseOptions.LQVariant);
 		if (ret != ERR_SUCCESS)
 			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_LOW_QUALITY_VARIANT);
 	}
 
-	if (ret == ERR_SUCCESS) {
+	if (_command == gctCall && ret == ERR_SUCCESS) {
 		ret = option_get_UInt32(PROGRAM_OPTION_KMERSIZE, &Options->KMerSize);
 		if (ret != ERR_SUCCESS || Options->KMerSize > KMER_MAXIMUM_SIZE) {
 			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_KMERSIZE);
@@ -112,19 +106,19 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 		}
 	}
 
-	if (ret == ERR_SUCCESS) {
+	if (_command == gctCall && ret == ERR_SUCCESS) {
 		ret = option_get_Int32(PROGRAM_OPTION_OMP_THREADS, &Options->OMPThreads);
 		if (ret != ERR_SUCCESS)
 			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_OMP_THREADS);
 	}
 
-	if (ret == ERR_SUCCESS) {
+	if (_command == gctCall && ret == ERR_SUCCESS) {
 		ret = option_get_UInt8(PROGRAM_OPTION_READ_POS_QUALITY, &Options->ReadPosQuality);
 		if (ret != ERR_SUCCESS)
 			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_READ_POS_QUALITY);
 	}
 
-	if (ret == ERR_SUCCESS) {
+	if (_command == gctCall && ret == ERR_SUCCESS) {
 		char *outputDirectory = NULL;
 
 		ret = option_get_String(PROGRAM_OPTION_OUTPUT_DIRECTORY, &outputDirectory);
@@ -138,7 +132,7 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 		} else fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_OUTPUT_DIRECTORY);
 	}
 
-	if (ret == ERR_SUCCESS) {
+	if (_command == gctCall && ret == ERR_SUCCESS) {
 		char *vcfFile = NULL;
 
 		ret = option_get_String(PROGRAM_OPTION_VCFFILE, &vcfFile);
@@ -149,7 +143,7 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_VCFFILE);
 	}
 
-	if (ret == ERR_SUCCESS) {
+	if (_command == gctCall && ret == ERR_SUCCESS) {
 		ret = option_get_UInt32(PROGRAM_OPTION_SEQLEN, &Options->RegionLength);
 		if (ret != ERR_SUCCESS || !in_range(500, 50000, Options->RegionLength)) {
 			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_SEQLEN);
@@ -157,13 +151,13 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 		}
 	}
 
-	if (ret == ERR_SUCCESS) {
+	if (_command == gctCall && ret == ERR_SUCCESS) {
 		ret = option_get_UInt32(PROGRAM_OPTION_THRESHOLD, &Options->Threshold);
 		if (ret != ERR_SUCCESS)
 			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_THRESHOLD);
 	}
 
-	if (ret == ERR_SUCCESS) {
+	if (_command == gctCall && ret == ERR_SUCCESS) {
 		ret = option_get_String(PROGRAM_OPTION_SEQFILE, &Options->RefSeqFile);
 		if (ret != ERR_SUCCESS)
 			fprintf(stderr, "Invalid value for the \"%s\" parameter\n", PROGRAM_OPTION_SEQFILE);
@@ -182,18 +176,34 @@ static ERR_VALUE _capture_program_options(PPROGRAM_OPTIONS Options)
 	}
 
 	if (ret == ERR_SUCCESS) {
-		option_get_Boolean(PROGRAM_OPTION_NO_SHORT_VARIANTS, &b);
-		Options->ParseOptions.OptimizeShortVariants = !b;
-		Options->ParseOptions.PlotOptions.PlotFlags = GRAPH_PRINT_ALL;
-		Options->ParseOptions.ConnectReads = TRUE;
-		Options->ParseOptions.ConnectRefSeq = TRUE;
-		Options->ParseOptions.HelperVertices = TRUE;
-		Options->ParseOptions.LinearShrink = TRUE;
-		Options->ParseOptions.MergeBubbles = TRUE;
-		Options->ParseOptions.BackwardRefseqPenalty = 8;
-		Options->ParseOptions.MissingEdgePenalty = 3;
-		Options->TestStep = Options->RegionLength * 3 / 4;
-		Options->ReadStrip = 5;
+		if (_command == gctCorrect) {
+			if (Options->ReadCount == 0) {
+				fprintf(stderr, "No reads found\n");
+				ret = ERR_INTERNAL_ERROR;
+			}
+		} else {
+			option_get_Boolean(PROGRAM_OPTION_NO_SHORT_VARIANTS, &b);
+			Options->ParseOptions.OptimizeShortVariants = !b;
+			Options->ParseOptions.PlotOptions.PlotFlags = GRAPH_PRINT_ALL;
+			Options->ParseOptions.ConnectReads = TRUE;
+			Options->ParseOptions.ConnectRefSeq = TRUE;
+			Options->ParseOptions.HelperVertices = TRUE;
+			Options->ParseOptions.LinearShrink = TRUE;
+			Options->ParseOptions.MergeBubbles = TRUE;
+			Options->ParseOptions.BackwardRefseqPenalty = 8;
+			Options->ParseOptions.MissingEdgePenalty = 3;
+			Options->TestStep = Options->RegionLength * 3 / 4;
+			Options->ReadStrip = 5;
+			if (Options->ReadCount == 0) {
+				fprintf(stderr, "No reads found\n");
+				ret = ERR_INTERNAL_ERROR;
+			}
+
+			if (*Options->RefSeqFile == '\0') {
+				fprintf(stderr, "No reference sequence file specified\n");
+				ret = ERR_INTERNAL_ERROR;
+			}
+		}
 	}
 
 	return ret;
@@ -446,112 +456,6 @@ static ERR_VALUE _obtain_files(PPOINTER_ARRAY_char Array, const size_t MaxCount,
 }
 
 
-
-KHASH_MAP_INIT_STR(kc, size_t)
-
-ERR_VALUE kmer_freq_distribution(const PROGRAM_OPTIONS *Options, const uint32_t KMerSize, PONE_READ Reads, const size_t ReadCount)
-{
-	int err;
-	size_t maxValue = 0;
-	khiter_t it;
-	size_t kmerCount = 0;
-	char *kmerString = NULL;
-	khash_t(kc) *table = kh_init(kc);
-	ERR_VALUE ret = ERR_INTERNAL_ERROR;
-	double baseQSum = 0.0;
-	uint64_t baseCount = 0;
-	uint64_t baseQualityDistribution[256];
-
-	memset(baseQualityDistribution, 0, sizeof(baseQualityDistribution));
-	ret = utils_calloc_char(KMerSize + 1, &kmerString);
-	if (ret == ERR_SUCCESS) {
-		PONE_READ r = Reads;
-		
-		kmerString[KMerSize] = '\0';
-		for (size_t i = 0; i < ReadCount; ++i) {			
-				if (r->ReadSequenceLen >= KMerSize) {
-					baseCount += r->ReadSequenceLen;
-					for (uint32_t j = 0; j < r->ReadSequenceLen; ++j) {
-						baseQSum += exp((double)-r->Quality[j] / 10 * log(10.0));
-						++baseQualityDistribution[r->Quality[j]];
-					}
-
-					for (size_t j = 0; j < r->ReadSequenceLen - KMerSize + 1; ++j) {
-						char *s = NULL;
-
-						memcpy(kmerString, r->ReadSequence + j, KMerSize*sizeof(char));
-						ret = utils_copy_string(kmerString, &s);
-						if (ret == ERR_SUCCESS) {
-							it = kh_put(kc, table, s, &err);
-							switch (err) {
-							case 0:
-								kh_value(table, it) += 1;
-								if (kh_value(table, it) > maxValue)
-									maxValue = kh_value(table, it);
-
-								utils_free(s);
-								break;
-							case 1:
-							case 2:
-								kh_value(table, it) = 1;
-								break;
-							default:
-								ret = ERR_OUT_OF_MEMORY;
-								break;
-							}
-
-							++kmerCount;
-							if (ret != ERR_SUCCESS)
-								utils_free(s);
-						}
-
-						if (ret != ERR_SUCCESS)
-							break;
-					}
-				}
-
-			if (ret != ERR_SUCCESS)
-				break;
-
-			++r;
-		}
-
-		if (ret == ERR_SUCCESS) {
-			uint64_t *freqArray = NULL;
-
-			++maxValue;
-			ret = utils_calloc_uint64_t(maxValue, &freqArray);
-			if (ret == ERR_SUCCESS) {
-				memset(freqArray, 0, maxValue*sizeof(uint64_t));
-				for (it = kh_begin(table); it != kh_end(table); ++it) {
-					if (kh_exist(table, it))
-						++freqArray[kh_value(table, it)];
-				}
-
-				fprintf(stderr, "Average error rate: %.2lf\n", baseQSum*100 / baseCount);
-				for (size_t i = 0; i < maxValue; ++i) {
-					if (freqArray[i] > Options->Threshold)
-						fprintf(stdout, "%zu\t%" PRIu64 "\t%.3lf\n", i, freqArray[i], (double)freqArray[i]*100 / kh_size(table));
-				}
-
-				utils_free(freqArray);
-			}
-		}
-
-		utils_free(kmerString);
-	}
-
-	for (size_t i = kh_begin(table); i < kh_end(table); ++i) {
-		if (kh_exist(table, i))
-			utils_free((void *)kh_key(table, i));
-	}
-
-	kh_destroy(kc, table);
-
-	return ret;
-}
-
-
 static double _readBaseCount = 0;
 static size_t _totalRegionLength = 0;
 static omp_lock_t _readCoverageLock;
@@ -769,40 +673,42 @@ int main(int argc, char *argv[])
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 
-	utils_allocator_init(omp_get_num_procs());
-	omp_init_lock(&_readCoverageLock);
-#ifdef _MSC_VER
-	uint64_t startTime = GetTickCount64();
-#endif
-	ret = options_module_init(37);
-	if (ret == ERR_SUCCESS) {
-		_init_default_values();
+		utils_allocator_init(omp_get_num_procs());
+		omp_init_lock(&_readCoverageLock);
+		ret = options_module_init(37);
 		if (ret == ERR_SUCCESS) {
-			ret = options_parse_command_line(argc - 2, argv + 2);
+			_init_default_values(argc, argv);
+			if (argc > 1)
+				ret = options_parse_command_line(argc - 2, argv + 2);
+			
 			if (ret == ERR_SUCCESS) {
 				PROGRAM_OPTIONS po;
 
-				ret = _capture_program_options(&po);
+				if (_command != gctHelp)
+					ret = _capture_program_options(&po);
+				
 				if (ret == ERR_SUCCESS) {
-					omp_set_num_threads(po.OMPThreads);
 					const char *cmd = argv[1];
-					if (strncmp(cmd, "help", sizeof("help")) == 0) {
+
+					omp_set_num_threads(po.OMPThreads);
+					if (_command == gctHelp) {
+						fprintf(stdout, "Usage: gassm2 call -f <reference.fa> -F <reads.sam> [OPTIONS]\n");
+						fprintf(stdout, "Usage: gassm2 correct -F <reads.sam>\n");
+						fprintf(stdout, "\nOptions:\n");
 						options_print_help();
-					} else if (strncmp(cmd, "correct", sizeof("correct") - 1) == 0) {
+					} else if (_command == gctCorrect) {
 						LIBRCORRECT_STATISTICS correctStats;
 						LIBCORRECT_STATE correctState;
 
 						fprintf(stderr, "Correcting reads (%u iterations)...\n", po.Threshold);
 						ret = libcorrect_state_init(&correctState, po.Reads, po.ReadCount);
 						if (ret == ERR_SUCCESS) {
-							for (uint32_t i = 0; i < po.Threshold; ++i) {
-								fprintf(stderr, "Correcting iteration #%u\n", i);
-								libcorrect_correct(&correctState);
-								ret = libcorrect_correct_stats(&correctState, &correctStats);
-								if (ret == ERR_SUCCESS) {
-									libcorrect_stats_print(stderr, &correctStats);
-									librcorrect_stats_free(&correctStats);
-								}
+							fprintf(stderr, "Correcting...\n");
+							libcorrect_correct(&correctState);
+							ret = libcorrect_correct_stats(&correctState, &correctStats);
+							if (ret == ERR_SUCCESS) {
+								libcorrect_stats_print(stderr, &correctStats);
+								librcorrect_stats_free(&correctStats);
 							}
 
 							ret = librcorrect_state_finit(&correctState);
@@ -816,12 +722,7 @@ int main(int argc, char *argv[])
 								}
 							}
 						}
-					} else if (strncmp(cmd, "rfreq", sizeof("rfreq") - 1) == 0) {
-						fprintf(stderr, "Computing k-mer frequency distribution (K=%u, threshold=%u)...\n", po.KMerSize, po.Threshold);
-						kmer_freq_distribution(&po, po.KMerSize, po.Reads, po.ReadCount);
-					} else if (strncmp(cmd, "paired", sizeof("paired")) == 0) {
-						paired_reads_print(stdout);
-					} else if (strncmp(cmd, "call", sizeof("call") - 1) == 0) {
+					} else if (_command == gctCall) {
 						fprintf(stderr, "K-mer size:                 %u\n", po.KMerSize);
 						fprintf(stderr, "Active region length:       %u\n", po.RegionLength);
 						fprintf(stderr, "Reference:                  %s\n", po.RefSeqFile);
@@ -879,8 +780,7 @@ int main(int argc, char *argv[])
 											if (strcmp(po.VCFFile, "-") != 0) {
 												po.VCFFileHandle = fopen(po.VCFFile, "w");
 												ret = (po.VCFFileHandle != NULL) ? ERR_SUCCESS : ERR_NOT_FOUND;
-											}
-											else po.VCFFileHandle = stdout;
+											} else po.VCFFileHandle = stdout;
 
 											if (ret == ERR_SUCCESS)
 												dym_array_init_VARIANT_CALL(&po.VCArray, 140);
@@ -964,7 +864,7 @@ int main(int argc, char *argv[])
 														ret = vg_graph_add_paired(&vg);
 														if (ret == ERR_SUCCESS) {
 															vg_graph_color(&vg);
-															vg_graph_print(stdout, &vg);
+//															vg_graph_print(stdout, &vg);
 															vg_graph_finalize(&vg);
 														}
 
@@ -993,16 +893,11 @@ int main(int argc, char *argv[])
 					}
 				}
 			}
-		}
-	
-		options_module_finit();
-	}
 
-#ifdef _MSC_VER
-	uint64_t endTime = GetTickCount64();
-	fprintf(stderr, "Time: %I64u s\n", (endTime - startTime) / 1000);
-#endif
-	omp_destroy_lock(&_readCoverageLock);
+			options_module_finit();
+		}
+
+		omp_destroy_lock(&_readCoverageLock);
 
 	return ret;
 }

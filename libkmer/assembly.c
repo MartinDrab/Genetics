@@ -21,10 +21,15 @@
 /*                        HELPER FUNCTIONS                              */
 /************************************************************************/
 
+/** Represents one vertex in the helper graph. */
 typedef struct _DISTANCE_RECORD {
+	/** Minimal distance from the first layer to this vertex. */
 	size_t Distance;
+	/** Previous vertex on the minimal path. */
 	size_t BackIndex;
+	/** Corresponding "main" graph vertex. */
 	PKMER_VERTEX Vertex;
+	/** Index within the layer. */
 	size_t Index;
 } DISTANCE_RECORD, *PDISTANCE_RECORD;
 
@@ -36,19 +41,27 @@ UTILS_TYPED_CALLOC_FUNCTION(PPOINTER_ARRAY_KMER_VERTEX)
 UTILS_TYPED_CALLOC_FUNCTION(GEN_ARRAY_DISTANCE_RECORD)
 
 
-static ERR_VALUE _init_distance_arrays(PPOINTER_ARRAY_KMER_VERTEX *Vertices, const size_t NumberOfVertices, const size_t NumberOfRSVertices, PGEN_ARRAY_DISTANCE_RECORD *Distances)
+/** @brief
+ *  Allocates and initializes storage for the helper graph.
+ *
+ *  @param VertexSets Vertex sets (M_i) assigned to individual k-mers of the read.
+ *  @param NumberOfSets Number of the vertex sets.
+ *  @param NumberOfRSSets Number of sets containing reference vertices.
+ *  @param hGraph Receives the initialized helper graph. 
+ */
+static ERR_VALUE _helper_graph_init(PPOINTER_ARRAY_KMER_VERTEX *VertexSets, const size_t NumberOfSets, const size_t NumberOfRSSets, PGEN_ARRAY_DISTANCE_RECORD *hGraph)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
 	PGEN_ARRAY_DISTANCE_RECORD tmpDistances = NULL;
 
-	ret = utils_calloc_GEN_ARRAY_DISTANCE_RECORD(NumberOfRSVertices, &tmpDistances);
+	ret = utils_calloc_GEN_ARRAY_DISTANCE_RECORD(NumberOfRSSets, &tmpDistances);
 	if (ret == ERR_SUCCESS) {
 		PGEN_ARRAY_DISTANCE_RECORD currentD = tmpDistances;
-		PPOINTER_ARRAY_KMER_VERTEX currentV = Vertices[0];
+		PPOINTER_ARRAY_KMER_VERTEX currentV = VertexSets[0];
 		DISTANCE_RECORD dr;
 
-		for (size_t i = 0; i < NumberOfVertices; ++i) {
-			currentV = Vertices[i];
+		for (size_t i = 0; i < NumberOfSets; ++i) {
+			currentV = VertexSets[i];
 			assert(pointer_array_size(currentV) > 0);
 			if (currentV->Data[0]->Type == kmvtRefSeqMiddle) {
 				dym_array_init_DISTANCE_RECORD(currentD, 140);
@@ -79,7 +92,7 @@ static ERR_VALUE _init_distance_arrays(PPOINTER_ARRAY_KMER_VERTEX *Vertices, con
 			for (size_t i = 0; i < gen_array_size(currentD); ++i)
 				currentD->Data[i].Distance = 0;
 		
-			*Distances = tmpDistances;
+			*hGraph = tmpDistances;
 		}
 
 		if (ret != ERR_SUCCESS)
@@ -90,16 +103,22 @@ static ERR_VALUE _init_distance_arrays(PPOINTER_ARRAY_KMER_VERTEX *Vertices, con
 }
 
 
-static void _finit_distance_arrays(PGEN_ARRAY_DISTANCE_RECORD Distances, const size_t DistancesCount)
+/** @brief
+ *  Destroys a given helper graph.
+ *
+ *  @param hGraph The helper graph vertices.
+ *  @param LayerCount Number of layers in the graph.
+ */
+static void _helper_graph_finit(PGEN_ARRAY_DISTANCE_RECORD hGraph, const size_t LayerCount)
 {
-	PGEN_ARRAY_DISTANCE_RECORD currentD = Distances;
+	PGEN_ARRAY_DISTANCE_RECORD currentD = hGraph;
 
-	for (size_t i = 0; i < DistancesCount; ++i) {
+	for (size_t i = 0; i < LayerCount; ++i) {
 		dym_array_finit_DISTANCE_RECORD(currentD);
 		++currentD;
 	}
 
-	utils_free(Distances);
+	utils_free(hGraph);
 
 	return;
 }
@@ -121,12 +140,26 @@ static size_t _missing_edge_price(const PARSE_OPTIONS *Options, PKMER_GRAPH Grap
 }
 
 
-static void _build_distance_graph(const PARSE_OPTIONS *Options, PKMER_GRAPH Graph, PGEN_ARRAY_DISTANCE_RECORD Distances, const size_t DistanceCount, PPOINTER_ARRAY_KMER_VERTEX *Vertices, const size_t NumberOfVertices)
+/** @brief
+ *  Finds the shortest path from the first to the last layer of the given helper graph.
+ *
+ *  @param Options Algorithm parameters (useful for edge weight computation).
+ *  @param Graph The main graph.
+ *  @param hGraph The helper graph.
+ *  @param LayerCount Number of layers within the helper graph.
+ *  @param VertexSets Vertex sets assigned to individual k-mers of the read.
+ *  @param VertexSetCount Number of the vertex sets.
+ *
+ *  @remark
+ *  The main graph is used when computing weights of edges inside the helper graph,
+ *  and to detect when the reads attempts to go backwards in the reference.
+ */
+static void _helper_graph_build(const PARSE_OPTIONS *Options, PKMER_GRAPH Graph, PGEN_ARRAY_DISTANCE_RECORD hGraph, const size_t LayerCount, PPOINTER_ARRAY_KMER_VERTEX *VertexSets, const size_t VertexSetCount)
 {
-	PGEN_ARRAY_DISTANCE_RECORD currentD = Distances;
-	PGEN_ARRAY_DISTANCE_RECORD nextD = Distances + 1;
+	PGEN_ARRAY_DISTANCE_RECORD currentD = hGraph;
+	PGEN_ARRAY_DISTANCE_RECORD nextD = hGraph + 1;
 
-	for (size_t i = 0; i + 1 < DistanceCount; ++i) {
+	for (size_t i = 0; i + 1 < LayerCount; ++i) {
 		const DISTANCE_RECORD *cdr = currentD->Data;
 
 		for (size_t j = 0; j < gen_array_size(currentD); ++j) {
@@ -140,13 +173,13 @@ static void _build_distance_graph(const PARSE_OPTIONS *Options, PKMER_GRAPH Grap
 				PKMER_VERTEX y = NULL;
 
 				if (ndr->Index - cdr->Index > 1) {
-					x = Vertices[cdr->Index + 1]->Data[0];
-					y = Vertices[ndr->Index - 1]->Data[0];
+					x = VertexSets[cdr->Index + 1]->Data[0];
+					y = VertexSets[ndr->Index - 1]->Data[0];
 					distance += _missing_edge_price(Options, Graph, u, x);
 					distance += _missing_edge_price(Options, Graph, y, v);
 					for (size_t l = cdr->Index + 1; l < ndr->Index - 1; ++l) {
-						x = Vertices[l]->Data[0];
-						y = Vertices[l + 1]->Data[0];
+						x = VertexSets[l]->Data[0];
+						y = VertexSets[l + 1]->Data[0];
 						distance += _missing_edge_price(Options, Graph, x, y);
 					}
 				} else distance += _missing_edge_price(Options, Graph, u, v);
@@ -175,10 +208,21 @@ static void _build_distance_graph(const PARSE_OPTIONS *Options, PKMER_GRAPH Grap
 }
 
 
-static void _shortest_path(PPOINTER_ARRAY_KMER_VERTEX *Vertices, const size_t NumberOfVertices, PGEN_ARRAY_DISTANCE_RECORD Distances, const size_t DistanceCount, PKMER_VERTEX *Path)
+/** @brief
+ *  Retrieves the shortest path found previously in the helper graph. This is equivalent
+ *  to selection of representatives in all the M_i sets.
+ *
+ *  @param VertexSets Vertex sets associated to individual k-mers of the read.
+ *  @param VertexSetCount Number of the vertex sets.
+ *  @param hGraph The helper graph.
+ *  @param LayerCount Number of layers in the helper graph.
+ *  @param Path Receives the shortest path as a sequence of vertices representing the
+ *  read in the graph.
+ */
+static void _shortest_path(PPOINTER_ARRAY_KMER_VERTEX *VertexSets, const size_t VertexSetCount, PGEN_ARRAY_DISTANCE_RECORD hGraph, const size_t LayersCount, PKMER_VERTEX *Path)
 {
 	const DISTANCE_RECORD *tmpRec = NULL;
-	PGEN_ARRAY_DISTANCE_RECORD currentD = Distances + DistanceCount - 1;
+	PGEN_ARRAY_DISTANCE_RECORD currentD = hGraph + LayersCount - 1;
 	const DISTANCE_RECORD *cdr = currentD->Data;
 	size_t minDistance = 0xffffffff;
 
@@ -192,25 +236,25 @@ static void _shortest_path(PPOINTER_ARRAY_KMER_VERTEX *Vertices, const size_t Nu
 	}
 
 	Path[tmpRec->Index] = tmpRec->Vertex;
-	for (size_t j = tmpRec->Index + 1; j < NumberOfVertices; ++j)
-		Path[j] = Vertices[j]->Data[0];
+	for (size_t j = tmpRec->Index + 1; j < VertexSetCount; ++j)
+		Path[j] = VertexSets[j]->Data[0];
 
 	size_t lastRSIndex = tmpRec->Index;
 
-	currentD = Distances + DistanceCount - 2;
-	for (size_t i = 0; i + 1 < DistanceCount; ++i) {
+	currentD = hGraph + LayersCount - 2;
+	for (size_t i = 0; i + 1 < LayersCount; ++i) {
 		tmpRec = &currentD->Data[tmpRec->BackIndex];
 
 		Path[tmpRec->Index] = tmpRec->Vertex;
 		for (size_t j = tmpRec->Index + 1; j < lastRSIndex; ++j)
-			Path[j] = Vertices[j]->Data[0];
+			Path[j] = VertexSets[j]->Data[0];
 
 		lastRSIndex = tmpRec->Index;
 		--currentD;
 	}
 
 	for (size_t j = 0; j < lastRSIndex; ++j)
-		Path[j] = Vertices[j]->Data[0];
+		Path[j] = VertexSets[j]->Data[0];
 
 	return;
 }
@@ -228,11 +272,11 @@ static ERR_VALUE _find_best_path(const PARSE_OPTIONS *Options, PKMER_GRAPH Graph
 				++rsVertexCount;
 		}
 
-		ret = _init_distance_arrays(Vertices, NumberOfVertices, rsVertexCount, &distances);
+		ret = _helper_graph_init(Vertices, NumberOfVertices, rsVertexCount, &distances);
 		if (ret == ERR_SUCCESS) {
 			PKMER_VERTEX *tmpResult = NULL;
 
-			_build_distance_graph(Options, Graph, distances, rsVertexCount, Vertices, NumberOfVertices);
+			_helper_graph_build(Options, Graph, distances, rsVertexCount, Vertices, NumberOfVertices);
 			ret = utils_calloc_PKMER_VERTEX(NumberOfVertices, &tmpResult);
 			if (ret == ERR_SUCCESS) {
 				_shortest_path(Vertices, NumberOfVertices, distances, rsVertexCount, tmpResult);
@@ -240,7 +284,7 @@ static ERR_VALUE _find_best_path(const PARSE_OPTIONS *Options, PKMER_GRAPH Graph
 				*ResultLength = NumberOfVertices;
 			}
 
-			_finit_distance_arrays(distances, rsVertexCount);
+			_helper_graph_finit(distances, rsVertexCount);
 		}
 	} else {
 		PKMER_VERTEX *tmpResult = NULL;
@@ -259,6 +303,10 @@ static ERR_VALUE _find_best_path(const PARSE_OPTIONS *Options, PKMER_GRAPH Graph
 }
 
 
+/** @brief
+ *  Assign a vertex set to a given k-mer.
+ *
+ */
 static ERR_VALUE _assign_vertice_set_to_kmer(PKMER_GRAPH Graph, const KMER *KMer, PPOINTER_ARRAY_KMER_VERTEX *Vertices, const size_t Index, const PARSE_OPTIONS *Options, size_t *SetSize)
 {
 	ERR_VALUE ret = ERR_INTERNAL_ERROR;
@@ -460,7 +508,7 @@ static ERR_VALUE _create_long_edge(PKMER_GRAPH Graph, PKMER_VERTEX U, PKMER_VERT
 		if (rsLen == e->SeqLen && memcmp(Read->ReadSequence + StartIndex, e->Seq, rsLen*sizeof(char)) == 0) {
 			ret = ERR_SUCCESS;
 		} else {
-			printf("ONE EDGE - TWO SEQS\n");
+//			printf("ONE EDGE - TWO SEQS\n");
 //			exit(0);
 			ret = ERR_SUCCESS;
 		}
@@ -598,6 +646,22 @@ static ERR_VALUE _mark_long_edge_flags(const PARSE_OPTIONS *Options, const PKMER
 }
 
 
+/** @brief
+ *  Connect possible bubbles and attempts to bypass repeats.
+ *
+ *  @param Graph The de Bruijn graph.
+ *  @param Vertices Vertices representing the read.
+ *  @param Edges Edges connecting the read vertices.
+ *  @param LongFlags For each read edge, defines a bit field indicating whether a
+ *  connecting edge should start or end there.
+ *  @param NumberOfvertices Number of read vertices.
+ *  @param Read The read.
+ *  @param ReadIndex The read index.
+ *  @param PairArray Receives information about the created connecting edges.
+ *
+ *  @remark
+ *  The LongFlags data are initialized by the _mark_long_edge_flags routine.
+ */
 static ERR_VALUE _create_long_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertices, PKMER_EDGE *Edges, const uint8_t *LongFlags, const size_t NumberOfVertices, const ONE_READ *Read, const size_t ReadIndex, PGEN_ARRAY_KMER_EDGE_PAIR PairArray)
 {
 	PKMER_EDGE e = NULL;
@@ -680,6 +744,16 @@ static ERR_VALUE _create_long_read_edges(PKMER_GRAPH Graph, PKMER_VERTEX *Vertic
 }
 
 
+/** @brief
+ *  Inserts helper vertices into the sequence of vertices and edges of a read.
+ *
+ *  @param Graph The main de Bruijn graph.
+ *  @param pVertices Address of the read vertex array, will be updated by helper ones.
+ *  @param pEdges Address of the read edge array, will be updated by edges connecting the
+ *  helper vertices.
+ *  @param pNumberOfVertices Number of vertices representing the read. Will be updated to reflect
+ *  addition of the helper vertices.
+ */
 static ERR_VALUE _add_read_helper_vertices(PKMER_GRAPH Graph, PKMER_VERTEX **pVertices, PKMER_EDGE **pEdges, size_t *pNumberOfVertices)
 {
 	boolean split = FALSE;

@@ -163,7 +163,6 @@
     <ClCompile Include="..\shared\kthread.c" />
     <ClCompile Include="..\shared\options.c" />
     <ClCompile Include="..\shared\reads.c" />
-    <ClCompile Include="..\shared\sam-index.c" />
     <ClCompile Include="..\shared\utils.c" />
     <ClCompile Include="gassm2.c" />
   </ItemGroup>
@@ -177,7 +176,6 @@
     <ClInclude Include="..\shared\kthread.h" />
     <ClInclude Include="..\shared\options.h" />
     <ClInclude Include="..\shared\reads.h" />
-    <ClInclude Include="..\shared\sam-index.h" />
     <ClInclude Include="..\shared\utils.h" />
     <ClInclude Include="gassm2.h" />
   </ItemGroup>

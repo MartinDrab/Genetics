@@ -17,7 +17,6 @@ OBJ=\
 	$(SHAREDOBJDIR)/input-file.o \
 	$(SHAREDOBJDIR)/reads.o \
 	$(SHAREDOBJDIR)/kthread.o \
-	$(SHAREDOBJDIR)/ksw.o \
 	$(OBJDIR)/gassm2.o \
 
 

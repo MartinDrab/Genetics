@@ -34,20 +34,49 @@
 /*                  OPTION DESCRIPTION                                  */
 /************************************************************************/
 
-#define PROGRAM_OPTION_KMERSIZE_DESC					"Initial k-mer size"
-#define PROGRAM_OPTION_SEQFILE_DESC						"File (FASTA) containing a reference sequence"
-#define PROGRAM_OPTION_SEQLEN_DESC						"Length of a reference sequence or an active region"
+#define PROGRAM_OPTION_KMERSIZE_DESC					"Initial k-mer size (21...100)"
+#define PROGRAM_OPTION_SEQFILE_DESC						"File (FASTA) containing the reference sequence"
+#define PROGRAM_OPTION_SEQLEN_DESC						"Length of a reference sequence or an active region (500..50000)"
 #define PROGRAM_OPTION_THRESHOLD_DESC					"Global threshold"
 #define PROGRAM_OPTION_READFILE_DESC					"Name of a file (SAM) that contains reads. Valid only for non-test mode."
-#define PROGRAM_OPTION_OUTPUT_DIRECTORY_DESC			"Base output directory"
+#define PROGRAM_OPTION_OUTPUT_DIRECTORY_DESC			"Directory for debug outputs"
 #define PROGRAM_OPTION_VCFFILE_DESC						"VCF file name"
-#define PROGRAM_OPTION_NO_SHORT_VARIANTS_DESC			"Do not Optimize for short variants"
+#define PROGRAM_OPTION_NO_SHORT_VARIANTS_DESC			"Do not optimize for short variants"
 #define PROGRAM_OPTION_LOW_QUALITY_VARIANT_DESC			"Maximum number of supporting reads for low quality variants"
 #define PROGRAM_OPTION_BINOM_THRESHOLD_DESC				"Binomial threshold (0..100)"
+#define PROGRAM_OPTION_READ_POS_QUALITY_DESC			"Minimal mapping quality of accepted reads"
 
 /************************************************************************/
 /*                                                                      */
 /************************************************************************/
+
+#define GRAPH_PRINT_REFERENCE			0x1
+#define GRAPH_PRINT_RAW_READS			0x2
+#define GRAPH_PRINT_HELPER				0x4
+#define GRAPH_PRINT_LONG_EDGES			0X8
+#define GRAPH_PRINT_THRESHOLD_1			0x10
+#define GRAPH_PRINT_CONNECT				0x20
+#define GRAPH_PRINT_THRESHOLD_2			0x40
+#define GRAPH_PRINT_SHRINK				0x80
+#define GRAPH_PRINT_VARIANTS			0x100
+#define GRAPH_PRINT_RESULT				0x200
+
+#define GRAPH_PRINT_ALL	(														\
+	GRAPH_PRINT_LONG_EDGES | GRAPH_PRINT_THRESHOLD_1 | GRAPH_PRINT_CONNECT |	\
+	GRAPH_PRINT_THRESHOLD_2 | GRAPH_PRINT_SHRINK | GRAPH_PRINT_VARIANTS)		\
+
+
+/************************************************************************/
+/*                                                                      */
+/************************************************************************/
+
+
+typedef enum _EGassm2CommandType {
+	gctUnknown,
+	gctHelp,
+	gctCall,
+	gctCorrect,
+} EGassm2CommandType, *PEGassm2CommandType;
 
 typedef struct _PROGRAM_OPTIONS {
 	const char *OutputDirectoryBase;

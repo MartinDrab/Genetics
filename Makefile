@@ -10,21 +10,14 @@ all: 1 2 3
 
 
 3: 1 2
+	
 	echo "Building GASSMv2"
 	cd gassm2; make; cd ..
 
 
-4:
-	@echo "Building VCFFIX"
-	cd vcffix; make; cd ..
-
-5:
-	@echo "Building VCFCMP"
-	cd vcfcmp; make; cd ..
 
 clean:
 	cd gassm2; make clean; cd ..
 	cd libkmer; make clean; cd ..
 	cd librcorrect; make clean; cd ..
-	cd vcffix; make clean; cd ..
-	cd vcfcmp; make clean; cd ..
+	cd lib; rm *; cd ..

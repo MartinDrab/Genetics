@@ -30,9 +30,6 @@
     <ClCompile Include="..\shared\reads.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\shared\sam-index.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\shared\kthread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -63,9 +60,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\gen_dym_array.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\shared\sam-index.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\shared\kthread.h">

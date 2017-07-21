@@ -15,7 +15,7 @@ OBJ=\
 	$(SHAREDOBJDIR)/drand48.o \
 	$(SHAREDOBJDIR)/kthread.o \
 	$(OBJDIR)/assembly.o \
-	$(OBJDIR)/found-sequence.o \
+	$(OBJDIR)/variant.o \
 	$(OBJDIR)/kmer-short.o \
 	$(OBJDIR)/kmer-debug.o \
 	$(OBJDIR)/kmer-edge.o \

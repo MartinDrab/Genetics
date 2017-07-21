@@ -20,7 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\shared\file-utils.c" />
-    <ClCompile Include="..\shared\ksw.c" />
     <ClCompile Include="..\shared\utils-lookaside.c" />
     <ClCompile Include="..\shared\utils.c" />
     <ClCompile Include="assembly.c" />
@@ -59,7 +58,6 @@
     <ClInclude Include="..\include\variant-graph.h" />
     <ClInclude Include="..\shared\err.h" />
     <ClInclude Include="..\shared\file-utils.h" />
-    <ClInclude Include="..\shared\ksw.h" />
     <ClInclude Include="..\shared\utils-lookaside.h" />
     <ClInclude Include="..\shared\utils.h" />
     <ClInclude Include="graph-reads.h" />

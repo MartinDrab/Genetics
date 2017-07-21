@@ -48,9 +48,6 @@
     <ClCompile Include="variant-graph.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\shared\ksw.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="kmer-debug.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -111,9 +108,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\shared\utils-lookaside.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\shared\ksw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\kmer-base.h">
